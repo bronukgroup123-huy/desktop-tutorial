@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/server": "^1.7.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0"
   }
