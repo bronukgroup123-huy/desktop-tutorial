@@ -1121,3 +1121,12 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
           </div>
         </div>
       </section>
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js';
+      const SUPABASE_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co';
+      const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_NDa_DqIkfc3wEeOxTV9VAQ_YPjp_HJp';
+      window.supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      console.log('Supabase client initialized', window.supabase);
+    </script>
+  </body>
+</html>
