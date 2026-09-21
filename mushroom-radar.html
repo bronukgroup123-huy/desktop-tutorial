@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Грибний Радар — Безпечний цифровий компаньйон грибника</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        cream: { 50: '#FBF8F1', 100: '#F7F4EC', 200: '#F5E6D0', 300: '#E5DFD0', 400: '#EAE3D2' },
+        forest: { dark: '#2F4A3A', DEFAULT: '#4A6B54', light: '#DCE6DC' },
+        amberbrand: '#C97A2B',
+        bark: '#8B5E34',
+        sos: '#A8471F',
+        ink: { DEFAULT: '#1E1E1A', muted: '#6B6659' }
+      },
+      fontFamily: {
+        serif: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif']
+      },
+      boxShadow: {
+        soft: '0 4px 20px rgba(47, 74, 58, 0.06)',
+        lift: '0 10px 30px rgba(47, 74, 58, 0.10)',
+        shell: '0 40px 100px rgba(47, 74, 58, 0.18), 0 8px 24px rgba(47, 74, 58, 0.10)'
+      }
+    }
+  }
+}
+</script>
+<style>
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
+.font-serif { font-family: 'Fraunces', Georgia, serif; }
+
+.desktop-bg {
+  background: linear-gradient(135deg, #EFE9DB 0%, #E4DDC9 60%, #D9CFB8 100%);
+  min-height: 100vh;
+  position: relative;
+}
+@media (min-width: 601px) {
+  .desktop-bg { display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+  .app-shell {
+    width: 520px;
+    height: 92vh;
+    max-height: 940px;
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(47, 74, 58, 0.22), 0 10px 28px rgba(47, 74, 58, 0.10);
+    overflow: hidden;
+    position: relative;
+  }
+}
+@media (max-width: 600px) {
+  .app-shell { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+}
+
+.screen {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 280ms cubic-bezier(.4,0,.2,1), transform 280ms cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.screen.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid #E5DFD0;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(47, 74, 58, 0.06);
+}
+.card-hover { transition: transform 220ms ease, box-shadow 220ms ease; cursor: pointer; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(47, 74, 58, 0.10); }
+
+.btn-primary {
+  background: #C97A2B; color: #FFFFFF; border-radius: 14px;
+  font-weight: 600; letter-spacing: 0.01em;
+  transition: transform 180ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+.btn-primary:hover { background: #B56A20; transform: scale(1.02); box-shadow: 0 8px 22px rgba(201,122,43,0.32); }
+.btn-primary:active { transform: scale(0.99); }
+
+.btn-secondary {
+  background: #F5E6D0; color: #2F4A3A; border-radius: 12px;
+  font-weight: 600; transition: transform 180ms ease, background 200ms ease;
+}
+.btn-secondary:hover { background: #EAD7B3; transform: scale(1.02); }
+
+.btn-ghost {
+  background: transparent; color: #2F4A3A; border: 1px solid #E5DFD0; border-radius: 12px;
+  font-weight: 500; transition: all 200ms ease;
+}
+.btn-ghost:hover { background: #FBF8F1; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.01em;
+}
+.badge-green { background: #DCE6DC; color: #2F4A3A; }
+.badge-amber { background: #F5E6D0; color: #8B5E34; }
+.badge-red { background: #F5D8CC; color: #A8471F; }
+.badge-yellow { background: #F2E5B8; color: #7A5E17; }
+.badge-neutral { background: #F5F2EA; color: #6B6659; }
+
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 4px 8px; color: #6B6659; font-size: 10px; font-weight: 500;
+  transition: color 220ms ease; position: relative;
+}
+.tab-btn svg { transition: transform 220ms ease; }
+.tab-btn.active { color: #C97A2B; }
+.tab-btn.active::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 3px; border-radius: 0 0 3px 3px; background: #C97A2B;
+}
+.tab-btn.active svg { transform: translateY(-1px); }
+
+@keyframes sos-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168, 71, 31, 0.42); }
+  50% { box-shadow: 0 0 0 16px rgba(168, 71, 31, 0); }
+}
+.sos-pulse { animation: sos-pulse 2.6s ease-in-out infinite; }
+
+@keyframes leaf-float-1 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(18px, -22px) rotate(14deg); }
+}
+@keyframes leaf-float-2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-24px, 26px) rotate(-18deg); }
+}
+@keyframes leaf-float-3 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(22px, 18px) rotate(9deg); }
+}
+.leaf-1 { animation: leaf-float-1 14s ease-in-out infinite; }
+.leaf-2 { animation: leaf-float-2 17s ease-in-out infinite; }
+.leaf-3 { animation: leaf-float-3 20s ease-in-out infinite; }
+
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.6); opacity: 0; }
+}
+.dot-halo { animation: dot-pulse 2.8s ease-in-out infinite; }
+
+.progress-track { background: #E5DFD0; height: 6px; border-radius: 999px; overflow: hidden; }
+.progress-fill { background: linear-gradient(90deg, #C97A2B, #E9A96A); height: 100%; border-radius: 999px; }
+
+.chip {
+  padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E5DFD0;
+  color: #6B6659; font-size: 12px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all 200ms ease; cursor: pointer; white-space: nowrap;
+}
+.chip:hover { background: #F5E6D0; color: #2F4A3A; border-color: #E5DFD0; }
+.chip.active { background: #2F4A3A; color: #FFFFFF; border-color: #2F4A3A; }
+.chip.active:hover { background: #2F4A3A; color: #FFFFFF; }
+
+.layer-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 999px; background: #FFFFFF;
+  border: 1px solid #E5DFD0; color: #6B6659; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 200ms ease; white-space: nowrap;
+}
+.layer-toggle.on { background: #2F4A3A; color: #FFFFFF; border-color: #2F4A3A; }
+
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { scrollbar-width: none; -ms-overflow-style: none; }
+
+.app-bar {
+  padding: 18px 20px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #6B6659; background: transparent; transition: all 200ms ease;
+}
+.icon-btn:hover { background: #F5E6D0; color: #2F4A3A; }
+
+.dot-marked {
+  width: 12px; height: 12px; border-radius: 999px; position: absolute;
+  border: 2px solid #FFFFFF; box-shadow: 0 2px 6px rgba(47,74,58,0.25); cursor: pointer;
+  transition: transform 180ms ease;
+}
+.dot-marked:hover { transform: scale(1.25); }
+
+.map-patch { filter: drop-shadow(0 2px 4px rgba(47,74,58,0.08)); }
+
+.leaf-svg { opacity: 0.35; pointer-events: none; }
+
+.divider-dot { display: inline-block; width: 3px; height: 3px; border-radius: 999px; background: #C8BFA6; }
+
+.guide-thumb {
+  aspect-ratio: 1 / 1; border-radius: 12px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+
+.avatar {
+  width: 36px; height: 36px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px; color: #FFFFFF; flex-shrink: 0;
+}
+
+.trophy-thumb {
+  aspect-ratio: 4 / 3; border-radius: 12px;
+  display: flex; align-items: flex-end; padding: 10px;
+  position: relative; overflow: hidden;
+}
+
+.track-dash { stroke-dasharray: 4 5; }
+
+.safety-card {
+  background: linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px; backdrop-filter: blur(6px);
+}
+</style>
+</head>
+<body class="bg-cream-100 font-sans">
+<div class="desktop-bg">
+<div class="app-shell bg-cream-100 relative">
+
+<!-- ============ WELCOME SCREEN ============ -->
+<section id="screen-welcome" class="screen active bg-cream-100 overflow-hidden">
+  <!-- Background leaves -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <svg class="leaf-svg leaf-1 absolute -top-4 -left-6 w-32 h-32 text-bark" viewBox="0 0 100 100" fill="currentColor"><path d="M50 8 C 30 14, 18 34, 20 60 C 22 78, 34 90, 50 92 C 66 90, 78 78, 80 60 C 82 34, 70 14, 50 8 Z" opacity="0.55"/><path d="M50 12 L 50 88" stroke="#F7F4EC" stroke-width="1.5" opacity="0.5"/><path d="M50 30 L 34 40 M50 46 L 32 56 M50 62 L 34 70 M50 30 L 66 40 M50 46 L 68 56 M50 62 L 66 70" stroke="#F7F4EC" stroke-width="1" opacity="0.5"/></svg>
+    <svg class="leaf-svg leaf-2 absolute top-40 -right-10 w-40 h-40 text-forest" viewBox="0 0 100 100" fill="currentColor"><path d="M20 30 C 30 20, 50 20, 66 32 C 82 44, 86 62, 80 76 C 74 90, 54 92, 38 82 C 22 72, 14 58, 20 30 Z" opacity="0.4"/><path d="M26 36 C 46 50, 66 66, 80 78" stroke="#F7F4EC" stroke-width="1.2" fill="none" opacity="0.5"/></svg>
+    <svg class="leaf-svg leaf-3 absolute bottom-24 -left-4 w-28 h-28 text-amberbrand" viewBox="0 0 100 100" fill="currentColor"><path d="M50 10 C 66 18, 82 42, 78 62 C 74 78, 58 90, 46 84 C 32 78, 22 60, 24 42 C 26 28, 38 14, 50 10 Z" opacity="0.4"/></svg>
+    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 30% 20%, rgba(245, 230, 208, 0.55) 0%, transparent 55%), radial-gradient(ellipse at 70% 80%, rgba(220, 230, 220, 0.45) 0%, transparent 55%);"></div>
+  </div>
+
+  <div class="relative flex-1 flex flex-col px-6 py-14 overflow-y-auto scroll-hide">
+    <!-- Logo -->
+    <div class="flex flex-col items-center text-center mt-6">
+      <div class="relative mb-6">
+        <div class="absolute -inset-3 rounded-full" style="background: radial-gradient(circle at 50% 40%, rgba(201,122,43,0.20), transparent 65%);"></div>
+        <div class="relative w-20 h-20 rounded-[26px] bg-white flex items-center justify-center shadow-lift border border-cream-300">
+          <!-- Mushroom icon -->
+          <svg viewBox="0 0 48 48" class="w-12 h-12" fill="none">
+            <path d="M24 6 C 12 6, 5 14, 5 22 C 5 24, 6 25.5, 8 26 L 40 26 C 42 25.5, 43 24, 43 22 C 43 14, 36 6, 24 6 Z" fill="#8B5E34"/>
+            <path d="M24 6 C 12 6, 5 14, 5 22 C 5 23, 5.5 24, 6.2 24.5 C 8 20, 14 17, 24 17 C 34 17, 40 20, 41.8 24.5 C 42.5 24, 43 23, 43 22 C 43 14, 36 6, 24 6 Z" fill="#A97046" opacity="0.5"/>
+            <rect x="17" y="26" width="14" height="14" rx="3" fill="#F5E6D0"/>
+            <path d="M17 40 C 17 41.5, 18 42, 19 42 L 29 42 C 30 42, 31 41.5, 31 40" stroke="#E5DFD0" stroke-width="1" fill="none"/>
+            <circle cx="13" cy="17" r="1.8" fill="#F7F4EC"/>
+            <circle cx="20" cy="13" r="1.5" fill="#F7F4EC"/>
+            <circle cx="27" cy="14" r="1.6" fill="#F7F4EC"/>
+            <circle cx="34" cy="17" r="1.4" fill="#F7F4EC"/>
+            <circle cx="37" cy="22" r="1.2" fill="#F7F4EC"/>
+          </svg>
+        </div>
+      </div>
+      <h1 class="font-serif font-semibold text-forest-dark tracking-tight" style="font-size: 40px; line-height: 1.05;">
+        Грибний <em class="font-serif italic text-amberbrand font-medium">Радар</em>
+      </h1>
+      <p class="mt-3 text-ink-muted max-w-xs" style="font-size: 15px; line-height: 1.5;">
+        Безпечний цифровий компаньйон грибника.
+      </p>
+    </div>
+
+    <!-- Benefits -->
+    <div class="mt-10 grid grid-cols-3 gap-2.5">
+      <div class="card p-3 flex flex-col items-center text-center">
+        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 12 22"/><path d="M5 9 L 12 2 L 19 9"/><path d="M5 9 L 12 16 L 19 9"/></svg>
+        </div>
+        <div class="text-[12px] font-semibold text-forest-dark">Офлайн</div>
+        <div class="text-[10px] text-ink-muted mt-0.5">Картка та ШІ без інтернету</div>
+      </div>
+      <div class="card p-3 flex flex-col items-center text-center">
+        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <div class="text-[12px] font-semibold text-forest-dark">Приватно</div>
+        <div class="text-[10px] text-ink-muted mt-0.5">Твої точки — тільки ти</div>
+      </div>
+      <div class="card p-3 flex flex-col items-center text-center">
+        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 4 6 L 4 12 C 4 17, 8 21, 12 22 C 16 21, 20 17, 20 12 L 20 6 Z"/><path d="M9 12 L 11 14 L 15 10"/></svg>
+        </div>
+        <div class="text-[12px] font-semibold text-forest-dark">Безпека</div>
+        <div class="text-[10px] text-ink-muted mt-0.5">Наглядач та SOS</div>
+      </div>
+    </div>
+
+    <!-- Spacer -->
+    <div class="flex-1"></div>
+
+    <!-- CTA -->
+    <div class="pb-2 pt-6 flex flex-col items-center gap-3">
+      <button id="btn-start" class="btn-primary w-full py-4 px-6 flex items-center justify-center gap-2" style="font-size: 16px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        Знайти гриб
+      </button>
+      <p class="text-center text-[11px] text-ink-muted leading-relaxed max-w-xs px-4" style="line-height: 1.45;">
+        Прогноз ймовірнісний. Визначення гриба — твоя відповідальність.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APP INTERFACE ============ -->
+<div id="screen-app" class="screen">
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <main id="main-scroll" class="flex-1 overflow-y-auto scroll-hide pb-24">
+
+      <!-- TAB 1: PROGNOS -->
+      <section id="tab-forecast" class="tab-panel">
+        <div class="app-bar">
+          <div>
+            <div class="text-[11px] text-ink-muted font-medium">Вівторок, 5 жовтня</div>
+            <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Прогноз</h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="icon-btn" aria-label="Пошук">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+            </button>
+            <button class="icon-btn" aria-label="Налаштування">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M2 14h4 M10 8h4 M18 16h4"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-5 space-y-3">
+          <button class="card w-full p-3.5 flex items-center justify-between card-hover">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-forest-light flex items-center justify-center text-forest-dark flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div class="min-w-0 text-left">
+                <div class="text-[14px] font-semibold text-forest-dark truncate">Сосновий бір, Житомирська область</div>
+                <div class="text-[12px] text-ink-muted">55.84N · 28.62E · 25 років</div>
+              </div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <div class="card overflow-hidden">
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #8B5E34, #A97046);">
+                    <svg viewBox="0 0 48 48" class="w-10 h-10" fill="none">
+                      <path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#F5E6D0"/>
+                      <rect x="18" y="25" width="12" height="14" rx="3" fill="#FBF8F1"/>
+                      <circle cx="14" cy="18" r="1.6" fill="#2F4A3A"/>
+                      <circle cx="21" cy="14" r="1.4" fill="#2F4A3A"/>
+                      <circle cx="29" cy="15" r="1.5" fill="#2F4A3A"/>
+                      <circle cx="35" cy="19" r="1.3" fill="#2F4A3A"/>
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 22px;">Білий гриб</h3>
+                    <div class="text-[12px] text-ink-muted italic font-serif">Boletus edulis</div>
+                  </div>
+                </div>
+                <span class="badge badge-green whitespace-nowrap">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/></svg>
+                  Висока ймовірність
+                </span>
+              </div>
+
+              <div class="mt-4">
+                <div class="flex items-center justify-between text-[11px] text-ink-muted mb-1.5">
+                  <span>Ймовірність поява</span>
+                  <span class="font-semibold text-forest-dark">78%</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width: 78%;"></div></div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div class="flex gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-6.5-8-12a8 8 0 0 1 16 0c0 5.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                  </div>
+                  <div>
+                    <div class="text-[11px] text-ink-muted font-medium">Де</div>
+                    <div class="text-[13px] text-forest-dark">Низини, струмки, мох-сфагнум, густа тінь</div>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  </div>
+                  <div>
+                    <div class="text-[11px] text-ink-muted font-medium">Коли</div>
+                    <div class="text-[13px] text-forest-dark">Зараз — 3 дні після дощу</div>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>
+                  </div>
+                  <div>
+                    <div class="text-[11px] text-ink-muted font-medium">Чому</div>
+                    <ul class="mt-1 space-y-1">
+                      <li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Дощ після 14 днів посухи</li>
+                      <li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Осіння хвиля активності</li>
+                      <li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Молодий сосняк 25-30 років</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn-secondary w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-[13px]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>
+                Відкрити в довіднику
+              </button>
+            </div>
+          </div>
+
+          <div class="card p-3.5 flex items-center gap-3 card-hover">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #4A6B54, #6B8570);">
+              <svg viewBox="0 0 48 48" class="w-8 h-8" fill="none">
+                <path d="M24 10 C 15 10, 10 15, 10 20 C 10 22, 11 23, 13 23 L 35 23 C 37 23, 38 22, 38 20 C 38 15, 33 10, 24 10 Z" fill="#C97A2B"/>
+                <rect x="20" y="23" width="8" height="16" rx="2" fill="#F5E6D0"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <div class="font-serif font-semibold text-forest-dark text-[15px]">Маслюк звичайний</div>
+                <span class="badge badge-amber text-[10px]">Середня</span>
+              </div>
+              <div class="text-[12px] text-ink-muted italic font-serif">Suillus luteus</div>
+            </div>
+          </div>
+
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0 0-9 6 6 0 0 0-11.6 1.5A4 4 0 0 0 6 19z"/></svg>
+                <div class="text-[12px] font-semibold text-forest-dark">Погода в зоні</div>
+              </div>
+              <span class="text-[10px] text-ink-muted">обновлено 12:00</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-center">
+              <div class="p-2 rounded-xl bg-cream-50">
+                <div class="text-[10px] text-ink-muted">Днесь</div>
+                <div class="text-[18px] font-semibold text-forest-dark">-2</div>
+                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
+                  82%
+                </div>
+              </div>
+              <div class="p-2 rounded-xl bg-cream-50">
+                <div class="text-[10px] text-ink-muted">Середа</div>
+                <div class="text-[18px] font-semibold text-forest-dark">-1</div>
+                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a5 5 0 0 1 .8-9.5A7 7 0 0 1 20 9a4.5 4.5 0 0 1 0 9H7z"/></svg>
+                  64%
+                </div>
+              </div>
+              <div class="p-2 rounded-xl bg-cream-50">
+                <div class="text-[10px] text-ink-muted">Четвер</div>
+                <div class="text-[18px] font-semibold text-forest-dark">-3</div>
+                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
+                  71%
+                </div>
+              </div>
+              <div class="p-2 rounded-xl bg-cream-50">
+                <div class="text-[10px] text-ink-muted">Птниця</div>
+                <div class="text-[18px] font-semibold text-forest-dark">-2</div>
+                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4"/></svg>
+                  48%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
+            <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MAP -->
+      <section id="tab-map" class="tab-panel">
+        <div class="app-bar">
+          <div>
+            <div class="text-[11px] text-ink-muted font-medium">55.84N · 28.62E</div>
+            <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Карта</h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="icon-btn" aria-label="Оновити">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Layer toggles -->
+        <div class="px-5 pb-3 flex gap-2 overflow-x-auto scroll-hide">
+          <button class="layer-toggle on"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 7v10l8 5 8-5V7z"/></svg>Тип лісу</button>
+          <button class="layer-toggle on"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>Теплова</button>
+          <button class="layer-toggle on"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Мої точки</button>
+        </div>
+
+        <!-- Map area -->
+        <div class="px-4 pb-3">
+          <div class="relative rounded-3xl overflow-hidden border border-cream-300 shadow-soft" style="height: 400px; background: linear-gradient(135deg, #F1EBDA 0%, #E8E1CC 100%);">
+            <!-- Stylized map SVG -->
+            <svg viewBox="0 0 400 400" class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
+              <!-- Roads -->
+              <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#D9CFB8" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#E5DFD0" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="6 4"/>
+              <path d="M180 -20 Q 200 100 180 220 T 220 420" stroke="#D9CFB8" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <!-- Water body -->
+              <path d="M280 340 Q 320 320 360 340 Q 390 360 380 390 L 300 400 Q 260 380 280 340 Z" fill="#B8D4D9" opacity="0.65"/>
+              <path d="M300 350 Q 320 345 340 355" stroke="currentColor" stroke-width="1" fill="none" opacity="0.35"/>
+              <!-- Forest patches -->
+              <path class="map-patch" d="M40 60 Q 100 40 160 80 Q 200 120 160 160 Q 100 200 40 170 Q 10 130 40 60 Z" fill="#4A6B54" opacity="0.55"/>
+              <path class="map-patch" d="M240 50 Q 300 40 340 90 Q 360 140 320 170 Q 260 180 220 140 Q 200 90 240 50 Z" fill="#4A6B54" opacity="0.55"/>
+              <path class="map-patch" d="M60 260 Q 130 240 200 270 Q 240 310 200 350 Q 130 370 60 340 Q 30 300 60 260 Z" fill="#2F4A3A" opacity="0.55"/>
+              <path class="map-patch" d="M300 250 Q 340 240 360 280 Q 370 320 330 340 Q 290 330 290 290 Q 290 260 300 250 Z" fill="#4A6B54" opacity="0.5"/>
+              <!-- Small trees -->
+              <g fill="#2F4A3A" opacity="0.35">
+                <circle cx="80" cy="100" r="5"/><circle cx="110" cy="130" r="4"/><circle cx="140" cy="90" r="5"/>
+                <circle cx="270" cy="90" r="5"/><circle cx="310" cy="120" r="4"/><circle cx="250" cy="130" r="5"/>
+                <circle cx="100" cy="290" r="5"/><circle cx="140" cy="310" r="4"/><circle cx="180" cy="290" r="5"/>
+              </g>
+              <!-- Compass -->
+              <g transform="translate(360, 40)" opacity="0.65">
+                <circle cx="0" cy="0" r="18" fill="#FFFFFF" stroke="#E5DFD0"/>
+                <path d="M0 -14 L 3 0 L 0 14 L -3 0 Z" fill="#A8471F"/>
+                <text x="0" y="-22" font-family="Inter" font-size="9" text-anchor="middle" fill="#6B6659">N</text>
+              </g>
+              <!-- Scale -->
+              <g transform="translate(30, 370)" opacity="0.7">
+                <line x1="0" y1="0" x2="60" y2="0" stroke="#6B6659" stroke-width="1.5"/>
+                <line x1="0" y1="-3" x2="0" y2="3" stroke="#6B6659" stroke-width="1.5"/>
+                <line x1="60" y1="-3" x2="60" y2="3" stroke="#6B6659" stroke-width="1.5"/>
+                <text x="30" y="14" font-family="Inter" font-size="9" text-anchor="middle" fill="#6B6659">500 м</text>
+              </g>
+            </svg>
+
+            <!-- Dots -->
+            <div id="map-dots" class="absolute inset-0" style="pointer-events: auto;">
+              <!-- Verified (green) -->
+              <button class="dot-marked map-dot" style="top: 22%; left: 18%; background: #4A6B54;" data-name="Білий гриб" data-time="2 дні тому" data-status="верифіковано" data-verified="true"></button>
+              <div class="absolute dot-halo" style="top: 22%; left: 18%; width: 12px; height: 12px; border-radius: 999px; background: rgba(74,107,84,0.5); transform: translate(-50%, -50%); pointer-events: none;"></div>
+              <button class="dot-marked map-dot" style="top: 30%; left: 62%; background: #4A6B54;" data-name="Білий гриб" data-time="4 дні тому" data-status="верифіковано" data-verified="true"></button>
+              <button class="dot-marked map-dot" style="top: 65%; left: 35%; background: #4A6B54;" data-name="Маслюк звичайний" data-time="1 тиждень тому" data-status="верифіковано" data-verified="true"></button>
+              <button class="dot-marked map-dot" style="top: 78%; left: 68%; background: #4A6B54;" data-name="Боровик чорний" data-time="3 дні тому" data-status="верифіковано" data-verified="true"></button>
+              <!-- Conditional (amber) -->
+              <button class="dot-marked map-dot" style="top: 42%; left: 28%; background: #C97A2B;" data-name="Маслюк звичайний" data-time="сьогодні" data-status="умовно" data-verified="false"></button>
+              <button class="dot-marked map-dot" style="top: 55%; left: 72%; background: #C97A2B;" data-name="Подберезовик" data-time="5 днів тому" data-status="умовно" data-verified="false"></button>
+              <button class="dot-marked map-dot" style="top: 20%; left: 45%; background: #C97A2B;" data-name="Білий гриб" data-time="1 день тому" data-status="умовно" data-verified="false"></button>
+              <!-- Expected (gray) -->
+              <button class="dot-marked map-dot" style="top: 38%; left: 12%; background: #8B7F6E;" data-name="Очікуваний ділянка" data-time="за прогнозом" data-status="очікувано" data-verified="false"></button>
+              <button class="dot-marked map-dot" style="top: 72%; left: 20%; background: #8B7F6E;" data-name="Очікуваний ділянка" data-time="за прогнозом" data-status="очікувано" data-verified="false"></button>
+              <button class="dot-marked map-dot" style="top: 60%; left: 88%; background: #8B7F6E;" data-name="Очікуваний ділянка" data-time="за прогнозом" data-status="очікувано" data-verified="false"></button>
+            </div>
+
+            <!-- FAB add -->
+            <button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-amberbrand text-white shadow-lift flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-10" aria-label="Додати знахідку">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14 M5 12h14"/></svg>
+            </button>
+
+            <!-- Legend -->
+            <div class="absolute bottom-3 left-3 card p-2.5 flex items-center gap-3 text-[10px]">
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#4A6B54;"></span><span class="text-ink-muted">Вериф.</span></div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#C97A2B;"></span><span class="text-ink-muted">Умовна</span></div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#8B7F6E;"></span><span class="text-ink-muted">Очікує</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom sheet card -->
+        <div id="dot-sheet" class="px-4">
+          <div class="card p-3.5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-forest-light flex items-center justify-center text-forest-dark flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[14px] font-semibold text-forest-dark" id="sheet-name">Білий гриб</div>
+              <div class="text-[11px] text-ink-muted flex items-center gap-1.5">
+                <span id="sheet-time">2 дні тому</span>
+                <span class="divider-dot"></span>
+                <span id="sheet-status" class="text-forest font-medium">верифіковано</span>
+              </div>
+            </div>
+            <button class="icon-btn" aria-label="Описати">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-5 pt-3 flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
+          <p class="text-[11px] text-ink-muted leading-relaxed">Мої точки видимі тільки тобі. Публікуючи знахідку — ти погоджуєшся з правилами спільноти.</p>
+        </div>
+      </section>
+
+      <!-- TAB 3: RECOGNIZE -->
+      <section id="tab-recognize" class="tab-panel">
+        <div class="app-bar">
+          <div>
+            <div class="text-[11px] text-ink-muted font-medium">ШІ-підказка, не діагноз</div>
+            <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Розпізнати</h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="icon-btn" aria-label="Історія">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-5 space-y-3">
+          <!-- Camera -->
+          <button class="card card-hover w-full relative overflow-hidden" style="height: 220px;">
+            <div class="absolute inset-0" style="background: linear-gradient(135deg, #2F4A3A 0%, #4A6B54 60%, #6B8570 100%);"></div>
+            <!-- Corner brackets -->
+            <div class="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-white/80"></div>
+            <div class="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-white/80"></div>
+            <div class="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-white/80"></div>
+            <div class="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-white/80"></div>
+            <!-- Center hint -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-white gap-2">
+              <div class="w-12 h-12 rounded-full bg-white/15 backdrop-blur flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div class="text-[15px] font-semibold">Зробити 3 фото</div>
+              <div class="text-[11px] opacity-80">Шапка · Ніжка · Зріз</div>
+            </div>
+          </button>
+
+          <!-- Result card -->
+          <div class="card p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #8B5E34, #A97046);">
+                <svg viewBox="0 0 48 48" class="w-10 h-10" fill="none">
+                  <path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#F5E6D0"/>
+                  <rect x="18" y="25" width="12" height="14" rx="3" fill="#FBF8F1"/>
+                  <circle cx="14" cy="18" r="1.6" fill="#2F4A3A"/>
+                  <circle cx="21" cy="14" r="1.4" fill="#2F4A3A"/>
+                  <circle cx="29" cy="15" r="1.5" fill="#2F4A3A"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="font-serif font-semibold text-forest-dark text-[17px]">Білий гриб</div>
+                  <div class="font-serif font-semibold text-amberbrand text-[20px]">82%</div>
+                </div>
+                <div class="text-[12px] text-ink-muted italic font-serif">Boletus edulis</div>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="badge badge-green">Ймовірно їстівний</span>
+                  <span class="badge badge-neutral">Перевірка потрібна</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex items-start gap-2 p-2.5 rounded-xl bg-cream-50 border border-cream-300">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A8471F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4 M12 17h.01"/></svg>
+              <p class="text-[11px] text-ink-muted leading-relaxed">Це не діагноз. Перевір у довіднику. Якщо сумніваєшся — не їж.</p>
+            </div>
+            <button class="btn-primary w-full mt-3 py-2.5 flex items-center justify-center gap-2 text-[13px]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Відкрити в довіднику
+            </button>
+          </div>
+
+          <!-- Guide header -->
+          <div class="pt-2">
+            <div class="flex items-center justify-between mb-2.5">
+              <h3 class="font-serif font-semibold text-forest-dark text-[17px]">Довідник грибів</h3>
+              <span class="text-[11px] text-ink-muted">289 видів</span>
+            </div>
+            <div class="relative mb-2.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" placeholder="Пошук гриба..." class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-cream-300 text-[13px] text-forest-dark placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-amberbrand/40 focus:border-amberbrand"/>
+            </div>
+            <div class="flex gap-1.5 overflow-x-auto scroll-hide mb-3">
+              <button class="chip active">Колір</button>
+              <button class="chip">Ніжка</button>
+              <button class="chip">Дереvo</button>
+              <button class="chip">Сезон</button>
+            </div>
+          </div>
+
+          <!-- Guide grid -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #8B5E34, #6B4324);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#F5E6D0"/><rect x="18" y="25" width="12" height="14" rx="3" fill="#FBF8F1"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Білий гриб</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Boletus edulis</div>
+              <span class="badge badge-green text-[10px]">Ймовірно їстівний</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #4A6B54, #2F4A3A);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 10 C 15 10, 10 15, 10 20 C 10 22, 11 23, 13 23 L 35 23 C 37 23, 38 22, 38 20 C 38 15, 33 10, 24 10 Z" fill="#C97A2B"/><rect x="20" y="23" width="8" height="16" rx="2" fill="#F5E6D0"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Маслюк звичайний</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Suillus luteus</div>
+              <span class="badge badge-green text-[10px]">Ймовірно їстівний</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #E9A96A, #C97A2B);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 14 8, 8 15, 8 22 C 8 25, 10 26, 12 26 L 36 26 C 38 26, 40 25, 40 22 C 40 15, 34 8, 24 8 Z" fill="#FFFFFF" opacity="0.85"/><rect x="19" y="26" width="10" height="13" rx="2" fill="#F7F4EC"/><path d="M20 26 L 20 39 M 22 26 L 22 39 M 24 26 L 24 39 M 26 26 L 26 39 M 28 26 L 28 39" stroke="#E5DFD0" stroke-width="0.5"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Печериця польова</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Agaricus arvensis</div>
+              <span class="badge badge-green text-[10px]">Ймовірно їстівна</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #E9A96A, #C97A2B);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 16, 7 22 C 7 24, 9 25, 11 25 L 37 25 C 39 25, 41 24, 41 22 C 41 16, 35 8, 24 8 Z" fill="#E9842A"/><rect x="19" y="25" width="10" height="14" rx="2" fill="#F5E6D0"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Лисичка звичайна</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Cantharellus cibarius</div>
+              <span class="badge badge-green text-[10px]">Ймовірно їстівна</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #4A3424, #2F2418);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#3A2418"/><rect x="18" y="25" width="12" height="14" rx="3" fill="#F5E6D0"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Боровик чорний</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Imleria badia</div>
+              <span class="badge badge-green text-[10px]">Ймовірно їстівний</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #E5DFD0, #C8BFA6);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 16, 7 22 C 7 25, 9 26, 11 26 L 37 26 C 39 26, 41 25, 41 22 C 41 16, 35 8, 24 8 Z" fill="#F5F1E5"/><rect x="19" y="26" width="10" height="13" rx="2" fill="#FBF8F1"/><path d="M20 26 L 20 39 M 23 26 L 23 39 M 25 26 L 25 39 M 28 26 L 28 39" stroke="#E5DFD0" stroke-width="0.5"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Бледя біла</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Amanita phalloides</div>
+              <span class="badge badge-red text-[10px]">Отруйна</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #D66D4A, #A8471F);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 16, 7 22 C 7 25, 9 26, 11 26 L 37 26 C 39 26, 41 25, 41 22 C 41 16, 35 8, 24 8 Z" fill="#A8471F"/><rect x="19" y="26" width="10" height="13" rx="2" fill="#FBF8F1"/><circle cx="14" cy="18" r="1.5" fill="#FFFFFF"/><circle cx="22" cy="14" r="1.4" fill="#FFFFFF"/><circle cx="30" cy="16" r="1.4" fill="#FFFFFF"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Мухомор червоний</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Amanita muscaria</div>
+              <span class="badge badge-red text-[10px]">Отруйний</span>
+            </div>
+            <div class="card p-2.5 card-hover">
+              <div class="guide-thumb mb-2" style="background: linear-gradient(135deg, #8B7F6E, #6B5F4E);">
+                <svg viewBox="0 0 48 48" class="w-14 h-14" fill="none"><path d="M24 8 C 13 8, 7 16, 7 22 C 7 25, 9 26, 11 26 L 37 26 C 39 26, 41 25, 41 22 C 41 16, 35 8, 24 8 Z" fill="#8B7F6E"/><rect x="19" y="26" width="10" height="13" rx="2" fill="#FBF8F1"/></svg>
+              </div>
+              <div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">Волохатка сиза</div>
+              <div class="text-[10px] text-ink-muted italic font-serif mb-1.5">Hydnum repandum</div>
+              <span class="badge badge-yellow text-[10px]">Червонокнижний</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-ink-muted">
+            <span>289 видів</span>
+            <span class="divider-dot"></span>
+            <span>89 з фото</span>
+            <span class="divider-dot"></span>
+            <span class="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83"/><path d="M20 15a4 4 0 0 1-8 0"/></svg>працює офлайн</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SAFETY -->
+      <section id="tab-safety" class="tab-panel">
+        <div style="background: linear-gradient(180deg, #2F4A3A 0%, #26402F 100%); padding: 20px; color: #FFFFFF; min-height: 100%;">
+          <div class="app-bar !p-0 !mb-4" style="background: transparent; padding: 0 0 14px 0;">
+            <div>
+              <div class="text-[11px] text-white/60 font-medium">Твій маршрут активний</div>
+              <h2 class="font-serif font-semibold text-white" style="font-size: 26px; line-height: 1.1;">Безпека</h2>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="icon-btn !text-white/70 hover:!bg-white/10 hover:!text-white" aria-label="Історія маршруту">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Watcher card -->
+          <div class="safety-card p-4 mb-3">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold" style="background: linear-gradient(135deg, #C97A2B, #E9A96A);">О</div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <div class="text-[15px] font-semibold">Олена бачить твій маршрут</div>
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                </div>
+                <div class="text-[12px] text-white/70">Повернення о 18:00 · 5 дзвоників · SOS активний</div>
+              </div>
+            </div>
+            <!-- Mini map -->
+            <div class="relative rounded-2xl overflow-hidden border border-white/15" style="height: 120px; background: linear-gradient(135deg, #3E5A48 0%, #2A3E2F 100%);">
+              <svg viewBox="0 0 300 120" class="w-full h-full" preserveAspectRatio="xMidYMid slice">
+                <!-- Route dashes -->
+                <path d="M20 90 Q 60 70 100 75 Q 140 80 170 55 Q 200 30 240 45 Q 270 55 285 30" stroke="#C97A2B" stroke-width="2.5" stroke-dasharray="4 5" fill="none" stroke-linecap="round"/>
+                <!-- Start dot -->
+                <circle cx="20" cy="90" r="5" fill="#4A6B54" stroke="#FFFFFF" stroke-width="2"/>
+                <text x="20" y="108" font-family="Inter" font-size="8" text-anchor="middle" fill="rgba(255,255,255,0.65)">Старт</text>
+                <!-- Current dot -->
+                <circle cx="285" cy="30" r="6" fill="#C97A2B" stroke="#FFFFFF" stroke-width="2"/>
+                <circle cx="285" cy="30" r="10" fill="#C97A2B" opacity="0.3"/>
+                <text x="285" y="18" font-family="Inter" font-size="8" text-anchor="middle" fill="rgba(255,255,255,0.75)">Ти</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Compass back -->
+          <div class="safety-card p-4 mb-3">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E9A96A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88 16.24,7.76" fill="#E9A96A"/></svg>
+                <div class="text-[12px] font-semibold text-white/90">Назад до пункту А</div>
+              </div>
+              <span class="text-[11px] text-white/60">GPS активний</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="relative w-20 h-20 flex-shrink-0">
+                <div class="absolute inset-0 rounded-full border-2 border-white/15"></div>
+                <div class="absolute inset-2 rounded-full bg-white/5 flex items-center justify-center">
+                  <svg viewBox="0 0 48 48" class="w-14 h-14" style="transform: rotate(45deg);">
+                    <path d="M24 6 L 28 24 L 24 20 L 20 24 Z" fill="#C97A2B"/>
+                    <path d="M24 42 L 20 24 L 24 28 L 28 24 Z" fill="rgba(255,255,255,0.4)"/>
+                  </svg>
+                </div>
+                <div class="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/50">N</div>
+                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/30">S</div>
+              </div>
+              <div class="flex-1">
+                <div class="font-serif font-semibold text-white" style="font-size: 22px;">1.2 км</div>
+                <div class="text-[13px] text-white/75">на північний схід</div>
+                <div class="text-[11px] text-white/50 mt-1">≈ 18 хв піšky</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SOS button -->
+          <div class="safety-card p-4 mb-3 flex flex-col items-center">
+            <div class="text-[11px] text-white/60 mb-3 uppercase tracking-wider font-medium">Екстрена кнопка</div>
+            <button class="sos-pulse w-28 h-28 rounded-full flex flex-col items-center justify-center text-white font-bold transition-transform hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #A8471F 0%, #C97A2B 100%); box-shadow: 0 8px 28px rgba(168,71,31,0.5);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4 M12 17h.01"/></svg>
+              <span class="text-[20px] mt-1">SOS</span>
+            </button>
+            <div class="text-[11px] text-white/60 text-center mt-3 max-w-[220px] leading-relaxed">Надіше координати та останню точку маршруту всім Наглядачам</div>
+          </div>
+
+          <!-- Group mode -->
+          <div class="safety-card p-4 mb-3">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E9A96A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <div class="text-[13px] font-semibold">Груповий режим</div>
+              </div>
+              <span class="badge" style="background: rgba(201,122,43,0.25); color: #E9A96A; font-size: 10px;">Спільний трек увімкнено</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #C97A2B, #E9A96A);">О</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-medium">Олег</div>
+                  <div class="text-[11px] text-white/55">Ти · онлайн</div>
+                </div>
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #4A6B54, #6B8570);">М</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-medium">Марта</div>
+                  <div class="text-[11px] text-white/55">0.8 км · онлайн</div>
+                </div>
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #8B5E34, #A97046);">А</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-medium">Андрій</div>
+                  <div class="text-[11px] text-white/55">1.6 км · онлайн</div>
+                </div>
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #6B5F4E, #8B7F6E);">І</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-medium">Ірина</div>
+                  <div class="text-[11px] text-white/55">2.1 км · в мережі</div>
+                </div>
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+              </div>
+            </div>
+            <button class="btn-secondary w-full mt-3 py-2.5 flex items-center justify-center gap-2 text-[13px]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6 M22 11h-6"/></svg>
+              Запросити друга
+            </button>
+          </div>
+
+          <!-- Disclaimer -->
+          <div class="flex items-start gap-2 p-3 rounded-2xl border border-white/15" style="background: rgba(255,255,255,0.03);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E9A96A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
+            <p class="text-[11px] text-white/60 leading-relaxed">Наглядач — допоміжний інструмент, не служба порятунку. У надзвичайній ситуації звертайся до 102 чи 112.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: COMMUNITY -->
+      <section id="tab-community" class="tab-panel">
+        <div class="app-bar">
+          <div>
+            <div class="text-[11px] text-ink-muted font-medium">Сьогодні · 128 нової знахідки</div>
+            <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Спільнота</h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="icon-btn" aria-label="Повідомлення">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-5 space-y-3">
+          <!-- Trophies feed -->
+          <div class="space-y-3">
+            <!-- Card 1 -->
+            <div class="card p-3.5 card-hover">
+              <div class="flex items-center gap-2.5 mb-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #C97A2B, #E9A96A);">Т</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-semibold text-forest-dark">Тарас Коваленко</div>
+                  <div class="text-[11px] text-ink-muted">2 години тому · Житомир</div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+              <div class="trophy-thumb mb-2.5" style="background: linear-gradient(135deg, #8B5E34 0%, #A97046 60%, #C9A87C 100%);">
+                <svg viewBox="0 0 100 75" class="w-full h-full" fill="none">
+                  <path d="M30 55 C 20 45, 25 25, 40 25 C 55 25, 60 45, 50 55 Z" fill="#F5E6D0" opacity="0.9"/>
+                  <rect x="34" y="55" width="12" height="14" rx="2" fill="#FBF8F1"/>
+                  <path d="M55 60 C 47 52, 50 34, 63 34 C 76 34, 80 52, 72 60 Z" fill="#F5E6D0" opacity="0.85"/>
+                  <rect x="58" y="60" width="10" height="12" rx="2" fill="#FBF8F1"/>
+                  <path d="M75 65 C 70 60, 72 46, 82 46 C 92 46, 94 60, 88 65 Z" fill="#F5E6D0" opacity="0.8"/>
+                  <rect x="78" y="65" width="8" height="10" rx="2" fill="#FBF8F1"/>
+                </svg>
+                <span class="badge badge-green absolute top-2 right-2 text-[9px]">12 шт</span>
+              </div>
+              <p class="text-[13px] text-forest-dark mb-2">Знайшов 12 білих у сосновому бору. Дощовий період дає!</p>
+              <div class="flex items-center gap-4 text-[11px] text-ink-muted">
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  24
+                </button>
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  8
+                </button>
+                <span class="flex items-center gap-1 ml-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 4 6 L 4 12 C 4 17, 8 21, 12 22 C 16 21, 20 17, 20 12 L 20 6 Z"/></svg>
+                  Верифіковано
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="card p-3.5 card-hover">
+              <div class="flex items-center gap-2.5 mb-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #4A6B54, #6B8570);">М</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-semibold text-forest-dark">Марта Білик</div>
+                  <div class="text-[11px] text-ink-muted">5 годин тому · Рівне</div>
+                </div>
+              </div>
+              <div class="trophy-thumb mb-2.5" style="background: linear-gradient(135deg, #4A6B54 0%, #6B8570 60%, #A8BFA0 100%);">
+                <svg viewBox="0 0 100 75" class="w-full h-full" fill="none">
+                  <path d="M25 50 C 20 40, 22 22, 40 22 C 58 22, 60 40, 55 50 Z" fill="#C97A2B" opacity="0.9"/>
+                  <rect x="35" y="50" width="12" height="14" rx="2" fill="#F5E6D0"/>
+                  <path d="M62 55 C 55 46, 58 30, 72 30 C 86 30, 88 46, 82 55 Z" fill="#C97A2B" opacity="0.85"/>
+                  <rect x="68" y="55" width="10" height="12" rx="2" fill="#F5E6D0"/>
+                </svg>
+                <span class="badge badge-amber absolute top-2 right-2 text-[9px]">7 шт</span>
+              </div>
+              <p class="text-[13px] text-forest-dark mb-2">Маслюки під березами — вже повна кошичка. Ділянка з прогнозу спрацювала.</p>
+              <div class="flex items-center gap-4 text-[11px] text-ink-muted">
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  18
+                </button>
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  5
+                </button>
+                <span class="flex items-center gap-1 ml-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                  Верифіковано
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="card p-3.5 card-hover">
+              <div class="flex items-center gap-2.5 mb-2.5">
+                <div class="avatar" style="background: linear-gradient(135deg, #8B5E34, #A97046);">І</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-semibold text-forest-dark">Ірина Савчук</div>
+                  <div class="text-[11px] text-ink-muted">Вчора · Тернопіль</div>
+                </div>
+              </div>
+              <div class="trophy-thumb mb-2.5" style="background: linear-gradient(135deg, #A97046 0%, #C97A2B 60%, #E9A96A 100%);">
+                <svg viewBox="0 0 100 75" class="w-full h-full" fill="none">
+                  <path d="M22 50 C 22 38, 30 26, 42 26 C 54 26, 62 38, 62 50 C 62 55, 58 58, 55 58 L 32 58 C 28 58, 22 55, 22 50 Z" fill="#F5E6D0" opacity="0.9"/>
+                  <rect x="40" y="58" width="10" height="10" rx="2" fill="#FBF8F1"/>
+                  <path d="M70 55 C 70 45, 76 34, 84 34 C 92 34, 96 45, 96 55 C 96 60, 92 62, 90 62 L 74 62 C 72 62, 70 60, 70 55 Z" fill="#F5E6D0" opacity="0.85"/>
+                  <rect x="78" y="62" width="8" height="9" rx="2" fill="#FBF8F1"/>
+                </svg>
+                <span class="badge badge-green absolute top-2 right-2 text-[9px]">4 шт</span>
+              </div>
+              <p class="text-[13px] text-forest-dark mb-2">Подберезовики під старими березами. Дуже густо біля струмка.</p>
+              <div class="flex items-center gap-4 text-[11px] text-ink-muted">
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  31
+                </button>
+                <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  12
+                </button>
+                <span class="flex items-center gap-1 ml-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                  Верифіковано
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Forest King -->
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97A2B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 10h16v3H4z"/><path d="M6 7l2-3 2 3 M14 7l2-3 2 3"/></svg>
+                <h3 class="font-serif font-semibold text-forest-dark text-[16px]">Король лісу</h3>
+              </div>
+              <span class="text-[11px] text-ink-muted">жовтень</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-3 p-2 rounded-xl" style="background: linear-gradient(90deg, #F5E6D0, #FBF8F1);">
+                <div class="font-serif font-bold text-amberbrand text-[18px] w-6 text-center">1</div>
+                <div class="avatar" style="background: linear-gradient(135deg, #C97A2B, #E9A96A);">Т</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-semibold text-forest-dark">Тарас Коваленко</div>
+                  <div class="text-[11px] text-ink-muted">48 знахідок · 680 балів</div>
+                </div>
+                <span class="text-[12px] font-semibold text-amberbrand">680</span>
+              </div>
+              <div class="flex items-center gap-3 p-2 rounded-xl bg-cream-50">
+                <div class="font-serif font-bold text-bark text-[18px] w-6 text-center">2</div>
+                <div class="avatar" style="background: linear-gradient(135deg, #8B5E34, #A97046);">О</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-semibold text-forest-dark">Олег (ти)</div>
+                  <div class="text-[11px] text-ink-muted">42 знахідки · 540 балів</div>
+                </div>
+                <span class="text-[12px] font-semibold text-forest-dark">540</span>
+              </div>
+              <div class="flex items-center gap-3 p-2 rounded-xl bg-cream-50">
+                <div class="font-serif font-bold text-forest text-[18px] w-6 text-center">3</div>
+                <div class="avatar" style="background: linear-gradient(135deg, #4A6B54, #6B8570);">М</div>
+                <div class="flex-1">
+                  <div class="text-[13px] font-semibold text-forest-dark">Марта Білик</div>
+                  <div class="text-[11px] text-ink-muted">38 знахідок · 470 балів</div>
+                </div>
+                <span class="text-[12px] font-semibold text-forest-dark">470</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Regional chats -->
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A6B54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <h3 class="font-serif font-semibold text-forest-dark text-[16px]">Чати за регіонами</h3>
+              </div>
+              <button class="text-[11px] text-amberbrand font-semibold">Усі</button>
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-cream-50 transition-colors cursor-pointer">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #C97A2B, #E9A96A);">Ж</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-forest-dark">Житомирська</div>
+                  <div class="text-[11px] text-ink-muted truncate">Марта: Знайшла лисичку біля річки!</div>
+                </div>
+                <span class="badge badge-green text-[10px]">34 онлайн</span>
+              </div>
+              <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-cream-50 transition-colors cursor-pointer">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #4A6B54, #6B8570);">Л</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-forest-dark">Львівська</div>
+                  <div class="text-[11px] text-ink-muted truncate">Андрій: Білі гриби під березами</div>
+                </div>
+                <span class="badge badge-green text-[10px]">52 онлайн</span>
+              </div>
+              <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-cream-50 transition-colors cursor-pointer">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #8B5E34, #A97046);">Т</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-forest-dark">Тернопільська</div>
+                  <div class="text-[11px] text-ink-muted truncate">Ірина: Маслюки у вівторок</div>
+                </div>
+                <span class="badge badge-green text-[10px]">28 онлайн</span>
+              </div>
+              <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-cream-50 transition-colors cursor-pointer">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #6B5F4E, #8B7F6E);">Р</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-forest-dark">Рівненська</div>
+                  <div class="text-[11px] text-ink-muted truncate">Соломія: Грозово, обережно</div>
+                </div>
+                <span class="badge badge-green text-[10px]">19 онлайн</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
