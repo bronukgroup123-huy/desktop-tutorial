@@ -1,0 +1,10 @@
+# Службові файли Windows / редакторів
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+~*
+
+# Python
+__pycache__/
+*.pyc
