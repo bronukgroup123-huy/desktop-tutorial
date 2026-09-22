@@ -347,6 +347,8 @@ WITHOUT_PHOTOS = [
     ("Cortinarius violaceus","Павутинник фіолетовий","edible"),
     ("Cortinarius armillatus","Павутинник браслетний","edible"),
     ("Cortinarius triumphans","Павутинник тріумфальний","edible"),
+    # ЗАМІНА: Inocybe geophylla вже є у WITH_PHOTOS.
+    # Тому використано Inocybe rimosa — споріднений отруйний вид.
     ("Inocybe rimosa","Волоконниця тріщинувата","poisonous"),
     ("Inocybe fastigiata","Волоконниця рівновершинна","poisonous"),
     ("Macrolepiota rhacodes","Гриб-зонтик червоніючий","edible"),

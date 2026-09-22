@@ -47,17 +47,22 @@ def parse_zones(text: str) -> set:
     result = set()
     text_lower = text.lower()
 
-    # 1. Прямі назви областей
-    for key, val in REGION_NAMES.items():
-        if key in text_lower:
-            result.add(val)
+    # Сортуємо всі ключі за довжиною спадної (найдовші — першими)
+    all_keys = sorted(
+        list(PSEUDO.keys()) + list(REGION_NAMES.keys()),
+        key=len, reverse=True
+    )
 
-    # 2. Псевдоніми
-    for key, regions in PSEUDO.items():
+    for key in all_keys:
         if key in text_lower:
-            result.update(regions)
+            if key in PSEUDO:
+                result.update(PSEUDO[key])
+            else:
+                result.add(REGION_NAMES[key])
+            # Замінюємо знайдене на пробіли (щоб 'степ' не матчився в 'лісостеп')
+            text_lower = text_lower.replace(key, ' ' * len(key))
 
-    # 3. «По всій Україні» = всі 25
+    # «По всій Україні» = всі 25
     if 'по всій' in text_lower or 'всі області' in text_lower:
         result.update(REGION_NAMES.values())
 
@@ -67,7 +72,7 @@ def parse_zones(text: str) -> set:
 def parse_file_55(path):
     """Файл 'поширення.txt' (55 рядків з таблиці)."""
     out = {}
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:
         for line in f:
             parts = line.strip().split('\t')
             if len(parts) < 4: continue
@@ -82,7 +87,7 @@ def parse_file_55(path):
 def parse_file_top20(path):
     """Файл 'поширення.txt' (TOP-20 у форматі 'N. Назва — Latin\\nОбласті: ...')."""
     out = {}
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:
         content = f.read()
 
     # Розбиваємо по блоках "N. Назва — Latin"
