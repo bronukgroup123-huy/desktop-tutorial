@@ -83,15 +83,25 @@ def parse_species_blocks(content: str) -> list:
         alt_name = m.group(3).strip() if m.group(3) else ''
         rest = part[m.end():]
 
-        # Determine scientific_name: if alt_name looks like latin (contains space, starts with capital), use it
+        # Determine scientific_name:
+        # If alt_name looks like a latin binomial (e.g., "Russula albonigra"), use it
         # Otherwise, take the first non-empty line of rest
         if alt_name and re.match(r'^[A-Z][a-z]+ [a-z]+', alt_name):
             scientific_name = alt_name
+            # Remove the first line from rest if it was the latin name
+            # Actually, if alt_name is the latin name, rest starts after the header line
         else:
-            first_line = rest.split('\n')[0].strip()
+            # Take first non-empty line from rest
+            rest_lines = rest.split('\n')
+            first_line = ''
+            for line in rest_lines:
+                if line.strip():
+                    first_line = line.strip()
+                    break
             scientific_name = first_line
-            # Remove the first line from rest if we used it
-            rest = '\n'.join(rest.split('\n')[1:])
+            # Remove the first line from rest
+            if first_line:
+                rest = '\n'.join(rest_lines[rest_lines.index(first_line)+1:])
 
         status_m = re.search(r'⚠️\s*СТАТУС:\s*(.+)', rest)
         status = status_m.group(1).strip() if status_m else ''

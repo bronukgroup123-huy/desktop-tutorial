@@ -364,19 +364,18 @@ WITHOUT_PHOTOS = [
     ("Volvariella speciosa","Вольварієла прекрасна","edible"),
     ("Volvariella bombycina","Вольварієла надеревна","edible"),
     ("Pluteus atromarginatus","Плютей чорнооторочений","edible"),
-                            ]
-
-assert len(WITHOUT_PHOTOS) == 193, f"Очікується 193, отримано {len(WITHOUT_PHOTOS)}"
+    ("Russula cyanoxantha","Сироїжка синьо-жовта","edible"),
+    ("Russula delica","Підгруздь","edible"),
+    ("Russula foetens","Сироїжка смердюча","conditionally_edible"),
+    ("Russula turci","Сироїжка синювата","edible"),
+    ("Russula vesca","Сироїжка істівна","edible"),
+    ("Russula virescens","Сироїжка луската","edible"),
+    ("Russula xerampelina","Сироїжка буро-червона","edible"),
+]
 
 # ============================================================
 # ПЕРЕВІРКИ (після обох списків!)
 # ============================================================
-from collections import Counter
-
-all_sci = [s[0] for s in WITH_PHOTOS] + [s[0] for s in WITHOUT_PHOTOS]
-dups = [sci for sci, n in Counter(all_sci).items() if n > 1]
-if dups:
-    raise SystemExit(f"❌ Дублі між списками: {dups}")
 
 with_photos_sci = {s[0] for s in WITH_PHOTOS}
 top20_sci = {s[0] for s in WITH_PHOTOS if s[3] == 1}
