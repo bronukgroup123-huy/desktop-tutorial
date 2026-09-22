@@ -110,7 +110,7 @@ def main():
         merged.setdefault(k, set()).update(v)
 
     # Пишемо
-    with open('distribution.csv', 'w', encoding='utf-8', newline='') as f:
+    with open('distribution.csv', 'w', encoding='utf-8-sig', newline='') as f:
         w = csv.writer(f)
         w.writerow(['scientific_name','zones'])
         for sci in sorted(merged):

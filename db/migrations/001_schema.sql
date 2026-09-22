@@ -76,8 +76,6 @@ CREATE TABLE species (
     CHECK (NOT in_forecast OR has_photos),
   CONSTRAINT popular_requires_photos
     CHECK (NOT is_popular OR has_photos),
-  CONSTRAINT poisonous_requires_photos
-    CHECK (NOT is_poisonous OR has_photos),
   CONSTRAINT ai_recognition_requires_photos
     CHECK (NOT in_ai_recognition OR has_photos),
   CONSTRAINT forecast_subset_of_ai

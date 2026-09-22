@@ -163,7 +163,25 @@ WITH_PHOTOS = [
     ("Paxillus involutus","Свинуха тонка","poisonous",0,0,""),
 ]
 
+# === Перевірка на дублі ===
+from collections import Counter
+all_sci = [s[0] for s in WITH_PHOTOS] + [s[0] for s in WITHOUT_PHOTOS]
+dups = [sci for sci, n in Counter(all_sci).items() if n > 1]
+if dups:
+    raise SystemExit(f"❌ Дублі між списками: {dups}")
+
+# === Перевірка консистентності ===
+with_photos_sci = {s[0] for s in WITH_PHOTOS}
+top20_sci = {s[0] for s in WITH_PHOTOS if s[3] == 1}
+popular_sci = {s[0] for s in WITH_PHOTOS if s[4] == 1}
+
+if not top20_sci.issubset(popular_sci):
+    raise SystemExit("❌ TOP-20 має бути підмножиною популярних")
+
 assert len(WITH_PHOTOS) == 133, f"Очікується 133, отримано {len(WITH_PHOTOS)}"
+assert len(top20_sci) == 20, f"Очікується 20 TOP-20, отримано {len(top20_sci)}"
+assert len(popular_sci) == 55, f"Очікується 55 популярних, отримано {len(popular_sci)}"
+print(f"✓ Перевірки: WITH_PHOTOS={len(with_photos_sci)}, TOP-20={len(top20_sci)}, популярних={len(popular_sci)}")
 
 # ============================================================
 # 200 без фото: (sci, ua, status)
@@ -347,7 +365,7 @@ WITHOUT_PHOTOS = [
     ("Cortinarius violaceus","Павутинник фіолетовий","edible"),
     ("Cortinarius armillatus","Павутинник браслетний","edible"),
     ("Cortinarius triumphans","Павутинник тріумфальний","edible"),
-    ("Inocybe geophylla","Волоконниця земляна","poisonous"),
+    ("Inocybe rimosa","Волоконниця тріщинувата","poisonous"),
     ("Inocybe fastigiata","Волоконниця рівновершинна","poisonous"),
     ("Macrolepiota rhacodes","Гриб-зонтик червоніючий","edible"),
     ("Lepiota clypeolaria","Лепіота щитоносна","inedible"),
@@ -433,7 +451,7 @@ RARITY_LABELS = {
 # ============================================================
 dist = {}
 try:
-    with open('distribution.csv', encoding='utf-8') as f:
+    with open('distribution.csv', encoding='utf-8-sig') as f:
         for row in csv.DictReader(f):
             dist[row['scientific_name']] = row['zones']
 except FileNotFoundError:
@@ -442,7 +460,7 @@ except FileNotFoundError:
 # ============================================================
 # Генерація
 # ============================================================
-with open('master.csv', 'w', encoding='utf-8', newline='') as f:
+with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
     w = csv.writer(f)
     w.writerow(HEADER)
 
