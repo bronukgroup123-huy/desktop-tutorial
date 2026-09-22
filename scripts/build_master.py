@@ -98,8 +98,26 @@ POPULAR_55_MAP = {
     'Leccinum albostipitatum': f'{POPULAR_55_DIR}/Підосичник білоніжковий Leccinum rufum/large.webp',
 }
 
+POISONOUS_DIR = 'Отруйні та смертельно отруйні (webp)'
+POISONOUS_MAP = {
+    'Amanita muscaria': f'{POISONOUS_DIR}/Amanita muscaria  Мухомор червоний/large.webp',
+    'Amanita pantherina': f'{POISONOUS_DIR}/Amanita pantherina Мухомор пантерний/large.webp',
+    'Amanita phalloides': f'{POISONOUS_DIR}/Amanita phalloides Бліда поганка/large.webp',
+    'Amanita verna': f'{POISONOUS_DIR}/Amanita verna Мухомор весняний/large.webp',
+    'Amanita virosa': f'{POISONOUS_DIR}/Amanita virosa Мухомор смердючий/large.webp',
+    'Clitocybe candicans': f'{POISONOUS_DIR}/Clitocybe candicans Говорушка білувата/large.webp',
+    'Clitocybe dealbata': f'{POISONOUS_DIR}/Clitocybe dealbata Говорушка воскова/large.webp',
+    'Entoloma sinuatum': f'{POISONOUS_DIR}/Entoloma sinuatum Ентолома отруйна/large.webp',
+    'Galerina marginata': f'{POISONOUS_DIR}/Galerina marginata Галерина облямована/large.webp',
+    'Gyromitra esculenta': f'{POISONOUS_DIR}/Gyromitra esculenta Строчок звичайний/large.webp',
+    'Hygrophoropsis aurantiaca': f'{POISONOUS_DIR}/Hygrophoropsis aurantiaca Лисичка несправжня/large.webp',
+    'Inocybe erubescens': f'{POISONOUS_DIR}/Inocybe erubescens Волоконниця червоніюча/large.webp',
+    'Inocybe geophylla': f'{POISONOUS_DIR}/Inocybe geophylla Іноцибе звичайний/large.webp',
+    'Paxillus involutus': f'{POISONOUS_DIR}/Paxillus involutus Свинуха тонка/large.webp',
+}
+
 def photo_path_for(sci: str) -> str:
-    return PHOTO_MAP.get(sci) or POPULAR_55_MAP.get(sci) or ''
+    return PHOTO_MAP.get(sci) or POPULAR_55_MAP.get(sci) or POISONOUS_MAP.get(sci) or ''
 
 # ============================================================
 # 133 з фото: (sci, ua, status, top20, popular, legacy)
