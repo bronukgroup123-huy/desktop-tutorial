@@ -67,7 +67,7 @@ $alias = @{
     'Lactifluus piperatus' = 'Lactarius piperatus'
     'Cerioporus squamosus' = 'Polyporus squamosus'
 }
-$photoDirs = @('фото Топ-20 грибів (webp)', 'фото популярні 55 грибів (webp)')
+$photoDirs = @('фото Топ-20 грибів (webp)', 'фото популярні 55 грибів (webp)', 'Отруйні та смертельно отруйні (webp)')
 $photoByTarget = @{}
 $dirProblems = @()
 foreach ($d in $photoDirs) {
@@ -490,6 +490,7 @@ Log '[7] serializuiu JSON ...'
 $catalog = [ordered]@{
     meta = [ordered]@{
         generated   = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss')
+        rows_total  = $master.Count
         total       = $speciesOut.Count
         with_photos = $photoFound
         cover       = $cover

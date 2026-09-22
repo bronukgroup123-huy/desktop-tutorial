@@ -341,6 +341,77 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       </div>
     </div>
 
+    <!-- Mini forecast card -->
+    <button id="btn-mini-forecast" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-main').classList.add('active');switchTab('forecast')" class="mt-6 w-full card p-3.5 flex items-center gap-3 text-left hover:shadow-lift transition-all" style="border-radius: 18px;">
+      <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #EAE3D2 0%, #DCE6DC 100%);">
+        <svg viewBox="0 0 48 48" width="34" height="34" fill="none" aria-hidden="true">
+          <path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#C97A2B"/>
+          <rect x="18" y="25" width="12" height="14" rx="3" fill="#FBF8F1"/>
+          <circle cx="14" cy="18" r="1.6" fill="#FBF8F1"/>
+          <circle cx="21" cy="14" r="1.4" fill="#FBF8F1"/>
+          <circle cx="29" cy="15" r="1.5" fill="#FBF8F1"/>
+          <circle cx="35" cy="19" r="1.3" fill="#FBF8F1"/>
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[10px] text-ink-muted font-medium uppercase tracking-wide">Сьогодні · Житомирська область</div>
+        <div class="text-[14px] font-semibold text-forest-dark leading-tight mt-0.5">Білий гриб — висока ймовірність</div>
+        <div class="mt-1.5 flex items-center gap-1.5">
+          <span class="badge badge-green text-[10px]">Висока</span>
+          <span class="text-[10px] text-ink-muted">деталі на таб «Прогноз» →</span>
+        </div>
+      </div>
+    </button>
+
+    <!-- What's inside -->
+    <div class="mt-4">
+      <div class="text-[11px] text-ink-muted font-medium uppercase tracking-wide mb-2">Що всередині</div>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83 M2 12h4 M18 12h4 M4.93 19.07l2.83-2.83 M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">Прогноз</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">ймовірність появи</div>
+        </div>
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">Довідник</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">333 види</div>
+        </div>
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">ШІ-розпізнавання</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">3 фото · від 15 с</div>
+        </div>
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">Наглядач</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">SOS та маршрути</div>
+        </div>
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">Групи</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">пошукові відряди</div>
+        </div>
+        <div class="card p-2.5 flex flex-col items-center text-center">
+          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+          </div>
+          <div class="text-[11px] font-semibold text-forest-dark">Спільнота</div>
+          <div class="text-[9px] text-ink-muted mt-0.5">знахідки та лідери</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Spacer -->
     <div class="flex-1"></div>
 
@@ -366,7 +437,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       <section id="tab-forecast" class="tab-panel">
         <div class="app-bar">
           <div>
-            <div class="text-[11px] text-ink-muted font-medium">Вівторок, 5 жовтня</div>
+            <div class="text-[11px] text-ink-muted font-medium">Понеділок, 5 жовтня</div>
             <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Прогноз</h2>
           </div>
           <div class="flex items-center gap-1">
@@ -387,7 +458,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
               </div>
               <div class="min-w-0 text-left">
                 <div class="text-[14px] font-semibold text-forest-dark truncate">Сосновий бір, Житомирська область</div>
-                <div class="text-[12px] text-ink-muted">55.84N · 28.62E · 25 років</div>
+                <div class="text-[12px] text-ink-muted">50.25N · 28.66E · 25 років</div>
               </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted"><path d="m6 9 6 6 6-6"/></svg>
@@ -420,8 +491,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
               <div class="mt-4">
                 <div class="flex items-center justify-between text-[11px] text-ink-muted mb-1.5">
-                  <span>Ймовірність поява</span>
-                  <span class="font-semibold text-forest-dark">78%</span>
+                  <span>Ймовірність появи</span>
+                  <span class="badge badge-green text-[10px]">Висока</span>
                 </div>
                 <div class="progress-track"><div class="progress-fill" style="width: 78%;"></div></div>
               </div>
@@ -489,36 +560,36 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0 0-9 6 6 0 0 0-11.6 1.5A4 4 0 0 0 6 19z"/></svg>
                 <div class="text-[12px] font-semibold text-forest-dark">Погода в зоні</div>
               </div>
-              <span class="text-[10px] text-ink-muted">обновлено 12:00</span>
+              <span class="text-[10px] text-ink-muted">оновлено 12:00</span>
             </div>
             <div class="grid grid-cols-4 gap-1 text-center">
               <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Нині</div>
-                <div class="text-[18px] font-semibold text-forest-dark">-2</div>
+                <div class="text-[10px] text-ink-muted">Понеділок</div>
+                <div class="text-[18px] font-semibold text-forest-dark">+9</div>
                 <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
                   82%
                 </div>
               </div>
               <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Середа</div>
-                <div class="text-[18px] font-semibold text-forest-dark">-1</div>
+                <div class="text-[10px] text-ink-muted">Вівторок</div>
+                <div class="text-[18px] font-semibold text-forest-dark">+11</div>
                 <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a5 5 0 0 1 .8-9.5A7 7 0 0 1 20 9a4.5 4.5 0 0 1 0 9H7z"/></svg>
                   64%
                 </div>
               </div>
               <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Четвер</div>
-                <div class="text-[18px] font-semibold text-forest-dark">-3</div>
+                <div class="text-[10px] text-ink-muted">Середа</div>
+                <div class="text-[18px] font-semibold text-forest-dark">+7</div>
                 <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
                   71%
                 </div>
               </div>
               <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">П'ятниця</div>
-                <div class="text-[18px] font-semibold text-forest-dark">-2</div>
+                <div class="text-[10px] text-ink-muted">Четвер</div>
+                <div class="text-[18px] font-semibold text-forest-dark">+10</div>
                 <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4"/></svg>
                   48%
@@ -538,7 +609,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       <section id="tab-map" class="tab-panel">
         <div class="app-bar">
           <div>
-            <div class="text-[11px] text-ink-muted font-medium">55.84N · 28.62E</div>
+            <div class="text-[11px] text-ink-muted font-medium">50.25N · 28.66E</div>
             <h2 class="font-serif font-semibold text-forest-dark" style="font-size: 26px; line-height: 1.1;">Карта</h2>
           </div>
           <div class="flex items-center gap-1">
@@ -603,7 +674,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
               <button class="dot-marked map-dot" style="top: 78%; left: 68%; background: #4A6B54;" data-name="Боровик чорний" data-time="3 дні тому" data-status="верифіковано" data-verified="true"></button>
               <!-- Conditional (amber) -->
               <button class="dot-marked map-dot" style="top: 42%; left: 28%; background: #C97A2B;" data-name="Маслюк звичайний" data-time="сьогодні" data-status="умовно" data-verified="false"></button>
-              <button class="dot-marked map-dot" style="top: 55%; left: 72%; background: #C97A2B;" data-name="Підберезовик" data-time="5 днів тому" data-status="умовно" data-verified="false"></button>
+              <button class="dot-marked map-dot" style="top: 55%; left: 72%; background: #C97A2B;" data-name="Підберезник" data-time="5 днів тому" data-status="умовно" data-verified="false"></button>
               <button class="dot-marked map-dot" style="top: 20%; left: 45%; background: #C97A2B;" data-name="Білий гриб" data-time="1 день тому" data-status="умовно" data-verified="false"></button>
               <!-- Expected (gray) -->
               <button class="dot-marked map-dot" style="top: 38%; left: 12%; background: #8B7F6E;" data-name="Очікуваний ділянка" data-time="за прогнозом" data-status="очікувано" data-verified="false"></button>
@@ -722,7 +793,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
           <div class="pt-2" id="guide-filters-wrap">
             <div class="flex items-center justify-between mb-2.5">
               <h3 class="font-serif font-semibold text-forest-dark text-[17px]">Довідник грибів</h3>
-              <span class="text-[11px] text-ink-muted"><span id="guide-total">—</span> видів</span>
+              <span class="text-[11px] text-ink-muted"><span id="guide-total">—</span> види</span>
             </div>
             <div class="relative mb-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
@@ -749,9 +820,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
             <button id="guide-more" class="btn-ghost px-4 py-2 text-[12px] hidden">Показати ще</button>
             <div class="text-[11px] text-ink-muted" id="guide-count"></div>
           </div>
-
           <div class="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-ink-muted">
-            <span><span id="guide-total-2">—</span> видів</span>
+            <span><span id="guide-total-2">—</span> види</span>
             <span class="divider-dot"></span>
             <span><span id="guide-photos">—</span> з фото</span>
             <span class="divider-dot"></span>
@@ -1009,7 +1079,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                 </svg>
                 <span class="badge badge-green absolute top-2 right-2 text-[9px]">4 шт</span>
               </div>
-              <p class="text-[13px] text-forest-dark mb-2">Підберезовики під старими березами. Дуже густо біля струмка.</p>
+              <p class="text-[13px] text-forest-dark mb-2">Підберезники під старими березами. Дуже густо біля струмка.</p>
               <div class="flex items-center gap-4 text-[11px] text-ink-muted">
                 <button class="flex items-center gap-1 hover:text-amberbrand transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -1051,7 +1121,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                 <div class="avatar" style="background: linear-gradient(135deg, #8B5E34, #A97046);">О</div>
                 <div class="flex-1">
                   <div class="text-[13px] font-semibold text-forest-dark">Олег (ти)</div>
-                  <div class="text-[11px] text-ink-muted">42 знахідки · 540 балів</div>
+                  <div class="text-[11px] text-ink-muted">48 знахідок · 540 балів</div>
                 </div>
                 <span class="text-[12px] font-semibold text-forest-dark">540</span>
               </div>
@@ -1113,14 +1183,6 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
           </div>
         </div>
       </section>
-    <script type="module">
-      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js';
-      const SUPABASE_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co';
-      const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_NDa_DqIkfc3wEeOxTV9VAQ_YPjp_HJp';
-      window.supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      console.log('Supabase client initialized', window.supabase);
-    </script>
-
       <!-- TAB 6: PROFILE -->
       <section id="tab-profile" class="tab-panel">
         <div class="app-bar">
@@ -1154,7 +1216,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
             </div>
             <div class="mt-3.5">
               <div class="flex items-center justify-between text-[11px] text-ink-muted mb-1.5">
-                <span>До рівня «Мудрий грибник»</span>
+                <span>До рівня «Грибний Майстер»</span>
                 <span class="font-semibold text-forest-dark">320 / 500</span>
               </div>
               <div class="progress-track"><div class="progress-fill" style="width: 64%;"></div></div>
@@ -1203,7 +1265,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-[13px] font-semibold text-forest-dark">4 маслюки</div>
-                  <div class="text-[11px] text-ink-muted">березовий діброва</div>
+                  <div class="text-[11px] text-ink-muted">березова діброва</div>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </div>
@@ -1339,9 +1401,10 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 <!-- CATALOG:START -->
 <script type="application/json" id="mushroom-catalog">{
     "meta":  {
-                 "generated":  "2026-09-22T22:21:31",
+                 "generated":  "2026-09-22T23:27:14",
+                 "rows_total":  333,
                  "total":  326,
-                 "with_photos":  73,
+                 "with_photos":  87,
                  "cover":  {
                                "stem":  193,
                                "color":  192,
@@ -5478,8 +5541,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Amanita muscaria  Мухомор червоний/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5510,8 +5573,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Amanita pantherina Мухомор пантерний/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5542,8 +5605,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Смертельно отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Amanita phalloides Бліда поганка/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5574,8 +5637,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Смертельно отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Amanita verna Мухомор весняний/large (3).webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5606,8 +5669,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Смертельно отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Amanita virosa Мухомор смердючий/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5638,8 +5701,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Clitocybe candicans Говорушка білувата/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5670,8 +5733,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Clitocybe dealbata Говорушка воскова/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5702,8 +5765,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Entoloma sinuatum Ентолома отруйна/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5734,8 +5797,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Смертельно отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Galerina marginata Галерина облямована/large (1).webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5766,8 +5829,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Смертельно отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Gyromitra esculenta Строчок звичайний/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5798,8 +5861,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Hygrophoropsis aurantiaca Лисичка несправжня/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5830,8 +5893,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Inocybe erubescens Волоконниця червоніюча/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5862,8 +5925,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Inocybe geophylla Іноцибе звичайний/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -5899,8 +5962,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйна",
                         "red_listed":  false,
                         "rarity":  "",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Отруйні та смертельно отруйні (webp)/Paxillus involutus Свинуха тонка/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  true,
@@ -13504,8 +13567,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     const gt2 = document.getElementById('guide-total-2');
     const gp = document.getElementById('guide-photos');
     const note = document.getElementById('filter-note');
-    if (gt1) gt1.textContent = CATALOG.meta.total;
-    if (gt2) gt2.textContent = CATALOG.meta.total;
+    if (gt1) gt1.textContent = CATALOG.meta.rows_total || CATALOG.meta.total;
+    if (gt2) gt2.textContent = CATALOG.meta.rows_total || CATALOG.meta.total;
     if (gp) gp.textContent = CATALOG.meta.with_photos;
     if (note) {
       note.textContent = 'Атрибути для фільтрів: колір — ' + CATALOG.meta.cover.color +
