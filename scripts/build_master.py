@@ -10,8 +10,32 @@ HEADER = [
     'has_photos','in_top20','is_popular',
     'is_poisonous','is_deadly','is_red_listed','rarity_label_uk',
     'in_ai_recognition','has_ai_prompt','legacy_id',
-    'zones','key_features_ai','season',
+    'zones','key_features_ai','season','photo_path',
 ]
+
+PHOTO_DIR = 'фото Топ-20 грибів (webp)'
+PHOTO_MAP = {
+    'Boletus edulis': f'{PHOTO_DIR}/Білий гриб Boletus edulis/large.webp',
+    'Lactarius torminosus': f'{PHOTO_DIR}/Вовнянка рожева Lactarius torminosus/large.webp',
+    'Pleurotus ostreatus': f'{PHOTO_DIR}/Глива звичайна Pleurotus ostreatus/large.webp',
+    'Lactarius resimus': f'{PHOTO_DIR}/Груздь справжній Lactarius resimus/large.webp',
+    'Lycoperdon perlatum': f'{PHOTO_DIR}/Дощовик їстівний Lycoperdon perlatum/large.webp',
+    'Boletus luridus': f'{PHOTO_DIR}/Дубовик звичайний Suillellus luridus/large.webp',
+    'Flammulina velutipes': f'{PHOTO_DIR}/Зимовий опеньок Flammulina velutipes/large.webp',
+    'Hydnum repandum': f'{PHOTO_DIR}/Їжовик жовтуватий Hydnum repandum/large.webp',
+    'Suillus bovinus': f'{PHOTO_DIR}/Козляк Suillus bovinus/large.webp',
+    'Cantharellus cibarius': f'{PHOTO_DIR}/Лисичка справжня Cantharellus cibarius/large.webp',
+    'Suillus luteus': f'{PHOTO_DIR}/Маслюк пізній Suillus luteus/large.webp',
+    'Xerocomus subtomentosus': f'{PHOTO_DIR}/Моховик зелений Xerocomus subtomentosus/large.webp',
+    'Armillaria mellea': f'{PHOTO_DIR}/Опеньок осінній Armillaria mellea/large.webp',
+    'Agaricus campestris': f'{PHOTO_DIR}/Печериця звичайна Agaricus campestris/large.webp',
+    'Leccinum scabrum': f'{PHOTO_DIR}/Підберезник звичайний Leccinum scabrum/large.webp',
+    'Leccinum aurantiacum': f'{PHOTO_DIR}/Підосичник Leccinum aurantiacum/large.webp',
+    'Imleria badia': f'{PHOTO_DIR}/Польський гриб Imleria badia/large.webp',
+    'Lactarius deliciosus': f'{PHOTO_DIR}/Рижик справжній Lactarius deliciosus/large.webp',
+    'Russula vesca': f'{PHOTO_DIR}/Сироїжка Russula vesca/large.webp',
+    'Morchella esculenta': f'{PHOTO_DIR}/Сморчок звичайний Morchella esculenta/large.webp',
+}
 
 # ============================================================
 # 133 з фото: (sci, ua, status, top20, popular, legacy)
@@ -513,6 +537,7 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             zones,
             descriptions.get(sci, ''),
             habitats.get(sci, ''),
+            PHOTO_MAP.get(sci, ''),
         ])
 
     # --- 200 без фото ---
@@ -531,6 +556,7 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             dist.get(sci, ''),
             descriptions.get(sci, ''),
             habitats.get(sci, ''),
+            PHOTO_MAP.get(sci, ''),
         ])
 
 print(f"✓ master.csv: 133 + {len(WITHOUT_PHOTOS)} = {133 + len(WITHOUT_PHOTOS)} рядків")
