@@ -116,8 +116,56 @@ POISONOUS_MAP = {
     'Paxillus involutus': f'{POISONOUS_DIR}/Paxillus involutus Свинуха тонка/large.webp',
 }
 
+RED_BOOK_DIR = 'Червона книга (webp)'
+RED_BOOK_MAP = {
+    'Butyriboletus fechtneri': f'{RED_BOOK_DIR}/Боровик Фехтнера Butyriboletus fechtneri/large.webp',
+    'Boletus aereus': f'{RED_BOOK_DIR}/Боровик бронзовий Boletus aereus/large.webp',
+    'Rubroboletus lupinus': f'{RED_BOOK_DIR}/Боровик вовчий Rubroboletus lupinus/large.webp',
+    'Butyriboletus appendiculatus': f'{RED_BOOK_DIR}/Боровик дівочий Butyriboletus appendiculatus/large.webp',
+    'Butyriboletus regius': f'{RED_BOOK_DIR}/Боровик королівський Butyriboletus regius/large.webp',
+    'Butyriboletus subappendiculatus': f'{RED_BOOK_DIR}/Боровик напівапендикулярний Butyriboletus subappendiculatus/large.webp',
+    'Butyriboletus fuscoroseus': f'{RED_BOOK_DIR}/Боровик рожево-бурий Butyriboletus fuscoroseus/large.webp',
+    'Rubroboletus rhodoxanthus': f'{RED_BOOK_DIR}/Боровик рожево-жовтий Rubroboletus rhodoxanthus/large.webp',
+    'Rubroboletus satanas': f'{RED_BOOK_DIR}/Боровик сатанинський Rubroboletus satanas/large.webp',
+    'Rubroboletus rubrosanguineus': f'{RED_BOOK_DIR}/Боровик червоно-кривавий Rubroboletus rubrosanguineus/large.webp',
+    'Phallus duplicatus': f'{RED_BOOK_DIR}/Веселка (диктіофора) подвоєна Phallus duplicatus/large.webp',
+    'Hemileccinum depilatum': f'{RED_BOOK_DIR}/Гемілецінум безволосий Hemileccinum depilatum/large.webp',
+    'Hericium coralloides': f'{RED_BOOK_DIR}/Герицій кораловий Hericium coralloides/large.webp',
+    'Hericium erinaceus': f'{RED_BOOK_DIR}/Герицій їжаковий Hericium erinaceus/large.webp',
+    'Gomphus clavatus': f'{RED_BOOK_DIR}/Гомф булавоподібний, свиняче вухо Gomphus clavatus/large.webp',
+    'Grifola frondosa': f'{RED_BOOK_DIR}/Грифола листувата Grifola frondosa/large.webp',
+    'Hygrocybe calyptriformis': f'{RED_BOOK_DIR}/Гігроцибе ковпакоподібна Hygrocybe calyptriformis/large.webp',
+    'Morchella steppicola': f'{RED_BOOK_DIR}/Зморшок степовий Morchella steppicola/large.webp',
+    'Pseudocolus fusiformis': f'{RED_BOOK_DIR}/Кальмарник веретеноподібний Pseudocolus fusiformis/large.webp',
+    'Catathelasma imperiale': f'{RED_BOOK_DIR}/Катателазма царська Catathelasma imperiale/large.webp',
+    'Anthurus archeri': f'{RED_BOOK_DIR}/Квітохвісник Арчера, антурус Арчера Anthurus archeri/large.webp',
+    'Clavariadelphus pistillaris': f'{RED_BOOK_DIR}/Клаваріадельф товкачиковий Clavariadelphus pistillaris/large.webp',
+    'Helvella monachella': f'{RED_BOOK_DIR}/Лопатевик чорний Helvella monachella/large.webp',
+    'Lyophyllum favrei': f'{RED_BOOK_DIR}/Ліофіл Фавре Lyophyllum favrei/large.webp',
+    'Suillus plorans': f'{RED_BOOK_DIR}/Маслюк кедровий Suillus plorans/large.webp',
+    'Boletus parasiticus': f'{RED_BOOK_DIR}/Моховик паразитний Boletus parasiticus/large.webp',
+    'Amanita caesarea': f'{RED_BOOK_DIR}/Мухомор цезарів Amanita caesarea/large.webp',
+    'Amanita strobiliformis': f'{RED_BOOK_DIR}/Мухомор щетинистий Amanita strobiliformis/large.webp',
+    'Myriostoma coliforme': f'{RED_BOOK_DIR}/Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна) Myriostoma coliforme/large.webp',
+    'Chalciporus rubinus': f'{RED_BOOK_DIR}/Решетняк карміново-червоний Chalciporus rubinus/large.webp',
+    'Clathrus ruber': f'{RED_BOOK_DIR}/Решіточник червоний Clathrus ruber/large.webp',
+    'Tricholoma colossus': f'{RED_BOOK_DIR}/Рядовка величезна Tricholoma colossus/large.webp',
+    'Tricholoma focale': f'{RED_BOOK_DIR}/Рядовка опеньковидна Tricholoma focale/large.webp',
+    'Sarcosoma globosum': f'{RED_BOOK_DIR}/Саркосома куляста Sarcosoma globosum/large.webp',
+    'Russula turci': f'{RED_BOOK_DIR}/Сироїжка синювата Russula turci/large.webp',
+    'Scleroderma geaster': f'{RED_BOOK_DIR}/Склеродерма зірчаста Scleroderma geaster/large.webp',
+    'Sparassis crispa': f'{RED_BOOK_DIR}/Спарасис кучерявий Sparassis crispa/large.webp',
+    'Polyporus umbellatus': f'{RED_BOOK_DIR}/Трутовик зонтичний Polyporus umbellatus/large.webp',
+    'Tuber aestivum': f'{RED_BOOK_DIR}/Трюфель літній Tuber aestivum/large.webp',
+    'Phellorinia herculeana': f'{RED_BOOK_DIR}/Фелоринія геркулесова, фелоринія пластівчасто-луската Phellorinia herculeana/large.webp',
+    'Phaeolepiota aurea': f'{RED_BOOK_DIR}/Феолепіота золотиста Phaeolepiota aurea/large.webp',
+    'Phylloporus pelletieri': f'{RED_BOOK_DIR}/Філопор рожево-золотистий Phylloporus pelletieri/large.webp',
+    'Lactarius lignyotus': f'{RED_BOOK_DIR}/Хрящ-молочник чорний, хрящ-молочник деревний Lactarius lignyotus/large.webp',
+    'Strobilomyces strobilaceus': f'{RED_BOOK_DIR}/Шишкогриб лускатий, лускач Strobilomyces strobilaceus/large.webp',
+}
+
 def photo_path_for(sci: str) -> str:
-    return PHOTO_MAP.get(sci) or POPULAR_55_MAP.get(sci) or POISONOUS_MAP.get(sci) or ''
+    return PHOTO_MAP.get(sci) or POPULAR_55_MAP.get(sci) or POISONOUS_MAP.get(sci) or RED_BOOK_MAP.get(sci) or ''
 
 # ============================================================
 # 133 з фото: (sci, ua, status, top20, popular, legacy)
