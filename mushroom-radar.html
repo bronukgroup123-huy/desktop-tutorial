@@ -1401,7 +1401,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 </div>
 </div>
 
-<!-- CATALOG: fetched from mushroom_catalog.json -->
+<!-- CATALOG: loaded from mushroom_catalog.js (no fetch / works via file://) -->
+<script src="mushroom_catalog.js"></script>
 <script>
   // ---------- Tab switching ----------
   const tabs = document.querySelectorAll('.tab-btn');
@@ -1480,15 +1481,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
   let CATALOG_TOTAL = 0;
   let CATALOG_PHOTO_COUNT = 0;
 
-  async function loadCatalog() {
-    try {
-      const res = await fetch('mushroom_catalog.json');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      CATALOG = await res.json();
-    } catch (e) {
-      console.error('Не вдалося завантажити каталог:', e);
-      CATALOG = null;
-    }
+  function loadCatalog() {
+    CATALOG = window.MUSHROOM_CATALOG || null;
   }
 
   function esc(v) {
@@ -1708,24 +1702,22 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     });
   }
 
-  (async function() {
-    await loadCatalog();
-    if (CATALOG && Array.isArray(CATALOG.species)) {
-      CATALOG_TOTAL = CATALOG.species.length;
-      CATALOG_PHOTO_COUNT = CATALOG.species.filter(s => s.has_photo).length;
-      const gt1 = document.getElementById('guide-total');
-      const gt2 = document.getElementById('guide-total-2');
-      const gp = document.getElementById('guide-photos');
-      const wg = document.getElementById('welcome-guide-n');
-      if (wg) wg.textContent = CATALOG_PHOTO_COUNT;
-      if (gt1) gt1.textContent = CATALOG_TOTAL;
-      if (gt2) gt2.textContent = CATALOG_TOTAL;
-      if (gp) gp.textContent = CATALOG_PHOTO_COUNT;
-      initCategoryChips();
-      updateFacetChips();
-      renderGuide();
-    }
-  })();
+  loadCatalog();
+  if (CATALOG && Array.isArray(CATALOG.species)) {
+    CATALOG_TOTAL = CATALOG.species.length;
+    CATALOG_PHOTO_COUNT = CATALOG.species.filter(s => s.has_photo).length;
+    const gt1 = document.getElementById('guide-total');
+    const gt2 = document.getElementById('guide-total-2');
+    const gp = document.getElementById('guide-photos');
+    const wg = document.getElementById('welcome-guide-n');
+    if (wg) wg.textContent = CATALOG_PHOTO_COUNT;
+    if (gt1) gt1.textContent = CATALOG_TOTAL;
+    if (gt2) gt2.textContent = CATALOG_TOTAL;
+    if (gp) gp.textContent = CATALOG_PHOTO_COUNT;
+    initCategoryChips();
+    updateFacetChips();
+    renderGuide();
+  }
 
   // ============================================================
   // Mock камера: 3 кадри (шапка · ніжка · зріз) → демо-аналіз
