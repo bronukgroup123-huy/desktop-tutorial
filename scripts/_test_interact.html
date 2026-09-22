@@ -28,6 +28,11 @@ async function run() {
     const grid = $('guide-grid', d);
     const cards0 = grid ? grid.querySelectorAll('.card').length : -1;
     log('cards_initial', cards0);
+    const imgs0 = [...grid.querySelectorAll('img')];
+    log('grid_imgs', imgs0.length);
+    await sleep(1500);
+    log('grid_imgs_loaded', imgs0.filter(i => i.naturalWidth > 0).length);
+    log('grid_first_img', imgs0[0] ? imgs0[0].getAttribute('src') : '-');
     log('guide_count', $('guide-count', d) && $('guide-count', d).textContent);
     log('guide_total', $('guide-total', d) && $('guide-total', d).textContent);
     log('guide_photos', $('guide-photos', d) && $('guide-photos', d).textContent);
@@ -90,6 +95,8 @@ async function run() {
     log('result_latin', $('result-latin', d).textContent);
     log('result_pct', $('result-pct', d).textContent);
     log('result_badges', $('result-badges', d).textContent.trim().replace(/\s+/g, ' '));
+    log('result_desc', ($('result-desc', d).textContent || '(empty)').slice(0, 100));
+    log('result_desc_hidden', $('result-desc', d).classList.contains('hidden'));
 
     // --- 6. open in guide ---
     click($('btn-open-guide', d));

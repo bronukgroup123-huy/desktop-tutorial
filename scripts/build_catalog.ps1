@@ -54,6 +54,27 @@ foreach ($row in $master) {
 }
 Log ('[1] unikalnyh: ' + $merged.Count + ' (zvedeno dubl: ' + $dupMerged + ')')
 
+# --- backfill описів із descriptions_200.csv (канонічне джерело описів бази ШІ) ---
+$descMap = @{}
+$descPath = Join-Path $Root 'descriptions_200.csv'
+if (Test-Path $descPath) {
+    foreach ($drow in (Import-Csv $descPath -Encoding UTF8)) {
+        $dl = ([string]$drow.scientific_name).Trim()
+        if ($dl -and $drow.key_features_ai) { $descMap[$dl] = [string]$drow.key_features_ai }
+    }
+    Log ('[1] opysiv u descriptions_200: ' + $descMap.Count)
+    $descBackfilled = 0
+    foreach ($row in $merged) {
+        if (-not $row.key_features_ai -or -not $row.key_features_ai.Trim()) {
+            $ln2 = ([string]$row.scientific_name).Trim()
+            if ($descMap.ContainsKey($ln2)) { $row.key_features_ai = $descMap[$ln2]; $descBackfilled++ }
+        }
+    }
+    Log ('[1] backfill opysiv u merged: ' + $descBackfilled)
+} else {
+    Log '[1] descriptions_200.csv NEMAIE (backfill vymkneno)'
+}
+
 # ============================================================
 # [2] фото: скануємо папки, будуємо latin -> relpath
 # ============================================================
@@ -67,7 +88,8 @@ $alias = @{
     'Lactifluus piperatus' = 'Lactarius piperatus'
     'Cerioporus squamosus' = 'Polyporus squamosus'
 }
-$photoDirs = @('фото Топ-20 грибів (webp)', 'фото популярні 55 грибів (webp)', 'Отруйні та смертельно отруйні (webp)')
+# Червона книга — першою, щоб наявні фото з інших папок не перезаписувалися
+$photoDirs = @('Червона книга (webp)', 'фото Топ-20 грибів (webp)', 'фото популярні 55 грибів (webp)', 'Отруйні та смертельно отруйні (webp)')
 $photoByTarget = @{}
 $dirProblems = @()
 foreach ($d in $photoDirs) {
@@ -377,19 +399,21 @@ foreach ($row in $merged) {
     }
     $seasonFacets = @($seasonFacets | Sort-Object)
 
-    foreach ($v in $color) { $cntColor[$v] = 1 + $cntColor[$v] }
-    foreach ($v in $stem) { $cntStem[$v] = 1 + $cntStem[$v] }
-    foreach ($v in $tree) { $cntTree[$v] = 1 + $cntTree[$v] }
-    foreach ($v in $seasonFacets) { $cntSeason[$v] = 1 + $cntSeason[$v] }
-    if ($color.Count) { $cover.color++ }
-    if ($stem.Count) { $cover.stem++ }
-    if ($tree.Count) { $cover.tree++ }
-    if ($seasonFacets.Count) { $cover.season++ }
-
-    # --- фото ---
+    # --- фото (раніше за фасети: у довіднику рахуються лише види з фото) ---
     $photo = ''
     if ($photoByTarget.ContainsKey($latin)) { $photo = $photoByTarget[$latin]; $photoFound++ }
     $hasPhoto = $photo -ne ''
+
+    if ($hasPhoto) {
+        foreach ($v in $color) { $cntColor[$v] = 1 + $cntColor[$v] }
+        foreach ($v in $stem) { $cntStem[$v] = 1 + $cntStem[$v] }
+        foreach ($v in $tree) { $cntTree[$v] = 1 + $cntTree[$v] }
+        foreach ($v in $seasonFacets) { $cntSeason[$v] = 1 + $cntSeason[$v] }
+        if ($color.Count) { $cover.color++ }
+        if ($stem.Count) { $cover.stem++ }
+        if ($tree.Count) { $cover.tree++ }
+        if ($seasonFacets.Count) { $cover.season++ }
+    }
 
     # --- їстівність (з урахуванням роду назви) ---
     $status = [string]$row.edibility_status

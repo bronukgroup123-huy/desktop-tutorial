@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="uk">
+<head><meta charset="utf-8"><title>photo diagnostics</title></head>
+<body>
+<pre id="log"></pre>
+<script>
+const logEl = document.getElementById('log');
+const put = (k, v) => { const d = document.createElement('div'); d.textContent = k + ' = ' + v; logEl.appendChild(d); };
+
+fetch('/mushroom_catalog.json').then(r => r.json()).then(cat => {
+  const withPhoto = cat.species.filter(s => s.photo);
+  put('json_photo_species', withPhoto.length);
+  put('json_no_photo_species', cat.species.length - withPhoto.length);
+
+  let loaded = 0, failed = 0;
+  const fails = [];
+  let done = 0;
+  const finish = () => {
+    put('img_loaded', loaded);
+    put('img_failed', failed);
+    put('first_fails', fails.slice(0, 6).join(' | ') || '-');
+
+    // features coverage for description
+    const ai = cat.species.filter(s => s.ai_recognition);
+    const aiWithFeatures = ai.filter(s => s.features && s.features.length > 5);
+    put('ai_species', ai.length);
+    put('ai_with_features', aiWithFeatures.length);
+    const rb = cat.species.filter(s => s.red_listed);
+    put('redbook_species', rb.length);
+    put('redbook_with_photo', rb.filter(s => s.photo).length);
+
+    // main page grid check via hidden iframe
+    const f = document.createElement('iframe');
+    f.style.cssText = 'width:420px;height:900px;border:0';
+    f.src = '../mushroom-radar.html';
+    f.onload = () => {
+      try {
+        const d = f.contentDocument;
+        const imgs = Array.from(d.querySelectorAll('#guide-grid img'));
+        let ok = 0;
+        imgs.forEach(i => { if (i.naturalWidth > 0) ok++; });
+        const cards = d.querySelectorAll('#guide-grid .card').length;
+        put('grid_cards', cards);
+        put('grid_imgs', imgs.length);
+        put('grid_imgs_loaded', ok);
+        put('grid_first_src', imgs.length ? imgs[0].getAttribute('src') : '-');
+        const gt = d.getElementById('guide-total');
+        put('guide_total_text', gt ? gt.textContent : '-');
+      } catch (e) { put('iframe_err', e.message); }
+      put('status', 'OK');
+    };
+    document.body.appendChild(f);
+  };
+
+  if (!withPhoto.length) { finish(); return; }
+  withPhoto.forEach(s => {
+    const img = new Image();
+    img.onload = () => { loaded++; if (++done === withPhoto.length) finish(); };
+    img.onerror = () => { failed++; fails.push(s.photo); if (++done === withPhoto.length) finish(); };
+    img.src = s.photo;
+  });
+}).catch(e => { put('fetch_err', e.message); put('status', 'FAIL'); });
+</script>
+</body>
+</html>

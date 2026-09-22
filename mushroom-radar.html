@@ -379,7 +379,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Довідник</div>
-          <div class="text-[9px] text-ink-muted mt-0.5">333 види</div>
+          <div class="text-[9px] text-ink-muted mt-0.5"><span id="welcome-guide-n">—</span> види з фото</div>
         </div>
         <div class="card p-2.5 flex flex-col items-center text-center">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
@@ -777,6 +777,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                   <span class="badge badge-green">Ймовірно їстівний</span>
                   <span class="badge badge-neutral">Перевірка потрібна</span>
                 </div>
+                <div class="text-[11.5px] text-ink-muted leading-relaxed mt-2 hidden" id="result-desc"></div>
               </div>
             </div>
             <div class="mt-3 flex items-start gap-2 p-2.5 rounded-xl bg-cream-50 border border-cream-300">
@@ -1401,15 +1402,15 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 <!-- CATALOG:START -->
 <script type="application/json" id="mushroom-catalog">{
     "meta":  {
-                 "generated":  "2026-09-22T23:27:14",
+                 "generated":  "2026-09-23T01:27:28",
                  "rows_total":  333,
                  "total":  326,
-                 "with_photos":  87,
+                 "with_photos":  131,
                  "cover":  {
-                               "stem":  193,
-                               "color":  192,
-                               "season":  216,
-                               "tree":  181
+                               "stem":  2,
+                               "color":  2,
+                               "season":  23,
+                               "tree":  17
                            },
                  "sources":  [
                                  "master.csv",
@@ -1421,173 +1422,71 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     "facets":  {
                    "color":  [
                                  {
-                                     "value":  "brown",
-                                     "label":  "Коричневий",
-                                     "count":  66
-                                 },
-                                 {
-                                     "value":  "grey",
-                                     "label":  "Сірий",
-                                     "count":  52
-                                 },
-                                 {
                                      "value":  "white",
                                      "label":  "Білий",
-                                     "count":  49
-                                 },
-                                 {
-                                     "value":  "yellow",
-                                     "label":  "Жовтий",
-                                     "count":  37
-                                 },
-                                 {
-                                     "value":  "purple",
-                                     "label":  "Фіолетовий",
-                                     "count":  30
-                                 },
-                                 {
-                                     "value":  "red",
-                                     "label":  "Червоний",
-                                     "count":  30
-                                 },
-                                 {
-                                     "value":  "olive",
-                                     "label":  "Оливковий",
-                                     "count":  14
+                                     "count":  1
                                  },
                                  {
                                      "value":  "pink",
                                      "label":  "Рожевий",
-                                     "count":  14
+                                     "count":  1
                                  },
                                  {
-                                     "value":  "russet",
-                                     "label":  "Рудий",
-                                     "count":  13
+                                     "value":  "grey",
+                                     "label":  "Сірий",
+                                     "count":  1
                                  },
                                  {
-                                     "value":  "orange",
-                                     "label":  "Оранжевий",
-                                     "count":  11
-                                 },
-                                 {
-                                     "value":  "ochre",
-                                     "label":  "Охра",
-                                     "count":  11
-                                 },
-                                 {
-                                     "value":  "green",
-                                     "label":  "Зелений",
-                                     "count":  9
-                                 },
-                                 {
-                                     "value":  "black",
-                                     "label":  "Чорний",
-                                     "count":  4
-                                 },
-                                 {
-                                     "value":  "blue",
-                                     "label":  "Синій",
-                                     "count":  3
+                                     "value":  "red",
+                                     "label":  "Червоний",
+                                     "count":  1
                                  }
                              ],
-                   "stem":  [
-                                {
-                                    "value":  "ring",
-                                    "label":  "З кільцем",
-                                    "count":  21
-                                },
-                                {
-                                    "value":  "no_ring",
-                                    "label":  "Без кільця",
-                                    "count":  172
-                                },
-                                {
-                                    "value":  "volva",
-                                    "label":  "З піхвою",
-                                    "count":  6
-                                }
-                            ],
+                   "stem":  {
+                                "value":  "no_ring",
+                                "label":  "Без кільця",
+                                "count":  2
+                            },
                    "tree":  [
                                 {
                                     "value":  "pine",
                                     "label":  "Сосна",
-                                    "count":  86
+                                    "count":  6
                                 },
                                 {
                                     "value":  "spruce",
                                     "label":  "Ялина",
-                                    "count":  16
-                                },
-                                {
-                                    "value":  "larch",
-                                    "label":  "Модрина",
-                                    "count":  4
+                                    "count":  1
                                 },
                                 {
                                     "value":  "oak",
                                     "label":  "Дуб",
-                                    "count":  63
+                                    "count":  3
                                 },
                                 {
                                     "value":  "birch",
                                     "label":  "Береза",
-                                    "count":  26
+                                    "count":  5
                                 },
                                 {
                                     "value":  "aspen",
                                     "label":  "Осика",
-                                    "count":  6
-                                },
-                                {
-                                    "value":  "poplar",
-                                    "label":  "Тополя",
-                                    "count":  7
-                                },
-                                {
-                                    "value":  "willow",
-                                    "label":  "Верба",
-                                    "count":  7
-                                },
-                                {
-                                    "value":  "alder",
-                                    "label":  "Вільха",
-                                    "count":  4
-                                },
-                                {
-                                    "value":  "hornbeam",
-                                    "label":  "Граб",
-                                    "count":  1
-                                },
-                                {
-                                    "value":  "beech",
-                                    "label":  "Бук",
-                                    "count":  42
-                                },
-                                {
-                                    "value":  "elm",
-                                    "label":  "В\u0027яз",
-                                    "count":  2
-                                },
-                                {
-                                    "value":  "hazel",
-                                    "label":  "Ліщина",
                                     "count":  1
                                 },
                                 {
                                     "value":  "mixed",
                                     "label":  "Мішаний ліс",
-                                    "count":  31
+                                    "count":  7
                                 },
                                 {
                                     "value":  "deciduous",
                                     "label":  "Листяний ліс",
-                                    "count":  96
+                                    "count":  4
                                 },
                                 {
                                     "value":  "coniferous",
                                     "label":  "Хвойний ліс",
-                                    "count":  74
+                                    "count":  3
                                 },
                                 {
                                     "value":  "any",
@@ -1599,17 +1498,17 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                                   {
                                       "value":  "spring",
                                       "label":  "Весна",
-                                      "count":  28
+                                      "count":  3
                                   },
                                   {
                                       "value":  "summer",
                                       "label":  "Літо",
-                                      "count":  193
+                                      "count":  20
                                   },
                                   {
                                       "value":  "autumn",
                                       "label":  "Осінь",
-                                      "count":  212
+                                      "count":  23
                                   },
                                   {
                                       "value":  "winter",
@@ -4130,8 +4029,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик бронзовий Boletus aereus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4162,8 +4061,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик вовчий Rubroboletus lupinus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4194,8 +4093,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик дівочий Butyriboletus appendiculatus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4226,8 +4125,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Зникаючий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик королівський Butyriboletus regius/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4258,8 +4157,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик напівапендикулярний Butyriboletus subappendiculatus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4290,8 +4189,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик рожево-бурий Butyriboletus fuscoroseus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4322,8 +4221,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик рожево-жовтий Rubroboletus rhodoxanthus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4354,8 +4253,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик сатанинський Rubroboletus satanas/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4386,8 +4285,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівна",
                         "red_listed":  true,
                         "rarity":  "Зникаючий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик Фехтнера Butyriboletus fechtneri/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4418,8 +4317,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Отруйний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Боровик червоно-кривавий Rubroboletus rubrosanguineus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4450,8 +4349,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Веселка (диктіофора) подвоєна Phallus duplicatus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4482,8 +4381,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Гемілецінум безволосий Hemileccinum depilatum/large (1).webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4514,8 +4413,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Герицій їжаковий Hericium erinaceus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4546,8 +4445,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Герицій кораловий Hericium coralloides/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4578,8 +4477,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Гігроцибе ковпакоподібна Hygrocybe calyptriformis/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4610,8 +4509,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Гомф булавоподібний, свиняче вухо Gomphus clavatus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4642,8 +4541,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Грифола листувата Grifola frondosa/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4674,8 +4573,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Зникаючий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Зморшок степовий Morchella steppicola/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4706,8 +4605,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Кальмарник веретеноподібний Pseudocolus fusiformis/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4738,8 +4637,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Катателазма царська Catathelasma imperiale/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4770,8 +4669,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Квітохвісник Арчера, антурус Арчера Anthurus archeri/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4802,8 +4701,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Клаваріадельф товкачиковий Clavariadelphus pistillaris/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4834,8 +4733,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "На межі зникнення",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Ліофіл Фавре Lyophyllum favrei/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4866,8 +4765,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Лопатевик чорний Helvella monachella/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4898,8 +4797,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Маслюк кедровий Suillus plorans/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4930,8 +4829,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна) Myriostoma coliforme/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4962,8 +4861,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Моховик паразитний Boletus parasiticus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -4994,8 +4893,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Зникаючий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Мухомор цезарів Amanita caesarea/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5026,8 +4925,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Умовно їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Мухомор щетинистий Amanita strobiliformis/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5058,8 +4957,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Решетняк карміново-червоний Chalciporus rubinus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5090,8 +4989,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Решіточник червоний Clathrus ruber/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5122,8 +5021,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Рядовка величезна Tricholoma colossus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5154,8 +5053,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Рядовка опеньковидна Tricholoma focale/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5186,8 +5085,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Саркосома куляста Sarcosoma globosum/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5218,8 +5117,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Сироїжка синювата Russula turci/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5253,8 +5152,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Склеродерма зірчаста Scleroderma geaster/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5285,8 +5184,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Вразливий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Спарасис кучерявий Sparassis crispa/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5317,8 +5216,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Трутовик зонтичний Polyporus umbellatus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5349,8 +5248,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Зникаючий вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Трюфель літній Tuber aestivum/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5381,8 +5280,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "На межі зникнення",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Фелоринія геркулесова, фелоринія пластівчасто-луската Phellorinia herculeana/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5413,8 +5312,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівна",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Феолепіота золотиста Phaeolepiota aurea/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5445,8 +5344,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Філопор рожево-золотистий Phylloporus pelletieri/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5477,8 +5376,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Їстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Хрящ-молочник чорний, хрящ-молочник деревний Lactarius lignyotus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -5509,8 +5408,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
                         "edibility_label":  "Неїстівний",
                         "red_listed":  true,
                         "rarity":  "Рідкісний вид",
-                        "has_photo":  false,
-                        "photo":  "",
+                        "has_photo":  true,
+                        "photo":  "Червона книга (webp)/Шишкогриб лускатий, лускач Strobilomyces strobilaceus/large.webp",
                         "top20":  false,
                         "popular":  false,
                         "ai_recognition":  false,
@@ -13450,7 +13349,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
   function filtered() {
     if (!CATALOG) return [];
-    return CATALOG.species.filter(s => queryMatch(s) && facetMatch(s)).sort(cmp);
+    return CATALOG.species.filter(s => s.has_photo && queryMatch(s) && facetMatch(s)).sort(cmp);
   }
 
   function cardHtml(s) {
@@ -13488,7 +13387,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     if (guideCount) {
       guideCount.textContent = list.length
         ? 'Показано ' + shown + ' з ' + list.length +
-          (list.length !== CATALOG.meta.total ? ' (усього ' + CATALOG.meta.total + ')' : '')
+          (list.length !== CATALOG.meta.with_photos ? ' (усього ' + CATALOG.meta.with_photos + ')' : '')
         : '';
     }
   }
@@ -13567,14 +13466,17 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     const gt2 = document.getElementById('guide-total-2');
     const gp = document.getElementById('guide-photos');
     const note = document.getElementById('filter-note');
-    if (gt1) gt1.textContent = CATALOG.meta.rows_total || CATALOG.meta.total;
-    if (gt2) gt2.textContent = CATALOG.meta.rows_total || CATALOG.meta.total;
+    // У довіднику за замовчуванням — лише види з фото (база без фото лишається для ШІ)
+    const wg = document.getElementById('welcome-guide-n');
+    if (wg) wg.textContent = CATALOG.meta.with_photos;
+    if (gt1) gt1.textContent = CATALOG.meta.with_photos;
+    if (gt2) gt2.textContent = CATALOG.meta.with_photos;
     if (gp) gp.textContent = CATALOG.meta.with_photos;
     if (note) {
       note.textContent = 'Атрибути для фільтрів: колір — ' + CATALOG.meta.cover.color +
         ', ніжка — ' + CATALOG.meta.cover.stem +
         ', дерево — ' + CATALOG.meta.cover.tree +
-        ', сезон — ' + CATALOG.meta.cover.season + ' (з ' + CATALOG.meta.total + ')';
+        ', сезон — ' + CATALOG.meta.cover.season + ' (з ' + CATALOG.meta.with_photos + ')';
     }
     updateFacetChips();
     renderGuide();
@@ -13619,6 +13521,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     const pctEl = document.getElementById('result-pct');
     const badgesEl = document.getElementById('result-badges');
     const thumbEl = document.getElementById('result-thumb');
+    const descEl = document.getElementById('result-desc');
     if (nameEl) nameEl.textContent = s.name;
     if (latinEl) latinEl.textContent = s.latin;
     if (pctEl) pctEl.textContent = pct + '%';
@@ -13628,6 +13531,12 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
         (s.red_listed && s.rarity ? '<span class="badge badge-yellow">' + esc(s.rarity) + '</span>' : '') +
         '<span class="badge badge-neutral">Перевірка потрібна</span>';
     }
+    if (descEl) {
+      descEl.textContent = s.features || '';
+      descEl.classList.toggle('hidden', !s.features);
+    }
+    const openBtn = document.getElementById('btn-open-guide');
+    if (openBtn) openBtn.classList.toggle('hidden', !s.has_photo);
     if (thumbEl) {
       if (s.photo) {
         thumbEl.innerHTML = '<img src="' + esc(s.photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
@@ -13639,14 +13548,21 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
   function mockRecognize() {
     if (!CATALOG) return;
-    let pool = CATALOG.species.filter(s => s.ai_recognition);
+    // Пошук по довіднику (види з фото) і по базі розпізнавання (види без фото)
+    let pool = CATALOG.species.filter(s => s.ai_recognition || s.has_photo);
     if (!pool.length) pool = CATALOG.species.slice();
     if (lastRecognized && pool.length > 1) {
       const rest = pool.filter(s => s.name !== lastRecognized.name);
       if (rest.length) pool = rest;
     }
+    const withDesc = pool.filter(s => s.features && s.features.length > 5);
+    const withDescPhoto = withDesc.filter(s => s.has_photo);
     const withPhoto = pool.filter(s => s.has_photo);
-    const src = withPhoto.length ? withPhoto : pool;
+    const r = Math.random();
+    let src;
+    if (r < 0.4 && withDescPhoto.length) src = withDescPhoto;   // довідник: фото + опис
+    else if (r < 0.8 && withDesc.length) src = withDesc;        // база ШІ: гриб + опис
+    else src = withPhoto.length ? withPhoto : pool;             // довідник: фото
     const s = src[Math.floor(Math.random() * src.length)];
     const pct = 55 + Math.floor(Math.random() * 40);
     lastRecognized = s;
