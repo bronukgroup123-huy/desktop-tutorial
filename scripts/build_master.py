@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Генерує master.csv — 333 види, 14 колонок (без key_features_ai).
-zones = області через '|'
+Генерує master.csv — 333 види, з zones та key_features_ai для 200 видів без фото.
 """
 import csv
 
@@ -11,7 +10,7 @@ HEADER = [
     'has_photos','in_top20','is_popular',
     'is_poisonous','is_deadly','is_red_listed','rarity_label_uk',
     'in_ai_recognition','has_ai_prompt','legacy_id',
-    'zones',
+    'zones','key_features_ai','season',
 ]
 
 # ============================================================
@@ -187,7 +186,7 @@ WITHOUT_PHOTOS = [
     ("Gyrodon lividus","Гіродон сизуватий","edible"),
     ("Boletinus cavipes","Болетин порожньоногий","edible"),
     ("Tylopilus felleus","Тилопіл жовчний","inedible"),
-    ("Porphyrellus pseudoscaber","Порфірел пурпуровоспоровий","inedible"),
+    ("Porphyrellus porphyrosporus","Порфірел пурпуровоспоровий","inedible"),
     ("Gomphidius glutinosus","Мокруха клейка","edible"),
     ("Gomphidius roseus","Мокруха рожева","edible"),
     ("Gomphidius rutilus","Мокруха слизька","edible"),
@@ -253,13 +252,7 @@ WITHOUT_PHOTOS = [
     ("Russula farinipes","Сироїжка валуєвидна","inedible"),
     ("Russula consobrina","Сироїжка сірувато-бура","inedible"),
     ("Russula pectinata","Сироїжка гребінчаста","inedible"),
-    ("Russula emetica","Сироїжка блювотна","poisonous"),
-    ("Russula luteotacta","Сироїжка жовтіюча","inedible"),
-    ("Russula fragilis","Сироїжка крихка","inedible"),
-    ("Russula violacea","Сироїжка фіолетова","inedible"),
-    ("Russula versicolor","Сироїжка різнобарвна","edible"),
-    ("Russula firmula","Сироїжка лілова","inedible"),
-    ("Russula maculata","Сироїжка плямиста","inedible"),
+                            ("Russula maculata","Сироїжка плямиста","inedible"),
     ("Russula rubra","Сироїжка червона","inedible"),
     ("Russula sanguinea","Сироїжка криваво-червона","inedible"),
     ("Russula badia","Сироїжка пурпурово-коричнева","inedible"),
@@ -322,7 +315,7 @@ WITHOUT_PHOTOS = [
     ("Hygrophorus eburneus","Гігрофор жовтувато-білий","edible"),
     ("Hygrophorus chrysodon","Гігрофор золотистий","edible"),
     ("Hygrophorus hypothejus","Гігрофор пізній","edible"),
-    ("Hygrophorus olivaceoalbus","Гігрофор оливково-білий","edible"),
+    ("Hygrophorus olivaceo-albus","Гігрофор оливково-білий","edible"),
     ("Hygrophorus russula","Гігрофор сироїжковидний","edible"),
     ("Hygrophorus pratensis","Гігрофор луговий","edible"),
     ("Hygrophorus nemoreus","Гігрофор дібровний","edible"),
@@ -371,9 +364,9 @@ WITHOUT_PHOTOS = [
     ("Volvariella speciosa","Вольварієла прекрасна","edible"),
     ("Volvariella bombycina","Вольварієла надеревна","edible"),
     ("Pluteus atromarginatus","Плютей чорнооторочений","edible"),
-]
+                            ]
 
-assert len(WITHOUT_PHOTOS) == 200, f"Очікується 200, отримано {len(WITHOUT_PHOTOS)}"
+assert len(WITHOUT_PHOTOS) == 193, f"Очікується 193, отримано {len(WITHOUT_PHOTOS)}"
 
 # ============================================================
 # ПЕРЕВІРКИ (після обох списків!)
@@ -453,7 +446,7 @@ RARITY_LABELS = {
 }
 
 # ============================================================
-# Читаємо distribution.csv (75 рядків)
+# Читаємо distribution.csv (133 з фото) + distribution_200.csv (200 без фото)
 # ============================================================
 dist = {}
 try:
@@ -462,6 +455,35 @@ try:
             dist[row['scientific_name']] = row['zones']
 except FileNotFoundError:
     print("⚠ distribution.csv не знайдено — zones будуть порожні")
+
+try:
+    with open('distribution_200.csv', encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):
+            dist[row['scientific_name']] = row['zones']
+except FileNotFoundError:
+    print("⚠ distribution_200.csv не знайдено — zones для 200 видів будуть порожні")
+
+# ============================================================
+# Читаємо descriptions_200.csv (key_features_ai)
+# ============================================================
+descriptions = {}
+try:
+    with open('descriptions_200.csv', encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):
+            descriptions[row['scientific_name']] = row.get('key_features_ai', '')
+except FileNotFoundError:
+    print("⚠ descriptions_200.csv не знайдено — key_features_ai будуть порожні")
+
+# ============================================================
+# Читаємо habitats_200.csv (season)
+# ============================================================
+habitats = {}
+try:
+    with open('habitats_200.csv', encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):
+            habitats[row['scientific_name']] = row.get('season', '')
+except FileNotFoundError:
+    print("⚠ habitats_200.csv не знайдено — season будуть порожні")
 
 # ============================================================
 # Генерація
@@ -476,9 +498,8 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
         is_deadly = sci in DEADLY_SPECIES
         is_red = sci in RARITY_LABELS
         rarity = RARITY_LABELS.get(sci, '')
-        zones = dist.get(sci, '')     # ← області через |
+        zones = dist.get(sci, '')
 
-        # 🔴 ЧК НЕ розпізнаються ШІ (безпека)
         ai_recognition = 0 if is_red else 1
 
         w.writerow([
@@ -488,9 +509,11 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             1 if is_deadly else 0,
             1 if is_red else 0,
             rarity,
-            ai_recognition, 1,           # ← in_ai_recognition залежить від is_red
+            ai_recognition, 1,
             legacy,
             zones,
+            descriptions.get(sci, ''),
+            habitats.get(sci, ''),
         ])
 
     # --- 200 без фото ---
@@ -504,11 +527,15 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             1 if is_poison else 0,
             1 if is_deadly else 0,
             0, '',
-            0, 1,                       # in_ai_recognition=0, has_ai_prompt=1
+            0, 1,
             '',
-            '',                         # zones — окрема ітерація
+            dist.get(sci, ''),
+            descriptions.get(sci, ''),
+            habitats.get(sci, ''),
         ])
 
-print("✓ master.csv: 133 + 200 = 333 рядки")
+print(f"✓ master.csv: 133 + {len(WITHOUT_PHOTOS)} = {133 + len(WITHOUT_PHOTOS)} рядків")
 print(f"  ▪ zones заповнено для {len(dist)} видів")
+print(f"  ▪ key_features_ai заповнено для {len(descriptions)} видів")
+print(f"  ▪ season заповнено для {len(habitats)} видів")
 print(f"  ▪ 44 ЧК, 14 отруйних, 5 смертельно отруйних")
