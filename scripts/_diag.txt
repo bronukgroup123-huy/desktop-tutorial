@@ -1,0 +1,94 @@
+=== колонок у рядках по секціях ===
+section 1: 21cols x 20
+section 2: 7cols x 20
+section 3: 9cols x 20
+section 4: 4cols x 20
+section 5: 7cols x 20
+section 8: 8cols x 20
+section 10: 3cols x 10
+
+=== перший рядок кожної секції (колонки через |) ===
+section 1 (21 cols):
+  [0] 1
+  [1] Білий
+  [2] Boletus edulis
+  [3] 1
+  [4] 1.0
+  [5] 13–20
+  [6] 13–16
+  [7] 15–20
+  [8] >60
+  [9] 10/10/10
+  [10] 1005–1020 ↓
+  [11] pine, oak, mixed
+  [12] plain, slope; 200–800
+  [13] 4.5–6.0
+  [14] partial_shade
+  [15] 10–30
+  [16] 06-01–10-31
+  [17] sum1, sum2, aut
+  [18] sum2, aut
+  [19] [8, 9]
+  [20] Amanita, Cantharellus
+
+section 2 (7 cols):
+  [0] 1
+  [1] Білий
+  [2] —
+  [3] ✅
+  [4] 14
+  [5] 5–9
+  [6] —
+
+section 3 (9 cols):
+  [0] 1
+  [1] Білий
+  [2] ✅
+  [3] ✅
+  [4] wet
+  [5] —
+  [6] 20
+  [7] —
+  [8] —
+
+section 4 (4 cols):
+  [0] 1
+  [1] Білий
+  [2] 0
+  [3] core
+
+section 5 (7 cols):
+  [0] 1
+  [1] Білий
+  [2] Низини, струмки, мох-сфагнум, густа тінь, схили ярів
+  [3] Пагорби, піщані гриви, стежки, оголений ґрунт
+  [4] ✅
+  [5] —
+  [6] всі
+
+section 8 (8 cols):
+  [0] 1
+  [1] Білий
+  [2] —
+  [3] +
+  [4] ПІК (VIII)
+  [5] ПІК (IX)
+  [6] —
+  [7] 8, 9
+
+section 10 (3 cols):
+  [0] 1
+  [1] Додано peak_months у таблицю 1
+  [2] Критично
+
+=== master.csv: дублікати scientific_name ===
+  DUPE: Russula vesca x2
+  DUPE: Russula delica x2
+  DUPE: Russula xerampelina x2
+  DUPE: Russula virescens x2
+  DUPE: Russula cyanoxantha x2
+  DUPE: Russula foetens x2
+  DUPE: Russula turci x2
+
+=== photo-папки: унікальні latin ===
+папок: 75

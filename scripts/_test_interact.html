@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Interaction test</title>
+</head>
+<body>
+<pre id="results">running...</pre>
+<iframe id="app" src="/mushroom-radar.html" style="width:1360px;height:960px;border:2px solid red"></iframe>
+<script>
+const out = [];
+const log = (k, v) => out.push(k + ' = ' + v);
+const $ = (id, doc) => (doc || document).getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const click = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+async function run() {
+  const frame = $('app');
+  const w = frame.contentWindow, d = frame.contentDocument;
+  try {
+    // --- 0. enter app, open recognize tab (for the screenshot state) ---
+    click($('btn-start', d));
+    await sleep(300);
+    click(d.querySelector('.tab-btn[data-tab="recognize"]'));
+    await sleep(300);
+
+    // --- 1. initial render ---
+    const grid = $('guide-grid', d);
+    const cards0 = grid ? grid.querySelectorAll('.card').length : -1;
+    log('cards_initial', cards0);
+    log('guide_count', $('guide-count', d) && $('guide-count', d).textContent);
+    log('guide_total', $('guide-total', d) && $('guide-total', d).textContent);
+    log('guide_photos', $('guide-photos', d) && $('guide-photos', d).textContent);
+    log('filter_note', $('filter-note', d) && $('filter-note', d).textContent.slice(0, 90));
+    log('json_species', (() => { try { return JSON.parse($('mushroom-catalog', d).textContent).species.length; } catch (e) { return 'ERR ' + e.message; } })());
+
+    // --- 2. search ---
+    const si = $('guide-search', d);
+    si.value = 'Boletus';
+    si.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await sleep(150);
+    log('search_boletus_count', $('guide-count', d).textContent);
+    const names = [...grid.querySelectorAll('.font-serif.font-semibold')].slice(0, 3).map(e => e.textContent);
+    log('search_first3', names.join(' | '));
+    si.value = '';
+    si.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await sleep(150);
+
+    // --- 3. facet filters ---
+    const chipColor = d.querySelector('#guide-filters .chip[data-facet="color"]');
+    click(chipColor);
+    await sleep(100);
+    const opts = $('guide-options', d).querySelectorAll('.chip-value');
+    log('facet_color_options', opts.length);
+    log('facet_color_first', opts.length ? opts[0].textContent : '-');
+    click(opts[0]);
+    await sleep(150);
+    log('after_filter_count', $('guide-count', d).textContent);
+    const reset = $('btn-reset-filters', d);
+    click(reset);
+    await sleep(150);
+    log('after_reset_count', $('guide-count', d).textContent);
+    log('search_cleared', JSON.stringify(si.value));
+
+    // --- 4. show more ---
+    const more = $('guide-more', d);
+    log('more_visible_before', more && !more.classList.contains('hidden'));
+    click(more);
+    await sleep(150);
+    log('cards_after_more', grid.querySelectorAll('.card').length);
+    click(reset);
+    await sleep(100);
+
+    // --- 5. camera mock ---
+    click($('btn-camera', d));
+    await sleep(100);
+    const ov = $('capture-overlay', d);
+    log('overlay_open', ov.classList.contains('open'));
+    log('cap_step', $('cap-step', d).textContent);
+    const shutter = $('cap-shutter', d);
+    click(shutter); await sleep(150);
+    log('step_after_1', $('cap-step', d).textContent);
+    click(shutter); await sleep(150);
+    log('step_after_2', $('cap-step', d).textContent);
+    click(shutter); await sleep(300);
+    log('step_after_3', $('cap-step', d).textContent);
+    await sleep(2200);
+    log('overlay_closed', !ov.classList.contains('open'));
+    log('result_name', $('result-name', d).textContent);
+    log('result_latin', $('result-latin', d).textContent);
+    log('result_pct', $('result-pct', d).textContent);
+    log('result_badges', $('result-badges', d).textContent.trim().replace(/\s+/g, ' '));
+
+    // --- 6. open in guide ---
+    click($('btn-open-guide', d));
+    await sleep(200);
+    log('guide_search_after_open', JSON.stringify(si.value));
+    log('count_after_open', $('guide-count', d).textContent);
+
+    // --- final state for the screenshot: clean grid, guide scrolled into view ---
+    click(reset);
+    await sleep(200);
+    $('guide-filters-wrap', d).scrollIntoView();
+    await sleep(200);
+    log('final_count', $('guide-count', d).textContent);
+
+    log('status', 'OK');
+  } catch (e) {
+    log('status', 'FAIL: ' + e.message + ' @ ' + (e.stack || '').split('\n')[1]);
+  }
+  $('results').textContent = out.join('\n');
+}
+document.getElementById('app').addEventListener('load', () => setTimeout(run, 600));
+</script>
+</body>
+</html>
