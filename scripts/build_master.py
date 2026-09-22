@@ -163,25 +163,7 @@ WITH_PHOTOS = [
     ("Paxillus involutus","Свинуха тонка","poisonous",0,0,""),
 ]
 
-# === Перевірка на дублі ===
-from collections import Counter
-all_sci = [s[0] for s in WITH_PHOTOS] + [s[0] for s in WITHOUT_PHOTOS]
-dups = [sci for sci, n in Counter(all_sci).items() if n > 1]
-if dups:
-    raise SystemExit(f"❌ Дублі між списками: {dups}")
-
-# === Перевірка консистентності ===
-with_photos_sci = {s[0] for s in WITH_PHOTOS}
-top20_sci = {s[0] for s in WITH_PHOTOS if s[3] == 1}
-popular_sci = {s[0] for s in WITH_PHOTOS if s[4] == 1}
-
-if not top20_sci.issubset(popular_sci):
-    raise SystemExit("❌ TOP-20 має бути підмножиною популярних")
-
 assert len(WITH_PHOTOS) == 133, f"Очікується 133, отримано {len(WITH_PHOTOS)}"
-assert len(top20_sci) == 20, f"Очікується 20 TOP-20, отримано {len(top20_sci)}"
-assert len(popular_sci) == 55, f"Очікується 55 популярних, отримано {len(popular_sci)}"
-print(f"✓ Перевірки: WITH_PHOTOS={len(with_photos_sci)}, TOP-20={len(top20_sci)}, популярних={len(popular_sci)}")
 
 # ============================================================
 # 200 без фото: (sci, ua, status)
@@ -392,6 +374,28 @@ WITHOUT_PHOTOS = [
 assert len(WITHOUT_PHOTOS) == 200, f"Очікується 200, отримано {len(WITHOUT_PHOTOS)}"
 
 # ============================================================
+# ПЕРЕВІРКИ (після обох списків!)
+# ============================================================
+from collections import Counter
+
+all_sci = [s[0] for s in WITH_PHOTOS] + [s[0] for s in WITHOUT_PHOTOS]
+dups = [sci for sci, n in Counter(all_sci).items() if n > 1]
+if dups:
+    raise SystemExit(f"❌ Дублі між списками: {dups}")
+
+with_photos_sci = {s[0] for s in WITH_PHOTOS}
+top20_sci = {s[0] for s in WITH_PHOTOS if s[3] == 1}
+popular_sci = {s[0] for s in WITH_PHOTOS if s[4] == 1}
+
+if not top20_sci.issubset(popular_sci):
+    raise SystemExit("❌ TOP-20 має бути підмножиною популярних")
+
+assert len(top20_sci) == 20, f"Очікується 20, отримано {len(top20_sci)}"
+assert len(popular_sci) == 55, f"Очікується 55, отримано {len(popular_sci)}"
+
+print(f"✓ Перевірки: WITH_PHOTOS={len(with_photos_sci)}, TOP-20={len(top20_sci)}, популярних={len(popular_sci)}")
+
+# ============================================================
 # Додаткові множини
 # ============================================================
 DEADLY_SPECIES = {
@@ -472,6 +476,9 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
         rarity = RARITY_LABELS.get(sci, '')
         zones = dist.get(sci, '')     # ← області через |
 
+        # 🔴 ЧК НЕ розпізнаються ШІ (безпека)
+        ai_recognition = 0 if is_red else 1
+
         w.writerow([
             sci, ua, status,
             1, top20, popular,
@@ -479,7 +486,7 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             1 if is_deadly else 0,
             1 if is_red else 0,
             rarity,
-            1, 1,                       # in_ai_recognition, has_ai_prompt
+            ai_recognition, 1,           # ← in_ai_recognition залежить від is_red
             legacy,
             zones,
         ])
