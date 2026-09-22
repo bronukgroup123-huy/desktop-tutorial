@@ -37,6 +37,70 @@ PHOTO_MAP = {
     'Morchella esculenta': f'{PHOTO_DIR}/Сморчок звичайний Morchella esculenta/large.webp',
 }
 
+POPULAR_55_DIR = 'фото популярні 55 грибів (webp)'
+POPULAR_55_MAP = {
+    'Hydnum rufescens': f'{POPULAR_55_DIR}/Їжовик рудуватий Hydnum rufescens/large.webp',
+    'Hydnum umbilicatum': f'{POPULAR_55_DIR}/Їжовик ямчастий Hydnum umbilicatum/large.webp',
+    'Albatrellopsis confluens': f'{POPULAR_55_DIR}/Альбатрел злитий Albatrellopsis confluens/large.webp',
+    'Albatrellus ovinus': f'{POPULAR_55_DIR}/Альбатрел овечий Albatrellus ovinus/large.webp',
+    'Boletus pinophilus': f'{POPULAR_55_DIR}/Білий гриб сосновий Boletus pinophilus/large.webp',
+    'Boletus reticulatus': f'{POPULAR_55_DIR}/Білий гриб сітчастий Boletus reticulatus/large.webp',
+    'Pleurotus dryinus': f'{POPULAR_55_DIR}/Глива дубова Pleurotus dryinus/large.webp',
+    'Pleurotus pulmonarius': f'{POPULAR_55_DIR}/Глива легенева Pleurotus pulmonarius/large.webp',
+    'Macrolepiota procera': f'{POPULAR_55_DIR}/Гриб-зонтик великий Macrolepiota procera/large.webp',
+    'Macrolepiota mastoidea': f'{POPULAR_55_DIR}/Гриб-зонтик сосковидний Macrolepiota mastoidea/large.webp',
+    'Tricholoma equestre': f'{POPULAR_55_DIR}/Зеленушка Tricholoma equestre/large.webp',
+    'Clavulina coralloides': f'{POPULAR_55_DIR}/Клавуліна зморшкувата Clavulina coralloides/large.webp',
+    'Cantharellus friesii': f'{POPULAR_55_DIR}/Лисичка Фріза Cantharellus friesii/large.webp',
+    'Cantharellus amethysteus': f'{POPULAR_55_DIR}/Лисичка аметистова Cantharellus amethysteus/large.webp',
+    'Craterellus lutescens': f'{POPULAR_55_DIR}/Лисичка жовта Craterellus lutescens/large.webp',
+    'Craterellus cinereus': f'{POPULAR_55_DIR}/Лисичка сіра Craterellus cinereus/large.webp',
+    'Craterellus tubaeformis': f'{POPULAR_55_DIR}/Лисичка трубчаста Craterellus tubaeformis/large.webp',
+    'Suillus placidus': f'{POPULAR_55_DIR}/Маслюк білий Suillus placidus/large.webp',
+    'Suillus variegatus': f'{POPULAR_55_DIR}/Маслюк жовто-бурий Suillus variegatus/large.webp',
+    'Suillus granulatus': f'{POPULAR_55_DIR}/Маслюк зернистий Suillus granulatus/large.webp',
+    'Suillus grevillei': f'{POPULAR_55_DIR}/Маслюк модриновий Suillus grevillei/large.webp',
+    'Xerocomellus chrysenteron': f'{POPULAR_55_DIR}/Моховик тріщинуватий Xerocomellus chrysenteron/large.webp',
+    'Amanita excelsa': f'{POPULAR_55_DIR}/Мухомор високий Amanita excelsa/large.webp',
+    'Amanita rubescens': f'{POPULAR_55_DIR}/Мухомор червоніючий Amanita rubescens/large.webp',
+    'Amanita crocea': f'{POPULAR_55_DIR}/Мухомор шафрановий Amanita crocea/large.webp',
+    'Kuehneromyces mutabilis': f'{POPULAR_55_DIR}/Опеньок літній Kuehneromyces mutabilis/large.webp',
+    'Armillaria ostoyae': f'{POPULAR_55_DIR}/Опеньок темний Armillaria ostoyae/large.webp',
+    'Amanita fulva': f'{POPULAR_55_DIR}/Поплавок жовто-коричневий Amanita fulva/large.webp',
+    'Amanita vaginata': f'{POPULAR_55_DIR}/Поплавок сірий Amanita vaginata/large.webp',
+    'Leccinellum pseudoscabrum': f'{POPULAR_55_DIR}/Підберезник грабовий Leccinellum pseudoscabrum/large.webp',
+    'Leccinum versipelle': f'{POPULAR_55_DIR}/Підберезник жовто-бурий Leccinum versipelle/large.webp',
+    'Leccinum variicolor': f'{POPULAR_55_DIR}/Підберезник різнокольоровий Leccinum variicolor/large.webp',
+    'Leccinum duriusculum': f'{POPULAR_55_DIR}/Підберезник тополевий Leccinum duriusculum/large.webp',
+    'Russula delica': f'{POPULAR_55_DIR}/Підгруздь Russula delica/large.webp',
+    'Leccinum rufum': f'{POPULAR_55_DIR}/Підосичник білоніжковий Leccinum rufum/large.webp',
+    'Ramaria botrytis': f'{POPULAR_55_DIR}/Рамарія гроновидна Ramaria botrytis/large.webp',
+    'Lactarius deterrimus': f'{POPULAR_55_DIR}/Рижик ялиновий Lactarius deterrimus/large.webp',
+    'Lactarius salmonicolor': f'{POPULAR_55_DIR}/Рижик ялицевий Lactarius salmonicolor/large.webp',
+    'Tricholoma terreum': f'{POPULAR_55_DIR}/Рядовка землиста Tricholoma terreum/large.webp',
+    'Collybia personata': f'{POPULAR_55_DIR}/Рядовка ліловонога Collybia personata/large.webp',
+    'Calocybe gambosa': f'{POPULAR_55_DIR}/Рядовка майська Calocybe gambosa/large.webp',
+    'Tricholoma portentosum': f'{POPULAR_55_DIR}/Рядовка сіра Tricholoma portentosum/large.webp',
+    'Collybia nuda': f'{POPULAR_55_DIR}/Рядовка фіолетова Collybia nuda/large.webp',
+    'Russula xerampelina': f'{POPULAR_55_DIR}/Сироїжка буро-червона Russula xerampelina/large.webp',
+    'Russula virescens': f'{POPULAR_55_DIR}/Сироїжка зелена Russula virescens/large.webp',
+    'Russula cyanoxantha': f'{POPULAR_55_DIR}/Сироїжка синьо-жовта Russula cyanoxantha/large.webp',
+    'Russula foetens': f'{POPULAR_55_DIR}/Сироїжка смердюча Russula foetens/large.webp',
+    'Lactifluus vellereus': f'{POPULAR_55_DIR}/Скрипиця Lactifluus vellereus/large.webp',
+    'Cerioporus squamosus': f'{POPULAR_55_DIR}/Трутовик лускатий Cerioporus squamosus/large.webp',
+    'Laetiporus sulphureus': f'{POPULAR_55_DIR}/Трутовик сірчано-жовтий Laetiporus sulphureus/large.webp',
+    'Lactarius quietus': f'{POPULAR_55_DIR}/Хрящ-молочник дубовий Lactarius quietus/large.webp',
+    'Lactifluus piperatus': f'{POPULAR_55_DIR}/Хрящ-молочник перцевий Lactifluus piperatus/large.webp',
+    'Lactarius subdulcis': f'{POPULAR_55_DIR}/Хрящ-молочник солодкуватий Lactarius subdulcis/large.webp',
+    'Lactifluus volemus': f'{POPULAR_55_DIR}/Хрящ-молочник їстівний Lactifluus volemus/large.webp',
+    'Albatrellus confluens': f'{POPULAR_55_DIR}/Альбатрел злитий Albatrellopsis confluens/large.webp',
+    'Clavulina cristata': f'{POPULAR_55_DIR}/Клавуліна гребінчаста Clavulina coralloides/large.webp',
+    'Leccinum albostipitatum': f'{POPULAR_55_DIR}/Підосичник білоніжковий Leccinum rufum/large.webp',
+}
+
+def photo_path_for(sci: str) -> str:
+    return PHOTO_MAP.get(sci) or POPULAR_55_MAP.get(sci) or ''
+
 # ============================================================
 # 133 з фото: (sci, ua, status, top20, popular, legacy)
 # zones НЕ тут — воно зливається з distribution.csv
@@ -537,7 +601,7 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             zones,
             descriptions.get(sci, ''),
             habitats.get(sci, ''),
-            PHOTO_MAP.get(sci, ''),
+            photo_path_for(sci),
         ])
 
     # --- 200 без фото ---
@@ -556,7 +620,7 @@ with open('master.csv', 'w', encoding='utf-8-sig', newline='') as f:
             dist.get(sci, ''),
             descriptions.get(sci, ''),
             habitats.get(sci, ''),
-            PHOTO_MAP.get(sci, ''),
+            photo_path_for(sci),
         ])
 
 print(f"✓ master.csv: 133 + {len(WITHOUT_PHOTOS)} = {133 + len(WITHOUT_PHOTOS)} рядків")
