@@ -1,9 +1,9 @@
 // mushroom_catalog.js
-// Автогенеровано scripts/build_descriptions.py з mushroom_catalog.json.
+// Автогенеровано build_licenses.py з mushroom_catalog.json.
 // Не редагувати вручну.
 window.MUSHROOM_CATALOG = {
     "meta": {
-        "generated": "2026-09-23T21:08:18",
+        "generated": "2026-09-23T22:19:31",
         "rows_total": 333,
         "total": 326,
         "with_photos": 132,
@@ -1355,7 +1355,18 @@ window.MUSHROOM_CATALOG = {
                 "фото популярні 55 грибів (webp)/Лисичка Фріза Cantharellus friesii/large.webp",
                 "фото популярні 55 грибів (webp)/Лисичка Фріза Cantharellus friesii/large (1).webp",
                 "фото популярні 55 грибів (webp)/Лисичка Фріза Cantharellus friesii/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Cantharellus friesii (Лисичка бархатиста).\nФото: serni bams, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/353615806\nhttps://www.inaturalist.org/photos/353615887\n\nCantharellus friesii (Лисичка бархатиста).\nФото: Jose Castro, Natusfera.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/139698282",
+                "author": "serni bams, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/353615806",
+                    "https://www.inaturalist.org/photos/353615887",
+                    "https://www.inaturalist.org/photos/139698282"
+                ]
+            }
         },
         {
             "id": "suillus-placidus",
@@ -2428,7 +2439,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик бронзовий Boletus aereus/large (1).webp",
                 "Червона книга (webp)/Боровик бронзовий Boletus aereus/large (7).webp",
                 "Червона книга (webp)/Боровик бронзовий Boletus aereus/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Boletus aereus Bull — Боровик бронзовий. URL: https://redbook-ua.org/item/boletus-aereus-bull/",
+                "text": "Червона книга України. Boletus aereus Bull — Боровик бронзовий.",
+                "url": "https://redbook-ua.org/item/boletus-aereus-bull/"
+            }
         },
         {
             "id": "rubroboletus-lupinus",
@@ -2453,7 +2469,22 @@ window.MUSHROOM_CATALOG = {
             "photos": [
                 "Червона книга (webp)/Боровик вовчий Rubroboletus lupinus/large.webp",
                 "Червона книга (webp)/Боровик вовчий Rubroboletus lupinus/large (1).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Rubroboletus lupinus (Боровик вовчий).\nФото: Kristian Bosak, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/437659570\nhttps://www.inaturalist.org/photos/436642666",
+                "author": "Kristian Bosak, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/437659570",
+                    "https://www.inaturalist.org/photos/436642666"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "butyriboletus-appendiculatus",
@@ -2479,7 +2510,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик дівочий Butyriboletus appendiculatus/large.webp",
                 "Червона книга (webp)/Боровик дівочий Butyriboletus appendiculatus/large (1).webp",
                 "Червона книга (webp)/Боровик дівочий Butyriboletus appendiculatus/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Butyriboletus appendiculatus (Боровик дівочий).\nФото: Petr Harant, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/231120702\n\nButyriboletus appendiculatus (Боровик дівочий).\nФото: Virn Stothers, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/542911370\n\nButyriboletus appendiculatus (Боровик дівочий).\nФото: vuikaan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/543383823",
+                "author": "Petr Harant, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/231120702",
+                    "https://www.inaturalist.org/photos/542911370",
+                    "https://www.inaturalist.org/photos/543383823"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "butyriboletus-regius",
@@ -2504,7 +2551,22 @@ window.MUSHROOM_CATALOG = {
             "photos": [
                 "Червона книга (webp)/Боровик королівський Butyriboletus regius/large.webp",
                 "Червона книга (webp)/Боровик королівський Butyriboletus regius/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Butyriboletus regius (Боровик королівський).\nФото: serni bams, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/448821583\n\nButyriboletus regius (Боровик королівський).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/629334747",
+                "author": "serni bams, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/448821583",
+                    "https://www.inaturalist.org/photos/629334747"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Boletus regius Krombh — Боровик королівський. URL: https://redbook-ua.org/item/boletus-regius-krombh/",
+                "text": "Червона книга України. Boletus regius Krombh — Боровик королівський.",
+                "url": "https://redbook-ua.org/item/boletus-regius-krombh/"
+            }
         },
         {
             "id": "butyriboletus-subappendiculatus",
@@ -2531,7 +2593,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик напівапендикулярний Butyriboletus subappendiculatus/large (1).webp",
                 "Червона книга (webp)/Боровик напівапендикулярний Butyriboletus subappendiculatus/large (2).webp",
                 "Червона книга (webp)/Боровик напівапендикулярний Butyriboletus subappendiculatus/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Butyriboletus subappendiculatus (Боровик напівпридатковий).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/551921635\nhttps://www.inaturalist.org/photos/551921685\nhttps://www.inaturalist.org/photos/551921730\nhttps://www.inaturalist.org/photos/551921775",
+                "author": "Paula Nimigean, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/551921635",
+                    "https://www.inaturalist.org/photos/551921685",
+                    "https://www.inaturalist.org/photos/551921730",
+                    "https://www.inaturalist.org/photos/551921775"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "butyriboletus-fuscoroseus",
@@ -2558,7 +2637,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик рожево-бурий Butyriboletus fuscoroseus/large (1).webp",
                 "Червона книга (webp)/Боровик рожево-бурий Butyriboletus fuscoroseus/large (2).webp",
                 "Червона книга (webp)/Боровик рожево-бурий Butyriboletus fuscoroseus/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Butyriboletus fuscoroseus (Боровик буро-рожевий).\nФото: ionafraser, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/572844370\nhttps://www.inaturalist.org/photos/572844409\nhttps://www.inaturalist.org/photos/572844461\nhttps://www.inaturalist.org/photos/572844515",
+                "author": "ionafraser, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/572844370",
+                    "https://www.inaturalist.org/photos/572844409",
+                    "https://www.inaturalist.org/photos/572844461",
+                    "https://www.inaturalist.org/photos/572844515"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "rubroboletus-rhodoxanthus",
@@ -2584,7 +2680,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик рожево-жовтий Rubroboletus rhodoxanthus/large.webp",
                 "Червона книга (webp)/Боровик рожево-жовтий Rubroboletus rhodoxanthus/large (1).webp",
                 "Червона книга (webp)/Боровик рожево-жовтий Rubroboletus rhodoxanthus/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Rubroboletus rhodoxanthus (Боровик рожевошкірий).\nФото: Manuela Fiorini, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/563316275\nhttps://www.inaturalist.org/photos/563316359\nhttps://www.inaturalist.org/photos/563316492",
+                "author": "Manuela Fiorini, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/563316275",
+                    "https://www.inaturalist.org/photos/563316359",
+                    "https://www.inaturalist.org/photos/563316492"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "rubroboletus-satanas",
@@ -2610,7 +2722,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик сатанинський Rubroboletus satanas/large.webp",
                 "Червона книга (webp)/Боровик сатанинський Rubroboletus satanas/large (1).webp",
                 "Червона книга (webp)/Боровик сатанинський Rubroboletus satanas/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Rubroboletus satanas (Чортів Гриб).\nФото: Алена Ручка, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/161474921\n\nRubroboletus satanas (Чортів Гриб).\nФото: Ondřej Křivan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/732691022\n\nRubroboletus satanas (Чортів Гриб).\nФото: Daniel Ghyselinck, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/728986588",
+                "author": "Алена Ручка, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/161474921",
+                    "https://www.inaturalist.org/photos/732691022",
+                    "https://www.inaturalist.org/photos/728986588"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "butyriboletus-fechtneri",
@@ -2636,7 +2764,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Боровик Фехтнера Butyriboletus fechtneri/large.webp",
                 "Червона книга (webp)/Боровик Фехтнера Butyriboletus fechtneri/large (1).webp",
                 "Червона книга (webp)/Боровик Фехтнера Butyriboletus fechtneri/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Butyriboletus fechtneri (Боровик вицвітаючий).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/551943027\nhttps://www.inaturalist.org/photos/551943074\nhttps://www.inaturalist.org/photos/551943114",
+                "author": "Paula Nimigean, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/551943027",
+                    "https://www.inaturalist.org/photos/551943074",
+                    "https://www.inaturalist.org/photos/551943114"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "rubroboletus-rubrosanguineus",
@@ -2661,7 +2805,22 @@ window.MUSHROOM_CATALOG = {
             "photos": [
                 "Червона книга (webp)/Боровик червоно-кривавий Rubroboletus rubrosanguineus/large.webp",
                 "Червона книга (webp)/Боровик червоно-кривавий Rubroboletus rubrosanguineus/large (1).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Rubroboletus rubrosanguineus (Боровик криваво-червоний).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/704743467\n\nRubroboletus rubrosanguineus (Боровик криваво-червоний).\nФото: Luisa Atzei, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/699718846",
+                "author": "Paula Nimigean, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/704743467",
+                    "https://www.inaturalist.org/photos/699718846"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "phallus-duplicatus",
@@ -2688,7 +2847,21 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Веселка (диктіофора) подвоєна Phallus duplicatus/large (1).webp",
                 "Червона книга (webp)/Веселка (диктіофора) подвоєна Phallus duplicatus/large (2).webp",
                 "Червона книга (webp)/Веселка (диктіофора) подвоєна Phallus duplicatus/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Phallus duplicatus.\nФото: Grze Swis, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/228526348",
+                "author": "Grze Swis, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/228526348"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Phallus duplicatus Bosc [Dictyophora duplicata (Bosc) E. Fisch.] — Веселка (диктіофора) подвоєна. URL: https://redbook-ua.org/item/phallus-duplicatus-bosc-dictyophora-duplicatae-fisch/",
+                "text": "Червона книга України. Phallus duplicatus Bosc [Dictyophora duplicata (Bosc) E. Fisch.] — Веселка (диктіофора) подвоєна.",
+                "url": "https://redbook-ua.org/item/phallus-duplicatus-bosc-dictyophora-duplicatae-fisch/"
+            }
         },
         {
             "id": "hemileccinum-depilatum",
@@ -2714,7 +2887,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Гемілецінум безволосий Hemileccinum depilatum/large (1).webp",
                 "Червона книга (webp)/Гемілецінум безволосий Hemileccinum depilatum/large (2).webp",
                 "Червона книга (webp)/Гемілецінум безволосий Hemileccinum depilatum/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Hemileccinum depilatum (Боровик неопушений).\nФото: Bobo-X, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/421636434\nhttps://www.inaturalist.org/photos/421636086\nhttps://www.inaturalist.org/photos/421635974",
+                "author": "Bobo-X, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/421636434",
+                    "https://www.inaturalist.org/photos/421636086",
+                    "https://www.inaturalist.org/photos/421635974"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "hericium-erinaceus",
@@ -2743,7 +2932,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Герицій їжаковий Hericium erinaceus/large (3).webp",
                 "Червона книга (webp)/Герицій їжаковий Hericium erinaceus/large (4).webp",
                 "Червона книга (webp)/Герицій їжаковий Hericium erinaceus/large (5).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "hericium-coralloides",
@@ -2770,7 +2964,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Герицій кораловий Hericium coralloides/large (1).webp",
                 "Червона книга (webp)/Герицій кораловий Hericium coralloides/large (2).webp",
                 "Червона книга (webp)/Герицій кораловий Hericium coralloides/large (3).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Hericium coralloides (Fr.) Gray — Герицій коралоподібний. URL: https://redbook-ua.org/item/hericium-coralloidesgray/",
+                "text": "Червона книга України. Hericium coralloides (Fr.) Gray — Герицій коралоподібний.",
+                "url": "https://redbook-ua.org/item/hericium-coralloidesgray/"
+            }
         },
         {
             "id": "hygrocybe-calyptriformis",
@@ -2796,7 +2995,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Гігроцибе ковпакоподібна Hygrocybe calyptriformis/large.webp",
                 "Червона книга (webp)/Гігроцибе ковпакоподібна Hygrocybe calyptriformis/large (1).webp",
                 "Червона книга (webp)/Гігроцибе ковпакоподібна Hygrocybe calyptriformis/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Hygrocybe calyptriformis (Berk. et Broome) Fayod — Гігроцибе ковпакоподібна. URL: https://redbook-ua.org/item/hygrocybe-calyptriformisfayod/",
+                "text": "Червона книга України. Hygrocybe calyptriformis (Berk. et Broome) Fayod — Гігроцибе ковпакоподібна.",
+                "url": "https://redbook-ua.org/item/hygrocybe-calyptriformisfayod/"
+            }
         },
         {
             "id": "gomphus-clavatus",
@@ -2823,7 +3027,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Гомф булавоподібний, свиняче вухо Gomphus clavatus/large (1).webp",
                 "Червона книга (webp)/Гомф булавоподібний, свиняче вухо Gomphus clavatus/large (1)_2.webp",
                 "Червона книга (webp)/Гомф булавоподібний, свиняче вухо Gomphus clavatus/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Gomphus clavatus (Pers: Fr.) Gray [Cantharellus clavatus Fr., Craterellus clavatus (Pers.) Fr., Neurophyllum clavatum Pat.] — Гомф булавоподібний, свиняче вухо. URL: https://redbook-ua.org/item/gomphus-clavatusfr-neurophyllum-clavatum-pat/",
+                "text": "Червона книга України. Gomphus clavatus (Pers: Fr.) Gray [Cantharellus clavatus Fr., Craterellus clavatus (Pers.) Fr., Neurophyllum clavatum Pat.] — Гомф булавоподібний, свиняче вухо.",
+                "url": "https://redbook-ua.org/item/gomphus-clavatusfr-neurophyllum-clavatum-pat/"
+            }
         },
         {
             "id": "grifola-frondosa",
@@ -2850,7 +3059,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Грифола листувата Grifola frondosa/large (1).webp",
                 "Червона книга (webp)/Грифола листувата Grifola frondosa/large (2).webp",
                 "Червона книга (webp)/Грифола листувата Grifola frondosa/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Grifola frondosa (Dicks.: Fr.) Gray — Грифола листувата. URL: https://redbook-ua.org/item/grifola-frondosagray/",
+                "text": "Червона книга України. Grifola frondosa (Dicks.: Fr.) Gray — Грифола листувата.",
+                "url": "https://redbook-ua.org/item/grifola-frondosagray/"
+            }
         },
         {
             "id": "morchella-steppicola",
@@ -2877,7 +3091,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Зморшок степовий Morchella steppicola/large (1).webp",
                 "Червона книга (webp)/Зморшок степовий Morchella steppicola/large (2).webp",
                 "Червона книга (webp)/Зморшок степовий Morchella steppicola/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Morchella steppicola (Зморшок степовий).\nФото: Vasily Moryashkin, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/369709672\nhttps://www.inaturalist.org/photos/369709695\nhttps://www.inaturalist.org/photos/369709719\n\nMorchella steppicola (Зморшок степовий).\nФото: Evgeniy Meyke, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/370656263",
+                "author": "Vasily Moryashkin, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/369709672",
+                    "https://www.inaturalist.org/photos/369709695",
+                    "https://www.inaturalist.org/photos/369709719",
+                    "https://www.inaturalist.org/photos/370656263"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Morchella steppicola Zerova — Зморшок степовий. URL: https://redbook-ua.org/item/morchella-steppicola-zerova/",
+                "text": "Червона книга України. Morchella steppicola Zerova — Зморшок степовий.",
+                "url": "https://redbook-ua.org/item/morchella-steppicola-zerova/"
+            }
         },
         {
             "id": "pseudocolus-fusiformis",
@@ -2903,7 +3134,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Кальмарник веретеноподібний Pseudocolus fusiformis/large.webp",
                 "Червона книга (webp)/Кальмарник веретеноподібний Pseudocolus fusiformis/large (1).webp",
                 "Червона книга (webp)/Кальмарник веретеноподібний Pseudocolus fusiformis/large (2).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Pseudocolus fusiformis (E. Fischer) Lloyd — Кальмарник веретеноподібний. URL: https://redbook-ua.org/item/pseudocolus-fusiformiscunn/",
+                "text": "Червона книга України. Pseudocolus fusiformis (E. Fischer) Lloyd — Кальмарник веретеноподібний.",
+                "url": "https://redbook-ua.org/item/pseudocolus-fusiformiscunn/"
+            }
         },
         {
             "id": "catathelasma-imperiale",
@@ -2929,7 +3165,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Катателазма царська Catathelasma imperiale/large.webp",
                 "Червона книга (webp)/Катателазма царська Catathelasma imperiale/large (1).webp",
                 "Червона книга (webp)/Катателазма царська Catathelasma imperiale/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Catathelasma imperiale.\nФото: Ирина Хохрякова, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/427546383\nhttps://www.inaturalist.org/photos/427546473\n\nCatathelasma imperiale.\nФото: Alan Rockefeller, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/6671915",
+                "author": "Ирина Хохрякова, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/427546383",
+                    "https://www.inaturalist.org/photos/427546473",
+                    "https://www.inaturalist.org/photos/6671915"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Catathelasma imperiale (Fr.) Sing. — Катателазма царська. URL: https://redbook-ua.org/item/catathelasma-imperialequl/",
+                "text": "Червона книга України. Catathelasma imperiale (Fr.) Sing. — Катателазма царська.",
+                "url": "https://redbook-ua.org/item/catathelasma-imperialequl/"
+            }
         },
         {
             "id": "anthurus-archeri",
@@ -2956,7 +3208,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Квітохвісник Арчера, антурус Арчера Anthurus archeri/large (1).webp",
                 "Червона книга (webp)/Квітохвісник Арчера, антурус Арчера Anthurus archeri/large (2).webp",
                 "Червона книга (webp)/Квітохвісник Арчера, антурус Арчера Anthurus archeri/large (3).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Anthurus archeri (Berk.) Fischer — Квітохвісник Арчера, антурус Арчера. URL: https://redbook-ua.org/item/anthurus-archerifischer/",
+                "text": "Червона книга України. Anthurus archeri (Berk.) Fischer — Квітохвісник Арчера, антурус Арчера.",
+                "url": "https://redbook-ua.org/item/anthurus-archerifischer/"
+            }
         },
         {
             "id": "clavariadelphus-pistillaris",
@@ -2983,7 +3240,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Клаваріадельф товкачиковий Clavariadelphus pistillaris/large (1).webp",
                 "Червона книга (webp)/Клаваріадельф товкачиковий Clavariadelphus pistillaris/large (2).webp",
                 "Червона книга (webp)/Клаваріадельф товкачиковий Clavariadelphus pistillaris/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Clavariadelphus pistillaris (L.) Donk (Clavaria pistillaris Fr.) — Клаваріадельф товкачиковий. URL: https://redbook-ua.org/item/clavariadelphus-pistillaris/",
+                "text": "Червона книга України. Clavariadelphus pistillaris (L.) Donk (Clavaria pistillaris Fr.) — Клаваріадельф товкачиковий.",
+                "url": "https://redbook-ua.org/item/clavariadelphus-pistillaris/"
+            }
         },
         {
             "id": "lyophyllum-favrei",
@@ -3009,7 +3271,18 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Ліофіл Фавре Lyophyllum favrei/large.webp",
                 "Червона книга (webp)/Ліофіл Фавре Lyophyllum favrei/large (1).webp",
                 "Червона книга (webp)/Ліофіл Фавре Lyophyllum favrei/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Calocybe favrei.\nФото: Manuela Fiorini, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/580481803\nhttps://www.inaturalist.org/photos/580481792\n\nCalocybe favrei.\nФото: Davide Puddu, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/6993857",
+                "author": "Manuela Fiorini, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/580481803",
+                    "https://www.inaturalist.org/photos/580481792",
+                    "https://www.inaturalist.org/photos/6993857"
+                ]
+            }
         },
         {
             "id": "helvella-monachella",
@@ -3036,7 +3309,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Лопатевик чорний Helvella monachella/large (1).webp",
                 "Червона книга (webp)/Лопатевик чорний Helvella monachella/large (4).webp",
                 "Червона книга (webp)/Лопатевик чорний Helvella monachella/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Helvella monachella (Scop.) Fr. — Гельвела монашка. URL: https://redbook-ua.org/item/helvella-monachellafr/",
+                "text": "Червона книга України. Helvella monachella (Scop.) Fr. — Гельвела монашка.",
+                "url": "https://redbook-ua.org/item/helvella-monachellafr/"
+            }
         },
         {
             "id": "suillus-plorans",
@@ -3062,7 +3340,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Маслюк кедровий Suillus plorans/large.webp",
                 "Червона книга (webp)/Маслюк кедровий Suillus plorans/large (1).webp",
                 "Червона книга (webp)/Маслюк кедровий Suillus plorans/large (2).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Suillus plorans.\nФото: Виктория Билоус, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/90402308\nhttps://www.inaturalist.org/photos/90402305\nhttps://www.inaturalist.org/photos/90402330",
+                "author": "Виктория Билоус, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/90402308",
+                    "https://www.inaturalist.org/photos/90402305",
+                    "https://www.inaturalist.org/photos/90402330"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "myriostoma-coliforme",
@@ -3088,7 +3382,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна) Myriostoma coliforme/large.webp",
                 "Червона книга (webp)/Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна) Myriostoma coliforme/large (1).webp",
                 "Червона книга (webp)/Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна) Myriostoma coliforme/large (2).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Myriostoma coliforme (With.: Pers.) Corda — Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна). URL: https://redbook-ua.org/item/myriostoma-coliformecorda/",
+                "text": "Червона книга України. Myriostoma coliforme (With.: Pers.) Corda — Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна).",
+                "url": "https://redbook-ua.org/item/myriostoma-coliformecorda/"
+            }
         },
         {
             "id": "boletus-parasiticus",
@@ -3115,7 +3414,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Моховик паразитний Boletus parasiticus/large (1).webp",
                 "Червона книга (webp)/Моховик паразитний Boletus parasiticus/large (3).webp",
                 "Червона книга (webp)/Моховик паразитний Boletus parasiticus/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Boletus parasiticus Fr. [Xerocomus parasiticus (Bull.: Fr.) Quél.] — Моховик паразитний. URL: https://redbook-ua.org/item/boletus-parasiticus-fr-xerocomus-parasiticusqul/",
+                "text": "Червона книга України. Boletus parasiticus Fr. [Xerocomus parasiticus (Bull.: Fr.) Quél.] — Моховик паразитний.",
+                "url": "https://redbook-ua.org/item/boletus-parasiticus-fr-xerocomus-parasiticusqul/"
+            }
         },
         {
             "id": "amanita-caesarea",
@@ -3143,7 +3447,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Мухомор цезарів Amanita caesarea/large (2).webp",
                 "Червона книга (webp)/Мухомор цезарів Amanita caesarea/large (3).webp",
                 "Червона книга (webp)/Мухомор цезарів Amanita caesarea/large (4).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Amanita caesarea (Scop.) Pers. — Мухомор цезаря. URL: https://redbook-ua.org/item/amanita-caesareapers/",
+                "text": "Червона книга України. Amanita caesarea (Scop.) Pers. — Мухомор цезаря.",
+                "url": "https://redbook-ua.org/item/amanita-caesareapers/"
+            }
         },
         {
             "id": "amanita-strobiliformis",
@@ -3170,7 +3479,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Мухомор щетинистий Amanita strobiliformis/large (1).webp",
                 "Червона книга (webp)/Мухомор щетинистий Amanita strobiliformis/large (2).webp",
                 "Червона книга (webp)/Мухомор щетинистий Amanita strobiliformis/large (5).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Amanita solitaria (Bull.) Fr. — Мухомор щетинистий. URL: https://redbook-ua.org/item/amanita-solitariafr/",
+                "text": "Червона книга України. Amanita solitaria (Bull.) Fr. — Мухомор щетинистий.",
+                "url": "https://redbook-ua.org/item/amanita-solitariafr/"
+            }
         },
         {
             "id": "chalciporus-rubinus",
@@ -3197,7 +3511,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Решетняк карміново-червоний Chalciporus rubinus/large (1).webp",
                 "Червона книга (webp)/Решетняк карміново-червоний Chalciporus rubinus/large (2).webp",
                 "Червона книга (webp)/Решетняк карміново-червоний Chalciporus rubinus/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Chalciporus rubinus (Рубіноболет рубіново-червоний).\nФото: vuikaan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/399063908\nhttps://www.inaturalist.org/photos/399063948\nhttps://www.inaturalist.org/photos/399064005\nhttps://www.inaturalist.org/photos/399064058",
+                "author": "vuikaan, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/399063908",
+                    "https://www.inaturalist.org/photos/399063948",
+                    "https://www.inaturalist.org/photos/399064005",
+                    "https://www.inaturalist.org/photos/399064058"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168. URL: https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf",
+                "text": "Гелюта В.П., Зикова М.О., Гайова В.П., Придюк М.П., Шевченко М.В. Деякі зміни до списку видів грибів, включених до Червоної книги України // Український ботанічний журнал. — 2022. — 79(3). — С. 154-168.",
+                "url": "https://ukrbotj.co.ua/pdf/79/3/ukrbotj-2022-79-3-154.pdf"
+            }
         },
         {
             "id": "clathrus-ruber",
@@ -3224,7 +3555,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Решіточник червоний Clathrus ruber/large (1).webp",
                 "Червона книга (webp)/Решіточник червоний Clathrus ruber/large (1)_2.webp",
                 "Червона книга (webp)/Решіточник червоний Clathrus ruber/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Clathrus ruber Pers. (C. cancellatus Fr.) — Решіточник червоний. URL: https://redbook-ua.org/item/clathrus-ruber-pers/",
+                "text": "Червона книга України. Clathrus ruber Pers. (C. cancellatus Fr.) — Решіточник червоний.",
+                "url": "https://redbook-ua.org/item/clathrus-ruber-pers/"
+            }
         },
         {
             "id": "tricholoma-colossus",
@@ -3251,7 +3587,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Рядовка величезна Tricholoma colossus/large (1).webp",
                 "Червона книга (webp)/Рядовка величезна Tricholoma colossus/large (2).webp",
                 "Червона книга (webp)/Рядовка величезна Tricholoma colossus/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Tricholoma colossus.\nФото: Lucian Clanet, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/436985979\nhttps://www.inaturalist.org/photos/436985696\nhttps://www.inaturalist.org/photos/436985613\nhttps://www.inaturalist.org/photos/436985522",
+                "author": "Lucian Clanet, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/436985979",
+                    "https://www.inaturalist.org/photos/436985696",
+                    "https://www.inaturalist.org/photos/436985613",
+                    "https://www.inaturalist.org/photos/436985522"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Tricholoma colossus (Fr.) Quel. [Armillaria colossa (Fr.) Boud.] — Рядовка величезна. URL: https://redbook-ua.org/item/tricholoma-colossusboud/",
+                "text": "Червона книга України. Tricholoma colossus (Fr.) Quel. [Armillaria colossa (Fr.) Boud.] — Рядовка величезна.",
+                "url": "https://redbook-ua.org/item/tricholoma-colossusboud/"
+            }
         },
         {
             "id": "tricholoma-focale",
@@ -3277,7 +3630,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Рядовка опеньковидна Tricholoma focale/large.webp",
                 "Червона книга (webp)/Рядовка опеньковидна Tricholoma focale/large (1).webp",
                 "Червона книга (webp)/Рядовка опеньковидна Tricholoma focale/large (2).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Tricholoma focale (Fr.) Ricken [Armillaria focalis (Fr.) P. Karst.] — Рядовка опенькоподібна. URL: https://redbook-ua.org/item/tricholoma-focalep-karst/",
+                "text": "Червона книга України. Tricholoma focale (Fr.) Ricken [Armillaria focalis (Fr.) P. Karst.] — Рядовка опенькоподібна.",
+                "url": "https://redbook-ua.org/item/tricholoma-focalep-karst/"
+            }
         },
         {
             "id": "sarcosoma-globosum",
@@ -3305,7 +3663,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Саркосома куляста Sarcosoma globosum/large (2).webp",
                 "Червона книга (webp)/Саркосома куляста Sarcosoma globosum/large (1)_2.webp",
                 "Червона книга (webp)/Саркосома куляста Sarcosoma globosum/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Sarcosoma globosum (Schmidel) Rehm — Саркосома куляста. URL: https://redbook-ua.org/item/sarcosoma-globosumrehm/",
+                "text": "Червона книга України. Sarcosoma globosum (Schmidel) Rehm — Саркосома куляста.",
+                "url": "https://redbook-ua.org/item/sarcosoma-globosumrehm/"
+            }
         },
         {
             "id": "russula-turci",
@@ -3338,7 +3701,22 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Сироїжка синювата Russula turci/large.webp",
                 "Червона книга (webp)/Сироїжка синювата Russula turci/large (3).webp",
                 "Червона книга (webp)/Сироїжка синювата Russula turci/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Russula turci (Сироїжка Синювата).\nФото: Nina Filippova, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/83274774\nhttps://www.inaturalist.org/photos/83274709",
+                "author": "Nina Filippova, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/83274774",
+                    "https://www.inaturalist.org/photos/83274709"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Russula turci Bres. (R. amethystina Quél.) — Сироїжка синювата. URL: https://redbook-ua.org/item/russula-turci-bres/",
+                "text": "Червона книга України. Russula turci Bres. (R. amethystina Quél.) — Сироїжка синювата.",
+                "url": "https://redbook-ua.org/item/russula-turci-bres/"
+            }
         },
         {
             "id": "scleroderma-geaster",
@@ -3368,7 +3746,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Склеродерма зірчаста Scleroderma geaster/large (1)_2.webp",
                 "Червона книга (webp)/Склеродерма зірчаста Scleroderma geaster/large (2)_2.webp",
                 "Червона книга (webp)/Склеродерма зірчаста Scleroderma geaster/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Scleroderma geaster Fr. — Склеродерма зірчаста. URL: https://redbook-ua.org/item/scleroderma-geaster-fr-lycoperdon-polyrhizon-gmel-scleroderma-polyrhizonlv-stella-americana-massee/",
+                "text": "Червона книга України. Scleroderma geaster Fr. — Склеродерма зірчаста.",
+                "url": "https://redbook-ua.org/item/scleroderma-geaster-fr-lycoperdon-polyrhizon-gmel-scleroderma-polyrhizonlv-stella-americana-massee/"
+            }
         },
         {
             "id": "sparassis-crispa",
@@ -3395,7 +3778,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Спарасис кучерявий Sparassis crispa/large (1).webp",
                 "Червона книга (webp)/Спарасис кучерявий Sparassis crispa/large (6).webp",
                 "Червона книга (webp)/Спарасис кучерявий Sparassis crispa/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Sparassis crispa (Wulfen) Fr. — Листочня кучерява, спарасис кучерявий. URL: https://redbook-ua.org/item/sparassis-crispafr/",
+                "text": "Червона книга України. Sparassis crispa (Wulfen) Fr. — Листочня кучерява, спарасис кучерявий.",
+                "url": "https://redbook-ua.org/item/sparassis-crispafr/"
+            }
         },
         {
             "id": "polyporus-umbellatus",
@@ -3422,7 +3810,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Трутовик зонтичний Polyporus umbellatus/large (1).webp",
                 "Червона книга (webp)/Трутовик зонтичний Polyporus umbellatus/large (2).webp",
                 "Червона книга (webp)/Трутовик зонтичний Polyporus umbellatus/large (3).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Polyporus umbellatus (Pers.) Fr. [Grifola umbellata (Pers.) Pilát; Polypilus umbellatus (Pers.) P. Karst.] — Трутовик зонтичний. URL: https://redbook-ua.org/item/polyporus-umbellatusp-karst/",
+                "text": "Червона книга України. Polyporus umbellatus (Pers.) Fr. [Grifola umbellata (Pers.) Pilát; Polypilus umbellatus (Pers.) P. Karst.] — Трутовик зонтичний.",
+                "url": "https://redbook-ua.org/item/polyporus-umbellatusp-karst/"
+            }
         },
         {
             "id": "tuber-aestivum",
@@ -3449,7 +3842,24 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Трюфель літній Tuber aestivum/large (1).webp",
                 "Червона книга (webp)/Трюфель літній Tuber aestivum/large (2).webp",
                 "Червона книга (webp)/Трюфель літній Tuber aestivum/large (3).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Tuber aestivum (Трюфель літній).\nФото: gerardbertrand, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/538619416\n\nTuber aestivum (Трюфель літній).\nФото: Brian C. Hunt, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/358689732\nhttps://www.inaturalist.org/photos/358689844\n\nTuber aestivum (Трюфель літній).\nФото: Daniel Ghyselinck, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/407785428",
+                "author": "gerardbertrand, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/538619416",
+                    "https://www.inaturalist.org/photos/358689732",
+                    "https://www.inaturalist.org/photos/358689844",
+                    "https://www.inaturalist.org/photos/407785428"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Tuber aestivum Vitt. — Трюфель літній, трюфель їстівний. URL: https://redbook-ua.org/item/tuber-aestivum-vitt/",
+                "text": "Червона книга України. Tuber aestivum Vitt. — Трюфель літній, трюфель їстівний.",
+                "url": "https://redbook-ua.org/item/tuber-aestivum-vitt/"
+            }
         },
         {
             "id": "phellorinia-herculeana",
@@ -3475,7 +3885,21 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Фелоринія геркулесова, фелоринія пластівчасто-луската Phellorinia herculeana/large.webp",
                 "Червона книга (webp)/Фелоринія геркулесова, фелоринія пластівчасто-луската Phellorinia herculeana/large (1).webp",
                 "Червона книга (webp)/Фелоринія геркулесова, фелоринія пластівчасто-луската Phellorinia herculeana/large_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Phellorinia herculeana.\nФото: linkie, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/54213605",
+                "author": "linkie, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/54213605"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Phellorinia herculeana (Pers.) Kreisel — Фелоринія геркулесова. URL: https://redbook-ua.org/item/phellorinia-herculeana/",
+                "text": "Червона книга України. Phellorinia herculeana (Pers.) Kreisel — Фелоринія геркулесова.",
+                "url": "https://redbook-ua.org/item/phellorinia-herculeana/"
+            }
         },
         {
             "id": "phaeolepiota-aurea",
@@ -3502,7 +3926,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Феолепіота золотиста Phaeolepiota aurea/large (1).webp",
                 "Червона книга (webp)/Феолепіота золотиста Phaeolepiota aurea/large (2).webp",
                 "Червона книга (webp)/Феолепіота золотиста Phaeolepiota aurea/large_2.webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Phaeolepiota aurea (Matt.) Maire — Феолепіота золотиста. URL: https://redbook-ua.org/item/phaeolepiota-aureapers/",
+                "text": "Червона книга України. Phaeolepiota aurea (Matt.) Maire — Феолепіота золотиста.",
+                "url": "https://redbook-ua.org/item/phaeolepiota-aureapers/"
+            }
         },
         {
             "id": "phylloporus-pelletieri",
@@ -3528,7 +3957,23 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Філопор рожево-золотистий Phylloporus pelletieri/large.webp",
                 "Червона книга (webp)/Філопор рожево-золотистий Phylloporus pelletieri/large (1).webp",
                 "Червона книга (webp)/Філопор рожево-золотистий Phylloporus pelletieri/large (4).webp"
-            ]
+            ],
+            "license": {
+                "raw": "Phylloporus pelletieri (Філопор рожево-золотистий).\nФото: Enrico Tomschke, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/146957906\n\nPhylloporus pelletieri (Філопор рожево-золотистий).\nФото: Sarah Faulwetter, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/20990939\nhttps://www.inaturalist.org/photos/20990948",
+                "author": "Enrico Tomschke, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/146957906",
+                    "https://www.inaturalist.org/photos/20990939",
+                    "https://www.inaturalist.org/photos/20990948"
+                ]
+            },
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Phylloporus pelletieri (Lév. apud Crouan) Quél. — Філопор рожево-золотистий. URL: https://redbook-ua.org/item/phylloporus-pelletieribres/",
+                "text": "Червона книга України. Phylloporus pelletieri (Lév. apud Crouan) Quél. — Філопор рожево-золотистий.",
+                "url": "https://redbook-ua.org/item/phylloporus-pelletieribres/"
+            }
         },
         {
             "id": "lactarius-lignyotus",
@@ -3555,7 +4000,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Хрящ-молочник чорний, хрящ-молочник деревний Lactarius lignyotus/large (1).webp",
                 "Червона книга (webp)/Хрящ-молочник чорний, хрящ-молочник деревний Lactarius lignyotus/large (2).webp",
                 "Червона книга (webp)/Хрящ-молочник чорний, хрящ-молочник деревний Lactarius lignyotus/large (3).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Lactarius lignyotus Fr. — Хрящ-молочник чорний. URL: https://redbook-ua.org/item/lactarius-lignyotus-fr/",
+                "text": "Червона книга України. Lactarius lignyotus Fr. — Хрящ-молочник чорний.",
+                "url": "https://redbook-ua.org/item/lactarius-lignyotus-fr/"
+            }
         },
         {
             "id": "strobilomyces-strobilaceus",
@@ -3582,7 +4032,12 @@ window.MUSHROOM_CATALOG = {
                 "Червона книга (webp)/Шишкогриб лускатий, лускач Strobilomyces strobilaceus/large (1).webp",
                 "Червона книга (webp)/Шишкогриб лускатий, лускач Strobilomyces strobilaceus/large (2).webp",
                 "Червона книга (webp)/Шишкогриб лускатий, лускач Strobilomyces strobilaceus/large (3).webp"
-            ]
+            ],
+            "red_book_source": {
+                "raw": "Джерело: Червона книга України. Strobilomyces strobilaceus (Scop.) Berk. — Шишкогриб лускатий, лускач. URL: https://redbook-ua.org/item/strobilomyces-strobilaceusp-karst/",
+                "text": "Червона книга України. Strobilomyces strobilaceus (Scop.) Berk. — Шишкогриб лускатий, лускач.",
+                "url": "https://redbook-ua.org/item/strobilomyces-strobilaceusp-karst/"
+            }
         },
         {
             "id": "amanita-muscaria",
@@ -3688,7 +4143,16 @@ window.MUSHROOM_CATALOG = {
             "photos": [
                 "Отруйні та смертельно отруйні (webp)/Amanita verna Мухомор весняний/large (3).webp",
                 "Отруйні та смертельно отруйні (webp)/Amanita verna Мухомор весняний/large (3)_2.webp"
-            ]
+            ],
+            "license": {
+                "raw": "Amanita verna (Поганка весняна).\nФото: Davide Puddu, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/29238677",
+                "author": "Davide Puddu, iNaturalist",
+                "type": "CC BY 4.0",
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "sources": [
+                    "https://www.inaturalist.org/photos/29238677"
+                ]
+            }
         },
         {
             "id": "amanita-virosa",

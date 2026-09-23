@@ -1453,8 +1453,30 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
         </div>
         <div id="detail-gallery" class="detail-gallery"></div>
         <div id="detail-badges" class="detail-badge-row"></div>
-        <div id="detail-desc" class="detail-content"></div>
-      </section>
+         <div id="detail-desc" class="detail-content"></div>
+
+         <!-- Ліцензія фото -->
+         <div id="detail-license" class="mt-6 pt-4 border-t border-cream-300" style="display:none;">
+           <div class="text-[11px] text-ink-muted leading-relaxed">
+             <div class="font-semibold mb-1">📷 Фото</div>
+             <div id="license-author-wrap">Автор: <span id="license-author"></span></div>
+             <div id="license-type-wrap">Ліцензія: <a id="license-url" href="#" target="_blank" rel="noopener" class="underline"></a></div>
+             <div id="license-sources-wrap" class="mt-1" style="display:none;">
+               <div class="font-semibold">Джерела:</div>
+               <ul id="license-sources" class="list-disc pl-4"></ul>
+             </div>
+           </div>
+         </div>
+
+         <!-- Джерело ЧК -->
+         <div id="detail-redbook" class="mt-4 pt-4 border-t border-cream-300" style="display:none;">
+           <div class="text-[11px] text-ink-muted leading-relaxed">
+             <div class="font-semibold mb-1">📕 Джерело Червоної книги</div>
+             <div id="redbook-text"></div>
+             <a id="redbook-url" href="#" target="_blank" rel="noopener" class="underline block mt-1"></a>
+           </div>
+         </div>
+       </section>
 
     </main>
 
@@ -2187,6 +2209,50 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     if (descEl) {
       descEl.innerHTML = renderDescription(raw);
       descEl.classList.toggle('desc-empty', !raw);
+    }
+
+    const licEl = document.getElementById('detail-license');
+    const lic = (s.license && s.license.raw) ? s.license : null;
+    if (licEl) {
+      licEl.style.display = lic ? 'block' : 'none';
+      if (lic) {
+        const authorEl = document.getElementById('license-author');
+        const authorWrap = document.getElementById('license-author-wrap');
+        if (authorEl) authorEl.textContent = lic.author || '';
+        if (authorWrap) authorWrap.style.display = lic.author ? 'block' : 'none';
+
+        const typeEl = document.getElementById('license-url');
+        const typeWrap = document.getElementById('license-type-wrap');
+        if (typeEl) {
+          typeEl.textContent = lic.type || '';
+          typeEl.href = lic.url || '#';
+        }
+        if (typeWrap) typeWrap.style.display = lic.type ? 'block' : 'none';
+
+        const sourcesWrap = document.getElementById('license-sources-wrap');
+        const sourcesEl = document.getElementById('license-sources');
+        if (sourcesEl && Array.isArray(lic.sources)) {
+          sourcesEl.innerHTML = lic.sources.map(u => '<li><a href="' + esc(u) + '" target="_blank" rel="noopener" class="underline">' + esc(u) + '</a></li>').join('');
+          if (sourcesWrap) sourcesWrap.style.display = lic.sources.length ? 'block' : 'none';
+        } else if (sourcesWrap) {
+          sourcesWrap.style.display = 'none';
+        }
+      }
+    }
+
+    const rbEl = document.getElementById('detail-redbook');
+    const rb = s.red_book_source || null;
+    if (rbEl) {
+      rbEl.style.display = rb ? 'block' : 'none';
+      if (rb) {
+        const rbText = document.getElementById('redbook-text');
+        if (rbText) rbText.textContent = rb.text || '';
+        const rbUrl = document.getElementById('redbook-url');
+        if (rbUrl) {
+          rbUrl.textContent = rb.url || '';
+          rbUrl.href = rb.url || '#';
+        }
+      }
     }
 
     if (scrollContainer) savedGuideScrollTop = scrollContainer.scrollTop;
