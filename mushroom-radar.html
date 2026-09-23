@@ -1623,6 +1623,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     shown: PAGE,
     category: 'all'
   };
+  let savedGuideScrollTop = 0;
 
   const guideGrid = document.getElementById('guide-grid');
   const guideSearch = document.getElementById('guide-search');
@@ -1666,7 +1667,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
   function filtered() {
     if (!CATALOG) return [];
-    return CATALOG.species.filter(s => queryMatch(s) && categoryMatch(s) && facetMatch(s));
+    return CATALOG.species
+      .filter(s => queryMatch(s) && categoryMatch(s) && facetMatch(s))
+      .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   }
 
   function badgeFor(s) {
@@ -2186,6 +2189,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       descEl.classList.toggle('desc-empty', !raw);
     }
 
+    if (scrollContainer) savedGuideScrollTop = scrollContainer.scrollTop;
     switchTab('detail');
     if (scrollContainer) scrollContainer.scrollTop = 0;
   }
@@ -2193,7 +2197,11 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
   function closeSpeciesDetail() {
     currentDetailId = null;
     switchTab(detailReturnTab || 'recognize');
-    if (scrollContainer) scrollContainer.scrollTop = 0;
+    if (scrollContainer && detailReturnTab === 'recognize') {
+      requestAnimationFrame(() => {
+        scrollContainer.scrollTop = savedGuideScrollTop;
+      });
+    }
   }
 
   // Клік на картку гриба → відкрити detail
