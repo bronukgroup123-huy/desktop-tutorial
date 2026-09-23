@@ -273,6 +273,103 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 @keyframes cap-spin { to { transform: rotate(360deg); } }
 #result-card.pulse { animation: result-pulse 900ms ease; }
 @keyframes result-pulse { 0% { box-shadow: 0 0 0 0 rgba(201,122,43,0.45); } 60% { box-shadow: 0 0 0 12px rgba(201,122,43,0); } 100% { box-shadow: 0 4px 20px rgba(47,74,58,0.06); } }
+
+/* ============ SPECIES DETAIL ============ */
+.detail-bar {
+  padding: 14px 14px 12px;
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, rgba(251,248,241,1) 0%, rgba(247,244,236,1) 100%);
+  border-bottom: 1px solid #E5DFD0;
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: blur(6px);
+}
+.detail-back {
+  width: 36px; height: 36px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #FFFFFF; border: 1px solid #E5DFD0; color: #2F4A3A;
+  transition: all 200ms ease; flex-shrink: 0;
+}
+.detail-back:hover { background: #F5E6D0; border-color: #E5DFD0; }
+.detail-title-wrap { flex: 1; min-width: 0; }
+.detail-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; color: #2F4A3A; font-size: 18px; line-height: 1.15; }
+.detail-latin { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-size: 12px; color: #6B6659; line-height: 1.2; margin-top: 2px; }
+
+.detail-gallery {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 12px 14px 14px;
+  scroll-snap-type: x mandatory;
+}
+.detail-gallery::-webkit-scrollbar { display: none; }
+.detail-gallery { scrollbar-width: none; -ms-overflow-style: none; }
+.detail-gallery img {
+  height: 180px; width: auto; min-width: 140px;
+  border-radius: 14px; object-fit: cover;
+  box-shadow: 0 6px 18px rgba(47,74,58,0.14);
+  scroll-snap-align: start; flex-shrink: 0;
+  background: #F5E6D0;
+}
+
+.detail-badge-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+
+.detail-content {
+  padding: 6px 18px 32px;
+  color: #1E1E1A;
+  font-size: 13.5px; line-height: 1.55;
+}
+.detail-content .desc-h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 15px; font-weight: 600;
+  color: #2F4A3A;
+  margin: 20px 0 8px;
+  display: flex; align-items: baseline; gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #F0E7D5;
+}
+.detail-content .desc-h3:first-child { margin-top: 4px; }
+.detail-content .desc-h3 .desc-emoji { font-size: 17px; flex-shrink: 0; }
+.detail-content p { margin: 0 0 10px; }
+.detail-content strong { color: #2F4A3A; font-weight: 600; }
+.detail-content ul { margin: 0 0 10px; padding-left: 18px; list-style: none; }
+.detail-content ul li { position: relative; padding-left: 4px; margin-bottom: 5px; line-height: 1.5; }
+.detail-content ul li::before {
+  content: '•'; color: #C97A2B; position: absolute; left: -14px; font-weight: 700;
+}
+.detail-content ul li.nested { padding-left: 16px; }
+.detail-content ul li.nested::before { content: '–'; color: #8B5E34; left: -10px; }
+.detail-content .desc-table {
+  width: 100%; border-collapse: collapse;
+  margin: 6px 0 14px; font-size: 12.5px;
+  background: #FFFFFF;
+  border: 1px solid #E5DFD0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(47,74,58,0.05);
+}
+.detail-content .desc-table thead th {
+  background: #2F4A3A; color: #FFFFFF;
+  padding: 9px 10px; text-align: left;
+  font-weight: 600; font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.detail-content .desc-table tbody td {
+  padding: 8px 10px;
+  border-top: 1px solid #F0E7D5;
+  vertical-align: top;
+  line-height: 1.45;
+}
+.detail-content .desc-table tbody tr:nth-child(even) td { background: #FBF8F1; }
+.detail-content .desc-table .col-key { color: #2F4A3A; font-weight: 600; width: 30%; }
+.detail-content .desc-kv { margin: 0 0 10px; }
+.detail-content .desc-note {
+  background: #F5E6D0; border: 1px solid #E5DFD0;
+  border-left: 3px solid #C97A2B;
+  border-radius: 10px; padding: 10px 12px;
+  margin: 10px 0; font-size: 12.5px;
+}
+.detail-content .desc-empty {
+  color: #6B6659; font-style: italic; text-align: center;
+  padding: 24px 0;
+}
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
@@ -1342,6 +1439,23 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
         </div>
       </section>
 
+      <!-- TAB DETAIL: детайльна сторінка гриба (відкривається кліком на картку) -->
+      <section id="tab-detail" class="tab-panel">
+        <div class="detail-bar">
+          <button id="btn-detail-back" class="detail-back" aria-label="Назад">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div class="detail-title-wrap">
+            <div id="detail-name" class="detail-name">—</div>
+            <div id="detail-latin" class="detail-latin">—</div>
+          </div>
+          <div id="detail-badge-inline" class="flex items-center gap-1"></div>
+        </div>
+        <div id="detail-gallery" class="detail-gallery"></div>
+        <div id="detail-badges" class="detail-badge-row"></div>
+        <div id="detail-desc" class="detail-content"></div>
+      </section>
+
     </main>
 
     <!-- Bottom navigation -->
@@ -1403,6 +1517,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
 <!-- CATALOG: loaded from mushroom_catalog.js (no fetch / works via file://) -->
 <script src="mushroom_catalog.js"></script>
+<script src="mushroom_descriptions.js"></script>
 <script>
   // ---------- Tab switching ----------
   const tabs = document.querySelectorAll('.tab-btn');
@@ -1566,10 +1681,13 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
   function cardHtml(s) {
     const b = badgeFor(s);
-    return '<div class="card p-2.5 card-hover">' +
+    const photo = (s.photos && s.photos.length) ? s.photos[0] : (s.photo || '');
+    return '<div class="card p-2.5 card-hover" data-species-id="' + esc(s.id) + '" role="button" tabindex="0">' +
       '<div class="guide-thumb mb-2">' +
-        '<img src="' + esc(s.photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.closest(\'.card\').remove()">' +
-      '</div>' +
+        (photo
+          ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.closest(\'.card\').remove()">'
+          : '')
+        + '</div>' +
       '<div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">' + esc(s.name) + '</div>' +
       '<div class="text-[10px] text-ink-muted italic font-serif mb-1.5">' + esc(s.latin) + '</div>' +
       '<span class="badge ' + b.cls + ' text-[10px]">' + esc(b.label) + '</span>' +
@@ -1775,8 +1893,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     const openBtn = document.getElementById('btn-open-guide');
     if (openBtn) openBtn.classList.toggle('hidden', !s.has_photo);
     if (thumbEl) {
-      if (s.photo) {
-        thumbEl.innerHTML = '<img src="' + esc(s.photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
+      const sp = (s.photos && s.photos.length) ? s.photos[0] : (s.photo || null);
+      if (sp) {
+        thumbEl.innerHTML = '<img src="' + esc(sp) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
       } else {
         thumbEl.innerHTML = resultThumbDefault;
       }
@@ -1864,6 +1983,238 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+
+  // ============================================================
+  // Детайльна сторінка гриба (догляд довідника)
+  // Відкривається кліком на картку, закривається кнопкою «Назад»
+  // ============================================================
+  const DESCRIPTIONS = window.MUSHROOM_DESCRIPTIONS || {};
+  let detailReturnTab = 'recognize';
+  let currentDetailId = null;
+
+  // --- Markdown-like рендер ---
+  const EMOJI_H3 = /^(🍄|✅|🔍|⚠️|🗺️|🪱|🍳|🍽️|📋|🧪|📍|💡)\s*/;
+  const KEY_VALUE = /^([^:\n]{1,45}):\s*(.+)$/;
+  const BULLET = /^\s*[-•*]\s+/;
+  const BULLET_INDENTED = /^[\s\u00A0]+[-•*]\s+/;
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function inlineFormat(s) {
+    s = escHtml(s);
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    s = s.replace(/__([^_]+)__/g, '<u>$1</u>');
+    s = s.replace(/`([^`]+)`/g, '<code style="background:#F0E7D5;padding:1px 4px;border-radius:4px;font-family:monospace;">$1</code>');
+    return s;
+  }
+  function isEmojiHeading(line) { return EMOJI_H3.test(line.trim()); }
+  function splitRow(line) { return line.split(/\t+/).map(x => x.trim()); }
+  function parseKeyValue(line) {
+    if (EMOJI_H3.test(line)) return null;
+    if (BULLET.test(line)) return null;
+    if (line.indexOf('\t') >= 0) return null;
+    const m = line.match(KEY_VALUE);
+    if (!m) return null;
+    if (m[1].length > 45) return null;
+    return { key: m[1], value: m[2] };
+  }
+
+  function renderDescription(raw) {
+    if (!raw) return '<div class="desc-empty">Опису ще немає.</div>';
+    const lines = String(raw).split(/\r?\n/);
+    const out = [];
+    let i = 0;
+    let inUl = false, inTable = false;
+
+    function closeList() { if (inUl) { out.push('</ul>'); inUl = false; } }
+    function closeTable() { if (inTable) { out.push('</tbody></table>'); inTable = false; } }
+    function closeBoth() { closeList(); closeTable(); }
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed === '') { closeBoth(); i++; continue; }
+
+      // Таб-рядок (таблиця)
+      if (line.indexOf('\t') >= 0) {
+        closeList();
+        const cells = splitRow(line);
+        if (!inTable) {
+          inTable = true;
+          out.push('<table class="desc-table">');
+          const looksLikeHeader = cells.length >= 2 && cells.some(c => c.length > 0 && c.length < 30 && !/\.$/.test(c));
+          if (looksLikeHeader) {
+            out.push('<thead><tr>');
+            cells.forEach(c => out.push('<th>' + inlineFormat(c) + '</th>'));
+            out.push('</tr></thead>');
+            out.push('<tbody>');
+          } else {
+            out.push('<tbody>');
+            out.push('<tr>' + cells.map((c, idx) =>
+              '<td' + (idx === 0 ? ' class="col-key"' : '') + '>' + inlineFormat(c) + '</td>'
+            ).join('') + '</tr>');
+          }
+        } else {
+          out.push('<tr>' + cells.map((c, idx) =>
+            '<td' + (idx === 0 ? ' class="col-key"' : '') + '>' + inlineFormat(c) + '</td>'
+          ).join('') + '</tr>');
+        }
+        i++;
+        continue;
+      }
+
+      // Emoji-заголовок
+      if (isEmojiHeading(trimmed)) {
+        closeBoth();
+        const m = trimmed.match(/^(\S+)\s+(.+)$/);
+        const emoji = m ? m[1] : '📌';
+        const title = m ? m[2] : trimmed;
+        out.push('<h3 class="desc-h3"><span class="desc-emoji">' + emoji + '</span><span>' + inlineFormat(title) + '</span></h3>');
+        i++;
+        continue;
+      }
+
+      // Буліт-список
+      if (BULLET.test(trimmed)) {
+        closeTable();
+        if (!inUl) { out.push('<ul>'); inUl = true; }
+        const isIndented = BULLET_INDENTED.test(line);
+        let content = trimmed.replace(/^\s*[-•*]\s+/, '');
+        const kv = parseKeyValue(content);
+        if (kv) {
+          content = '<strong>' + inlineFormat(kv.key) + '</strong>: ' + inlineFormat(kv.value);
+        } else {
+          content = inlineFormat(content);
+        }
+        out.push('<li' + (isIndented ? ' class="nested"' : '') + '>' + content + '</li>');
+        i++;
+        continue;
+      }
+
+      // Ключ: значення
+      const kvLine = parseKeyValue(trimmed);
+      if (kvLine) {
+        closeBoth();
+        out.push('<p class="desc-kv"><strong>' + inlineFormat(kvLine.key) + '</strong>: ' + inlineFormat(kvLine.value) + '</p>');
+        i++;
+        continue;
+      }
+
+      // Абзац
+      closeBoth();
+      let paraBuf = [trimmed];
+      let j = i + 1;
+      while (j < lines.length) {
+        const nxt = lines[j].trim();
+        if (nxt === '') break;
+        if (isEmojiHeading(nxt) || BULLET.test(nxt) || lines[j].indexOf('\t') >= 0 || parseKeyValue(nxt)) break;
+        paraBuf.push(nxt);
+        j++;
+      }
+      out.push('<p>' + paraBuf.map(inlineFormat).join('<br>') + '</p>');
+      i = j;
+    }
+    closeBoth();
+    return out.join('\n');
+  }
+
+  // --- Відкриття / закриття detail ---
+  function findSpeciesById(id) {
+    if (!CATALOG || !CATALOG.species) return null;
+    for (let i = 0; i < CATALOG.species.length; i++) {
+      if (CATALOG.species[i].id === id) return CATALOG.species[i];
+    }
+    return null;
+  }
+
+  function openSpeciesDetail(id) {
+    const s = findSpeciesById(id);
+    if (!s) return;
+    currentDetailId = id;
+
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab && activeTab.dataset.tab) detailReturnTab = activeTab.dataset.tab;
+
+    const nameEl = document.getElementById('detail-name');
+    const latinEl = document.getElementById('detail-latin');
+    const inlineBadgeEl = document.getElementById('detail-badge-inline');
+    if (nameEl) nameEl.textContent = s.name || '—';
+    if (latinEl) latinEl.textContent = s.latin || '';
+    if (inlineBadgeEl) {
+      const b = badgeFor(s);
+      inlineBadgeEl.innerHTML = '<span class="badge ' + b.cls + '">' + esc(b.label) + '</span>';
+    }
+
+    const galleryEl = document.getElementById('detail-gallery');
+    if (galleryEl) {
+      const photos = (s.photos && s.photos.length) ? s.photos : [];
+      if (photos.length) {
+        galleryEl.innerHTML = photos.map(p =>
+          '<img src="' + esc(p) + '" alt="' + esc(s.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+        ).join('');
+        galleryEl.classList.remove('hidden');
+      } else {
+        galleryEl.innerHTML = '';
+        galleryEl.classList.add('hidden');
+      }
+    }
+
+    const badgesEl = document.getElementById('detail-badges');
+    if (badgesEl) {
+      const items = [];
+      if (s.red_listed) {
+        items.push(s.rarity
+          ? '<span class="badge badge-yellow">📕 Червонокнижний · ' + esc(s.rarity) + '</span>'
+          : '<span class="badge badge-yellow">📕 Червонокнижний</span>');
+      }
+      if (s.top20) items.push('<span class="badge badge-purple">⭐ Топ-20</span>');
+      if (s.popular) items.push('<span class="badge badge-blue">🍲 Популярний</span>');
+      if (s.season) items.push('<span class="badge badge-neutral">📅 ' + esc(s.season) + '</span>');
+      if (s.habitat) items.push('<span class="badge badge-neutral">🌲 ' + esc(s.habitat) + '</span>');
+      if (s.family) items.push('<span class="badge badge-neutral">🧬 ' + esc(s.family) + '</span>');
+      badgesEl.innerHTML = items.join('');
+      badgesEl.classList.toggle('hidden', items.length === 0);
+    }
+
+    const descEl = document.getElementById('detail-desc');
+    const raw = DESCRIPTIONS[id] || '';
+    if (descEl) {
+      descEl.innerHTML = renderDescription(raw);
+      descEl.classList.toggle('desc-empty', !raw);
+    }
+
+    switchTab('detail');
+    if (scrollContainer) scrollContainer.scrollTop = 0;
+  }
+
+  function closeSpeciesDetail() {
+    currentDetailId = null;
+    switchTab(detailReturnTab || 'recognize');
+    if (scrollContainer) scrollContainer.scrollTop = 0;
+  }
+
+  // Клік на картку гриба → відкрити detail
+  if (guideGrid) {
+    guideGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-species-id]');
+      if (card && card.dataset.speciesId) openSpeciesDetail(card.dataset.speciesId);
+    });
+    guideGrid.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('[data-species-id]');
+      if (card && card.dataset.speciesId) {
+        e.preventDefault();
+        openSpeciesDetail(card.dataset.speciesId);
+      }
+    });
+  }
+
+  const btnDetailBack = document.getElementById('btn-detail-back');
+  if (btnDetailBack) btnDetailBack.addEventListener('click', closeSpeciesDetail);
+
 </script>
 </body>
 </html>
