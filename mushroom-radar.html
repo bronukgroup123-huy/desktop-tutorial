@@ -370,6 +370,161 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
   color: #6B6659; font-style: italic; text-align: center;
   padding: 24px 0;
 }
+
+/* ── Акордеони (🍳, 🍽️) ── */
+.desc-accordion {
+  margin: 14px 0;
+  border: 1px solid #E5DFD0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(47,74,58,0.05);
+}
+.acc-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+  background: #FBF8F1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.acc-header:hover { background: #F5E6D0; }
+.acc-emoji { font-size: 16px; flex-shrink: 0; }
+.acc-title {
+  flex: 1;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 14px; font-weight: 600;
+  color: #2F4A3A;
+}
+.acc-arrow {
+  font-size: 11px; color: #6B6659;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+.acc-arrow.rotated { transform: rotate(180deg); }
+.acc-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.acc-body.open { grid-template-rows: 1fr; }
+.acc-content { overflow: hidden; padding: 0 14px; }
+.acc-content-inner { padding: 8px 0 14px; }
+
+/* ── Кнопка «Сезон» ── */
+.season-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  margin: 10px 0 14px;
+  background: #2F4A3A;
+  color: #FFFFFF;
+  border: none; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(47,74,58,0.2);
+}
+.season-btn:hover { background: #3D5F4A; }
+.season-btn:active { transform: scale(0.97); }
+.season-btn .season-icon { font-size: 15px; }
+
+/* ── Модалка «Сезон» ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.modal-overlay.active { display: flex; }
+.modal-overlay.modal-open { opacity: 1; }
+.modal-overlay.modal-open .modal-card { transform: scale(1); opacity: 1; }
+.modal-card {
+  background: #FFFBF3;
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 380px; width: 100%;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  border: 1px solid #E5DFD0;
+  transform: scale(0.94);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(.4,0,.2,1), opacity 220ms ease;
+}
+body.modal-open { overflow: hidden; }
+.card[data-modal] { cursor: pointer; }
+.card[data-modal]:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(47, 74, 58, 0.10); }
+.card[data-modal]:active { transform: scale(0.97); transition: transform 120ms ease, box-shadow 120ms ease; }
+.modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  border: none; border-radius: 50%;
+  background: #F0E7D5;
+  color: #6B6659;
+  font-size: 16px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: #E5DFD0; }
+.modal-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px; font-weight: 600;
+  color: #2F4A3A;
+  margin-bottom: 4px;
+}
+.modal-subtitle {
+  font-size: 12px; color: #6B6659;
+  margin-bottom: 16px;
+}
+.season-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.season-month {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  transition: transform 0.15s;
+}
+.season-month.off {
+  background: #F0E7D5;
+  color: #B0A890;
+}
+.season-month.on {
+  background: #2F4A3A;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(47,74,58,0.3);
+}
+.season-month.peak {
+  background: #C97A2B;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(201,122,43,0.3);
+}
+.season-month .month-num {
+  font-size: 10px; font-weight: 500;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.season-legend {
+  display: flex; justify-content: center; gap: 16px;
+  font-size: 12px; color: #6B6659;
+}
+.season-legend span { display: flex; align-items: center; gap: 4px; }
+.season-legend .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.season-legend .dot-green { background: #2F4A3A; }
+.season-legend .dot-amber { background: #C97A2B; }
+.season-legend .dot-gray { background: #F0E7D5; border: 1px solid #E5DFD0; }
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
@@ -386,9 +541,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     <div class="absolute inset-0" style="background: radial-gradient(ellipse at 30% 20%, rgba(245, 230, 208, 0.55) 0%, transparent 55%), radial-gradient(ellipse at 70% 80%, rgba(220, 230, 220, 0.45) 0%, transparent 55%);"></div>
   </div>
 
-  <div class="relative flex-1 flex flex-col px-6 py-14 overflow-y-auto scroll-hide">
+  <div class="relative flex-1 flex flex-col px-6 py-8 overflow-y-auto scroll-hide">
     <!-- Logo -->
-    <div class="flex flex-col items-center text-center mt-6">
+    <div class="flex flex-col items-center text-center">
       <div class="relative mb-6">
         <div class="absolute -inset-3 rounded-full" style="background: radial-gradient(circle at 50% 40%, rgba(201,122,43,0.20), transparent 65%);"></div>
         <div class="relative w-20 h-20 rounded-[26px] bg-white flex items-center justify-center shadow-lift border border-cream-300">
@@ -416,21 +571,21 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
     <!-- Benefits -->
     <div class="mt-10 grid grid-cols-3 gap-2.5">
-      <div class="card p-3 flex flex-col items-center text-center">
+      <div class="card p-3 flex flex-col items-center text-center" data-modal="offline">
         <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 12 22"/><path d="M5 9 L 12 2 L 19 9"/><path d="M5 9 L 12 16 L 19 9"/></svg>
         </div>
         <div class="text-[12px] font-semibold text-forest-dark">Офлайн</div>
         <div class="text-[10px] text-ink-muted mt-0.5">Картка та ШІ без інтернету</div>
       </div>
-      <div class="card p-3 flex flex-col items-center text-center">
+      <div class="card p-3 flex flex-col items-center text-center" data-modal="privacy">
         <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         </div>
         <div class="text-[12px] font-semibold text-forest-dark">Приватно</div>
         <div class="text-[10px] text-ink-muted mt-0.5">Твої точки — тільки ти</div>
       </div>
-      <div class="card p-3 flex flex-col items-center text-center">
+      <div class="card p-3 flex flex-col items-center text-center" data-modal="safety">
         <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 4 6 L 4 12 C 4 17, 8 21, 12 22 C 16 21, 20 17, 20 12 L 20 6 Z"/><path d="M9 12 L 11 14 L 15 10"/></svg>
         </div>
@@ -439,68 +594,52 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       </div>
     </div>
 
-    <!-- Mini forecast card -->
-    <button id="btn-mini-forecast" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-main').classList.add('active');switchTab('forecast')" class="mt-6 w-full card p-3.5 flex items-center gap-3 text-left hover:shadow-lift transition-all" style="border-radius: 18px;">
-      <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #EAE3D2 0%, #DCE6DC 100%);">
-        <svg viewBox="0 0 48 48" width="34" height="34" fill="none" aria-hidden="true">
-          <path d="M24 8 C 13 8, 7 15, 7 22 C 7 24, 8 25, 10 25.5 L 38 25.5 C 40 25, 41 24, 41 22 C 41 15, 35 8, 24 8 Z" fill="#C97A2B"/>
-          <rect x="18" y="25" width="12" height="14" rx="3" fill="#FBF8F1"/>
-          <circle cx="14" cy="18" r="1.6" fill="#FBF8F1"/>
-          <circle cx="21" cy="14" r="1.4" fill="#FBF8F1"/>
-          <circle cx="29" cy="15" r="1.5" fill="#FBF8F1"/>
-          <circle cx="35" cy="19" r="1.3" fill="#FBF8F1"/>
-        </svg>
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="text-[10px] text-ink-muted font-medium uppercase tracking-wide">Сьогодні · Житомирська область</div>
-        <div class="text-[14px] font-semibold text-forest-dark leading-tight mt-0.5">Білий гриб — висока ймовірність</div>
-        <div class="mt-1.5 flex items-center gap-1.5">
-          <span class="badge badge-green text-[10px]">Висока</span>
-          <span class="text-[10px] text-ink-muted">деталі на таб «Прогноз» →</span>
-        </div>
-      </div>
+    <!-- Find button (replaces mini forecast) -->
+    <button id="btn-start" class="btn-primary w-full mt-6 py-4 px-6 flex items-center justify-center gap-2" style="font-size: 16px; border-radius: 18px;" data-welcome-cta>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+      Знайти гриб
     </button>
 
     <!-- What's inside -->
     <div class="mt-4">
       <div class="text-[11px] text-ink-muted font-medium uppercase tracking-wide mb-2">Що всередині</div>
       <div class="grid grid-cols-3 gap-2">
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="forecast">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83 M2 12h4 M18 12h4 M4.93 19.07l2.83-2.83 M16.24 7.76l2.83-2.83"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Прогноз</div>
           <div class="text-[9px] text-ink-muted mt-0.5">ймовірність появи</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="guide">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Довідник</div>
           <div class="text-[9px] text-ink-muted mt-0.5"><span id="welcome-guide-n">—</span> види з фото</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="ai">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">ШІ-розпізнавання</div>
           <div class="text-[9px] text-ink-muted mt-0.5">3 фото · від 15 с</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="guardian">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Наглядач</div>
           <div class="text-[9px] text-ink-muted mt-0.5">SOS та маршрути</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="groups">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Групи</div>
           <div class="text-[9px] text-ink-muted mt-0.5">пошукові відряди</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center">
+        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="community">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
           </div>
@@ -510,15 +649,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       </div>
     </div>
 
-    <!-- Spacer -->
-    <div class="flex-1"></div>
-
-    <!-- CTA -->
-    <div class="pb-2 pt-6 flex flex-col items-center gap-3">
-      <button id="btn-start" class="btn-primary w-full py-4 px-6 flex items-center justify-center gap-2" style="font-size: 16px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-        Знайти гриб
-      </button>
+    <!-- Disclaimer -->
+    <div class="pt-6 pb-2 flex flex-col items-center gap-2">
       <p class="text-center text-[11px] text-ink-muted leading-relaxed max-w-xs px-4" style="line-height: 1.45;">
         Прогноз ймовірнісний. Визначення гриба — твоя відповідальність.
       </p>
@@ -1480,6 +1612,31 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 
     </main>
 
+    <!-- Модалка «Сезон» -->
+    <div id="season-modal" class="modal-overlay">
+      <div class="modal-card">
+        <button class="modal-close" id="season-modal-close" aria-label="Закрити">✕</button>
+        <div id="season-modal-title" class="modal-title"></div>
+        <div id="season-modal-subtitle" class="modal-subtitle"></div>
+        <div id="season-calendar" class="season-calendar"></div>
+        <div class="season-legend">
+          <span><span class="dot dot-green"></span> Росте</span>
+          <span><span class="dot dot-amber"></span> Пік</span>
+          <span><span class="dot dot-gray"></span> Поза сезоном</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome modal (shared for 9 elements: 3 chips + 6 cards) -->
+    <div id="welcome-modal" class="modal-overlay" aria-modal="true" role="dialog">
+      <div class="modal-card">
+        <button class="modal-close" id="welcome-modal-close" aria-label="Закрити">✕</button>
+        <div id="welcome-modal-emoji" class="text-2xl mb-1.5"></div>
+        <div id="welcome-modal-title" class="modal-title"></div>
+        <p id="welcome-modal-text" class="text-[12px] text-ink-muted leading-relaxed" style="padding-right: 24px;"></p>
+      </div>
+    </div>
+
     <!-- Bottom navigation -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-cream-300" style="padding-bottom: env(safe-area-inset-bottom); z-index: 20;">
       <div class="flex items-stretch" style="height: 60px;">
@@ -1574,6 +1731,105 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
       }, 240);
     });
   }
+
+  const WELCOME_MODALS = {
+    offline: {
+      emoji: '📶',
+      title: 'Офлайн',
+      text: 'Карта, довідник, ШІ-розпізнавання та треки працюють без інтернету. У лісі зв\'язку часто немає — додаток залишається робочим.'
+    },
+    privacy: {
+      emoji: '🔒',
+      title: 'Приватно',
+      text: 'Твої точки бачиш тільки ти. Публікувати знахідку чи ні — вирішуєш сам. Ніхто не дізнається, де саме ти знайшов гриб, поки ти сам цього не захочеш.'
+    },
+    safety: {
+      emoji: '🛡️',
+      title: 'Безпека',
+      text: 'Наглядач бачить твій маршрут, є кнопка SOS і компас назад. Допомагає вийти з лісу навіть якщо ти загубив орієнтири.'
+    },
+    forecast: {
+      emoji: '📊',
+      title: 'Прогноз',
+      text: 'Ймовірнісна підказка про те, які гриби можуть рости у твоєму районі. Враховує погоду, тип лісу, сезон та дані спільноти. Це не гарантія — але допомагає вирішити, куди їхати.'
+    },
+    guide: {
+      emoji: '📖',
+      title: 'Довідник',
+      text: 'Описи грибів з фото та статусом їстівності. Працює офлайн. Можна фільтрувати за ознаками, щоб швидко знайти потрібний вид і перевірити знахідку.'
+    },
+    ai: {
+      emoji: '📷',
+      title: 'ШІ-розпізнавання',
+      text: 'Допомагає визначити гриб за кількома фото. Працює офлайн. Результат — ймовірнісний, тому обов\'язково перевіряй у довіднику.'
+    },
+    guardian: {
+      emoji: '🛡️',
+      title: 'Наглядач',
+      text: 'Дозволяє обрати людину, яка бачитиме твій маршрут і отримає сигнал, якщо щось станеться. Це допоміжний інструмент, а не служба порятунку.'
+    },
+    groups: {
+      emoji: '👥',
+      title: 'Групи',
+      text: 'Спільний похід компанією. Усі бачать спільний трек і можуть позначати своє місце. Якщо хтось загубиться — у кожного є підказка, як вийти.'
+    },
+    community: {
+      emoji: '💬',
+      title: 'Спільнота',
+      text: 'Місце, де можна ділитися знахідками, дивитися, що знайшли інші, та спілкуватися. Приватні місця залишаються приватними.'
+    }
+  };
+
+  const welcomeModalOverlay = document.getElementById('welcome-modal');
+  const welcomeModalClose = document.getElementById('welcome-modal-close');
+  const welcomeModalEmoji = document.getElementById('welcome-modal-emoji');
+  const welcomeModalTitle = document.getElementById('welcome-modal-title');
+  const welcomeModalText = document.getElementById('welcome-modal-text');
+  let welcomeModalOpen = false;
+
+  function openWelcomeModal(key) {
+    const entry = WELCOME_MODALS[key];
+    if (!entry || !welcomeModalOverlay) return;
+    welcomeModalEmoji.textContent = entry.emoji;
+    welcomeModalTitle.textContent = entry.title;
+    welcomeModalText.textContent = entry.text;
+    welcomeModalOpen = true;
+    document.body.classList.add('modal-open');
+    welcomeModalOverlay.classList.add('active');
+    welcomeModalClose.focus();
+    requestAnimationFrame(() => {
+      welcomeModalOverlay.classList.add('modal-open');
+    });
+  }
+
+  function closeWelcomeModal() {
+    if (!welcomeModalOpen || !welcomeModalOverlay) return;
+    welcomeModalOpen = false;
+    welcomeModalOverlay.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => {
+      welcomeModalOverlay.classList.remove('active');
+    }, 250);
+  }
+
+  if (welcomeModalOverlay) {
+    welcomeModalOverlay.addEventListener('click', e => {
+      if (e.target === welcomeModalOverlay) closeWelcomeModal();
+    });
+  }
+  if (welcomeModalClose) {
+    welcomeModalClose.addEventListener('click', closeWelcomeModal);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && welcomeModalOpen) closeWelcomeModal();
+  });
+
+  document.querySelectorAll('[data-modal]').forEach(el => {
+    el.addEventListener('click', e => {
+      const key = el.dataset.modal;
+      if (key) openWelcomeModal(key);
+    });
+  });
 
   // ---------- Layer toggles ----------
   document.querySelectorAll('.layer-toggle').forEach(btn => {
