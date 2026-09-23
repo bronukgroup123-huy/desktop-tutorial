@@ -1,15 +1,9 @@
 {
-  "version": 2,
-  "builds": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
     {
-      "src": "mushroom-radar.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/mushroom-radar.html"
+      "source": "/((?!.*\\..*).*)",
+      "destination": "/mushroom-radar.html"
     }
   ]
 }
