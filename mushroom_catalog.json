@@ -49,69 +49,104 @@
       {
         "value": "pine",
         "label": "Сосна",
-        "count": 6
+        "count": 88
       },
       {
         "value": "spruce",
         "label": "Ялина",
-        "count": 1
+        "count": 17
+      },
+      {
+        "value": "larch",
+        "label": "Модрина",
+        "count": 4
       },
       {
         "value": "oak",
         "label": "Дуб",
-        "count": 3
+        "count": 66
       },
       {
         "value": "birch",
         "label": "Береза",
-        "count": 5
+        "count": 24
       },
       {
         "value": "aspen",
         "label": "Осика",
+        "count": 7
+      },
+      {
+        "value": "poplar",
+        "label": "Тополя",
+        "count": 7
+      },
+      {
+        "value": "willow",
+        "label": "Верба",
+        "count": 7
+      },
+      {
+        "value": "alder",
+        "label": "Вільха",
+        "count": 4
+      },
+      {
+        "value": "hornbeam",
+        "label": "Граб",
+        "count": 1
+      },
+      {
+        "value": "beech",
+        "label": "Бук",
+        "count": 42
+      },
+      {
+        "value": "elm",
+        "label": "В'яз",
+        "count": 2
+      },
+      {
+        "value": "hazel",
+        "label": "Ліщина",
         "count": 1
       },
       {
         "value": "mixed",
         "label": "Мішаний ліс",
-        "count": 7
+        "count": 54
       },
       {
         "value": "deciduous",
         "label": "Листяний ліс",
-        "count": 4
+        "count": 104
       },
       {
         "value": "coniferous",
         "label": "Хвойний ліс",
-        "count": 3
-      },
-      {
-        "value": "any",
-        "label": "Будь-який ліс",
-        "count": 1
+        "count": 81
       }
     ],
     "season": [
       {
         "value": "spring",
         "label": "Весна",
-        "count": 3
+        "count": 35
       },
       {
         "value": "summer",
         "label": "Літо",
-        "count": 20
+        "count": 246
       },
       {
         "value": "autumn",
         "label": "Осінь",
-        "count": 23
+        "count": 263
       },
       {
         "value": "winter",
         "label": "Зима",
-        "count": 2
+        "count": 1
       }
     ]
   },
@@ -141,13 +176,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed",
-          "oak",
-          "pine"
+          "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -183,11 +216,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "birch"
+          "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -223,11 +256,15 @@
         "color": [],
         "stem": [],
         "tree": [
-          "deciduous"
+          "oak",
+          "birch",
+          "aspen",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
-          "autumn",
-          "winter"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -260,12 +297,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "birch",
           "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -299,7 +335,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото Топ-20 грибів (webp)/Дощовик їстівний Lycoperdon perlatum/large.webp",
@@ -335,12 +374,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "oak"
+          "oak",
+          "deciduous"
         ],
         "season": [
-          "autumn",
-          "spring",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -384,12 +423,14 @@
         "color": [],
         "stem": [],
         "tree": [
+          "aspen",
           "deciduous",
-          "mixed"
+          "coniferous"
         ],
         "season": [
-          "autumn",
           "spring",
+          "summer",
+          "autumn",
           "winter"
         ]
       },
@@ -425,12 +466,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "coniferous",
           "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -472,8 +512,8 @@
           "pine"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -506,13 +546,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [
-          "birch",
-          "mixed"
-        ],
+        "tree": [],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -555,8 +592,8 @@
           "pine"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -590,8 +627,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото Топ-20 грибів (webp)/Моховик зелений Xerocomus subtomentosus/large.webp",
@@ -623,10 +665,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [
-          "any"
-        ],
+        "tree": [],
         "season": [
+          "summer",
           "autumn"
         ]
       },
@@ -665,8 +706,8 @@
         "stem": [],
         "tree": [],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -702,12 +743,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "birch"
+          "mixed"
         ],
         "season": [
-          "autumn",
           "spring",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -747,12 +788,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "aspen",
           "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -784,12 +824,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed",
-          "pine"
+          "mixed"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -823,11 +862,11 @@
         "stem": [],
         "tree": [
           "pine",
-          "spruce"
+          "coniferous"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -872,15 +911,15 @@
           "no_ring"
         ],
         "tree": [
-          "birch",
-          "coniferous",
-          "deciduous",
+          "pine",
           "oak",
-          "pine"
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -914,7 +953,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "spring",
+          "summer"
+        ]
       },
       "photos": [
         "фото Топ-20 грибів (webp)/Сморчок звичайний Morchella esculenta/large.webp",
@@ -947,7 +989,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Альбатрел злитий Albatrellopsis confluens/large.webp",
@@ -980,7 +1025,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Альбатрел овечий Albatrellus ovinus/large.webp",
@@ -1012,8 +1060,15 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "oak",
+          "deciduous"
+        ],
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Білий гриб сітчастий Boletus reticulatus/large.webp",
@@ -1051,8 +1106,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Білий гриб сосновий Boletus pinophilus/large.webp",
@@ -1088,7 +1148,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Глива дубова Pleurotus dryinus/large.webp",
@@ -1124,8 +1187,15 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "oak",
+          "deciduous"
+        ],
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Глива легенева Pleurotus pulmonarius/large.webp",
@@ -1162,7 +1232,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Гриб-зонтик великий Macrolepiota procera/large.webp",
@@ -1194,7 +1267,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Гриб-зонтик сосковидний Macrolepiota mastoidea/large.webp",
@@ -1225,7 +1301,9 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Зеленушка Tricholoma equestre/large.webp",
@@ -1258,7 +1336,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Їжовик рудуватий Hydnum rufescens/large.webp",
@@ -1294,7 +1375,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Їжовик ямчастий Hydnum umbilicatum/large.webp",
@@ -1346,7 +1430,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Клавуліна зморшкувата Clavulina coralloides/large.webp",
@@ -1377,8 +1464,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Лисичка аметистова Cantharellus amethysteus/large.webp",
@@ -1412,8 +1504,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "coniferous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Лисичка жовта Craterellus lutescens/large.webp",
@@ -1444,8 +1541,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Лисичка сіра Craterellus cinereus/large.webp",
@@ -1478,8 +1580,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "coniferous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Лисичка трубчаста Craterellus tubaeformis/large.webp",
@@ -1514,8 +1621,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "deciduous",
+          "coniferous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Лисичка Фріза Cantharellus friesii/large.webp",
@@ -1561,8 +1674,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Маслюк білий Suillus placidus/large.webp",
@@ -1597,8 +1715,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "pine"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Маслюк жовто-бурий Suillus variegatus/large.webp",
@@ -1637,8 +1760,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Маслюк зернистий Suillus granulatus/large.webp",
@@ -1676,8 +1805,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "pine"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Маслюк модриновий Suillus grevillei/large.webp",
@@ -1714,8 +1848,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "deciduous",
+          "coniferous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Моховик тріщинуватий Xerocomellus chrysenteron/large.webp",
@@ -1753,8 +1893,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Мухомор високий Amanita excelsa/large.webp",
@@ -1793,8 +1939,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Мухомор червоніючий Amanita rubescens/large.webp",
@@ -1835,7 +1986,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Мухомор шафрановий Amanita crocea/large.webp",
@@ -1867,7 +2021,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Опеньок літній Kuehneromyces mutabilis/large.webp",
@@ -1903,7 +2060,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Опеньок темний Armillaria ostoyae/large.webp",
@@ -1937,8 +2097,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "deciduous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Підберезник грабовий Leccinellum pseudoscabrum/large.webp",
@@ -1971,8 +2136,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Підберезник жовто-бурий Leccinum versipelle/large.webp",
@@ -2009,8 +2179,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Підберезник різнокольоровий  Leccinum variicolor/large.webp",
@@ -2048,8 +2223,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Підберезник тополевий Leccinum duriusculum/large.webp",
@@ -2081,10 +2261,12 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed"
+        ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -2116,8 +2298,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Підосичник білоніжковий Leccinum rufum/large.webp",
@@ -2155,8 +2342,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Поплавок жовто-коричневий Amanita fulva/large.webp",
@@ -2195,8 +2387,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Поплавок сірий Amanita vaginata/large.webp",
@@ -2232,7 +2429,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рамарія гроновидна Ramaria botrytis/large.webp",
@@ -2262,8 +2462,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "spruce",
+          "coniferous"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рижик ялиновий Lactarius deterrimus/large.webp",
@@ -2298,8 +2504,14 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "pine",
+          "spruce"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рижик ялицевий Lactarius salmonicolor/large.webp",
@@ -2333,7 +2545,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рядовка землиста Tricholoma terreum/large.webp",
@@ -2365,7 +2580,9 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рядовка ліловонога Collybia personata/large.webp",
@@ -2398,7 +2615,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "spring",
+          "summer"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рядовка майська Calocybe gambosa/large.webp",
@@ -2430,7 +2650,9 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рядовка сіра Tricholoma portentosum/large.webp",
@@ -2466,7 +2688,10 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Рядовка фіолетова Collybia nuda/large.webp",
@@ -2495,10 +2720,12 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed"
+        ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -2530,10 +2757,12 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed"
+        ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -2567,10 +2796,12 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed"
+        ],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -2602,8 +2833,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Сироїжка смердюча Russula foetens/large.webp",
@@ -2640,8 +2876,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Скрипиця Lactifluus vellereus/large.webp",
@@ -2677,7 +2918,11 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Трутовик лускатий Cerioporus squamosus/large.webp",
@@ -2716,7 +2961,11 @@
         "color": [],
         "stem": [],
         "tree": [],
-        "season": []
+        "season": [
+          "spring",
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Трутовик сірчано-жовтий Laetiporus sulphureus/large.webp",
@@ -2754,8 +3003,15 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "pine",
+          "oak",
+          "birch"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Хрящ-молочник дубовий Lactarius quietus/large.webp",
@@ -2785,8 +3041,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Хрящ-молочник їстівний Lactifluus volemus/large (1).webp",
@@ -2821,8 +3082,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Хрящ-молочник перцевий Lactifluus piperatus/large.webp",
@@ -2860,8 +3126,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
-        "season": []
+        "tree": [
+          "mixed"
+        ],
+        "season": [
+          "summer",
+          "autumn"
+        ]
       },
       "photos": [
         "фото популярні 55 грибів (webp)/Хрящ-молочник солодкуватий Lactarius subdulcis/large.webp",
@@ -4149,8 +4420,8 @@
         "stem": [],
         "tree": [],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -4732,7 +5003,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous"
+        ],
         "season": []
       },
       "photos": [
@@ -4760,7 +5033,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "coniferous"
+        ],
         "season": []
       },
       "photos": [
@@ -4817,7 +5092,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous"
+        ],
         "season": []
       },
       "photos": [
@@ -4854,13 +5131,10 @@
         "stem": [
           "no_ring"
         ],
-        "tree": [
-          "coniferous",
-          "deciduous"
-        ],
+        "tree": [],
         "season": [
-          "autumn",
-          "summer"
+          "summer",
+          "autumn"
         ]
       },
       "photos": [
@@ -4886,7 +5160,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous"
+        ],
         "season": []
       },
       "photos": [
