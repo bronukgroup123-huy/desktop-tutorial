@@ -20,8 +20,8 @@
   "facets": {
     "color": [
       {
-        "value": "white",
-        "label": "Білий",
+        "value": "grey",
+        "label": "Сірий",
         "count": 1
       },
       {
@@ -30,118 +30,80 @@
         "count": 1
       },
       {
-        "value": "grey",
-        "label": "Сірий",
-        "count": 1
-      },
-      {
         "value": "red",
         "label": "Червоний",
         "count": 1
+      },
+      {
+        "value": "white",
+        "label": "Білий",
+        "count": 1
       }
     ],
-    "stem": {
-      "value": "no_ring",
-      "label": "Без кільця",
-      "count": 2
-    },
-    "tree": [
+    "stem": [
       {
-        "value": "pine",
-        "label": "Сосна",
-        "count": 88
-      },
-      {
-        "value": "spruce",
-        "label": "Ялина",
-        "count": 17
-      },
-      {
-        "value": "larch",
-        "label": "Модрина",
-        "count": 4
-      },
-      {
-        "value": "oak",
-        "label": "Дуб",
-        "count": 66
-      },
-      {
-        "value": "birch",
-        "label": "Береза",
-        "count": 24
-      },
-      {
-        "value": "aspen",
-        "label": "Осика",
-        "count": 7
-      },
-      {
-        "value": "poplar",
-        "label": "Тополя",
-        "count": 7
-      },
-      {
-        "value": "willow",
-        "label": "Верба",
-        "count": 7
-      },
-      {
-        "value": "alder",
-        "label": "Вільха",
-        "count": 4
-      },
-      {
-        "value": "hornbeam",
-        "label": "Граб",
-        "count": 1
-      },
-      {
-        "value": "beech",
-        "label": "Бук",
-        "count": 42
-      },
-      {
-        "value": "elm",
-        "label": "В'яз",
+        "value": "no_ring",
+        "label": "Без кільця",
         "count": 2
-      },
-      {
-        "value": "hazel",
-        "label": "Ліщина",
-        "count": 1
-      },
+      }
+    ],
+    "tree": [
       {
         "value": "mixed",
         "label": "Мішаний ліс",
-        "count": 54
+        "count": 30
       },
       {
         "value": "deciduous",
         "label": "Листяний ліс",
-        "count": 104
+        "count": 12
       },
       {
         "value": "coniferous",
         "label": "Хвойний ліс",
-        "count": 81
+        "count": 10
+      },
+      {
+        "value": "pine",
+        "label": "Сосна",
+        "count": 8
+      },
+      {
+        "value": "oak",
+        "label": "Дуб",
+        "count": 6
+      },
+      {
+        "value": "birch",
+        "label": "Береза",
+        "count": 3
+      },
+      {
+        "value": "aspen",
+        "label": "Осика",
+        "count": 2
+      },
+      {
+        "value": "spruce",
+        "label": "Ялина",
+        "count": 2
       }
     ],
     "season": [
       {
-        "value": "spring",
-        "label": "Весна",
-        "count": 35
+        "value": "autumn",
+        "label": "Осінь",
+        "count": 74
       },
       {
         "value": "summer",
         "label": "Літо",
-        "count": 246
+        "count": 73
       },
       {
-        "value": "autumn",
-        "label": "Осінь",
-        "count": 263
+        "value": "spring",
+        "label": "Весна",
+        "count": 10
       },
       {
         "value": "winter",

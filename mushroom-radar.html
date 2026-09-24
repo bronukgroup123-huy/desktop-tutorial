@@ -1967,6 +1967,26 @@ body.modal-open { overflow: hidden; }
     controversial: 'badge-yellow'
   };
   const FACET_NAMES = { color: 'Колір', stem: 'Ніжка', tree: 'Дерево', season: 'Сезон' };
+  const FACET_LABELS = {
+    tree: {
+      'pine': 'Сосна', 'spruce': 'Ялина', 'larch': 'Модрина', 'oak': 'Дуб',
+      'birch': 'Береза', 'aspen': 'Осика', 'poplar': 'Тополя', 'willow': 'Верба',
+      'alder': 'Вільха', 'hornbeam': 'Граб', 'beech': 'Бук', 'elm': "В'яз",
+      'hazel': 'Ліщина', 'mixed': 'Мішаний ліс', 'deciduous': 'Листяний ліс',
+      'coniferous': 'Хвойний ліс', 'any': 'Будь-який ліс'
+    },
+    season: {
+      'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'
+    },
+    color: {
+      'white': 'Білий', 'brown': 'Коричневий', 'grey': 'Сірий', 'red': 'Червоний',
+      'orange': 'Оранжевий', 'yellow': 'Жовтий', 'green': 'Зелений', 'pink': 'Рожевий',
+      'black': 'Чорний', 'purple': 'Фіолетовий'
+    },
+    stem: {
+      'ring': 'З кільцем', 'no_ring': 'Без кільця'
+    }
+  };
   const FACET_KEYS = ['color', 'stem', 'tree', 'season'];
   const PAGE = 24;
   const state = {
@@ -2023,6 +2043,25 @@ body.modal-open { overflow: hidden; }
     return CATALOG.species
       .filter(s => queryMatch(s) && categoryMatch(s) && facetMatch(s))
       .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  }
+
+  function computeFacets() {
+    if (!CATALOG) return {};
+    const base = CATALOG.species.filter(s =>
+      s.has_photo && categoryMatch(s) && queryMatch(s)
+    );
+    const result = { color: [], stem: [], tree: [], season: [] };
+    ['color', 'stem', 'tree', 'season'].forEach(facet => {
+      const counts = {};
+      base.forEach(s => {
+        const arr = (s.attrs && s.attrs[facet]) || [];
+        arr.forEach(v => { if (v) counts[v] = (counts[v] || 0) + 1; });
+      });
+      result[facet] = Object.entries(counts)
+        .map(([value, count]) => ({ value, count, label: FACET_LABELS[facet][value] || value }))
+        .sort((a, b) => b.count - a.count);
+    });
+    return result;
   }
 
   function badgeFor(s) {
@@ -2099,7 +2138,13 @@ body.modal-open { overflow: hidden; }
         state.category = (state.category === def.key) ? 'all' : def.key;
         state.shown = PAGE;
         initCategoryChips();
+        FACET_KEYS.forEach(f => {
+          const available = computeFacets()[f] || [];
+          if (available.length === 0) state.sel[f].clear();
+        });
+        renderOptions();
         renderGuide();
+        updateFacetChipVisibility();
       });
       wrap.appendChild(btn);
     });
@@ -2114,14 +2159,31 @@ body.modal-open { overflow: hidden; }
     });
   }
 
+  function updateFacetChipVisibility() {
+    const facets = computeFacets();
+    let closed = false;
+    document.querySelectorAll('#guide-filters .chip[data-facet]').forEach(ch => {
+      const f = ch.dataset.facet;
+      const arr = facets[f] || [];
+      const hide = arr.length === 0 || (arr.length === 1 && arr[0].count <= 2);
+      ch.classList.toggle('hidden', hide);
+      if (state.openFacet === f && hide) {
+        state.openFacet = null;
+        closed = true;
+      }
+    });
+    if (closed) {
+      updateFacetChips();
+      renderOptions();
+    }
+  }
+
   function renderOptions() {
     if (!guideOptions) return;
     guideOptions.innerHTML = '';
     if (!CATALOG || !state.openFacet) return;
     const facet = state.openFacet;
-    const defs = Array.isArray(CATALOG.facets[facet])
-      ? CATALOG.facets[facet]
-      : (CATALOG.facets[facet] ? [CATALOG.facets[facet]] : []);
+    const defs = computeFacets()[facet] || [];
     defs.forEach(o => {
       const btn = document.createElement('button');
       btn.className = 'chip chip-value' + (state.sel[facet].has(o.value) ? ' active' : '');
@@ -2133,6 +2195,7 @@ body.modal-open { overflow: hidden; }
         renderOptions();
         updateFacetChips();
         renderGuide();
+        updateFacetChipVisibility();
       });
       guideOptions.appendChild(btn);
     });
@@ -2152,6 +2215,8 @@ body.modal-open { overflow: hidden; }
       state.q = e.target.value;
       state.shown = PAGE;
       renderGuide();
+      renderOptions();
+      updateFacetChipVisibility();
     });
   }
   if (guideMore) {
@@ -2172,6 +2237,7 @@ body.modal-open { overflow: hidden; }
       initCategoryChips();
       renderOptions();
       updateFacetChips();
+      updateFacetChipVisibility();
       renderGuide();
     });
   }
@@ -2190,6 +2256,7 @@ body.modal-open { overflow: hidden; }
     if (gp) gp.textContent = CATALOG_PHOTO_COUNT;
     initCategoryChips();
     updateFacetChips();
+    updateFacetChipVisibility();
     renderGuide();
   }
 
@@ -2333,6 +2400,7 @@ body.modal-open { overflow: hidden; }
         if (guideSearch) guideSearch.value = lastRecognized.name;
         renderOptions();
         updateFacetChips();
+        updateFacetChipVisibility();
         renderGuide();
       }
       const wrap = document.getElementById('guide-filters-wrap');
