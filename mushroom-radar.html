@@ -8,7 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script>
+<svg style="display:none">
+  <defs>
+    <symbol id="icon-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-6.5-8-12a8 8 0 0 1 16 0c0 5.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="icon-mushroom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></symbol>
+  </defs>
+</svg>
+<style>
 tailwind.config = {
   theme: {
     extend: {
@@ -607,7 +614,7 @@ body.modal-open { overflow: hidden; }
   box-shadow: 0 4px 20px rgba(47,74,58,0.06);
   padding: 12px 16px;
   position: relative;
-  min-height: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
 }
@@ -656,26 +663,26 @@ body.modal-open { overflow: hidden; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 24px;
+  gap: 4px;
+  padding: 8px;
   cursor: pointer;
   transition: all 200ms ease;
-  min-height: 120px;
+  height: 72px;
 }
 @media (min-width: 400px) {
   .add-slide { flex: 0 0 calc(100% - 32px); }
 }
 .add-slide:hover { border-color: #C97A2B; background: #FBF8F1; }
 .add-slide .add-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #D9CFB8;
   color: #6B6659;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 300;
   transition: all 200ms ease;
 }
@@ -790,6 +797,11 @@ body.modal-open { overflow: hidden; }
   flex: 0 0 100%;
   scroll-snap-align: center;
   min-width: 0;
+  will-change: transform;
+  transform: translateZ(0);
+}
+#expanded-carousel {
+  contain: layout paint;
 }
 </style>
 </head>
@@ -954,12 +966,15 @@ body.modal-open { overflow: hidden; }
              </div>
            </div>
            <!-- Dots -->
-           <div id="carousel-dots" class="flex items-center justify-center gap-2 h-5">
+            <div id="carousel-dots" class="flex items-center justify-center gap-2" style="height: auto;">
              <!-- dots injected by JS -->
            </div>
 
-           <!-- Compact mushroom list -->
-           <div id="compact-list-wrap" class="hidden">
+            <!-- Compact mushroom list -->
+            <div id="forecast-result-wrap" class="hidden">
+              <div class="zero-hint text-center py-8 text-ink-muted text-[13px]">Прогноз недоступний для цієї точки</div>
+            </div>
+            <div id="compact-list-wrap" class="hidden">
              <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;">
                <!-- 10 compact cards injected by JS -->
              </div>
@@ -976,7 +991,7 @@ body.modal-open { overflow: hidden; }
                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                  </button>
                </div>
-               <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="-webkit-overflow-scrolling: touch;">
                  <!-- Expanded slides injected by JS -->
                </div>
              </div>
@@ -3095,12 +3110,29 @@ body.modal-open { overflow: hidden; }
   const HOME_REGION = { latMin: 50.0, latMax: 51.0, lngMin: 28.0, lngMax: 31.0 };
   const FOREST_TYPES = ['pine','oak','mixed','spruce','birch'];
   const LEVEL_WEIGHTS = { high: 3, medium: 2, low: 1, no_data: 0 };
-  const LEVEL_BADGE = {
-    high: { cls: 'badge-green', text: 'HIGH' },
-    medium: { cls: 'badge-amber', text: 'MED' },
-    low: { cls: 'badge-neutral', text: 'LOW' },
-    no_data: { cls: 'badge-neutral', text: '' }
-  };
+
+  function mulberry32(seed) {
+    let a = seed | 0;
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function pointSeed(point) {
+    const key = (point.id || '') + '|' + (point.lat || 0).toFixed(3) + '|' + (point.lng || 0).toFixed(3) + '|' + (point.forestType || '') + '|' + (point.forestAge || 0);
+    let h = 0;
+    for (let i = 0; i < key.length; i++) {
+      h = ((h << 5) - h + key.charCodeAt(i)) | 0;
+    }
+    return h;
+  }
+
+  function stablePointId(lat, lng, forestType, forestAge) {
+    return 'pt-' + ((lat || 0) * 1000).toFixed(0) + '-' + ((lng || 0) * 1000).toFixed(0) + '-' + (forestType || 'pine') + '-' + (forestAge || 25);
+  }
   const LEVEL_PCT = { high: 85, medium: 60, low: 35, no_data: 10 };
 
   let points = [];
@@ -3123,14 +3155,19 @@ body.modal-open { overflow: hidden; }
   function loadCachedResults() {
     try {
       const raw = localStorage.getItem('mushroom_batch_results');
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch (e) { return null; }
+      if (!raw) return {};
+      const cache = JSON.parse(raw);
+      return typeof cache === 'object' && !Array.isArray(cache) ? cache : {};
+    } catch (e) { return {}; }
   }
 
   function cacheResults(results) {
     try {
-      localStorage.setItem('mushroom_batch_results', JSON.stringify({ ts: Date.now(), results }));
+      const cache = loadCachedResults();
+      results.forEach(res => {
+        cache[res.pointId] = { top10: res.top10, ranking: res.ranking, ts: Date.now() };
+      });
+      localStorage.setItem('mushroom_batch_results', JSON.stringify(cache));
     } catch (e) {}
   }
 
@@ -3154,7 +3191,9 @@ body.modal-open { overflow: hidden; }
     return { ok: true, warning: null };
   }
 
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
+  function uid(lat, lng, forestType, forestAge) {
+    return stablePointId(lat, lng, forestType || 'pine', forestAge || 25);
+  }
 
   function mockForecastForPoint(point) {
     const species = [
@@ -3188,9 +3227,14 @@ body.modal-open { overflow: hidden; }
       ['Тепла днина + вола', 'Вологий підстил', 'Дубовий листок']
     ];
 
-    const shuffled = species.slice().sort(() => Math.random() - 0.5);
-    const top10 = shuffled.slice(0, 10).map((sp, idx) => {
-      const r = Math.random();
+    const rand = mulberry32(pointSeed(point));
+
+    const sorted = species.slice().sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return a.type.localeCompare(b.type);
+    });
+    const top10 = sorted.slice(0, 10).map((sp, idx) => {
+      const r = rand();
       let level = 'medium';
       if (idx < 3 && r < 0.5) level = 'high';
       else if (idx < 6 && r < 0.7) level = 'medium';
@@ -3199,7 +3243,7 @@ body.modal-open { overflow: hidden; }
 
       const warnings = [];
       if (level === 'low') warnings.push('Друга хвиля — часто червиві');
-      if (Math.random() < 0.2) warnings.push('Терміново перевіряйте умови');
+      if (rand() < 0.2) warnings.push('Терміново перевіряйте умови');
 
       return {
         mushroomType: sp.type,
@@ -3210,10 +3254,10 @@ body.modal-open { overflow: hidden; }
         levelUa: levelUa[level],
         badgeClass: levelBadge[level],
         weight: sp.weight,
-        probability: level === 'no_data' ? 0.1 : level === 'high' ? 0.7 + Math.random() * 0.25 : level === 'medium' ? 0.4 + Math.random() * 0.3 : 0.1 + Math.random() * 0.3,
-        where: habitats[Math.floor(Math.random() * habitats.length)],
-        when: 'Зараз — ' + Math.floor(Math.random() * 10 + 1) + ' днів після дощу',
-        why: whyOptions[Math.floor(Math.random() * whyOptions.length)],
+        probability: level === 'no_data' ? 0.1 : level === 'high' ? 0.7 + rand() * 0.25 : level === 'medium' ? 0.4 + rand() * 0.3 : 0.1 + rand() * 0.3,
+        where: habitats[Math.floor(rand() * habitats.length)],
+        when: 'Зараз — ' + Math.floor(rand() * 10 + 1) + ' днів після дощу',
+        why: whyOptions[Math.floor(rand() * whyOptions.length)],
         warnings
       };
     });
@@ -3223,7 +3267,8 @@ body.modal-open { overflow: hidden; }
       const la = levelOrder[a.level] ?? 9;
       const lb = levelOrder[b.level] ?? 9;
       if (la !== lb) return la - lb;
-      return b.weight - a.weight;
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return a.mushroomType.localeCompare(b.mushroomType);
     });
 
     return {
@@ -3350,7 +3395,7 @@ body.modal-open { overflow: hidden; }
       return;
     }
     const point = {
-      id: uid(),
+      id: uid(lat, lng, forestType, forestAge),
       lat, lng,
       forestType: forestType || 'pine',
       forestAge: forestAge || 25,
@@ -3398,7 +3443,7 @@ body.modal-open { overflow: hidden; }
       expandedWrap.classList.add('hidden');
       if (resultWrap) {
         resultWrap.classList.remove('hidden');
-        resultWrap.innerHTML = '<div class="zero-hint">Завантаження прогнозу…</div>';
+        resultWrap.innerHTML = '<div class="zero-hint text-center py-8 text-ink-muted text-[13px]">Прогноз недоступний для цієї точки</div>';
       }
       return;
     }
@@ -3516,7 +3561,7 @@ body.modal-open { overflow: hidden; }
           '<div class="mt-4 space-y-3">' +
             '<div class="flex gap-3">' +
               '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-6.5-8-12a8 8 0 0 1 16 0c0 5.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
+                '<svg width="13" height="13"><use href="#icon-pin"/></svg>' +
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Де</div>' +
@@ -3525,7 +3570,7 @@ body.modal-open { overflow: hidden; }
             '</div>' +
             '<div class="flex gap-3">' +
               '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+                '<svg width="13" height="13"><use href="#icon-clock"/></svg>' +
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Коли</div>' +
@@ -3534,7 +3579,7 @@ body.modal-open { overflow: hidden; }
             '</div>' +
             '<div class="flex gap-3">' +
               '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
+                '<svg width="13" height="13"><use href="#icon-mushroom"/></svg>' +
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Чому</div>' +
@@ -3577,7 +3622,7 @@ body.modal-open { overflow: hidden; }
     expandedIndex = index;
     const slide = carousel.children[index];
     const scrollLeft = slide.offsetLeft - carousel.offsetLeft;
-    carousel.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    carousel.scrollLeft = scrollLeft;
     renderExpandedDots();
   }
 
@@ -3587,19 +3632,25 @@ body.modal-open { overflow: hidden; }
     const p = points[expandedPointIndex];
     if (!p || !p.top10) return;
 
-    let dotsHtml = '';
-    p.top10.forEach((_, idx) => {
-      const cls = idx === expandedIndex ? 'carousel-dot active' : 'carousel-dot';
-      dotsHtml += '<button class="' + cls + '" data-mushroom-index="' + idx + '" aria-label="Гриб ' + (idx + 1) + '"></button>';
-    });
-    dotsEl.innerHTML = dotsHtml;
-
-    dotsEl.querySelectorAll('.carousel-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-        const idx = parseInt(dot.dataset.mushroomIndex);
-        scrollExpandedTo(idx);
+    if (dotsEl.children.length !== p.top10.length) {
+      let dotsHtml = '';
+      p.top10.forEach((_, idx) => {
+        const cls = idx === expandedIndex ? 'carousel-dot active' : 'carousel-dot';
+        dotsHtml += '<button class="' + cls + '" data-mushroom-index="' + idx + '" aria-label="Гриб ' + (idx + 1) + '"></button>';
       });
-    });
+      dotsEl.innerHTML = dotsHtml;
+
+      dotsEl.querySelectorAll('.carousel-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+          const idx = parseInt(dot.dataset.mushroomIndex);
+          scrollExpandedTo(idx);
+        });
+      });
+    } else {
+      Array.from(dotsEl.children).forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === expandedIndex);
+      });
+    }
   }
 
   function initExpandedSwipe() {
@@ -3753,8 +3804,8 @@ body.modal-open { overflow: hidden; }
 
     let html = '';
     points.forEach((p, i) => {
-      const top = 20 + (i * 25) + Math.random() * 10;
-      const left = 15 + (i * 30) + Math.random() * 10;
+      const top = 20 + (i * 25) + (i % 3) * 5;
+      const left = 15 + (i * 30) + (i % 2) * 5;
       html += '<button class="dot-marked map-dot minimap-dot" style="top: ' + top + '%; left: ' + left + '%; background: #C97A2B; font-size: 9px; color: white; font-weight: 700;" data-index="' + i + '" aria-label="Точка ' + (i + 1) + '">' + (i + 1) + '</button>';
     });
     markers.innerHTML = html;
@@ -3843,19 +3894,33 @@ body.modal-open { overflow: hidden; }
       return;
     }
 
-    // Check cache
-    const cached = loadCachedResults();
-    if (cached && cached.results) {
-      applyResults(cached.results);
-      return;
+    const cache = loadCachedResults();
+    const now = Date.now();
+    const CACHE_TTL = 10 * 60 * 1000;
+    const cachedResults = [];
+    const missingPoints = [];
+
+    points.forEach(p => {
+      const entry = cache[p.id];
+      if (entry && entry.top10 && Array.isArray(entry.top10) && (now - entry.ts < CACHE_TTL)) {
+        cachedResults.push({ pointId: p.id, top10: entry.top10, ranking: entry.ranking });
+      } else {
+        missingPoints.push(p);
+      }
+    });
+
+    if (cachedResults.length > 0) {
+      applyResults(cachedResults);
     }
 
-    // Mock batch API
-    setTimeout(() => {
-      const results = points.map(p => mockForecastForPoint(p));
-      cacheResults({ results });
-      applyResults(results);
-    }, 400);
+    if (missingPoints.length > 0) {
+      setTimeout(() => {
+        const results = missingPoints.map(p => mockForecastForPoint(p));
+        cacheResults(results);
+        console.log('forecast response:', JSON.stringify(results));
+        applyResults(results);
+      }, 400);
+    }
   }
 
   function applyResults(results) {
@@ -3944,15 +4009,16 @@ body.modal-open { overflow: hidden; }
   }
 
   function seedDemoPoint() {
+    const demoId = 'demo';
     const demoResult = mockForecastForPoint({
-      id: 'demo',
+      id: demoId,
       lat: 50.25,
       lng: 28.66,
       forestType: 'pine',
       forestAge: 25
     });
     points.push({
-      id: uid(),
+      id: demoId,
       lat: 50.25,
       lng: 28.66,
       forestType: 'pine',
