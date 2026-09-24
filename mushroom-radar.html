@@ -2129,21 +2129,12 @@ body.modal-open { overflow: hidden; }
       btn.dataset.cat = def.key;
       btn.textContent = def.label;
       btn.addEventListener('click', () => {
-        const next = (state.category === def.key) ? 'all' : def.key;
-        const isPause = next === 'poisonous' || next === 'red';
-        const isResumingPause = state.savedState && next === state.savedState.category;
-        const leavingPause = state.category === 'poisonous' || state.category === 'red';
+        const isPauseCategory = (k) => k === 'poisonous' || k === 'red';
 
-        if (isPause && !isResumingPause) {
-          state.savedState = {
-            category: state.category,
-            sel: {
-              tree: new Set(state.sel.tree),
-              season: new Set(state.sel.season)
-            },
-            q: state.q
-          };
-        }
+        const isResumingPause =
+          isPauseCategory(state.category) &&
+          def.key === state.category &&
+          state.savedState;
 
         if (isResumingPause) {
           const saved = state.savedState;
@@ -2152,15 +2143,27 @@ body.modal-open { overflow: hidden; }
           state.sel.season = new Set(saved.sel.season);
           state.q = saved.q;
           state.savedState = null;
-        } else {
-          state.category = next;
-          if (leavingPause || next === 'all' || next === 'top20' || next === 'popular') {
+        } else if (isPauseCategory(def.key)) {
+          if (!isPauseCategory(state.category)) {
+            state.savedState = {
+              category: state.category,
+              sel: {
+                tree: new Set(state.sel.tree),
+                season: new Set(state.sel.season)
+              },
+              q: state.q
+            };
+          } else {
             state.savedState = null;
           }
-          if (!isPause) {
-            state.sel.tree.clear();
-            state.sel.season.clear();
-          }
+          state.category = def.key;
+          state.sel.tree.clear();
+          state.sel.season.clear();
+        } else {
+          state.category = def.key;
+          state.sel.tree.clear();
+          state.sel.season.clear();
+          state.savedState = null;
         }
 
         state.shown = PAGE;
