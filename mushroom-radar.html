@@ -605,24 +605,28 @@ body.modal-open { overflow: hidden; }
   border: 1px solid #E5DFD0;
   border-radius: 18px;
   box-shadow: 0 4px 20px rgba(47,74,58,0.06);
-  padding: 14px 16px;
+  padding: 12px 16px;
   position: relative;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
 }
 .point-card .point-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
 }
 .point-card .point-title {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 600;
   color: #2F4A3A;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.2;
 }
 .point-card .point-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: #6B6659;
   margin-top: 2px;
 }
@@ -760,9 +764,11 @@ body.modal-open { overflow: hidden; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
   flex-shrink: 0;
+  background: #FBF8F1;
+  padding: 4px;
 }
+.compact-icon img { width: 100%; height: 100%; object-fit: contain; }
 .compact-body { flex: 1; min-width: 0; }
 .compact-title {
   font-family: 'Fraunces', Georgia, serif;
@@ -784,23 +790,6 @@ body.modal-open { overflow: hidden; }
   flex: 0 0 100%;
   scroll-snap-align: center;
   min-width: 0;
-}
-.expanded-photo {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  background: #F5E6D0;
-}
-.expanded-photo-placeholder {
-  width: 100%;
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #F5E6D0, #EAD7B3);
-  color: #8B5E34;
-  font-size: 14px;
-  font-weight: 600;
 }
 </style>
 </head>
@@ -957,154 +946,104 @@ body.modal-open { overflow: hidden; }
           </div>
         </div>
 
-        <div class="px-5 space-y-3">
-          <!-- Carousel wrapper -->
-          <div class="relative">
-            <div id="carousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-              <!-- Slides injected by JS -->
-            </div>
-          </div>
-          <!-- Dots -->
-          <div id="carousel-dots" class="flex items-center justify-center gap-2 h-5">
-            <!-- dots injected by JS -->
-          </div>
+         <div class="px-5 space-y-3">
+           <!-- Carousel wrapper -->
+           <div class="relative">
+             <div id="carousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+               <!-- Slides injected by JS -->
+             </div>
+           </div>
+           <!-- Dots -->
+           <div id="carousel-dots" class="flex items-center justify-center gap-2 h-5">
+             <!-- dots injected by JS -->
+           </div>
 
-          <!-- Forecast result for active point -->
-          <div id="forecast-result-wrap">
-            <!-- Injected by JS -->
-          </div>
+           <!-- Compact mushroom list -->
+           <div id="compact-list-wrap" class="hidden">
+             <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;">
+               <!-- 10 compact cards injected by JS -->
+             </div>
+           </div>
 
-          <!-- Compact mushroom list -->
-          <div id="compact-list-wrap" class="hidden">
-            <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;">
-              <!-- 10 compact cards injected by JS -->
-            </div>
-          </div>
+           <!-- Expanded mushroom view -->
+           <div id="expanded-mushroom" class="hidden">
+             <div class="card overflow-hidden relative">
+               <div class="flex items-center justify-between p-3 border-b border-cream-300">
+                 <div id="expanded-dots" class="flex items-center gap-1.5">
+                   <!-- dots injected by JS -->
+                 </div>
+                 <button id="btn-close-expanded" class="icon-btn" aria-label="Закрити">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                 </button>
+               </div>
+               <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                 <!-- Expanded slides injected by JS -->
+               </div>
+             </div>
+           </div>
 
-          <!-- Expanded mushroom view -->
-          <div id="expanded-mushroom" class="hidden">
-            <div class="card overflow-hidden relative">
-              <div class="flex items-center justify-between p-3 border-b border-cream-300">
-                <div id="expanded-dots" class="flex items-center gap-1.5">
-                  <!-- dots injected by JS -->
-                </div>
-                <button id="btn-close-expanded" class="icon-btn" aria-label="Закрити">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-              <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-                <!-- Expanded slides injected by JS -->
-              </div>
-            </div>
-          </div>
+           <!-- Mini map toggle -->
+           <button id="btn-toggle-minimap" class="card w-full p-3 flex items-center justify-between card-hover">
+             <div class="flex items-center gap-2">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+               <span class="text-[13px] font-semibold text-forest-dark">Показати на мапі</span>
+             </div>
+             <svg id="minimap-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+           </button>
+           <div id="minimap-panel" class="hidden">
+             <div class="card p-3 relative overflow-hidden" style="height: 220px; background: linear-gradient(135deg, #F1EBDA 0%, #E8E1CC 100%);">
+               <svg viewBox="0 0 400 400" class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
+                 <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#D9CFB8" stroke-width="6" fill="none" stroke-linecap="round"/>
+                 <path d="M180 -20 Q 200 100 180 220 T 220 420" stroke="#D9CFB8" stroke-width="5" fill="none" stroke-linecap="round"/>
+                 <path d="M280 340 Q 320 320 360 340 Q 390 360 380 390 L 300 400 Q 260 380 280 340 Z" fill="#B8D4D9" opacity="0.65"/>
+                 <path class="map-patch" d="M40 60 Q 100 40 160 80 Q 200 120 160 160 Q 100 200 40 170 Q 10 130 40 60 Z" fill="#4A6B54" opacity="0.55"/>
+                 <path class="map-patch" d="M240 50 Q 300 40 340 90 Q 360 140 320 170 Q 260 180 220 140 Q 200 90 240 50 Z" fill="#4A6B54" opacity="0.55"/>
+                 <path class="map-patch" d="M60 260 Q 130 240 200 270 Q 240 310 200 350 Q 130 370 60 340 Q 30 300 60 260 Z" fill="#2F4A3A" opacity="0.55"/>
+                 <path class="map-patch" d="M300 250 Q 340 240 360 280 Q 370 320 330 340 Q 290 330 290 290 Q 290 260 300 250 Z" fill="#4A6B54" opacity="0.5"/>
+               </svg>
+               <div id="minimap-markers" class="absolute inset-0">
+                 <!-- Markers injected by JS -->
+               </div>
+             </div>
+           </div>
 
-          <!-- Weather -->
-          <div class="card p-4">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0 0-9 6 6 0 0 0-11.6 1.5A4 4 0 0 0 6 19z"/></svg>
-                <div class="text-[12px] font-semibold text-forest-dark">Погода в зоні</div>
-              </div>
-              <span class="text-[10px] text-ink-muted">оновлено 12:00</span>
-            </div>
-            <div class="grid grid-cols-4 gap-1 text-center">
-              <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Понеділок</div>
-                <div class="text-[18px] font-semibold text-forest-dark">+9</div>
-                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
-                  82%
-                </div>
-              </div>
-              <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Вівторок</div>
-                <div class="text-[18px] font-semibold text-forest-dark">+11</div>
-                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a5 5 0 0 1 .8-9.5A7 7 0 0 1 20 9a4.5 4.5 0 0 1 0 9H7z"/></svg>
-                  64%
-                </div>
-              </div>
-              <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Середа</div>
-                <div class="text-[18px] font-semibold text-forest-dark">+7</div>
-                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8 M8 13v8 M12 15v8 M20 16.58a5 5 0 0 0-.8-9.58A7 7 0 1 0 5 15"/></svg>
-                  71%
-                </div>
-              </div>
-              <div class="p-2 rounded-xl bg-cream-50">
-                <div class="text-[10px] text-ink-muted">Четвер</div>
-                <div class="text-[18px] font-semibold text-forest-dark">+10</div>
-                <div class="flex items-center justify-center gap-0.5 mt-0.5 text-ink-muted">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4"/></svg>
-                  48%
-                </div>
-              </div>
-            </div>
-          </div>
+           <!-- Comparison table toggle -->
+           <button id="btn-toggle-compare" class="card w-full p-3 flex items-center justify-between card-hover">
+             <div class="flex items-center gap-2">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg>
+               <span class="text-[13px] font-semibold text-forest-dark">Порівняти точки</span>
+             </div>
+             <svg id="compare-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+           </button>
+           <div id="compare-panel" class="hidden">
+             <div class="card overflow-hidden">
+               <div class="p-3 bg-cream-50 border-b border-cream-300">
+                 <div class="text-[12px] font-semibold text-forest-dark" id="compare-best">Найкраща: —</div>
+               </div>
+               <div class="overflow-x-auto">
+                 <table class="w-full text-[12px]">
+                   <thead>
+                     <tr class="bg-cream-50 text-left">
+                       <th class="p-2.5 text-ink-muted font-medium">Параметр</th>
+                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-0">Точка 1</th>
+                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-1">Точка 2</th>
+                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-2">Точка 3</th>
+                     </tr>
+                   </thead>
+                   <tbody id="compare-body">
+                     <!-- rows injected by JS -->
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+           </div>
 
-          <!-- Mini map toggle -->
-          <button id="btn-toggle-minimap" class="card w-full p-3 flex items-center justify-between card-hover">
-            <div class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span class="text-[13px] font-semibold text-forest-dark">Показати на мапі</span>
-            </div>
-            <svg id="minimap-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div id="minimap-panel" class="hidden">
-            <div class="card p-3 relative overflow-hidden" style="height: 220px; background: linear-gradient(135deg, #F1EBDA 0%, #E8E1CC 100%);">
-              <svg viewBox="0 0 400 400" class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
-                <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#D9CFB8" stroke-width="6" fill="none" stroke-linecap="round"/>
-                <path d="M180 -20 Q 200 100 180 220 T 220 420" stroke="#D9CFB8" stroke-width="5" fill="none" stroke-linecap="round"/>
-                <path d="M280 340 Q 320 320 360 340 Q 390 360 380 390 L 300 400 Q 260 380 280 340 Z" fill="#B8D4D9" opacity="0.65"/>
-                <path class="map-patch" d="M40 60 Q 100 40 160 80 Q 200 120 160 160 Q 100 200 40 170 Q 10 130 40 60 Z" fill="#4A6B54" opacity="0.55"/>
-                <path class="map-patch" d="M240 50 Q 300 40 340 90 Q 360 140 320 170 Q 260 180 220 140 Q 200 90 240 50 Z" fill="#4A6B54" opacity="0.55"/>
-                <path class="map-patch" d="M60 260 Q 130 240 200 270 Q 240 310 200 350 Q 130 370 60 340 Q 30 300 60 260 Z" fill="#2F4A3A" opacity="0.55"/>
-                <path class="map-patch" d="M300 250 Q 340 240 360 280 Q 370 320 330 340 Q 290 330 290 290 Q 290 260 300 250 Z" fill="#4A6B54" opacity="0.5"/>
-              </svg>
-              <div id="minimap-markers" class="absolute inset-0">
-                <!-- Markers injected by JS -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Comparison table toggle -->
-          <button id="btn-toggle-compare" class="card w-full p-3 flex items-center justify-between card-hover">
-            <div class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg>
-              <span class="text-[13px] font-semibold text-forest-dark">Порівняти точки</span>
-            </div>
-            <svg id="compare-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div id="compare-panel" class="hidden">
-            <div class="card overflow-hidden">
-              <div class="p-3 bg-cream-50 border-b border-cream-300">
-                <div class="text-[12px] font-semibold text-forest-dark" id="compare-best">Найкраща: —</div>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full text-[12px]">
-                  <thead>
-                    <tr class="bg-cream-50 text-left">
-                      <th class="p-2.5 text-ink-muted font-medium">Параметр</th>
-                      <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-0">Точка 1</th>
-                      <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-1">Точка 2</th>
-                      <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-2">Точка 3</th>
-                    </tr>
-                  </thead>
-                  <tbody id="compare-body">
-                    <!-- rows injected by JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
-            <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
-          </div>
-        </div>
-      </section>
+           <div class="flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
+             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
+             <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
+           </div>
+         </div>
+       </section>
 
       <!-- TAB 2: MAP -->
       <section id="tab-map" class="tab-panel">
@@ -3219,20 +3158,29 @@ body.modal-open { overflow: hidden; }
 
   function mockForecastForPoint(point) {
     const species = [
-      { type: 'boletus_edulis', name: 'Білий гриб', latin: 'Boletus edulis', emoji: '🍄', gradient: 'linear-gradient(135deg, #8B5E34, #A97046)', weight: 5 },
-      { type: 'cantharellus_cibarius', name: 'Лисичка', latin: 'Cantharellus cibarius', emoji: '🧡', gradient: 'linear-gradient(135deg, #C97A2B, #E9A96A)', weight: 4 },
-      { type: 'leccinum_scabrum', name: 'Підберезник', latin: 'Leccinum scabrum', emoji: '🟤', gradient: 'linear-gradient(135deg, #6B4226, #8B5E34)', weight: 3 },
-      { type: 'pleurotus_ostreatus', name: 'Опеньок', latin: 'Pleurotus ostreatus', emoji: '🤍', gradient: 'linear-gradient(135deg, #D9CFB8, #A89880)', weight: 3 },
-      { type: 'suillus_luteus', name: 'Маслюк', latin: 'Suillus luteus', emoji: '🟡', gradient: 'linear-gradient(135deg, #D4A72C, #E9C46A)', weight: 2 },
-      { type: 'russula_vesca', name: 'Сироїжка', latin: 'Russula vesca', emoji: '🔴', gradient: 'linear-gradient(135deg, #A8471F, #C97A2B)', weight: 2 },
-      { type: 'lactarius_deliciosus', name: 'Дощовик', latin: 'Lactarius deliciosus', emoji: '🟠', gradient: 'linear-gradient(135deg, #C97A2B, #E9A96A)', weight: 2 },
-      { type: 'agaricus_campestris', name: 'Печериця', latin: 'Agaricus campestris', emoji: '🤎', gradient: 'linear-gradient(135deg, #8B7F6E, #A89880)', weight: 1 },
-      { type: 'boletus_badius', name: 'Підосичник', latin: 'Boletus badius', emoji: '🟫', gradient: 'linear-gradient(135deg, #6B4226, #8B5E34)', weight: 1 },
-      { type: 'cantarellus_tubaeformis', name: 'Трубка', latin: 'Cantharellus tubaeformis', emoji: '🟢', gradient: 'linear-gradient(135deg, #4A6B54, #6B8570)', weight: 1 }
+      { type: 'boletus_edulis', name: 'Білий гриб', latin: 'Boletus edulis', emoji: '🍄', sticker: 'mushroom_boletus_edulis.svg', weight: 5 },
+      { type: 'cantharellus_cibarius', name: 'Лисичка', latin: 'Cantharellus cibarius', emoji: '🧡', sticker: 'mushroom_cantharellus_cibarius.svg', weight: 4 },
+      { type: 'leccinum_scabrum', name: 'Підберезник', latin: 'Leccinum scabrum', emoji: '🟤', sticker: 'mushroom_leccinum_scabrum.svg', weight: 3 },
+      { type: 'leccinum_aurantiacum', name: 'Підосичник', latin: 'Leccinum aurantiacum', emoji: '🟠', sticker: 'mushroom_leccinum_aurantiacum.svg', weight: 3 },
+      { type: 'suillus_luteus', name: 'Маслюк', latin: 'Suillus luteus', emoji: '🟡', sticker: 'mushroom_suillus_luteus.svg', weight: 2 },
+      { type: 'armillaria_mellea', name: 'Опеньок осінній', latin: 'Armillaria mellea', emoji: '🤍', sticker: 'mushroom_armillaria_mellea.svg', weight: 2 },
+      { type: 'lactarius_deliciosus', name: 'Рижик', latin: 'Lactarius deliciosus', emoji: '🟤', sticker: 'mushroom_lactarius_deliciosus.svg', weight: 2 },
+      { type: 'lactarius_resimus', name: 'Груздь', latin: 'Lactarius resimus', emoji: '🤎', sticker: 'mushroom_lactarius_resimus.svg', weight: 2 },
+      { type: 'russula_vesca', name: 'Сироїжка', latin: 'Russula vesca', emoji: '🔴', sticker: 'mushroom_russula_vesca.svg', weight: 1 },
+      { type: 'agaricus_campestris', name: 'Печериця', latin: 'Agaricus campestris', emoji: '🤎', sticker: 'mushroom_agaricus_campestris.svg', weight: 1 },
+      { type: 'morchella_spp', name: 'Сморчок', latin: 'Morchella spp.', emoji: '🟫', sticker: 'mushroom_morchella_spp.svg', weight: 1 },
+      { type: 'lycoperdon_spp', name: 'Дощовик', latin: 'Lycoperdon spp.', emoji: '⚪', sticker: 'mushroom_lycoperdon_spp.svg', weight: 1 },
+      { type: 'boletus_luridus', name: 'Дубовик', latin: 'Boletus luridus', emoji: '🟡', sticker: 'mushroom_boletus_luridus.svg', weight: 1 },
+      { type: 'xerocomus_spp', name: 'Моховик', latin: 'Xerocomus spp.', emoji: '🟤', sticker: 'mushroom_xerocomus_spp.svg', weight: 1 },
+      { type: 'lactarius_torminosus', name: 'Вовнянка', latin: 'Lactarius torminosus', emoji: '🩷', sticker: 'mushroom_lactarius_torminosus.svg', weight: 1 },
+      { type: 'pleurotus_ostreatus', name: 'Глива', latin: 'Pleurotus ostreatus', emoji: '🤍', sticker: 'mushroom_pleurotus_ostreatus.svg', weight: 1 },
+      { type: 'hydnum_repandum', name: 'Їжовик', latin: 'Hydnum repandum', emoji: '🟠', sticker: 'mushroom_hydnum_repandum.svg', weight: 1 },
+      { type: 'suillus_bovinus', name: 'Козляк', latin: 'Suillus bovinus', emoji: '🟤', sticker: 'mushroom_suillus_bovinus.svg', weight: 1 },
+      { type: 'flammulina_velutipes', name: 'Зимовий опеньок', latin: 'Flammulina velutipes', emoji: '🟡', sticker: 'mushroom_flammulina_velutipes.svg', weight: 1 },
+      { type: 'imleria_badia', name: 'Польський гриб', latin: 'Imleria badia', emoji: '🟫', sticker: 'mushroom_imleria_badia.svg', weight: 1 }
     ];
 
     const levels = ['high', 'medium', 'low', 'no_data'];
-    const levelWeights = { high: 3, medium: 2, low: 1, no_data: 0 };
     const levelUa = { high: 'Висока', medium: 'Середня', low: 'Низька', no_data: 'Мало даних' };
     const levelBadge = { high: 'badge-green', medium: 'badge-amber', low: 'badge-neutral', no_data: 'badge-neutral' };
     const habitats = ['Низини, струмки, мох-сфагнум', 'Сосняк 25-30 років', 'Листяний ліс, дубовий', 'Змішаний ліс, пні'];
@@ -3258,14 +3206,12 @@ body.modal-open { overflow: hidden; }
         mushroomType: sp.type,
         nameUa: sp.name,
         nameLat: sp.latin,
-        emoji: sp.emoji,
-        gradient: sp.gradient,
+        sticker: sp.sticker,
         level,
         levelUa: levelUa[level],
         badgeClass: levelBadge[level],
         weight: sp.weight,
         probability: level === 'no_data' ? 0.1 : level === 'high' ? 0.7 + Math.random() * 0.25 : level === 'medium' ? 0.4 + Math.random() * 0.3 : 0.1 + Math.random() * 0.3,
-        photoUrl: level === 'no_data' ? null : 'https://example.com/' + sp.type + '.jpg',
         where: habitats[Math.floor(Math.random() * habitats.length)],
         when: 'Зараз — ' + Math.floor(Math.random() * 10 + 1) + ' днів після дощу',
         why: whyOptions[Math.floor(Math.random() * whyOptions.length)],
@@ -3273,7 +3219,6 @@ body.modal-open { overflow: hidden; }
       };
     });
 
-    // Sort by level then weight
     const levelOrder = { high: 0, medium: 1, low: 2, no_data: 3 };
     top10.sort((a, b) => {
       const la = levelOrder[a.level] ?? 9;
@@ -3312,16 +3257,15 @@ body.modal-open { overflow: hidden; }
 
     let html = '';
     points.forEach((p, i) => {
-      const levelInfo = p.result ? LEVEL_BADGE[p.result.level] : LEVEL_BADGE.no_data;
       html += '<div class="carousel-slide">' +
         '<div class="point-card">' +
           '<div class="point-header">' +
-            '<div class="min-w-0">' +
-              '<div class="flex items-center gap-2">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
-                '<div class="point-title truncate">' + esc(p.name) + '</div>' +
+            '<div class="flex items-center gap-2 min-w-0">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" style="color: #C97A2B;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+              '<div class="min-w-0">' +
+                '<div class="point-title truncate" style="font-size: 16px;">' + esc(p.name) + '</div>' +
+                '<div class="point-sub">' + p.lat.toFixed(2) + 'N · ' + p.lng.toFixed(2) + 'E · ' + p.forestAge + ' років</div>' +
               '</div>' +
-              '<div class="point-sub">' + p.lat.toFixed(2) + 'N · ' + p.lng.toFixed(2) + 'E · ' + p.forestAge + ' років</div>' +
             '</div>' +
             '<button class="point-delete" data-index="' + i + '" aria-label="Видалити точку">✕</button>' +
           '</div>' +
@@ -3468,8 +3412,11 @@ body.modal-open { overflow: hidden; }
     p.top10.forEach((mushroom, idx) => {
       const badgeClass = mushroom.badgeClass || 'badge-neutral';
       const levelText = mushroom.levelUa || 'Мало даних';
+      const stickerSrc = 'assets/stickers/' + (mushroom.sticker || 'mushroom_boletus_edulis.svg');
       html += '<div class="compact-card" data-index="' + idx + '">' +
-        '<div class="compact-icon" style="background: ' + mushroom.gradient + '; color: white; font-size: 18px;">' + esc(mushroom.emoji) + '</div>' +
+        '<div class="compact-icon" style="background: #FBF8F1; padding: 4px;">' +
+          '<img src="' + stickerSrc + '" alt="" style="width: 28px; height: 28px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
+        '</div>' +
         '<div class="compact-body">' +
           '<div class="compact-title">' + esc(mushroom.nameUa) + '</div>' +
           '<div class="compact-latin">' + esc(mushroom.nameLat) + '</div>' +
@@ -3526,17 +3473,18 @@ body.modal-open { overflow: hidden; }
     let html = '';
     p.top10.forEach((m, idx) => {
       const isActive = idx === expandedIndex;
-      const photoHtml = m.photoUrl
-        ? '<img src="' + esc(m.photoUrl) + '" class="expanded-photo" alt="' + esc(m.nameUa) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
-          '<div class="expanded-photo-placeholder hidden">Фото відсутнє</div>'
-        : '<div class="expanded-photo-placeholder">Фото відсутнє</div>';
+      const stickerSrc = 'assets/stickers/' + (m.sticker || 'mushroom_boletus_edulis.svg');
 
       html += '<div class="expanded-slide">' +
-        photoHtml +
+        '<div class="p-4 flex justify-center" style="background: #FBF8F1;">' +
+          '<img src="' + stickerSrc + '" alt="' + esc(m.nameUa) + '" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
+        '</div>' +
         '<div class="p-4">' +
           '<div class="flex items-start justify-between gap-3">' +
             '<div class="flex items-center gap-3">' +
-              '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: ' + m.gradient + '; color: white; font-size: 24px;">' + esc(m.emoji) + '</div>' +
+              '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #FBF8F1; padding: 4px;">' +
+                '<img src="' + stickerSrc + '" alt="" style="width: 32px; height: 32px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
+              '</div>' +
               '<div class="min-w-0">' +
                 '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
                 '<div class="text-[12px] text-ink-muted italic font-serif">' + esc(m.nameLat) + '</div>' +
@@ -3582,9 +3530,9 @@ body.modal-open { overflow: hidden; }
               '</div>' +
             '</div>' +
           '</div>' +
-          (mushroom.warnings && mushroom.warnings.length ? '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
-            '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хва — часто червиві</div>' +
-            mushroom.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
+          (m.warnings && m.warnings.length ? '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
+            '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хвиля — часто червиві</div>' +
+            m.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
           '</div>' : '') +
           '<button class="btn-secondary w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-[13px]">' +
             '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
