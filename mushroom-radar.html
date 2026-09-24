@@ -3158,29 +3158,28 @@ body.modal-open { overflow: hidden; }
 
   function mockForecastForPoint(point) {
     const species = [
-      { type: 'boletus_edulis', name: 'Білий гриб', latin: 'Boletus edulis', emoji: '🍄', sticker: 'mushroom_boletus_edulis.svg', weight: 5 },
-      { type: 'cantharellus_cibarius', name: 'Лисичка', latin: 'Cantharellus cibarius', emoji: '🧡', sticker: 'mushroom_cantharellus_cibarius.svg', weight: 4 },
-      { type: 'leccinum_scabrum', name: 'Підберезник', latin: 'Leccinum scabrum', emoji: '🟤', sticker: 'mushroom_leccinum_scabrum.svg', weight: 3 },
-      { type: 'leccinum_aurantiacum', name: 'Підосичник', latin: 'Leccinum aurantiacum', emoji: '🟠', sticker: 'mushroom_leccinum_aurantiacum.svg', weight: 3 },
-      { type: 'suillus_luteus', name: 'Маслюк', latin: 'Suillus luteus', emoji: '🟡', sticker: 'mushroom_suillus_luteus.svg', weight: 2 },
-      { type: 'armillaria_mellea', name: 'Опеньок осінній', latin: 'Armillaria mellea', emoji: '🤍', sticker: 'mushroom_armillaria_mellea.svg', weight: 2 },
-      { type: 'lactarius_deliciosus', name: 'Рижик', latin: 'Lactarius deliciosus', emoji: '🟤', sticker: 'mushroom_lactarius_deliciosus.svg', weight: 2 },
-      { type: 'lactarius_resimus', name: 'Груздь', latin: 'Lactarius resimus', emoji: '🤎', sticker: 'mushroom_lactarius_resimus.svg', weight: 2 },
-      { type: 'russula_vesca', name: 'Сироїжка', latin: 'Russula vesca', emoji: '🔴', sticker: 'mushroom_russula_vesca.svg', weight: 1 },
-      { type: 'agaricus_campestris', name: 'Печериця', latin: 'Agaricus campestris', emoji: '🤎', sticker: 'mushroom_agaricus_campestris.svg', weight: 1 },
-      { type: 'morchella_spp', name: 'Сморчок', latin: 'Morchella spp.', emoji: '🟫', sticker: 'mushroom_morchella_spp.svg', weight: 1 },
-      { type: 'lycoperdon_spp', name: 'Дощовик', latin: 'Lycoperdon spp.', emoji: '⚪', sticker: 'mushroom_lycoperdon_spp.svg', weight: 1 },
-      { type: 'boletus_luridus', name: 'Дубовик', latin: 'Boletus luridus', emoji: '🟡', sticker: 'mushroom_boletus_luridus.svg', weight: 1 },
-      { type: 'xerocomus_spp', name: 'Моховик', latin: 'Xerocomus spp.', emoji: '🟤', sticker: 'mushroom_xerocomus_spp.svg', weight: 1 },
-      { type: 'lactarius_torminosus', name: 'Вовнянка', latin: 'Lactarius torminosus', emoji: '🩷', sticker: 'mushroom_lactarius_torminosus.svg', weight: 1 },
-      { type: 'pleurotus_ostreatus', name: 'Глива', latin: 'Pleurotus ostreatus', emoji: '🤍', sticker: 'mushroom_pleurotus_ostreatus.svg', weight: 1 },
-      { type: 'hydnum_repandum', name: 'Їжовик', latin: 'Hydnum repandum', emoji: '🟠', sticker: 'mushroom_hydnum_repandum.svg', weight: 1 },
-      { type: 'suillus_bovinus', name: 'Козляк', latin: 'Suillus bovinus', emoji: '🟤', sticker: 'mushroom_suillus_bovinus.svg', weight: 1 },
-      { type: 'flammulina_velutipes', name: 'Зимовий опеньок', latin: 'Flammulina velutipes', emoji: '🟡', sticker: 'mushroom_flammulina_velutipes.svg', weight: 1 },
-      { type: 'imleria_badia', name: 'Польський гриб', latin: 'Imleria badia', emoji: '🟫', sticker: 'mushroom_imleria_badia.svg', weight: 1 }
+      { type: 'boletus_edulis', name: 'Білий гриб', latin: 'Boletus edulis', sticker: 'mushroom_boletus_edulis.svg', weight: 5 },
+      { type: 'cantharellus_cibarius', name: 'Лисичка', latin: 'Cantharellus cibarius', sticker: 'mushroom_cantharellus_cibarius.svg', weight: 4 },
+      { type: 'leccinum_scabrum', name: 'Підберезник', latin: 'Leccinum scabrum', sticker: 'mushroom_leccinum_scabrum.svg', weight: 3 },
+      { type: 'leccinum_aurantiacum', name: 'Підосичник', latin: 'Leccinum aurantiacum', sticker: 'mushroom_leccinum_aurantiacum.svg', weight: 3 },
+      { type: 'suillus_luteus', name: 'Маслюк', latin: 'Suillus luteus', sticker: 'mushroom_suillus_luteus.svg', weight: 2 },
+      { type: 'armillaria_mellea', name: 'Опеньок осінній', latin: 'Armillaria mellea', sticker: 'mushroom_armillaria_mellea.svg', weight: 2 },
+      { type: 'lactarius_deliciosus', name: 'Рижик', latin: 'Lactarius deliciosus', sticker: 'mushroom_lactarius_deliciosus.svg', weight: 2 },
+      { type: 'lactarius_resimus', name: 'Груздь', latin: 'Lactarius resimus', sticker: 'mushroom_lactarius_resimus.svg', weight: 2 },
+      { type: 'russula_vesca', name: 'Сироїжка', latin: 'Russula vesca', sticker: 'mushroom_russula_vesca.svg', weight: 1 },
+      { type: 'agaricus_campestris', name: 'Печериця', latin: 'Agaricus campestris', sticker: 'mushroom_agaricus_campestris.svg', weight: 1 },
+      { type: 'morchella_spp', name: 'Сморчок', latin: 'Morchella spp.', sticker: 'mushroom_morchella_spp.svg', weight: 1 },
+      { type: 'lycoperdon_spp', name: 'Дощовик', latin: 'Lycoperdon spp.', sticker: 'mushroom_lycoperdon_spp.svg', weight: 1 },
+      { type: 'boletus_luridus', name: 'Дубовик', latin: 'Boletus luridus', sticker: 'mushroom_boletus_luridus.svg', weight: 1 },
+      { type: 'xerocomus_spp', name: 'Моховик', latin: 'Xerocomus spp.', sticker: 'mushroom_xerocomus_spp.svg', weight: 1 },
+      { type: 'lactarius_torminosus', name: 'Вовнянка', latin: 'Lactarius torminosus', sticker: 'mushroom_lactarius_torminosus.svg', weight: 1 },
+      { type: 'pleurotus_ostreatus', name: 'Глива', latin: 'Pleurotus ostreatus', sticker: 'mushroom_pleurotus_ostreatus.svg', weight: 1 },
+      { type: 'hydnum_repandum', name: 'Їжовик', latin: 'Hydnum repandum', sticker: 'mushroom_hydnum_repandum.svg', weight: 1 },
+      { type: 'suillus_bovinus', name: 'Козляк', latin: 'Suillus bovinus', sticker: 'mushroom_suillus_bovinus.svg', weight: 1 },
+      { type: 'flammulina_velutipes', name: 'Зимовий опеньок', latin: 'Flammulina velutipes', sticker: 'mushroom_flammulina_velutipes.svg', weight: 1 },
+      { type: 'imleria_badia', name: 'Польський гриб', latin: 'Imleria badia', sticker: 'mushroom_imleria_badia.svg', weight: 1 }
     ];
 
-    const levels = ['high', 'medium', 'low', 'no_data'];
     const levelUa = { high: 'Висока', medium: 'Середня', low: 'Низька', no_data: 'Мало даних' };
     const levelBadge = { high: 'badge-green', medium: 'badge-amber', low: 'badge-neutral', no_data: 'badge-neutral' };
     const habitats = ['Низини, струмки, мох-сфагнум', 'Сосняк 25-30 років', 'Листяний ліс, дубовий', 'Змішаний ліс, пні'];
@@ -3380,13 +3379,16 @@ body.modal-open { overflow: hidden; }
   function updateForecastUI() {
     const compactWrap = document.getElementById('compact-list-wrap');
     const expandedWrap = document.getElementById('expanded-mushroom');
+    const resultWrap = document.getElementById('forecast-result-wrap');
     if (!compactWrap || !expandedWrap) return;
 
     if (points.length === 0) {
       compactWrap.classList.add('hidden');
       expandedWrap.classList.add('hidden');
-      const resultWrap = document.getElementById('forecast-result-wrap');
-      if (resultWrap) resultWrap.innerHTML = '<div class="zero-hint">Додайте точку для аналізу</div>';
+      if (resultWrap) {
+        resultWrap.classList.add('hidden');
+        resultWrap.innerHTML = '<div class="zero-hint">Додайте точку для аналізу</div>';
+      }
       return;
     }
 
@@ -3394,13 +3396,14 @@ body.modal-open { overflow: hidden; }
     if (!p || !p.top10 || p.top10.length === 0) {
       compactWrap.classList.add('hidden');
       expandedWrap.classList.add('hidden');
-      const resultWrap = document.getElementById('forecast-result-wrap');
-      if (resultWrap) resultWrap.innerHTML = '<div class="zero-hint">Завантаження прогнозу…</div>';
+      if (resultWrap) {
+        resultWrap.classList.remove('hidden');
+        resultWrap.innerHTML = '<div class="zero-hint">Завантаження прогнозу…</div>';
+      }
       return;
     }
 
-    const resultWrap = document.getElementById('forecast-result-wrap');
-    if (resultWrap) resultWrap.innerHTML = '';
+    if (resultWrap) resultWrap.classList.add('hidden');
 
     compactWrap.classList.remove('hidden');
     expandedWrap.classList.add('hidden');
@@ -3470,20 +3473,31 @@ body.modal-open { overflow: hidden; }
     const mushroom = p.top10[expandedIndex];
     if (!mushroom) return;
 
+    const stickerSrc = 'assets/stickers/' + (mushroom.sticker || 'mushroom_boletus_edulis.svg');
+    const whereText = esc(mushroom.where || 'Не вказано');
+    const whenText = esc(mushroom.when || 'Не вказано');
+    const whyItems = (mushroom.why && mushroom.why.length)
+      ? mushroom.why.map(w => '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>' + esc(w) + '</li>').join('')
+      : '<li class="text-[13px] text-ink-muted">Інформація відсутня</li>';
+    const warningsHtml = mushroom.warnings && mushroom.warnings.length
+      ? '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
+        '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хвиля — часто червиві</div>' +
+        mushroom.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
+      '</div>'
+      : '';
+
     let html = '';
     p.top10.forEach((m, idx) => {
-      const isActive = idx === expandedIndex;
-      const stickerSrc = 'assets/stickers/' + (m.sticker || 'mushroom_boletus_edulis.svg');
-
+      const s = 'assets/stickers/' + (m.sticker || 'mushroom_boletus_edulis.svg');
       html += '<div class="expanded-slide">' +
         '<div class="p-4 flex justify-center" style="background: #FBF8F1;">' +
-          '<img src="' + stickerSrc + '" alt="' + esc(m.nameUa) + '" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
+          '<img src="' + s + '" alt="' + esc(m.nameUa) + '" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
         '</div>' +
         '<div class="p-4">' +
           '<div class="flex items-start justify-between gap-3">' +
             '<div class="flex items-center gap-3">' +
               '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #FBF8F1; padding: 4px;">' +
-                '<img src="' + stickerSrc + '" alt="" style="width: 32px; height: 32px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
+                '<img src="' + s + '" alt="" style="width: 32px; height: 32px; object-fit: contain;" onerror="this.style.display=\'none\'">' +
               '</div>' +
               '<div class="min-w-0">' +
                 '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
@@ -3506,7 +3520,7 @@ body.modal-open { overflow: hidden; }
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Де</div>' +
-                '<div class="text-[13px] text-forest-dark">' + esc(m.where) + '</div>' +
+                '<div class="text-[13px] text-forest-dark">' + whereText + '</div>' +
               '</div>' +
             '</div>' +
             '<div class="flex gap-3">' +
@@ -3515,7 +3529,7 @@ body.modal-open { overflow: hidden; }
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Коли</div>' +
-                '<div class="text-[13px] text-forest-dark">' + esc(m.when) + '</div>' +
+                '<div class="text-[13px] text-forest-dark">' + whenText + '</div>' +
               '</div>' +
             '</div>' +
             '<div class="flex gap-3">' +
@@ -3524,16 +3538,11 @@ body.modal-open { overflow: hidden; }
               '</div>' +
               '<div>' +
                 '<div class="text-[11px] text-ink-muted font-medium">Чому</div>' +
-                '<ul class="mt-1 space-y-1">' +
-                  (m.why || []).map(w => '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>' + esc(w) + '</li>').join('') +
-                '</ul>' +
+                '<ul class="mt-1 space-y-1">' + whyItems + '</ul>' +
               '</div>' +
             '</div>' +
           '</div>' +
-          (m.warnings && m.warnings.length ? '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
-            '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хвиля — часто червиві</div>' +
-            m.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
-          '</div>' : '') +
+          warningsHtml +
           '<button class="btn-secondary w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-[13px]">' +
             '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
             'Відкрити в довіднику' +
@@ -3610,21 +3619,6 @@ body.modal-open { overflow: hidden; }
       if (Math.abs(diff) > 50) {
         if (diff > 0 && expandedIndex < (points[expandedPointIndex]?.top10?.length || 0) - 1) scrollExpandedTo(expandedIndex + 1);
         else if (diff < 0 && expandedIndex > 0) scrollExpandedTo(expandedIndex - 1);
-      }
-    });
-    carousel.addEventListener('scroll', () => {
-      if (!carousel.children.length) return;
-      const center = carousel.scrollLeft + carousel.clientWidth / 2;
-      let closest = 0;
-      let minDist = Infinity;
-      Array.from(carousel.children).forEach((slide, i) => {
-        const slideCenter = slide.offsetLeft + slide.clientWidth / 2;
-        const dist = Math.abs(center - slideCenter);
-        if (dist < minDist) { minDist = dist; closest = i; }
-      });
-      if (closest !== expandedIndex) {
-        expandedIndex = closest;
-        renderExpandedDots();
       }
     });
 
@@ -3882,11 +3876,6 @@ body.modal-open { overflow: hidden; }
     updateForecastUI();
     renderMiniMap();
     renderComparison();
-  }
-
-  function esc(s) {
-    if (s == null) return '';
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function initCarouselSwipe() {
