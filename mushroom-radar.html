@@ -2290,7 +2290,10 @@ body.modal-open { overflow: hidden; }
     s = s.replace(/`([^`]+)`/g, '<code style="background:#F0E7D5;padding:1px 4px;border-radius:4px;font-family:monospace;">$1</code>');
     return s;
   }
-  function isEmojiHeading(line) { return EMOJI_H3.test(line.trim()); }
+  function isEmojiHeading(line) {
+    if (line.includes('\t')) return false;
+    return /^(🍄|✅|🔍|⚠️|🗺️|🪱|🍳|🍽️|📋|🧪|📍|💡)\s/.test(line.trim());
+  }
   function splitRow(line) { return line.split(/\t+/).map(x => x.trim()); }
   function parseKeyValue(line) {
     if (EMOJI_H3.test(line)) return null;
@@ -2424,6 +2427,7 @@ body.modal-open { overflow: hidden; }
     if (!raw) return '<div class="desc-empty">Опису ще немає.</div>';
     const sections = splitSections(raw);
     const out = [];
+    let seasonButtonInserted = false;
     for (const sec of sections) {
       if (sec.heading) {
         const ch = renderContent(sec.lines);
@@ -2432,8 +2436,9 @@ body.modal-open { overflow: hidden; }
         } else {
           out.push('<h3 class="desc-h3"><span class="desc-emoji">' + escHtml(sec.heading) + '</span><span>' + inlineFormat(sec.title) + '</span></h3>');
           out.push(ch);
-          if (sec.heading === '🗺️' && shouldShowSeasonButton(CURRENT_SPECIES)) {
+          if (sec.heading === '🗺️' && !seasonButtonInserted && shouldShowSeasonButton(CURRENT_SPECIES)) {
             out.push(renderSeasonButton());
+            seasonButtonInserted = true;
           }
         }
       } else {
@@ -2481,13 +2486,16 @@ body.modal-open { overflow: hidden; }
     if (subtitleEl) subtitleEl.textContent = 'Сезон плодоношення';
 
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    modal.classList.add('modal-open');
+    document.body.classList.add('modal-open');
   }
 
   function closeSeasonModal() {
     const modal = document.getElementById('season-modal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    if (!modal) return;
+    modal.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => modal.classList.remove('active'), 250);
   }
 
   // Escape key & click-outside handlers
