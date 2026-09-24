@@ -590,6 +590,20 @@ body.modal-open { overflow: hidden; }
   font-size: 13px; font-weight: 500;
   letter-spacing: 0.05em;
 }
+
+#toast {
+  position: fixed; top: 20px; left: 50%; transform: translate(-50%, -20px);
+  background: #2F4A3A; color: #F7F4EC;
+  padding: 12px 20px; border-radius: 12px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(47, 74, 90, 0.25);
+  opacity: 0; pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 10001;
+}
+#toast.toast-visible {
+  opacity: 1; transform: translate(-50%, 0);
+}
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
@@ -1628,6 +1642,24 @@ body.modal-open { overflow: hidden; }
             </button>
           </div>
 
+          <!-- 📷 Редактор фото -->
+          <div class="card p-4" id="photo-editor-card">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-9 h-9 rounded-xl bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div>
+                <div class="text-[14px] font-semibold text-forest-dark">Редактор фото</div>
+                <div class="text-[11px] text-ink-muted" id="photo-editor-count">Змін поки немає. Відкрийте будь-який гриб і позначте головне фото.</div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btn-export-photos" class="btn-secondary flex-1 py-2.5 text-[13px] text-center" disabled>Експортувати JSON</button>
+              <button id="btn-clear-photos" class="btn-ghost flex-1 py-2.5 text-[13px] text-center" disabled>Очистити</button>
+            </div>
+            <p class="text-[10px] text-ink-muted mt-2 leading-relaxed">Після завантаження замініть mushroom_catalog.json у репозиторії та перегенеруйте mushroom_catalog.js.</p>
+          </div>
+
           <!-- Disclaimers -->
           <div class="px-2 pt-1 pb-2 space-y-1.5">
             <p class="text-[10px] text-ink-muted leading-relaxed text-center">Грибний Радар — допоміжний інструмент для грибника. ШІ — не діагноз, прогноз — не гарантія.</p>
@@ -1759,6 +1791,8 @@ body.modal-open { overflow: hidden; }
 </div>
 
 <!-- Лайтбокс -->
+<div id="toast"></div>
+
 <div id="lightbox" class="lightbox-overlay" aria-modal="true" role="dialog">
   <button class="lightbox-close" id="lightbox-close" aria-label="Закрити">✕</button>
   <button class="lightbox-prev" id="lightbox-prev" aria-label="Попереднє">‹</button>
@@ -1767,6 +1801,9 @@ body.modal-open { overflow: hidden; }
     <img id="lightbox-img" src="" alt="">
   </div>
   <div class="lightbox-counter" id="lightbox-counter"></div>
+  <div style="position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);">
+    <button id="lightbox-primary-btn" class="btn-secondary" style="padding: 10px 16px; font-size: 13px; white-space: nowrap;"></button>
+  </div>
 </div>
 
 <!-- CATALOG: loaded from mushroom_catalog.js (no fetch / works via file://) -->
@@ -1789,7 +1826,10 @@ body.modal-open { overflow: hidden; }
   }
 
   tabs.forEach(t => {
-    t.addEventListener('click', () => switchTab(t.dataset.tab));
+    t.addEventListener('click', () => {
+      switchTab(t.dataset.tab);
+      if (t.dataset.tab === 'profile') updatePhotoEditorCount();
+    });
   });
 
   // ---------- Welcome → App ----------
@@ -1952,6 +1992,25 @@ body.modal-open { overflow: hidden; }
 
   function loadCatalog() {
     CATALOG = window.MUSHROOM_CATALOG || null;
+  }
+
+  function applyPhotoChanges() {
+    const changes = loadPhotoChanges();
+    if (!CATALOG || !CATALOG.species) return;
+    CATALOG.species.forEach(s => {
+      if (changes[s.id]) {
+        s.photos = changes[s.id].slice();
+      }
+    });
+  }
+
+  function loadPhotoChanges() {
+    const raw = localStorage.getItem('mushroomRadar.photoChanges');
+    return raw ? JSON.parse(raw) : {};
+  }
+
+  function savePhotoChanges(changes) {
+    localStorage.setItem('mushroomRadar.photoChanges', JSON.stringify(changes));
   }
 
   function esc(v) {
@@ -2286,6 +2345,7 @@ body.modal-open { overflow: hidden; }
   }
 
   loadCatalog();
+  applyPhotoChanges();
   if (CATALOG && Array.isArray(CATALOG.species)) {
     CATALOG_TOTAL = CATALOG.species.length;
     CATALOG_PHOTO_COUNT = CATALOG.species.filter(s => s.has_photo).length;
@@ -2848,6 +2908,7 @@ body.modal-open { overflow: hidden; }
     lbPhotos = CURRENT_SPECIES.photos;
     lbIndex = idx;
     renderLightbox();
+    updateLightboxPrimaryBtn();
     const lb = document.getElementById('lightbox');
     if (!lb) return;
     lb.classList.add('active');
@@ -2867,6 +2928,7 @@ body.modal-open { overflow: hidden; }
     const single = lbPhotos.length <= 1;
     if (prev) prev.style.display = single ? 'none' : '';
     if (next) next.style.display = single ? 'none' : '';
+    updateLightboxPrimaryBtn();
   }
 
   function lightboxNext() {
@@ -2886,7 +2948,10 @@ body.modal-open { overflow: hidden; }
     if (!lb) return;
     lb.classList.remove('modal-open');
     document.body.classList.remove('modal-open');
-    setTimeout(() => lb.classList.remove('active'), 220);
+    setTimeout(() => {
+      lb.classList.remove('active');
+      refreshGuideIfVisible();
+    }, 220);
   }
 
   // Клік на фото галереї → лайтбокс
@@ -2938,6 +3003,117 @@ body.modal-open { overflow: hidden; }
     if (e.key === 'ArrowLeft') lightboxPrev();
     if (e.key === 'Escape') closeLightbox();
   });
+
+  let toastTimer = null;
+  function showToast(message) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = message;
+    t.classList.add('toast-visible');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      t.classList.remove('toast-visible');
+    }, 2200);
+  }
+
+  function updateLightboxPrimaryBtn() {
+    const btn = document.getElementById('lightbox-primary-btn');
+    if (!btn) return;
+    if (lbIndex === 0) {
+      btn.textContent = '✓ Це головне фото';
+      btn.disabled = true;
+      btn.style.opacity = '0.55';
+      btn.style.pointerEvents = 'none';
+    } else {
+      btn.textContent = '⭐ Зробити головним';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  }
+
+  function makePrimaryPhoto() {
+    if (!CURRENT_SPECIES || !CURRENT_SPECIES.photos || lbIndex === 0) return;
+    const photo = CURRENT_SPECIES.photos[lbIndex];
+    CURRENT_SPECIES.photos.splice(lbIndex, 1);
+    CURRENT_SPECIES.photos.unshift(photo);
+    lbIndex = 0;
+    renderLightbox();
+    updateLightboxPrimaryBtn();
+    const changes = loadPhotoChanges();
+    changes[CURRENT_SPECIES.id] = CURRENT_SPECIES.photos.slice();
+    savePhotoChanges(changes);
+    showToast('✓ Головне фото змінено');
+    updatePhotoEditorCount();
+  }
+
+  function updatePhotoEditorCount() {
+    const changes = loadPhotoChanges();
+    const count = Object.keys(changes).length;
+    const countEl = document.getElementById('photo-editor-count');
+    const exportBtn = document.getElementById('btn-export-photos');
+    const clearBtn = document.getElementById('btn-clear-photos');
+    if (countEl) {
+      countEl.textContent = count > 0 ? 'Змінено видів: ' + count : 'Змін поки немає. Відкрийте будь-який гриб і позначте головне фото.';
+    }
+    if (exportBtn) exportBtn.disabled = count === 0;
+    if (clearBtn) clearBtn.disabled = count === 0;
+  }
+
+  function exportPhotoChanges() {
+    const changes = loadPhotoChanges();
+    if (!changes || Object.keys(changes).length === 0) return;
+    const catalog = window.MUSHROOM_CATALOG;
+    if (!catalog || !catalog.species) return;
+    catalog.species.forEach(s => {
+      if (changes[s.id]) {
+        s.photos = changes[s.id].slice();
+      }
+    });
+    const json = JSON.stringify(catalog, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mushroom_catalog.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Файл завантажено. Замініть mushroom_catalog.json у репо.');
+  }
+
+  function clearPhotoChanges() {
+    if (!confirm('Ви впевнені? Усі зміни головних фото буде скасовано.')) return;
+    localStorage.removeItem('mushroomRadar.photoChanges');
+    showToast('✓ Зміни скасовано');
+    updatePhotoEditorCount();
+    setTimeout(() => location.reload(), 400);
+  }
+
+  const primaryBtn = document.getElementById('lightbox-primary-btn');
+  if (primaryBtn) {
+    primaryBtn.addEventListener('click', makePrimaryPhoto);
+  }
+
+  const exportBtn = document.getElementById('btn-export-photos');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportPhotoChanges);
+  }
+
+  const clearBtn = document.getElementById('btn-clear-photos');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearPhotoChanges);
+  }
+
+  function refreshGuideIfVisible() {
+    const guide = document.getElementById('tab-recognize');
+    if (guide && guide.classList.contains('active')) {
+      renderGuide();
+    }
+  }
+
+  updatePhotoEditorCount();
 
 </script>
 </body>
