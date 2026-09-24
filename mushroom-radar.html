@@ -1089,7 +1089,10 @@ body.modal-open { overflow: hidden; }
           <div class="pt-2" id="guide-filters-wrap">
             <div class="flex items-center justify-between mb-2.5">
               <h3 class="font-serif font-semibold text-forest-dark text-[17px]">Довідник грибів</h3>
-              <span class="text-[11px] text-ink-muted"><span id="guide-total">—</span> види</span>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-ink-muted"><span id="guide-total">—</span> види</span>
+                <button id="btn-reset-filters" class="text-[11px] text-ink-muted hover:text-forest-dark transition-colors hidden">Скинути</button>
+              </div>
             </div>
             <div class="relative mb-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
@@ -1097,8 +1100,6 @@ body.modal-open { overflow: hidden; }
             </div>
             <div class="flex gap-1.5 overflow-x-auto scroll-hide mb-1.5" id="guide-categories"></div>
             <div class="flex gap-1.5 overflow-x-auto scroll-hide mb-1.5" id="guide-filters">
-              <button class="chip" data-facet="color">Колір</button>
-              <button class="chip" data-facet="stem">Ніжка</button>
               <button class="chip" data-facet="tree">Дерево</button>
               <button class="chip" data-facet="season">Сезон</button>
             </div>
@@ -1966,7 +1967,7 @@ body.modal-open { overflow: hidden; }
     deadly_poisonous: 'badge-red',
     controversial: 'badge-yellow'
   };
-  const FACET_NAMES = { color: 'Колір', stem: 'Ніжка', tree: 'Дерево', season: 'Сезон' };
+  const FACET_NAMES = { tree: 'Дерево', season: 'Сезон' };
   const FACET_LABELS = {
     tree: {
       'pine': 'Сосна', 'spruce': 'Ялина', 'larch': 'Модрина', 'oak': 'Дуб',
@@ -1977,24 +1978,17 @@ body.modal-open { overflow: hidden; }
     },
     season: {
       'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'
-    },
-    color: {
-      'white': 'Білий', 'brown': 'Коричневий', 'grey': 'Сірий', 'red': 'Червоний',
-      'orange': 'Оранжевий', 'yellow': 'Жовтий', 'green': 'Зелений', 'pink': 'Рожевий',
-      'black': 'Чорний', 'purple': 'Фіолетовий'
-    },
-    stem: {
-      'ring': 'З кільцем', 'no_ring': 'Без кільця'
     }
   };
-  const FACET_KEYS = ['color', 'stem', 'tree', 'season'];
+  const FACET_KEYS = ['tree', 'season'];
   const PAGE = 24;
   const state = {
     q: '',
     openFacet: null,
-    sel: { color: new Set(), stem: new Set(), tree: new Set(), season: new Set() },
+    sel: { tree: new Set(), season: new Set() },
     shown: PAGE,
-    category: 'all'
+    category: 'all',
+    savedState: null
   };
   let savedGuideScrollTop = 0;
 
@@ -2050,8 +2044,8 @@ body.modal-open { overflow: hidden; }
     const base = CATALOG.species.filter(s =>
       s.has_photo && categoryMatch(s) && queryMatch(s)
     );
-    const result = { color: [], stem: [], tree: [], season: [] };
-    ['color', 'stem', 'tree', 'season'].forEach(facet => {
+    const result = { tree: [], season: [] };
+    ['tree', 'season'].forEach(facet => {
       const counts = {};
       base.forEach(s => {
         const arr = (s.attrs && s.attrs[facet]) || [];
@@ -2135,13 +2129,44 @@ body.modal-open { overflow: hidden; }
       btn.dataset.cat = def.key;
       btn.textContent = def.label;
       btn.addEventListener('click', () => {
-        state.category = (state.category === def.key) ? 'all' : def.key;
+        const next = (state.category === def.key) ? 'all' : def.key;
+        const isPause = next === 'poisonous' || next === 'red';
+        const isResumingPause = state.savedState && next === state.savedState.category;
+        const leavingPause = state.category === 'poisonous' || state.category === 'red';
+
+        if (isPause && !isResumingPause) {
+          state.savedState = {
+            category: state.category,
+            sel: {
+              tree: new Set(state.sel.tree),
+              season: new Set(state.sel.season)
+            },
+            q: state.q
+          };
+        }
+
+        if (isResumingPause) {
+          const saved = state.savedState;
+          state.category = saved.category;
+          state.sel.tree = new Set(saved.sel.tree);
+          state.sel.season = new Set(saved.sel.season);
+          state.q = saved.q;
+          state.savedState = null;
+        } else {
+          state.category = next;
+          if (leavingPause || next === 'all' || next === 'top20' || next === 'popular') {
+            state.savedState = null;
+          }
+          if (!isPause) {
+            state.sel.tree.clear();
+            state.sel.season.clear();
+          }
+        }
+
         state.shown = PAGE;
+        state.openFacet = null;
+        if (guideSearch) guideSearch.value = state.q;
         initCategoryChips();
-        FACET_KEYS.forEach(f => {
-          const available = computeFacets()[f] || [];
-          if (available.length === 0) state.sel[f].clear();
-        });
         renderOptions();
         renderGuide();
         updateFacetChipVisibility();
@@ -2161,6 +2186,12 @@ body.modal-open { overflow: hidden; }
 
   function updateFacetChipVisibility() {
     const facets = computeFacets();
+    const isPause = state.category === 'poisonous' || state.category === 'red';
+    const wrap = document.getElementById('guide-filters');
+    const options = document.getElementById('guide-options');
+    if (wrap) wrap.classList.toggle('hidden', isPause);
+    if (options) options.classList.toggle('hidden', isPause);
+
     let closed = false;
     document.querySelectorAll('#guide-filters .chip[data-facet]').forEach(ch => {
       const f = ch.dataset.facet;
@@ -2175,6 +2206,14 @@ body.modal-open { overflow: hidden; }
     if (closed) {
       updateFacetChips();
       renderOptions();
+    }
+
+    const btnReset = document.getElementById('btn-reset-filters');
+    if (btnReset) {
+      const hasFilters = state.category !== 'all' ||
+        state.sel.tree.size > 0 || state.sel.season.size > 0 ||
+        (state.q && state.q.trim().length > 0);
+      btnReset.classList.toggle('hidden', !hasFilters);
     }
   }
 
@@ -2233,6 +2272,7 @@ body.modal-open { overflow: hidden; }
       state.q = '';
       state.shown = PAGE;
       state.category = 'all';
+      state.savedState = null;
       if (guideSearch) guideSearch.value = '';
       initCategoryChips();
       renderOptions();
