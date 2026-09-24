@@ -1102,7 +1102,6 @@ body.modal-open { overflow: hidden; }
             <div class="flex gap-1.5 overflow-x-auto scroll-hide mb-1.5" id="guide-filters">
               <button class="chip" data-facet="tree">Дерево</button>
               <button class="chip" data-facet="season">Сезон</button>
-              <button class="chip" data-facet="zone">Область</button>
             </div>
             <div class="flex gap-1.5 overflow-x-auto scroll-hide mb-1.5" id="guide-options"></div>
             <div class="text-[10px] text-ink-muted mb-2.5" id="filter-note"></div>
@@ -1970,7 +1969,7 @@ body.modal-open { overflow: hidden; }
     deadly_poisonous: 'badge-red',
     controversial: 'badge-yellow'
   };
-  const FACET_NAMES = { tree: 'Дерево', season: 'Сезон', zone: 'Область' };
+  const FACET_NAMES = { tree: 'Дерево', season: 'Сезон' };
   const FACET_LABELS = {
     tree: {
       'pine': 'Сосна', 'spruce': 'Ялина', 'larch': 'Модрина', 'oak': 'Дуб',
@@ -1981,25 +1980,14 @@ body.modal-open { overflow: hidden; }
     },
     season: {
       'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'
-    },
-    zone: {
-      'vinnytska': 'Вінницька', 'volynska': 'Волинська', 'dnipropetrovska': 'Дніпропетровська',
-      'donetska': 'Донецька', 'zhytomyrska': 'Житомирська', 'zakarpatska': 'Закарпатська',
-      'zaporizka': 'Запорізька', 'ivano-frankivska': 'Івано-Франківська', 'kyivska': 'Київська',
-      'kirovohradska': 'Кіровоградська', 'luhanska': 'Луганська', 'lvivska': 'Львівська',
-      'mykolaivska': 'Миколаївська', 'odeska': 'Одеська', 'poltavska': 'Полтавська',
-      'rivnenska': 'Рівненська', 'sumska': 'Сумська', 'ternopilska': 'Тернопільська',
-      'kharkivska': 'Харківська', 'khersonska': 'Херсонська', 'khmelnytska': 'Хмельницька',
-      'cherkaska': 'Черкаська', 'chernivetska': 'Чернівецька', 'chernihivska': 'Чернігівська',
-      'krym': 'АР Крим'
     }
   };
-  const FACET_KEYS = ['tree', 'season', 'zone'];
+  const FACET_KEYS = ['tree', 'season'];
   const PAGE = 24;
   const state = {
     q: '',
     openFacet: null,
-    sel: { tree: new Set(), season: new Set(), zone: new Set() },
+    sel: { tree: new Set(), season: new Set() },
     shown: PAGE,
     category: 'all',
     savedState: null
@@ -2024,13 +2012,8 @@ body.modal-open { overflow: hidden; }
       const f = FACET_KEYS[i];
       const sel = state.sel[f];
       if (!sel.size) continue;
-      let attrs;
-      if (f === 'zone') {
-        attrs = s.zones || [];
-      } else {
-        const raw = s.attrs ? s.attrs[f] : null;
-        attrs = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-      }
+      const raw = s.attrs ? s.attrs[f] : null;
+      const attrs = Array.isArray(raw) ? raw : (raw ? [raw] : []);
       let ok = false;
       for (let j = 0; j < attrs.length; j++) {
         if (sel.has(attrs[j])) { ok = true; break; }
@@ -2063,17 +2046,11 @@ body.modal-open { overflow: hidden; }
     const base = CATALOG.species.filter(s =>
       s.has_photo && categoryMatch(s) && queryMatch(s)
     );
-    const result = { tree: [], season: [], zone: [] };
-    ['tree', 'season', 'zone'].forEach(facet => {
+    const result = { tree: [], season: [] };
+    ['tree', 'season'].forEach(facet => {
       const counts = {};
       base.forEach(s => {
-        let arr = [];
-        if (facet === 'zone') {
-          arr = (s.zones && Array.isArray(s.zones)) ? s.zones : [];
-        } else {
-          const raw = (s.attrs && s.attrs[facet]) || [];
-          arr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-        }
+        const arr = (s.attrs && s.attrs[facet]) || [];
         arr.forEach(v => { if (v) counts[v] = (counts[v] || 0) + 1; });
       });
       result[facet] = Object.entries(counts)
@@ -2166,7 +2143,6 @@ body.modal-open { overflow: hidden; }
           state.category = saved.category;
           state.sel.tree = new Set(saved.sel.tree);
           state.sel.season = new Set(saved.sel.season);
-          state.sel.zone = new Set(saved.sel.zone);
           state.q = saved.q;
           state.savedState = null;
         } else if (isPauseCategory(def.key)) {
@@ -2175,8 +2151,7 @@ body.modal-open { overflow: hidden; }
               category: state.category,
               sel: {
                 tree: new Set(state.sel.tree),
-                season: new Set(state.sel.season),
-                zone: new Set(state.sel.zone)
+                season: new Set(state.sel.season)
               },
               q: state.q
             };
@@ -2186,12 +2161,10 @@ body.modal-open { overflow: hidden; }
           state.category = def.key;
           state.sel.tree.clear();
           state.sel.season.clear();
-          state.sel.zone.clear();
         } else {
           state.category = def.key;
           state.sel.tree.clear();
           state.sel.season.clear();
-          state.sel.zone.clear();
           state.savedState = null;
         }
 
@@ -2243,7 +2216,7 @@ body.modal-open { overflow: hidden; }
     const btnReset = document.getElementById('btn-reset-filters');
     if (btnReset) {
       const hasFilters = state.category !== 'all' ||
-        state.sel.tree.size > 0 || state.sel.season.size > 0 || state.sel.zone.size > 0 ||
+        state.sel.tree.size > 0 || state.sel.season.size > 0 ||
         (state.q && state.q.trim().length > 0);
       btnReset.classList.toggle('hidden', !hasFilters);
     }
