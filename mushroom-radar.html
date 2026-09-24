@@ -1756,13 +1756,23 @@ body.modal-open { overflow: hidden; }
     </div>
   </div>
 </div>
-</div>
+
+<!-- Лайтбокс -->
+<div id="lightbox" class="lightbox-overlay" aria-modal="true" role="dialog">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Закрити">✕</button>
+  <button class="lightbox-prev" id="lightbox-prev" aria-label="Попереднє">‹</button>
+  <button class="lightbox-next" id="lightbox-next" aria-label="Наступне">›</button>
+  <div class="lightbox-content">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+  <div class="lightbox-counter" id="lightbox-counter"></div>
 </div>
 
 <!-- CATALOG: loaded from mushroom_catalog.js (no fetch / works via file://) -->
 <script src="mushroom_catalog.js"></script>
 <script src="mushroom_descriptions.js"></script>
 <script>
+
   // ---------- Tab switching ----------
   const tabs = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.tab-panel');
@@ -2781,23 +2791,15 @@ body.modal-open { overflow: hidden; }
   }
 
   // Обробники лайтбоксу
-  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-  document.getElementById('lightbox').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeLightbox();
-  });
-  document.getElementById('lightbox-prev').addEventListener('click', lightboxPrev);
-  document.getElementById('lightbox-next').addEventListener('click', lightboxNext);
-
-  document.addEventListener('keydown', (e) => {
-    const lb = document.getElementById('lightbox');
-    if (!lb || !lb.classList.contains('active')) return;
-    if (e.key === 'ArrowRight') lightboxNext();
-    if (e.key === 'ArrowLeft') lightboxPrev();
-    if (e.key === 'Escape') closeLightbox();
-  });
+  const lbClose = document.getElementById('lightbox-close');
+  if (lbClose) lbClose.addEventListener('click', closeLightbox);
 
   const lbOverlay = document.getElementById('lightbox');
   if (lbOverlay) {
+    lbOverlay.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeLightbox();
+    });
+
     lbOverlay.addEventListener('touchstart', (e) => {
       lbTouchStartX = e.changedTouches[0].screenX;
       lbTouchStartY = e.changedTouches[0].screenY;
@@ -2812,18 +2814,20 @@ body.modal-open { overflow: hidden; }
     }, { passive: true });
   }
 
+  const lbPrev = document.getElementById('lightbox-prev');
+  if (lbPrev) lbPrev.addEventListener('click', lightboxPrev);
+
+  const lbNext = document.getElementById('lightbox-next');
+  if (lbNext) lbNext.addEventListener('click', lightboxNext);
+
+  document.addEventListener('keydown', (e) => {
+    const lb = document.getElementById('lightbox');
+    if (!lb || !lb.classList.contains('active')) return;
+    if (e.key === 'ArrowRight') lightboxNext();
+    if (e.key === 'ArrowLeft') lightboxPrev();
+    if (e.key === 'Escape') closeLightbox();
+  });
+
 </script>
-
-<!-- Лайтбокс -->
-<div id="lightbox" class="lightbox-overlay" aria-modal="true" role="dialog">
-  <button class="lightbox-close" id="lightbox-close" aria-label="Закрити">✕</button>
-  <button class="lightbox-prev" id="lightbox-prev" aria-label="Попереднє">‹</button>
-  <button class="lightbox-next" id="lightbox-next" aria-label="Наступне">›</button>
-  <div class="lightbox-content">
-    <img id="lightbox-img" src="" alt="">
-  </div>
-  <div class="lightbox-counter" id="lightbox-counter"></div>
-</div>
-
 </body>
 </html>
