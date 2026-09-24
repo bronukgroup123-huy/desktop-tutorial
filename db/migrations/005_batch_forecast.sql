@@ -143,7 +143,8 @@ $$;
 -- ---------- Feature flags seed ----------
 INSERT INTO feature_flags (key, enabled, value) VALUES
   ('multi_point_enabled', TRUE, '{"description": "Режим 3 точок"}'::JSONB),
-  ('multi_point_max', TRUE, '{"value": 3, "description": "Максимум точок"}'::JSONB)
+  ('multi_point_max', TRUE, '{"value": 3, "description": "Максимум точок"}'::JSONB),
+  ('top10_forecast_enabled', TRUE, '{"description": "Список 10 грибів"}'::JSONB)
 ON CONFLICT (key) DO UPDATE SET
   enabled = EXCLUDED.enabled,
   value = EXCLUDED.value,

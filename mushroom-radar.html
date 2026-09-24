@@ -738,6 +738,70 @@ body.modal-open { overflow: hidden; }
   color: #6B6659;
   font-size: 13px;
 }
+
+/* ── Compact mushroom list ── */
+.compact-card {
+  background: #FFFFFF;
+  border: 1px solid #E5DFD0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.compact-card:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(47,74,58,0.08); }
+.compact-card:active { transform: scale(0.98); }
+.compact-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.compact-body { flex: 1; min-width: 0; }
+.compact-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  color: #2F4A3A;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.compact-latin {
+  font-size: 11px;
+  color: #6B6659;
+  font-style: italic;
+  font-family: 'Fraunces', Georgia, serif;
+  margin-top: 1px;
+}
+
+/* ── Expanded mushroom ── */
+.expanded-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  min-width: 0;
+}
+.expanded-photo {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: #F5E6D0;
+}
+.expanded-photo-placeholder {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #F5E6D0, #EAD7B3);
+  color: #8B5E34;
+  font-size: 14px;
+  font-weight: 600;
+}
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
@@ -910,9 +974,28 @@ body.modal-open { overflow: hidden; }
             <!-- Injected by JS -->
           </div>
 
-          <!-- Alternative -->
-          <div id="alternative-card-wrap">
-            <!-- Injected by JS -->
+          <!-- Compact mushroom list -->
+          <div id="compact-list-wrap" class="hidden">
+            <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;">
+              <!-- 10 compact cards injected by JS -->
+            </div>
+          </div>
+
+          <!-- Expanded mushroom view -->
+          <div id="expanded-mushroom" class="hidden">
+            <div class="card overflow-hidden relative">
+              <div class="flex items-center justify-between p-3 border-b border-cream-300">
+                <div id="expanded-dots" class="flex items-center gap-1.5">
+                  <!-- dots injected by JS -->
+                </div>
+                <button id="btn-close-expanded" class="icon-btn" aria-label="Закрити">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                <!-- Expanded slides injected by JS -->
+              </div>
+            </div>
           </div>
 
           <!-- Weather -->
@@ -3135,54 +3218,89 @@ body.modal-open { overflow: hidden; }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
 
   function mockForecastForPoint(point) {
-    const r = Math.random();
-    let level = 'medium';
-    if (r < 0.35) level = 'high';
-    else if (r < 0.75) level = 'medium';
-    else if (r < 0.92) level = 'low';
-    else level = 'no_data';
-
     const species = [
-      { name: 'Білий гриб', latin: 'Boletus edulis', emoji: '🍄', gradient: 'linear-gradient(135deg, #8B5E34, #A97046)' },
-      { name: 'Лисичка', latin: 'Cantharellus cibarius', emoji: '🧡', gradient: 'linear-gradient(135deg, #C97A2B, #E9A96A)' },
-      { name: 'Підберезник', latin: 'Leccinum scabrum', emoji: '🟤', gradient: 'linear-gradient(135deg, #6B4226, #8B5E34)' },
-      { name: 'Опеньок', latin: 'Pleurotus ostreatus', emoji: '🤍', gradient: 'linear-gradient(135deg, #D9CFB8, #A89880)' },
-      { name: 'Маслюк', latin: 'Suillus luteus', emoji: '🟡', gradient: 'linear-gradient(135deg, #D4A72C, #E9C46A)' }
+      { type: 'boletus_edulis', name: 'Білий гриб', latin: 'Boletus edulis', emoji: '🍄', gradient: 'linear-gradient(135deg, #8B5E34, #A97046)', weight: 5 },
+      { type: 'cantharellus_cibarius', name: 'Лисичка', latin: 'Cantharellus cibarius', emoji: '🧡', gradient: 'linear-gradient(135deg, #C97A2B, #E9A96A)', weight: 4 },
+      { type: 'leccinum_scabrum', name: 'Підберезник', latin: 'Leccinum scabrum', emoji: '🟤', gradient: 'linear-gradient(135deg, #6B4226, #8B5E34)', weight: 3 },
+      { type: 'pleurotus_ostreatus', name: 'Опеньок', latin: 'Pleurotus ostreatus', emoji: '🤍', gradient: 'linear-gradient(135deg, #D9CFB8, #A89880)', weight: 3 },
+      { type: 'suillus_luteus', name: 'Маслюк', latin: 'Suillus luteus', emoji: '🟡', gradient: 'linear-gradient(135deg, #D4A72C, #E9C46A)', weight: 2 },
+      { type: 'russula_vesca', name: 'Сироїжка', latin: 'Russula vesca', emoji: '🔴', gradient: 'linear-gradient(135deg, #A8471F, #C97A2B)', weight: 2 },
+      { type: 'lactarius_deliciosus', name: 'Дощовик', latin: 'Lactarius deliciosus', emoji: '🟠', gradient: 'linear-gradient(135deg, #C97A2B, #E9A96A)', weight: 2 },
+      { type: 'agaricus_campestris', name: 'Печериця', latin: 'Agaricus campestris', emoji: '🤎', gradient: 'linear-gradient(135deg, #8B7F6E, #A89880)', weight: 1 },
+      { type: 'boletus_badius', name: 'Підосичник', latin: 'Boletus badius', emoji: '🟫', gradient: 'linear-gradient(135deg, #6B4226, #8B5E34)', weight: 1 },
+      { type: 'cantarellus_tubaeformis', name: 'Трубка', latin: 'Cantharellus tubaeformis', emoji: '🟢', gradient: 'linear-gradient(135deg, #4A6B54, #6B8570)', weight: 1 }
     ];
-    const sp = species[Math.floor(Math.random() * species.length)];
-    const alt = species.filter(s => s.name !== sp.name)[Math.floor(Math.random() * (species.length - 1))];
-    const warnings = [];
-    if (level === 'low') warnings.push('Друга хвиля — часто червиві');
-    if (Math.random() < 0.3) warnings.push('Терміново перевіряйте умови');
-    const daysAfterRain = Math.floor(Math.random() * 10) + 1;
+
+    const levels = ['high', 'medium', 'low', 'no_data'];
+    const levelWeights = { high: 3, medium: 2, low: 1, no_data: 0 };
+    const levelUa = { high: 'Висока', medium: 'Середня', low: 'Низька', no_data: 'Мало даних' };
+    const levelBadge = { high: 'badge-green', medium: 'badge-amber', low: 'badge-neutral', no_data: 'badge-neutral' };
     const habitats = ['Низини, струмки, мох-сфагнум', 'Сосняк 25-30 років', 'Листяний ліс, дубовий', 'Змішаний ліс, пні'];
-    const habitat = habitats[Math.floor(Math.random() * habitats.length)];
-    const verifiedPicks7d = Math.floor(Math.random() * 8);
+    const whyOptions = [
+      ['Дощ після 14 днів посухи', 'Осіння хвиля активності', 'Молодий сосняк 25–30 років'],
+      ['Тепла днина + вола', 'Вологий підстил', 'Дубовий листок']
+    ];
+
+    const shuffled = species.slice().sort(() => Math.random() - 0.5);
+    const top10 = shuffled.slice(0, 10).map((sp, idx) => {
+      const r = Math.random();
+      let level = 'medium';
+      if (idx < 3 && r < 0.5) level = 'high';
+      else if (idx < 6 && r < 0.7) level = 'medium';
+      else if (idx < 8) level = 'low';
+      else level = 'no_data';
+
+      const warnings = [];
+      if (level === 'low') warnings.push('Друга хвиля — часто червиві');
+      if (Math.random() < 0.2) warnings.push('Терміново перевіряйте умови');
+
+      return {
+        mushroomType: sp.type,
+        nameUa: sp.name,
+        nameLat: sp.latin,
+        emoji: sp.emoji,
+        gradient: sp.gradient,
+        level,
+        levelUa: levelUa[level],
+        badgeClass: levelBadge[level],
+        weight: sp.weight,
+        probability: level === 'no_data' ? 0.1 : level === 'high' ? 0.7 + Math.random() * 0.25 : level === 'medium' ? 0.4 + Math.random() * 0.3 : 0.1 + Math.random() * 0.3,
+        photoUrl: level === 'no_data' ? null : 'https://example.com/' + sp.type + '.jpg',
+        where: habitats[Math.floor(Math.random() * habitats.length)],
+        when: 'Зараз — ' + Math.floor(Math.random() * 10 + 1) + ' днів після дощу',
+        why: whyOptions[Math.floor(Math.random() * whyOptions.length)],
+        warnings
+      };
+    });
+
+    // Sort by level then weight
+    const levelOrder = { high: 0, medium: 1, low: 2, no_data: 3 };
+    top10.sort((a, b) => {
+      const la = levelOrder[a.level] ?? 9;
+      const lb = levelOrder[b.level] ?? 9;
+      if (la !== lb) return la - lb;
+      return b.weight - a.weight;
+    });
 
     return {
       pointId: point.id,
-      top1: sp,
-      alternative: alt,
-      level,
-      warnings,
-      daysAfterRain,
-      habitat,
-      verifiedPicks7d,
-      pct: LEVEL_PCT[level]
+      top10,
+      ranking: [1, 2, 3]
     };
   }
 
-  function scorePoint(result) {
-    if (!result || result.level === 'no_data') return -1;
-    let s = LEVEL_WEIGHTS[result.level] || 0;
-    if (result.alternative && result.level !== 'low') s += 0.5;
-    if (result.verifiedPicks7d >= 3) s += 0.5;
-    if (result.warnings && result.warnings.length) s -= 0.3;
+  function scorePoint(point) {
+    if (!point || !point.top10 || !point.top10.length) return -1;
+    const top = point.top10[0];
+    let s = LEVEL_WEIGHTS[top.level] || 0;
+    if (point.top10.length > 1 && top.level !== 'low') s += 0.5;
+    if (top.verifiedPicks7d >= 3) s += 0.5;
+    if (top.warnings && top.warnings.length) s -= 0.3;
     return s;
   }
 
   function rankPoints() {
-    const scored = points.map((p, i) => ({ idx: i, score: scorePoint(p.result) }));
+    const scored = points.map((p, i) => ({ idx: i, score: scorePoint(p) }));
     scored.sort((a, b) => b.score - a.score);
     return scored.map(x => x.idx);
   }
@@ -3294,7 +3412,8 @@ body.modal-open { overflow: hidden; }
       forestType: forestType || 'pine',
       forestAge: forestAge || 25,
       name: 'Точка ' + (points.length + 1),
-      result: null
+      top10: null,
+      ranking: null
     };
     points.push(point);
     fetchBatchForecast();
@@ -3315,110 +3434,261 @@ body.modal-open { overflow: hidden; }
   }
 
   function updateForecastUI() {
-    const resultWrap = document.getElementById('forecast-result-wrap');
-    const altWrap = document.getElementById('alternative-card-wrap');
-    if (!resultWrap || !altWrap) return;
+    const compactWrap = document.getElementById('compact-list-wrap');
+    const expandedWrap = document.getElementById('expanded-mushroom');
+    if (!compactWrap || !expandedWrap) return;
 
     if (points.length === 0) {
-      resultWrap.innerHTML = '<div class="zero-hint">Додайте точку для аналізу</div>';
-      altWrap.innerHTML = '';
+      compactWrap.classList.add('hidden');
+      expandedWrap.classList.add('hidden');
+      const resultWrap = document.getElementById('forecast-result-wrap');
+      if (resultWrap) resultWrap.innerHTML = '<div class="zero-hint">Додайте точку для аналізу</div>';
       return;
     }
 
     const p = points[activeIndex];
-    if (!p || !p.result) {
-      resultWrap.innerHTML = '<div class="zero-hint">Завантаження прогнозу…</div>';
-      altWrap.innerHTML = '';
+    if (!p || !p.top10 || p.top10.length === 0) {
+      compactWrap.classList.add('hidden');
+      expandedWrap.classList.add('hidden');
+      const resultWrap = document.getElementById('forecast-result-wrap');
+      if (resultWrap) resultWrap.innerHTML = '<div class="zero-hint">Завантаження прогнозу…</div>';
       return;
     }
 
-    const r = p.result;
-    const badge = LEVEL_BADGE[r.level] || LEVEL_BADGE.no_data;
-    const pct = r.pct || LEVEL_PCT[r.level];
-    const levelClass = r.level === 'no_data' ? 'level-none' : 'level-' + r.level;
+    const resultWrap = document.getElementById('forecast-result-wrap');
+    if (resultWrap) resultWrap.innerHTML = '';
 
-    let warningsHtml = '';
-    if (r.warnings && r.warnings.length) {
-      warningsHtml = '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
-        '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хвиля — часто червиві</div>' +
-        r.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
+    compactWrap.classList.remove('hidden');
+    expandedWrap.classList.add('hidden');
+
+    const listEl = document.getElementById('compact-list');
+    if (!listEl) return;
+
+    let html = '';
+    p.top10.forEach((mushroom, idx) => {
+      const badgeClass = mushroom.badgeClass || 'badge-neutral';
+      const levelText = mushroom.levelUa || 'Мало даних';
+      html += '<div class="compact-card" data-index="' + idx + '">' +
+        '<div class="compact-icon" style="background: ' + mushroom.gradient + '; color: white; font-size: 18px;">' + esc(mushroom.emoji) + '</div>' +
+        '<div class="compact-body">' +
+          '<div class="compact-title">' + esc(mushroom.nameUa) + '</div>' +
+          '<div class="compact-latin">' + esc(mushroom.nameLat) + '</div>' +
+        '</div>' +
+        '<span class="badge ' + badgeClass + ' text-[10px] whitespace-nowrap">' + esc(levelText) + '</span>' +
       '</div>';
+    });
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('.compact-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const idx = parseInt(card.dataset.index);
+        openExpandedMushroom(idx);
+      });
+    });
+  }
+
+  let expandedIndex = 0;
+  let expandedPointIndex = 0;
+
+  function openExpandedMushroom(mushroomIndex) {
+    const expandedWrap = document.getElementById('expanded-mushroom');
+    const compactWrap = document.getElementById('compact-list-wrap');
+    if (!expandedWrap || !compactWrap) return;
+
+    expandedIndex = mushroomIndex;
+    expandedPointIndex = activeIndex;
+    compactWrap.classList.add('hidden');
+    expandedWrap.classList.remove('hidden');
+
+    renderExpandedView();
+  }
+
+  function closeExpandedMushroom() {
+    const expandedWrap = document.getElementById('expanded-mushroom');
+    const compactWrap = document.getElementById('compact-list-wrap');
+    if (!expandedWrap || !compactWrap) return;
+
+    expandedWrap.classList.add('hidden');
+    compactWrap.classList.remove('hidden');
+  }
+
+  function renderExpandedView() {
+    const carousel = document.getElementById('expanded-carousel');
+    const dotsEl = document.getElementById('expanded-dots');
+    if (!carousel || !dotsEl) return;
+
+    const p = points[expandedPointIndex];
+    if (!p || !p.top10) return;
+
+    const mushroom = p.top10[expandedIndex];
+    if (!mushroom) return;
+
+    let html = '';
+    p.top10.forEach((m, idx) => {
+      const isActive = idx === expandedIndex;
+      const photoHtml = m.photoUrl
+        ? '<img src="' + esc(m.photoUrl) + '" class="expanded-photo" alt="' + esc(m.nameUa) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+          '<div class="expanded-photo-placeholder hidden">Фото відсутнє</div>'
+        : '<div class="expanded-photo-placeholder">Фото відсутнє</div>';
+
+      html += '<div class="expanded-slide">' +
+        photoHtml +
+        '<div class="p-4">' +
+          '<div class="flex items-start justify-between gap-3">' +
+            '<div class="flex items-center gap-3">' +
+              '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: ' + m.gradient + '; color: white; font-size: 24px;">' + esc(m.emoji) + '</div>' +
+              '<div class="min-w-0">' +
+                '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
+                '<div class="text-[12px] text-ink-muted italic font-serif">' + esc(m.nameLat) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<span class="badge ' + (m.badgeClass || 'badge-neutral') + ' whitespace-nowrap">' + esc(m.levelUa || 'Мало даних') + '</span>' +
+          '</div>' +
+          '<div class="mt-4">' +
+            '<div class="flex items-center justify-between text-[11px] text-ink-muted mb-1.5">' +
+              '<span>Ймовірність появи</span>' +
+              '<span class="badge ' + (m.badgeClass || 'badge-neutral') + ' text-[10px]">' + esc(m.levelUa || 'Мало даних') + '</span>' +
+            '</div>' +
+            '<div class="forecast-level-bar"><div class="forecast-level-fill ' + (m.level === 'no_data' ? 'level-none' : 'level-' + m.level) + '" style="width: ' + Math.round((m.probability || 0) * 100) + '%;"></div></div>' +
+          '</div>' +
+          '<div class="mt-4 space-y-3">' +
+            '<div class="flex gap-3">' +
+              '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-6.5-8-12a8 8 0 0 1 16 0c0 5.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
+              '</div>' +
+              '<div>' +
+                '<div class="text-[11px] text-ink-muted font-medium">Де</div>' +
+                '<div class="text-[13px] text-forest-dark">' + esc(m.where) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="flex gap-3">' +
+              '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+              '</div>' +
+              '<div>' +
+                '<div class="text-[11px] text-ink-muted font-medium">Коли</div>' +
+                '<div class="text-[13px] text-forest-dark">' + esc(m.when) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="flex gap-3">' +
+              '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
+              '</div>' +
+              '<div>' +
+                '<div class="text-[11px] text-ink-muted font-medium">Чому</div>' +
+                '<ul class="mt-1 space-y-1">' +
+                  (m.why || []).map(w => '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>' + esc(w) + '</li>').join('') +
+                '</ul>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          (mushroom.warnings && mushroom.warnings.length ? '<div class="mt-3 p-2.5 rounded-xl bg-cream-50 border border-cream-300">' +
+            '<div class="text-[11px] text-ink-muted font-medium mb-1">⚠️ Друга хва — часто червиві</div>' +
+            mushroom.warnings.map(w => '<div class="text-[11px] text-ink-muted">• ' + esc(w) + '</div>').join('') +
+          '</div>' : '') +
+          '<button class="btn-secondary w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-[13px]">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
+            'Відкрити в довіднику' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    });
+
+    carousel.innerHTML = html;
+
+    let dotsHtml = '';
+    p.top10.forEach((_, idx) => {
+      const cls = idx === expandedIndex ? 'carousel-dot active' : 'carousel-dot';
+      dotsHtml += '<button class="' + cls + '" data-mushroom-index="' + idx + '" aria-label="Гриб ' + (idx + 1) + '"></button>';
+    });
+    dotsEl.innerHTML = dotsHtml;
+
+    dotsEl.querySelectorAll('.carousel-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const idx = parseInt(dot.dataset.mushroomIndex);
+        scrollExpandedTo(idx);
+      });
+    });
+
+    carousel.scrollTo({ left: expandedIndex * carousel.clientWidth, behavior: 'smooth' });
+  }
+
+  function scrollExpandedTo(index) {
+    const carousel = document.getElementById('expanded-carousel');
+    if (!carousel || !carousel.children.length) return;
+    if (index < 0 || index >= carousel.children.length) return;
+    expandedIndex = index;
+    const slide = carousel.children[index];
+    const scrollLeft = slide.offsetLeft - carousel.offsetLeft;
+    carousel.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    renderExpandedDots();
+  }
+
+  function renderExpandedDots() {
+    const dotsEl = document.getElementById('expanded-dots');
+    if (!dotsEl) return;
+    const p = points[expandedPointIndex];
+    if (!p || !p.top10) return;
+
+    let dotsHtml = '';
+    p.top10.forEach((_, idx) => {
+      const cls = idx === expandedIndex ? 'carousel-dot active' : 'carousel-dot';
+      dotsHtml += '<button class="' + cls + '" data-mushroom-index="' + idx + '" aria-label="Гриб ' + (idx + 1) + '"></button>';
+    });
+    dotsEl.innerHTML = dotsHtml;
+
+    dotsEl.querySelectorAll('.carousel-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const idx = parseInt(dot.dataset.mushroomIndex);
+        scrollExpandedTo(idx);
+      });
+    });
+  }
+
+  function initExpandedSwipe() {
+    const carousel = document.getElementById('expanded-carousel');
+    if (!carousel) return;
+    let startX = 0;
+    let isDown = false;
+    carousel.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      isDown = true;
+    }, { passive: true });
+    carousel.addEventListener('touchend', (e) => {
+      if (!isDown) return;
+      isDown = false;
+      const endX = e.changedTouches[0].clientX;
+      const diff = startX - endX;
+      if (Math.abs(diff) > 50) {
+        if (diff > 0 && expandedIndex < (points[expandedPointIndex]?.top10?.length || 0) - 1) scrollExpandedTo(expandedIndex + 1);
+        else if (diff < 0 && expandedIndex > 0) scrollExpandedTo(expandedIndex - 1);
+      }
+    });
+    carousel.addEventListener('scroll', () => {
+      if (!carousel.children.length) return;
+      const center = carousel.scrollLeft + carousel.clientWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      Array.from(carousel.children).forEach((slide, i) => {
+        const slideCenter = slide.offsetLeft + slide.clientWidth / 2;
+        const dist = Math.abs(center - slideCenter);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      if (closest !== expandedIndex) {
+        expandedIndex = closest;
+        renderExpandedDots();
+      }
+    });
+
+    // Click outside to close
+    const expandedWrap = document.getElementById('expanded-mushroom');
+    if (expandedWrap) {
+      expandedWrap.addEventListener('click', (e) => {
+        if (e.target === expandedWrap) {
+          closeExpandedMushroom();
+        }
+      });
     }
-
-    resultWrap.innerHTML = '<div class="forecast-main-card">' +
-      '<div class="flex items-start justify-between gap-3">' +
-        '<div class="flex items-center gap-3">' +
-          '<div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: ' + (r.top1.gradient || 'linear-gradient(135deg, #8B5E34, #A97046)') + ';">' +
-            '<span style="font-size: 28px;">' + esc(r.top1.emoji || '🍄') + '</span>' +
-          '</div>' +
-          '<div class="min-w-0">' +
-            '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 22px;">' + esc(r.top1.name) + '</h3>' +
-            '<div class="text-[12px] text-ink-muted italic font-serif">' + esc(r.top1.latin) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<span class="badge ' + badge.cls + ' whitespace-nowrap">' +
-          (badge.text ? badge.text + ' ' : '') +
-        '</span>' +
-      '</div>' +
-      '<div class="mt-4">' +
-        '<div class="flex items-center justify-between text-[11px] text-ink-muted mb-1.5">' +
-          '<span>Ймовірність появи</span>' +
-          '<span class="badge ' + badge.cls + ' text-[10px]">' + (r.level === 'high' ? 'Висока' : r.level === 'medium' ? 'Середня' : r.level === 'low' ? 'Низька' : 'Мало даних') + '</span>' +
-        '</div>' +
-        '<div class="forecast-level-bar"><div class="forecast-level-fill ' + levelClass + '" style="width: ' + pct + '%;"></div></div>' +
-      '</div>' +
-      '<div class="mt-4 space-y-3">' +
-        '<div class="flex gap-3">' +
-          '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-            '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-6.5-8-12a8 8 0 0 1 16 0c0 5.5-8 12-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
-          '</div>' +
-          '<div>' +
-            '<div class="text-[11px] text-ink-muted font-medium">Де</div>' +
-            '<div class="text-[13px] text-forest-dark">' + esc(r.habitat) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="flex gap-3">' +
-          '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-            '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
-          '</div>' +
-          '<div>' +
-            '<div class="text-[11px] text-ink-muted font-medium">Коли</div>' +
-            '<div class="text-[13px] text-forest-dark">Зараз — ' + r.daysAfterRain + ' днів після дощу</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="flex gap-3">' +
-          '<div class="w-7 h-7 rounded-lg bg-cream-200 flex items-center justify-center text-bark flex-shrink-0">' +
-            '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
-          '</div>' +
-          '<div>' +
-            '<div class="text-[11px] text-ink-muted font-medium">Чому</div>' +
-            '<ul class="mt-1 space-y-1">' +
-              '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Дощ після 14 днів посухи</li>' +
-              '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Осіння хвиля активності</li>' +
-              '<li class="flex items-start gap-1.5 text-[13px] text-forest-dark"><span class="w-1 h-1 rounded-full bg-amberbrand mt-2 flex-shrink-0"></span>Молодий сосняк ' + p.forestAge + '-30 років</li>' +
-            '</ul>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      warningsHtml +
-      '<button class="btn-secondary w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-[13px]">' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3h5c0-1 .5-2 1.5-3a7 7 0 0 0-4-12z"/></svg>' +
-        'Відкрити в довіднику' +
-      '</button>' +
-    '</div>';
-
-    altWrap.innerHTML = '<div class="card p-3.5 flex items-center gap-3 card-hover">' +
-      '<div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background: ' + (r.alternative.gradient || 'linear-gradient(135deg, #4A6B54, #6B8570)') + ';">' +
-        '<span style="font-size: 22px;">' + esc(r.alternative.emoji || '🍄') + '</span>' +
-      '</div>' +
-      '<div class="flex-1 min-w-0">' +
-        '<div class="flex items-center justify-between gap-2">' +
-          '<div class="font-serif font-semibold text-forest-dark text-[15px]">' + esc(r.alternative.name) + '</div>' +
-          '<span class="badge badge-amber text-[10px]">Альтернатива</span>' +
-        '</div>' +
-        '<div class="text-[12px] text-ink-muted italic font-serif">' + esc(r.alternative.latin) + '</div>' +
-      '</div>' +
-    '</div>';
   }
 
   function openMapPicker() {
@@ -3570,8 +3840,8 @@ body.modal-open { overflow: hidden; }
     const ranking = rankPoints();
     const bestIdx = ranking[0];
     const bestPoint = points[bestIdx];
-    if (bestEl && bestPoint && bestPoint.result) {
-      bestEl.textContent = 'Найкраща: ' + bestPoint.name + ' (' + bestPoint.result.level + ')';
+    if (bestEl && bestPoint && bestPoint.top10 && bestPoint.top10.length) {
+      bestEl.textContent = 'Найкраща: ' + bestPoint.name + ' (' + bestPoint.top10[0].levelUa + ')';
     } else if (bestEl) {
       bestEl.textContent = 'Найкраща: —';
     }
@@ -3585,19 +3855,25 @@ body.modal-open { overflow: hidden; }
     const rows = [
       { label: 'Координати', render: (p) => p ? p.lat.toFixed(2) + ', ' + p.lng.toFixed(2) : '—' },
       { label: 'Тип лісу', render: (p) => p ? p.forestType : '—' },
-      { label: 'Top-1', render: (p) => p && p.result ? p.result.top1.name : '—' },
+      { label: 'Top-1', render: (p) => p && p.top10 && p.top10.length ? p.top10[0].nameUa : '—' },
       { label: 'Рівень', render: (p) => {
-        if (!p || !p.result) return '—';
-        const b = LEVEL_BADGE[p.result.level];
-        return '<span class="badge ' + b.cls + ' text-[10px]">' + (b.text || '—') + '</span>';
+        if (!p || !p.top10 || !p.top10.length) return '—';
+        const m = p.top10[0];
+        return '<span class="badge ' + (m.badgeClass || 'badge-neutral') + ' text-[10px]">' + esc(m.levelUa || '—') + '</span>';
       }},
-      { label: 'Альтернатива', render: (p) => p && p.result ? p.result.alternative.name : '—' },
-      { label: 'Днів після дощу', render: (p) => p && p.result ? String(p.result.daysAfterRain) : '—' },
+      { label: 'Альтернатива', render: (p) => p && p.top10 && p.top10.length > 1 ? p.top10[1].nameUa : '—' },
+      { label: 'Днів після дощу', render: (p) => {
+        if (!p || !p.top10 || !p.top10.length) return '—';
+        const when = p.top10[0].when || '';
+        const m = when.match(/(\d+)/);
+        return m ? m[1] + ' днів' : '—';
+      }},
       { label: 'Вік лісу', render: (p) => p ? (p.forestAge + ' років') : '—' },
       { label: 'Рейтинг', render: (p) => {
-        if (!p || !p.result) return '—';
-        const s = scorePoint(p.result);
-        const stars = s >= 3.5 ? '⭐⭐⭐⭐⭐' : s >= 2.5 ? '⭐⭐⭐⭐' : s >= 1.5 ? '⭐⭐⭐' : s >= 0.5 ? '⭐⭐' : '⭐';
+        if (!p || !p.top10 || !p.top10.length) return '—';
+        const top = p.top10[0];
+        const s = LEVEL_WEIGHTS[top.level] || 0;
+        const stars = s >= 3 ? '⭐⭐⭐⭐⭐' : s >= 2 ? '⭐⭐⭐⭐' : s >= 1 ? '⭐⭐⭐' : '⭐';
         return stars + ' ' + s.toFixed(1);
       }}
     ];
@@ -3618,7 +3894,7 @@ body.modal-open { overflow: hidden; }
   function fetchBatchForecast() {
     if (!isFeatureEnabled('multi_point_enabled')) return;
     if (points.length === 0) {
-      points.forEach(p => p.result = null);
+      points.forEach(p => { p.top10 = null; p.ranking = null; });
       updateForecastUI();
       renderMiniMap();
       renderComparison();
@@ -3643,11 +3919,17 @@ body.modal-open { overflow: hidden; }
   function applyResults(results) {
     results.forEach(res => {
       const p = points.find(pt => pt.id === res.pointId);
-      if (p) p.result = res;
+      if (p) {
+        p.top10 = res.top10;
+        p.ranking = res.ranking;
+      }
     });
-    // Points without results get no_data
+    // Points without results get empty top10
     points.forEach(p => {
-      if (!p.result) p.result = { ...mockForecastForPoint(p), level: 'no_data', pct: 10 };
+      if (!p.top10) {
+        p.top10 = [];
+        p.ranking = [];
+      }
     });
     updateForecastUI();
     renderMiniMap();
@@ -3724,7 +4006,6 @@ body.modal-open { overflow: hidden; }
     });
   }
 
-  // Seed demo point matching current screen
   function seedDemoPoint() {
     const demoResult = mockForecastForPoint({
       id: 'demo',
@@ -3740,10 +4021,12 @@ body.modal-open { overflow: hidden; }
       forestType: 'pine',
       forestAge: 25,
       name: 'Сосновий бір, Житомирська область',
-      result: demoResult
+      top10: demoResult.top10,
+      ranking: demoResult.ranking
     });
     renderCarousel();
     setTimeout(() => scrollToSlide(0), 50);
+    updateForecastUI();
   }
 
   // Initialize
@@ -3753,6 +4036,12 @@ body.modal-open { overflow: hidden; }
     initMapPicker();
     initMinimapToggle();
     initCompareToggle();
+    initExpandedSwipe();
+
+    const btnCloseExpanded = document.getElementById('btn-close-expanded');
+    if (btnCloseExpanded) {
+      btnCloseExpanded.addEventListener('click', closeExpandedMushroom);
+    }
   }
 
   </script>
