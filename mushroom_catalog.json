@@ -159,6 +159,28 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -197,6 +219,21 @@
         "фото Топ-20 грибів (webp)/Вовнянка рожева Lactarius torminosus/large (2).webp",
         "фото Топ-20 грибів (webp)/Вовнянка рожева Lactarius torminosus/large (1)_2.webp",
         "фото Топ-20 грибів (webp)/Вовнянка рожева Lactarius torminosus/large_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "zhytomyrska",
+        "kyivska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "cherkaska",
+        "chernihivska"
       ]
     },
     {
@@ -240,6 +277,33 @@
         "фото Топ-20 грибів (webp)/Глива звичайна Pleurotus ostreatus/large (1).webp",
         "фото Топ-20 грибів (webp)/Глива звичайна Pleurotus ostreatus/large (3).webp",
         "фото Топ-20 грибів (webp)/Глива звичайна Pleurotus ostreatus/large (4).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -276,6 +340,12 @@
         "фото Топ-20 грибів (webp)/Груздь справжній Lactarius resimus/large (1).webp",
         "фото Топ-20 грибів (webp)/Груздь справжній Lactarius resimus/large (2).webp",
         "фото Топ-20 грибів (webp)/Груздь справжній Lactarius resimus/large (6).webp"
+      ],
+      "zones": [
+        "volynska",
+        "zhytomyrska",
+        "lvivska",
+        "rivnenska"
       ]
     },
     {
@@ -316,6 +386,28 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "vinnytska",
+        "dnipropetrovska",
+        "zhytomyrska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -357,6 +449,25 @@
         "фото Топ-20 грибів (webp)/Дубовик звичайний Suillellus luridus/large (4).webp",
         "фото Топ-20 грибів (webp)/Дубовик звичайний Suillellus luridus/large (5).webp",
         "фото Топ-20 грибів (webp)/Дубовик звичайний Suillellus luridus/large (1)_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -407,6 +518,22 @@
         "фото Топ-20 грибів (webp)/Зимовий опеньок Flammulina velutipes/large (1).webp",
         "фото Топ-20 грибів (webp)/Зимовий опеньок Flammulina velutipes/large (3).webp",
         "фото Топ-20 грибів (webp)/Зимовий опеньок Flammulina velutipes/large (4).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "dnipropetrovska",
+        "zhytomyrska",
+        "zaporizka",
+        "kyivska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "chernihivska"
       ]
     },
     {
@@ -455,6 +582,25 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -493,6 +639,22 @@
         "фото Топ-20 грибів (webp)/Козляк Suillus bovinus/large (1).webp",
         "фото Топ-20 грибів (webp)/Козляк Suillus bovinus/large (2).webp",
         "фото Топ-20 грибів (webp)/Козляк Suillus bovinus/large (3).webp"
+      ],
+      "zones": [
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernihivska"
       ]
     },
     {
@@ -540,6 +702,16 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "rivnenska",
+        "chernihivska"
       ]
     },
     {
@@ -580,6 +752,28 @@
         "фото Топ-20 грибів (webp)/Маслюк пізній Suillus luteus/large (3).webp",
         "фото Топ-20 грибів (webp)/Маслюк пізній Suillus luteus/large (4).webp",
         "фото Топ-20 грибів (webp)/Маслюк пізній Suillus luteus/large_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
@@ -621,6 +815,26 @@
         "фото Топ-20 грибів (webp)/Моховик зелений Xerocomus subtomentosus/large (2).webp",
         "фото Топ-20 грибів (webp)/Моховик зелений Xerocomus subtomentosus/large (1)_2.webp",
         "фото Топ-20 грибів (webp)/Моховик зелений Xerocomus subtomentosus/large_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -663,6 +877,33 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -700,6 +941,27 @@
         "фото Топ-20 грибів (webp)/Печериця звичайна Agaricus campestris/large (1).webp",
         "фото Топ-20 грибів (webp)/Печериця звичайна Agaricus campestris/large (2).webp",
         "фото Топ-20 грибів (webp)/Печериця звичайна Agaricus campestris/large (3).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -746,6 +1008,28 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -784,6 +1068,28 @@
         "фото Топ-20 грибів (webp)/Підосичник Leccinum aurantiacum/large.webp",
         "фото Топ-20 грибів (webp)/Підосичник Leccinum aurantiacum/large (1).webp",
         "фото Топ-20 грибів (webp)/Підосичник Leccinum aurantiacum/large (3).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
@@ -822,6 +1128,22 @@
         "фото Топ-20 грибів (webp)/Польський гриб Imleria badia/large (3).webp",
         "фото Топ-20 грибів (webp)/Польський гриб Imleria badia/large (4).webp",
         "фото Топ-20 грибів (webp)/Польський гриб Imleria badia/large (5).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "dnipropetrovska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
@@ -866,6 +1188,20 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "rivnenska",
+        "sumska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -915,6 +1251,24 @@
         "фото Топ-20 грибів (webp)/Сироїжка Russula vesca/large (2).webp",
         "фото Топ-20 грибів (webp)/Сироїжка Russula vesca/large (4).webp",
         "фото Топ-20 грибів (webp)/Сироїжка Russula vesca/large (5).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -950,6 +1304,17 @@
         "фото Топ-20 грибів (webp)/Сморчок звичайний Morchella esculenta/large (4).webp",
         "фото Топ-20 грибів (webp)/Сморчок звичайний Morchella esculenta/large (1)_2.webp",
         "фото Топ-20 грибів (webp)/Сморчок звичайний Morchella esculenta/large_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zhytomyrska",
+        "kyivska",
+        "luhanska",
+        "lvivska",
+        "sumska",
+        "ternopilska",
+        "khmelnytska",
+        "cherkaska"
       ]
     },
     {
@@ -990,6 +1355,12 @@
       ],
       "peak_months": [
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -1027,6 +1398,12 @@
         "фото популярні 55 грибів (webp)/Альбатрел овечий Albatrellus ovinus/large.webp",
         "фото популярні 55 грибів (webp)/Альбатрел овечий Albatrellus ovinus/large (1).webp",
         "фото популярні 55 грибів (webp)/Альбатрел овечий Albatrellus ovinus/large (2).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -1074,6 +1451,13 @@
       "peak_months": [
         6,
         7
+      ],
+      "zones": [
+        "vinnytska",
+        "zakarpatska",
+        "kyivska",
+        "poltavska",
+        "rivnenska"
       ]
     },
     {
@@ -1116,6 +1500,26 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "dnipropetrovska",
+        "donetska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khersonska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
@@ -1156,6 +1560,18 @@
         "фото популярні 55 грибів (webp)/Глива дубова Pleurotus dryinus/large (3).webp",
         "фото популярні 55 грибів (webp)/Глива дубова Pleurotus dryinus/large (4).webp",
         "фото популярні 55 грибів (webp)/Глива дубова Pleurotus dryinus/large (1)_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "chernivetska"
       ]
     },
     {
@@ -1202,6 +1618,9 @@
         5,
         6,
         7
+      ],
+      "zones": [
+        "zakarpatska"
       ]
     },
     {
@@ -1237,6 +1656,33 @@
         "фото популярні 55 грибів (webp)/Гриб-зонтик великий Macrolepiota procera/large (2).webp",
         "фото популярні 55 грибів (webp)/Гриб-зонтик великий Macrolepiota procera/large (3).webp",
         "фото популярні 55 грибів (webp)/Гриб-зонтик великий Macrolepiota procera/large (4).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1271,6 +1717,12 @@
         "фото популярні 55 грибів (webp)/Гриб-зонтик сосковидний Macrolepiota mastoidea/large (1).webp",
         "фото популярні 55 грибів (webp)/Гриб-зонтик сосковидний Macrolepiota mastoidea/large (5).webp",
         "фото популярні 55 грибів (webp)/Гриб-зонтик сосковидний Macrolepiota mastoidea/large_2.webp"
+      ],
+      "zones": [
+        "krym",
+        "zakarpatska",
+        "kyivska",
+        "poltavska"
       ]
     },
     {
@@ -1308,6 +1760,14 @@
         "фото популярні 55 грибів (webp)/Зеленушка Tricholoma equestre/large (1).webp",
         "фото популярні 55 грибів (webp)/Зеленушка Tricholoma equestre/large (1)_2.webp",
         "фото популярні 55 грибів (webp)/Зеленушка Tricholoma equestre/large_2.webp"
+      ],
+      "zones": [
+        "donetska",
+        "kyivska",
+        "mykolaivska",
+        "ternopilska",
+        "khersonska",
+        "cherkaska"
       ]
     },
     {
@@ -1351,6 +1811,22 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "volynska",
+        "vinnytska",
+        "zhytomyrska",
+        "kyivska",
+        "kirovohradska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1388,6 +1864,12 @@
         "фото популярні 55 грибів (webp)/Їжовик ямчастий Hydnum umbilicatum/large (1).webp",
         "фото популярні 55 грибів (webp)/Їжовик ямчастий Hydnum umbilicatum/large.webp",
         "фото популярні 55 грибів (webp)/Їжовик ямчастий Hydnum umbilicatum/large (2).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "cherkaska"
       ]
     },
     {
@@ -1410,7 +1892,17 @@
         "tree": [],
         "season": []
       },
-      "photos": []
+      "photos": [],
+      "zones": [
+        "volynska",
+        "zhytomyrska",
+        "kyivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "cherkaska"
+      ]
     },
     {
       "id": "clavulina-coralloides",
@@ -1446,6 +1938,10 @@
         "фото популярні 55 грибів (webp)/Клавуліна зморшкувата Clavulina coralloides/large (2).webp",
         "фото популярні 55 грибів (webp)/Клавуліна зморшкувата Clavulina coralloides/large.webp",
         "фото популярні 55 грибів (webp)/Клавуліна зморшкувата Clavulina coralloides/large (1).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "lvivska"
       ]
     },
     {
@@ -1492,6 +1988,12 @@
         7,
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -1529,6 +2031,10 @@
         "фото популярні 55 грибів (webp)/Лисичка жовта Craterellus lutescens/large (1).webp",
         "фото популярні 55 грибів (webp)/Лисичка жовта Craterellus lutescens/large (4).webp",
         "фото популярні 55 грибів (webp)/Лисичка жовта Craterellus lutescens/large_2.webp"
+      ],
+      "zones": [
+        "vinnytska",
+        "zhytomyrska"
       ]
     },
     {
@@ -1569,6 +2075,19 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "vinnytska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "sumska",
+        "ternopilska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1610,6 +2129,13 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -1662,6 +2188,22 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "vinnytska",
+        "zakarpatska",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1705,6 +2247,9 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "volynska"
       ]
     },
     {
@@ -1747,6 +2292,25 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "zhytomyrska",
+        "kyivska",
+        "kirovohradska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1793,6 +2357,33 @@
         7,
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -1836,6 +2427,13 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -1881,6 +2479,15 @@
         7,
         8,
         9
+      ],
+      "zones": [
+        "krym",
+        "volynska",
+        "zakarpatska",
+        "kyivska",
+        "kirovohradska",
+        "poltavska",
+        "cherkaska"
       ]
     },
     {
@@ -1931,6 +2538,16 @@
         7,
         8,
         9
+      ],
+      "zones": [
+        "krym",
+        "dnipropetrovska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "poltavska",
+        "khersonska",
+        "cherkaska"
       ]
     },
     {
@@ -1983,6 +2600,33 @@
         8,
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2021,6 +2665,10 @@
         "фото популярні 55 грибів (webp)/Мухомор шафрановий Amanita crocea/large.webp",
         "фото популярні 55 грибів (webp)/Мухомор шафрановий Amanita crocea/large (1).webp",
         "фото популярні 55 грибів (webp)/Мухомор шафрановий Amanita crocea/large (5).webp"
+      ],
+      "zones": [
+        "zakarpatska",
+        "kyivska"
       ]
     },
     {
@@ -2063,6 +2711,11 @@
       "peak_months": [
         7,
         8
+      ],
+      "zones": [
+        "krym",
+        "donetska",
+        "zakarpatska"
       ]
     },
     {
@@ -2102,6 +2755,9 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "zakarpatska"
       ]
     },
     {
@@ -2139,6 +2795,33 @@
         "фото популярні 55 грибів (webp)/Підберезник грабовий Leccinellum pseudoscabrum/large (1).webp",
         "фото популярні 55 грибів (webp)/Підберезник грабовий Leccinellum pseudoscabrum/large (3).webp",
         "фото популярні 55 грибів (webp)/Підберезник грабовий Leccinellum pseudoscabrum/large (6).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2182,6 +2865,32 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2227,6 +2936,9 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "zhytomyrska"
       ]
     },
     {
@@ -2266,6 +2978,19 @@
         "фото популярні 55 грибів (webp)/Підберезник тополевий Leccinum duriusculum/large (4).webp",
         "фото популярні 55 грибів (webp)/Підберезник тополевий Leccinum duriusculum/large (1)_2.webp",
         "фото популярні 55 грибів (webp)/Підберезник тополевий Leccinum duriusculum/large_2.webp"
+      ],
+      "zones": [
+        "vinnytska",
+        "kyivska",
+        "kirovohradska",
+        "poltavska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2306,6 +3031,23 @@
         "фото популярні 55 грибів (webp)/Підгруздь Russula delica/large (2).webp",
         "фото популярні 55 грибів (webp)/Підгруздь Russula delica/large.webp",
         "фото популярні 55 грибів (webp)/Підгруздь Russula delica/large (1).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "kharkivska",
+        "khersonska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2350,6 +3092,33 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2401,6 +3170,13 @@
         8,
         9,
         10
+      ],
+      "zones": [
+        "kyivska",
+        "poltavska",
+        "sumska",
+        "kharkivska",
+        "cherkaska"
       ]
     },
     {
@@ -2449,6 +3225,33 @@
         7,
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2486,6 +3289,23 @@
         "фото популярні 55 грибів (webp)/Рамарія гроновидна Ramaria botrytis/large.webp",
         "фото популярні 55 грибів (webp)/Рамарія гроновидна Ramaria botrytis/large (1).webp",
         "фото популярні 55 грибів (webp)/Рамарія гроновидна Ramaria botrytis/large_2.webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "khersonska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2526,6 +3346,12 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -2568,6 +3394,12 @@
       "peak_months": [
         9,
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "chernivetska"
       ]
     },
     {
@@ -2606,6 +3438,14 @@
         "фото популярні 55 грибів (webp)/Рядовка землиста Tricholoma terreum/large (2).webp",
         "фото популярні 55 грибів (webp)/Рядовка землиста Tricholoma terreum/large (3).webp",
         "фото популярні 55 грибів (webp)/Рядовка землиста Tricholoma terreum/large (4).webp"
+      ],
+      "zones": [
+        "krym",
+        "dnipropetrovska",
+        "donetska",
+        "kyivska",
+        "poltavska",
+        "khersonska"
       ]
     },
     {
@@ -2642,6 +3482,33 @@
       ],
       "peak_months": [
         10
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2676,6 +3543,29 @@
         "фото популярні 55 грибів (webp)/Рядовка майська Calocybe gambosa/large (1).webp",
         "фото популярні 55 грибів (webp)/Рядовка майська Calocybe gambosa/large (2).webp",
         "фото популярні 55 грибів (webp)/Рядовка майська Calocybe gambosa/large_2.webp"
+      ],
+      "zones": [
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2716,6 +3606,10 @@
       "peak_months": [
         10,
         11
+      ],
+      "zones": [
+        "donetska",
+        "kyivska"
       ]
     },
     {
@@ -2750,6 +3644,16 @@
         "фото популярні 55 грибів (webp)/Рядовка фіолетова Collybia nuda/large.webp",
         "фото популярні 55 грибів (webp)/Рядовка фіолетова Collybia nuda/large (1).webp",
         "фото популярні 55 грибів (webp)/Рядовка фіолетова Collybia nuda/large (4).webp"
+      ],
+      "zones": [
+        "krym",
+        "volynska",
+        "dnipropetrovska",
+        "donetska",
+        "kyivska",
+        "kirovohradska",
+        "khersonska",
+        "cherkaska"
       ]
     },
     {
@@ -2790,6 +3694,11 @@
         "фото популярні 55 грибів (webp)/Сироїжка буро-червона Russula xerampelina/large (1).webp",
         "фото популярні 55 грибів (webp)/Сироїжка буро-червона Russula xerampelina/large (2).webp",
         "фото популярні 55 грибів (webp)/Сироїжка буро-червона Russula xerampelina/large (3).webp"
+      ],
+      "zones": [
+        "krym",
+        "kyivska",
+        "kharkivska"
       ]
     },
     {
@@ -2830,6 +3739,10 @@
         "фото популярні 55 грибів (webp)/Сироїжка зелена Russula virescens/large (2).webp",
         "фото популярні 55 грибів (webp)/Сироїжка зелена Russula virescens/large (3).webp",
         "фото популярні 55 грибів (webp)/Сироїжка зелена Russula virescens/large (4).webp"
+      ],
+      "zones": [
+        "krym",
+        "kyivska"
       ]
     },
     {
@@ -2872,6 +3785,14 @@
         "фото популярні 55 грибів (webp)/Сироїжка синьо-жовта Russula cyanoxantha/large.webp",
         "фото популярні 55 грибів (webp)/Сироїжка синьо-жовта Russula cyanoxantha/large (1).webp",
         "фото популярні 55 грибів (webp)/Сироїжка синьо-жовта Russula cyanoxantha/large (2).webp"
+      ],
+      "zones": [
+        "krym",
+        "volynska",
+        "zhytomyrska",
+        "zakarpatska",
+        "rivnenska",
+        "khersonska"
       ]
     },
     {
@@ -2919,6 +3840,33 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -2962,6 +3910,23 @@
         "фото популярні 55 грибів (webp)/Скрипиця Lactifluus vellereus/large (1).webp",
         "фото популярні 55 грибів (webp)/Скрипиця Lactifluus vellereus/large (3).webp",
         "фото популярні 55 грибів (webp)/Скрипиця Lactifluus vellereus/large_2.webp"
+      ],
+      "zones": [
+        "volynska",
+        "vinnytska",
+        "zhytomyrska",
+        "zakarpatska",
+        "kyivska",
+        "kirovohradska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -3009,6 +3974,17 @@
       "peak_months": [
         5,
         6
+      ],
+      "zones": [
+        "krym",
+        "donetska",
+        "zakarpatska",
+        "kyivska",
+        "luhanska",
+        "odeska",
+        "khersonska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
@@ -3057,6 +4033,33 @@
         6,
         7,
         8
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -3095,6 +4098,33 @@
         "фото популярні 55 грибів (webp)/Хрящ-молочник дубовий Lactarius quietus/large.webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник дубовий Lactarius quietus/large (1).webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник дубовий Lactarius quietus/large (3).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "krym",
+        "volynska",
+        "vinnytska",
+        "dnipropetrovska",
+        "donetska",
+        "zhytomyrska",
+        "zakarpatska",
+        "zaporizka",
+        "kyivska",
+        "kirovohradska",
+        "luhanska",
+        "lvivska",
+        "mykolaivska",
+        "odeska",
+        "poltavska",
+        "rivnenska",
+        "sumska",
+        "ternopilska",
+        "kharkivska",
+        "khersonska",
+        "khmelnytska",
+        "cherkaska",
+        "chernivetska",
+        "chernihivska"
       ]
     },
     {
@@ -3137,6 +4167,10 @@
         "фото популярні 55 грибів (webp)/Хрящ-молочник їстівний Lactifluus volemus/large (5).webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник їстівний Lactifluus volemus/large (6).webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник їстівний Lactifluus volemus/large (7).webp"
+      ],
+      "zones": [
+        "zhytomyrska",
+        "zakarpatska"
       ]
     },
     {
@@ -3184,6 +4218,14 @@
       "peak_months": [
         8,
         9
+      ],
+      "zones": [
+        "krym",
+        "zakarpatska",
+        "kyivska",
+        "lvivska",
+        "ternopilska",
+        "khmelnytska"
       ]
     },
     {
@@ -3226,6 +4268,16 @@
         "фото популярні 55 грибів (webp)/Хрящ-молочник солодкуватий Lactarius subdulcis/large.webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник солодкуватий Lactarius subdulcis/large (2).webp",
         "фото популярні 55 грибів (webp)/Хрящ-молочник солодкуватий Lactarius subdulcis/large (4).webp"
+      ],
+      "zones": [
+        "ivano-frankivska",
+        "zakarpatska",
+        "lvivska",
+        "poltavska",
+        "sumska",
+        "kharkivska",
+        "cherkaska",
+        "chernivetska"
       ]
     },
     {
