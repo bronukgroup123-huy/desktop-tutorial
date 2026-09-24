@@ -49,44 +49,44 @@
     ],
     "tree": [
       {
-        "value": "mixed",
-        "label": "Мішаний ліс",
-        "count": 30
-      },
-      {
         "value": "deciduous",
         "label": "Листяний ліс",
-        "count": 12
+        "count": 43
       },
       {
         "value": "coniferous",
         "label": "Хвойний ліс",
-        "count": 10
-      },
-      {
-        "value": "pine",
-        "label": "Сосна",
-        "count": 8
+        "count": 40
       },
       {
         "value": "oak",
         "label": "Дуб",
-        "count": 6
+        "count": 27
+      },
+      {
+        "value": "pine",
+        "label": "Сосна",
+        "count": 24
       },
       {
         "value": "birch",
         "label": "Береза",
-        "count": 3
-      },
-      {
-        "value": "aspen",
-        "label": "Осика",
-        "count": 2
+        "count": 21
       },
       {
         "value": "spruce",
         "label": "Ялина",
-        "count": 2
+        "count": 13
+      },
+      {
+        "value": "mixed",
+        "label": "Мішаний ліс",
+        "count": 9
+      },
+      {
+        "value": "aspen",
+        "label": "Осика",
+        "count": 5
       }
     ],
     "season": [
@@ -138,7 +138,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -178,7 +183,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "birch"
         ],
         "season": [
           "summer",
@@ -259,7 +264,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "birch"
         ],
         "season": [
           "summer",
@@ -428,7 +433,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -508,7 +517,13 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "pine",
+          "spruce",
+          "oak",
+          "deciduous",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -590,7 +605,10 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "oak",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -627,7 +645,11 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "deciduous",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -705,7 +727,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "birch"
         ],
         "season": [
           "spring",
@@ -750,7 +772,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "aspen",
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -786,7 +809,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -950,7 +974,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -986,7 +1013,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1069,7 +1099,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine"
         ],
         "season": [
           "summer",
@@ -1109,7 +1139,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "oak",
+          "deciduous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1150,7 +1183,6 @@
         "color": [],
         "stem": [],
         "tree": [
-          "oak",
           "deciduous"
         ],
         "season": [
@@ -1262,7 +1294,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "pine",
+          "coniferous"
+        ],
         "season": [
           "autumn"
         ]
@@ -1297,7 +1332,11 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "deciduous",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1336,7 +1375,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1391,7 +1433,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1427,7 +1472,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -1467,6 +1516,7 @@
         "color": [],
         "stem": [],
         "tree": [
+          "spruce",
           "coniferous"
         ],
         "season": [
@@ -1504,7 +1554,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "oak",
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -1637,7 +1688,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -1723,7 +1775,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine"
         ],
         "season": [
           "spring",
@@ -1768,7 +1820,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "pine"
+          "mixed"
         ],
         "season": [
           "summer",
@@ -1856,7 +1908,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "coniferous"
         ],
         "season": [
           "spring",
@@ -1902,7 +1958,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -1947,7 +2008,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "deciduous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -1982,7 +2046,9 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -2099,7 +2165,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "birch"
         ],
         "season": [
           "summer",
@@ -2142,7 +2208,7 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "birch"
         ],
         "season": [
           "summer",
@@ -2186,7 +2252,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "aspen",
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -2224,7 +2291,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2261,7 +2332,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "aspen",
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -2305,7 +2377,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2350,7 +2427,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2390,7 +2472,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "deciduous",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -2467,8 +2552,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "pine",
-          "spruce"
+          "spruce",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2506,7 +2591,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "coniferous"
+        ],
         "season": [
           "summer",
           "autumn"
@@ -2611,7 +2699,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "mixed",
+          "coniferous"
+        ],
         "season": [
           "autumn"
         ]
@@ -2683,7 +2774,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2720,7 +2815,9 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "oak",
+          "birch",
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -2759,7 +2856,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2796,7 +2897,12 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2839,7 +2945,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "pine",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -2879,7 +2989,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "oak",
+          "deciduous"
+        ],
         "season": [
           "spring",
           "summer",
@@ -2922,7 +3035,10 @@
       "attrs": {
         "color": [],
         "stem": [],
-        "tree": [],
+        "tree": [
+          "oak",
+          "deciduous"
+        ],
         "season": [
           "spring",
           "summer",
@@ -2966,9 +3082,8 @@
         "color": [],
         "stem": [],
         "tree": [
-          "pine",
           "oak",
-          "birch"
+          "deciduous"
         ],
         "season": [
           "summer",
@@ -3004,7 +3119,11 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "spruce",
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -3045,7 +3164,10 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",
@@ -3089,7 +3211,10 @@
         "color": [],
         "stem": [],
         "tree": [
-          "mixed"
+          "oak",
+          "birch",
+          "deciduous",
+          "coniferous"
         ],
         "season": [
           "summer",

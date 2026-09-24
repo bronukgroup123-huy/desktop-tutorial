@@ -34,20 +34,19 @@ MONTH_GROUPS = {
 }
 
 TREE_KEYWORDS = [
-    ('сосн', 'pine'),
-    ('ялин', 'spruce'),
-    ('дуб', 'oak'),
-    ('берез', 'birch'),
-    ('осик', 'aspen'),
-    ('мішан', 'mixed'),
-    ('змішан', 'mixed'),
-    ('листян', 'deciduous'),
-    ('хвойн', 'coniferous'),
-    ('будь-як', 'any'),
+    (['сосн', 'сосен', 'сосно'], 'pine'),
+    (['ялин', 'ялиц'], 'spruce'),
+    (['дуб', 'дубів'], 'oak'),
+    (['берез', 'беріз'], 'birch'),
+    (['осик', 'осік'], 'aspen'),
+    (['мішан', 'змішан'], 'mixed'),
+    (['листян'], 'deciduous'),
+    (['хвойн'], 'coniferous'),
+    (['будь-як'], 'any'),
 ]
 
 HEADING_RE = re.compile(
-    r'^(🌲\s*)?(Де росте|Місце зростання|Де росте\?)',
+    r'^(🌲\s*)?(Де росте|Місце зростання|Де шукати)',
     re.IGNORECASE
 )
 
@@ -106,20 +105,45 @@ def find_opis_folder(species):
 def parse_tree_from_text(text):
     if not text:
         return []
+    
     lines = text.split('\n')
     found = []
+    has_concrete = False
+    
+    HEADING_RE = re.compile(
+        r'^(🌲\s*)?(Де росте|Місце зростання|Де шукати)',
+        re.IGNORECASE
+    )
+    
+    CONCRETE_TREES = {'pine', 'spruce', 'oak', 'birch', 'aspen'}
+    
     for line in lines:
-        if HEADING_RE.match(line.strip()):
-            content = line.split('\t', 1)[-1].strip() if '\t' in line else line
-            content = re.sub(r'^[^\w]*', '', content)
-            lower = content.lower()
-            for kw, value in TREE_KEYWORDS:
+        if line.count('\t') >= 2:
+            continue
+        
+        stripped = line.strip()
+        if not HEADING_RE.match(stripped):
+            continue
+        
+        content = stripped.split('\t', 1)[-1].strip() if '\t' in stripped else stripped
+        content = re.sub(r'^[^\w]*', '', content)
+        content_clean = re.sub(r'Підберезник\w*', '', content, flags=re.IGNORECASE)
+        content_clean = re.sub(r'Підосичник\w*', '', content_clean, flags=re.IGNORECASE)
+        content_clean = re.sub(r'Подбер[её]зовик\w*', '', content_clean, flags=re.IGNORECASE)
+        lower = content_clean.lower()
+        
+        for keywords, value in TREE_KEYWORDS:
+            for kw in keywords:
                 if kw in lower:
                     if value not in found:
                         found.append(value)
-                    if value == 'mixed':
-                        return ['mixed']
-            return found
+                        if value in CONCRETE_TREES:
+                            has_concrete = True
+                    break
+    
+    if has_concrete and 'mixed' in found:
+        found = [v for v in found if v != 'mixed']
+    
     return found
 
 
