@@ -803,6 +803,44 @@ body.modal-open { overflow: hidden; }
 #expanded-carousel {
   contain: layout paint;
 }
+
+/* ── Погода ── */
+.weather-block { background: linear-gradient(135deg, #F0F5F1 0%, #E6EFE8 100%); border-color: #D8E4DA; }
+.weather-day { background: #FFFFFF; border-radius: 12px; padding: 8px 4px; }
+.weather-metric { background: #FFFFFF; border-radius: 12px; padding: 8px; }
+
+/* ── Велика карта ── */
+.big-map-wrap { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid #E5DFD0; }
+
+/* Маркер = стікер гриба */
+.bigmap-sticker {
+  position: absolute;
+  width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 180ms ease, filter 180ms ease;
+  filter: drop-shadow(0 3px 6px rgba(47,74,58,0.28));
+  background: transparent; border: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.bigmap-sticker img {
+  width: 100%; height: 100%; object-fit: contain;
+  pointer-events: none;
+}
+.bigmap-sticker:hover { transform: translate(-50%, -50%) scale(1.15); }
+.bigmap-sticker.active {
+  width: 56px; height: 56px;
+  filter: drop-shadow(0 4px 10px rgba(201,122,43,0.55));
+  z-index: 5;
+}
+.bigmap-sticker.active::after {
+  content: '';
+  position: absolute; inset: -8px;
+  border-radius: 999px;
+  border: 2px dashed #C97A2B;
+  animation: bigmap-ring 6s linear infinite;
+}
+@keyframes bigmap-ring { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
@@ -959,105 +997,99 @@ body.modal-open { overflow: hidden; }
         </div>
 
          <div class="px-5 space-y-3">
-           <!-- Carousel wrapper -->
-           <div class="relative">
-             <div id="carousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-               <!-- Slides injected by JS -->
-             </div>
-           </div>
-           <!-- Dots -->
-            <div id="carousel-dots" class="flex items-center justify-center gap-2" style="height: auto;">
-             <!-- dots injected by JS -->
-           </div>
+  <!-- Carousel точок -->
+  <div class="relative">
+    <div id="carousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-hide pb-2" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;"></div>
+  </div>
+  <div id="carousel-dots" class="flex items-center justify-center gap-2" style="height: auto;"></div>
 
-            <!-- Compact mushroom list -->
-            <div id="forecast-result-wrap" class="hidden">
-              <div class="zero-hint text-center py-8 text-ink-muted text-[13px]">Прогноз недоступний для цієї точки</div>
-            </div>
-            <div id="compact-list-wrap" class="hidden">
-             <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;">
-               <!-- 10 compact cards injected by JS -->
-             </div>
-           </div>
+  <!-- Велика карта (маркери = стікери грибів) -->
+  <div>
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="font-serif font-semibold text-forest-dark text-[15px]">Мапа точок</h3>
+      <span class="text-[11px] text-ink-muted"><span id="bigmap-count">0</span> точок</span>
+    </div>
+    <div class="big-map-wrap" style="height: 320px; background: linear-gradient(135deg, #F1EBDA 0%, #E8E1CC 100%);">
+      <svg viewBox="0 0 400 400" class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
+        <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#D9CFB8" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M180 -20 Q 200 100 180 220 T 220 420" stroke="#D9CFB8" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M280 340 Q 320 320 360 340 Q 390 360 380 390 L 300 400 Q 260 380 280 340 Z" fill="#B8D4D9" opacity="0.65"/>
+        <path class="map-patch" d="M40 60 Q 100 40 160 80 Q 200 120 160 160 Q 100 200 40 170 Q 10 130 40 60 Z" fill="#4A6B54" opacity="0.55"/>
+        <path class="map-patch" d="M240 50 Q 300 40 340 90 Q 360 140 320 170 Q 260 180 220 140 Q 200 90 240 50 Z" fill="#4A6B54" opacity="0.55"/>
+        <path class="map-patch" d="M60 260 Q 130 240 200 270 Q 240 310 200 350 Q 130 370 60 340 Q 30 300 60 260 Z" fill="#2F4A3A" opacity="0.55"/>
+        <path class="map-patch" d="M300 250 Q 340 240 360 280 Q 370 320 330 340 Q 290 330 290 290 Q 290 260 300 250 Z" fill="#4A6B54" opacity="0.5"/>
+      </svg>
+      <div id="bigmap-markers" class="absolute inset-0"></div>
+    </div>
+  </div>
 
-           <!-- Expanded mushroom view -->
-           <div id="expanded-mushroom" class="hidden">
-             <div class="card overflow-hidden relative">
-               <div class="flex items-center justify-between p-3 border-b border-cream-300">
-                 <div id="expanded-dots" class="flex items-center gap-1.5">
-                   <!-- dots injected by JS -->
-                 </div>
-                 <button id="btn-close-expanded" class="icon-btn" aria-label="Закрити">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                 </button>
-               </div>
-                <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="-webkit-overflow-scrolling: touch;">
-                 <!-- Expanded slides injected by JS -->
-               </div>
-             </div>
-           </div>
+  <!-- Collapsible: гриби за прогнозом -->
+  <div class="card overflow-hidden">
+    <button id="btn-toggle-mushrooms" class="w-full p-3 flex items-center justify-between card-hover" aria-expanded="false">
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg>
+        <span class="text-[13px] font-semibold text-forest-dark">Гриби за прогнозом</span>
+        <span class="badge badge-amber text-[10px]" id="mushroom-count">—</span>
+      </div>
+      <svg id="mushrooms-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div id="mushrooms-panel" class="hidden border-t border-cream-300 p-3">
+      <div id="forecast-result-wrap" class="hidden">
+        <div class="zero-hint text-center py-8 text-ink-muted text-[13px]">Прогноз недоступний для цієї точки</div>
+      </div>
+      <div id="compact-list-wrap" class="hidden">
+        <div id="compact-list" class="flex flex-col gap-2 overflow-y-auto scroll-hide" style="max-height: 320px;"></div>
+      </div>
+      <div id="expanded-mushroom" class="hidden">
+        <div class="flex items-center justify-between pb-2 border-b border-cream-300">
+          <div id="expanded-dots" class="flex items-center gap-1.5"></div>
+          <button id="btn-close-expanded" class="icon-btn" aria-label="Закрити">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div id="expanded-carousel" class="flex overflow-x-auto snap-x snap-mandatory scroll-hide" style="-webkit-overflow-scrolling: touch;"></div>
+      </div>
+    </div>
+  </div>
 
-           <!-- Mini map toggle -->
-           <button id="btn-toggle-minimap" class="card w-full p-3 flex items-center justify-between card-hover">
-             <div class="flex items-center gap-2">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-               <span class="text-[13px] font-semibold text-forest-dark">Показати на мапі</span>
-             </div>
-             <svg id="minimap-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
-           </button>
-           <div id="minimap-panel" class="hidden">
-             <div class="card p-3 relative overflow-hidden" style="height: 220px; background: linear-gradient(135deg, #F1EBDA 0%, #E8E1CC 100%);">
-               <svg viewBox="0 0 400 400" class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
-                 <path d="M-20 130 Q 100 100 200 150 T 420 180" stroke="#D9CFB8" stroke-width="6" fill="none" stroke-linecap="round"/>
-                 <path d="M180 -20 Q 200 100 180 220 T 220 420" stroke="#D9CFB8" stroke-width="5" fill="none" stroke-linecap="round"/>
-                 <path d="M280 340 Q 320 320 360 340 Q 390 360 380 390 L 300 400 Q 260 380 280 340 Z" fill="#B8D4D9" opacity="0.65"/>
-                 <path class="map-patch" d="M40 60 Q 100 40 160 80 Q 200 120 160 160 Q 100 200 40 170 Q 10 130 40 60 Z" fill="#4A6B54" opacity="0.55"/>
-                 <path class="map-patch" d="M240 50 Q 300 40 340 90 Q 360 140 320 170 Q 260 180 220 140 Q 200 90 240 50 Z" fill="#4A6B54" opacity="0.55"/>
-                 <path class="map-patch" d="M60 260 Q 130 240 200 270 Q 240 310 200 350 Q 130 370 60 340 Q 30 300 60 260 Z" fill="#2F4A3A" opacity="0.55"/>
-                 <path class="map-patch" d="M300 250 Q 340 240 360 280 Q 370 320 330 340 Q 290 330 290 290 Q 290 260 300 250 Z" fill="#4A6B54" opacity="0.5"/>
-               </svg>
-               <div id="minimap-markers" class="absolute inset-0">
-                 <!-- Markers injected by JS -->
-               </div>
-             </div>
-           </div>
+  <!-- Погода (мок) -->
+  <div class="card p-3.5 weather-block">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A6B54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <span class="text-[13px] font-semibold text-forest-dark">Погода на точці</span>
+      </div>
+      <span class="text-[10px] text-ink-muted">оновлено 5 хв тому</span>
+    </div>
+    <div class="flex items-center gap-4 mb-3">
+      <div style="font-size: 38px; line-height: 1;">🌧️</div>
+      <div>
+        <div class="font-serif font-semibold text-forest-dark" style="font-size: 24px; line-height: 1;">+11°C</div>
+        <div class="text-[12px] text-ink-muted mt-1">Помірний дощ · 3 дні після дощу</div>
+      </div>
+      <div class="ml-auto text-right">
+        <div class="text-[10px] text-ink-muted">Вологість</div>
+        <div class="text-[15px] font-semibold text-forest-dark">87%</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-2 text-center mb-3">
+      <div class="weather-day"><div class="text-[10px] text-ink-muted">Пн</div><div class="text-[16px] leading-none my-1">🌧️</div><div class="text-[11px] font-semibold text-forest-dark">+10°</div></div>
+      <div class="weather-day"><div class="text-[10px] text-ink-muted">Вт</div><div class="text-[16px] leading-none my-1">⛅</div><div class="text-[11px] font-semibold text-forest-dark">+12°</div></div>
+      <div class="weather-day"><div class="text-[10px] text-ink-muted">Ср</div><div class="text-[16px] leading-none my-1">☀️</div><div class="text-[11px] font-semibold text-forest-dark">+14°</div></div>
+      <div class="weather-day"><div class="text-[10px] text-ink-muted">Чт</div><div class="text-[16px] leading-none my-1">🌤️</div><div class="text-[11px] font-semibold text-forest-dark">+13°</div></div>
+    </div>
+    <div class="grid grid-cols-3 gap-2 text-center">
+      <div class="weather-metric"><div class="text-[10px] text-ink-muted">Темп. 7 днів</div><div class="text-[12px] font-semibold text-forest-dark mt-0.5">+9.4°</div></div>
+      <div class="weather-metric"><div class="text-[10px] text-ink-muted">Дощ 3 дні</div><div class="text-[12px] font-semibold text-forest-dark mt-0.5">14 мм</div></div>
+      <div class="weather-metric"><div class="text-[10px] text-ink-muted">Посуха</div><div class="text-[12px] font-semibold text-forest-dark mt-0.5">0 днів</div></div>
+    </div>
+  </div>
 
-           <!-- Comparison table toggle -->
-           <button id="btn-toggle-compare" class="card w-full p-3 flex items-center justify-between card-hover">
-             <div class="flex items-center gap-2">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6659" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg>
-               <span class="text-[13px] font-semibold text-forest-dark">Порівняти точки</span>
-             </div>
-             <svg id="compare-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-muted transition-transform"><path d="m6 9 6 6 6-6"/></svg>
-           </button>
-           <div id="compare-panel" class="hidden">
-             <div class="card overflow-hidden">
-               <div class="p-3 bg-cream-50 border-b border-cream-300">
-                 <div class="text-[12px] font-semibold text-forest-dark" id="compare-best">Найкраща: —</div>
-               </div>
-               <div class="overflow-x-auto">
-                 <table class="w-full text-[12px]">
-                   <thead>
-                     <tr class="bg-cream-50 text-left">
-                       <th class="p-2.5 text-ink-muted font-medium">Параметр</th>
-                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-0">Точка 1</th>
-                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-1">Точка 2</th>
-                       <th class="p-2.5 text-ink-muted font-medium text-center" id="compare-hdr-2">Точка 3</th>
-                     </tr>
-                   </thead>
-                   <tbody id="compare-body">
-                     <!-- rows injected by JS -->
-                   </tbody>
-                 </table>
-               </div>
-             </div>
-           </div>
-
-           <div class="flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
-             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
-             <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
-           </div>
-         </div>
+  <div class="flex items-start gap-2 p-3 rounded-2xl bg-cream-50 border border-cream-300">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5E34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
+    <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
+  </div>
+</div>
        </section>
 
       <!-- TAB 2: MAP -->
@@ -3141,8 +3173,6 @@ body.modal-open { overflow: hidden; }
   let pickerLng = 30.52;
   let pickerForest = 'pine';
   let pickerAge = 25;
-  let minimapOpen = false;
-  let compareOpen = false;
 
   function isFeatureEnabled(key) {
     try {
@@ -3373,6 +3403,60 @@ body.modal-open { overflow: hidden; }
     });
   }
 
+  function renderBigMap() {
+    const markers = document.getElementById('bigmap-markers');
+    const countEl = document.getElementById('bigmap-count');
+    if (!markers) return;
+    if (countEl) countEl.textContent = points.length;
+
+    let html = '';
+    points.forEach((p, i) => {
+      const top = 15 + ((p.lat - HOME_REGION.latMin) / (HOME_REGION.latMax - HOME_REGION.latMin)) * 70;
+      const left = 15 + ((p.lng - HOME_REGION.lngMin) / (HOME_REGION.lngMax - HOME_REGION.lngMin)) * 70;
+
+      const top1 = (p.top10 && p.top10.length) ? p.top10[0] : null;
+      const sticker = top1 && top1.sticker ? top1.sticker : 'mushroom_boletus_edulis.svg';
+      const src = 'assets/stickers/' + sticker;
+      const isActive = i === activeIndex;
+
+      html += '<button class="bigmap-sticker' + (isActive ? ' active' : '') + '"' +
+        ' style="top:' + top.toFixed(1) + '%;left:' + left.toFixed(1) + '%;"' +
+        ' data-index="' + i + '"' +
+        ' aria-label="Точка ' + (i + 1) + (top1 ? ': ' + top1.nameUa : '') + '">' +
+        '<img src="' + src + '" alt="" onerror="this.style.display=\'none\'">' +
+      '</button>';
+    });
+    markers.innerHTML = html;
+
+    markers.querySelectorAll('.bigmap-sticker').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.index);
+        scrollToSlide(idx);
+        renderBigMap();
+      });
+    });
+  }
+
+  function initMushroomListToggle() {
+    const btn = document.getElementById('btn-toggle-mushrooms');
+    const chevron = document.getElementById('mushrooms-chevron');
+    const panel = document.getElementById('mushrooms-panel');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', () => {
+      const isOpen = !panel.classList.contains('hidden');
+      if (isOpen) {
+        panel.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.style.transform = '';
+        closeExpandedMushroom();
+      } else {
+        panel.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      }
+    });
+  }
+
   function scrollToSlide(index) {
     const carousel = document.getElementById('carousel');
     if (!carousel || !carousel.children.length) return;
@@ -3384,8 +3468,7 @@ body.modal-open { overflow: hidden; }
     carousel.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     updateDots();
     updateForecastUI();
-    renderMiniMap();
-    renderComparison();
+    renderBigMap();
   }
 
   function addPoint(lat, lng, forestType, forestAge) {
@@ -3434,6 +3517,8 @@ body.modal-open { overflow: hidden; }
         resultWrap.classList.add('hidden');
         resultWrap.innerHTML = '<div class="zero-hint">Додайте точку для аналізу</div>';
       }
+      const countBadge = document.getElementById('mushroom-count');
+      if (countBadge) countBadge.textContent = '—';
       return;
     }
 
@@ -3445,6 +3530,8 @@ body.modal-open { overflow: hidden; }
         resultWrap.classList.remove('hidden');
         resultWrap.innerHTML = '<div class="zero-hint text-center py-8 text-ink-muted text-[13px]">Прогноз недоступний для цієї точки</div>';
       }
+      const countBadge = document.getElementById('mushroom-count');
+      if (countBadge) countBadge.textContent = '—';
       return;
     }
 
@@ -3480,6 +3567,9 @@ body.modal-open { overflow: hidden; }
         openExpandedMushroom(idx);
       });
     });
+
+    const countBadge = document.getElementById('mushroom-count');
+    if (countBadge) countBadge.textContent = p.top10.length;
   }
 
   let expandedIndex = 0;
@@ -3612,7 +3702,9 @@ body.modal-open { overflow: hidden; }
       });
     });
 
-    carousel.scrollTo({ left: expandedIndex * carousel.clientWidth, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      carousel.scrollLeft = expandedIndex * carousel.clientWidth;
+    });
   }
 
   function scrollExpandedTo(index) {
@@ -3620,9 +3712,7 @@ body.modal-open { overflow: hidden; }
     if (!carousel || !carousel.children.length) return;
     if (index < 0 || index >= carousel.children.length) return;
     expandedIndex = index;
-    const slide = carousel.children[index];
-    const scrollLeft = slide.offsetLeft - carousel.offsetLeft;
-    carousel.scrollLeft = scrollLeft;
+    carousel.scrollLeft = index * carousel.clientWidth;
     renderExpandedDots();
   }
 
@@ -3656,24 +3746,20 @@ body.modal-open { overflow: hidden; }
   function initExpandedSwipe() {
     const carousel = document.getElementById('expanded-carousel');
     if (!carousel) return;
-    let startX = 0;
-    let isDown = false;
-    carousel.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      isDown = true;
+    let ticking = false;
+    carousel.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+        if (idx !== expandedIndex && idx >= 0) {
+          expandedIndex = idx;
+          renderExpandedDots();
+        }
+      });
     }, { passive: true });
-    carousel.addEventListener('touchend', (e) => {
-      if (!isDown) return;
-      isDown = false;
-      const endX = e.changedTouches[0].clientX;
-      const diff = startX - endX;
-      if (Math.abs(diff) > 50) {
-        if (diff > 0 && expandedIndex < (points[expandedPointIndex]?.top10?.length || 0) - 1) scrollExpandedTo(expandedIndex + 1);
-        else if (diff < 0 && expandedIndex > 0) scrollExpandedTo(expandedIndex - 1);
-      }
-    });
 
-    // Click outside to close
     const expandedWrap = document.getElementById('expanded-mushroom');
     if (expandedWrap) {
       expandedWrap.addEventListener('click', (e) => {
@@ -3791,106 +3877,11 @@ body.modal-open { overflow: hidden; }
     }
   }
 
-  function renderMiniMap() {
-    const panel = document.getElementById('minimap-panel');
-    const markers = document.getElementById('minimap-markers');
-    if (!panel || !markers) return;
-
-    if (!minimapOpen) {
-      panel.classList.add('hidden');
-      return;
-    }
-    panel.classList.remove('hidden');
-
-    let html = '';
-    points.forEach((p, i) => {
-      const top = 20 + (i * 25) + (i % 3) * 5;
-      const left = 15 + (i * 30) + (i % 2) * 5;
-      html += '<button class="dot-marked map-dot minimap-dot" style="top: ' + top + '%; left: ' + left + '%; background: #C97A2B; font-size: 9px; color: white; font-weight: 700;" data-index="' + i + '" aria-label="Точка ' + (i + 1) + '">' + (i + 1) + '</button>';
-    });
-    markers.innerHTML = html;
-
-    markers.querySelectorAll('.minimap-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-        const idx = parseInt(dot.dataset.index);
-        scrollToSlide(idx);
-      });
-    });
-  }
-
-  function renderComparison() {
-    const panel = document.getElementById('compare-panel');
-    const body = document.getElementById('compare-body');
-    const bestEl = document.getElementById('compare-best');
-    if (!panel || !body) return;
-
-    if (!compareOpen) {
-      panel.classList.add('hidden');
-      return;
-    }
-    panel.classList.remove('hidden');
-
-    const ranking = rankPoints();
-    const bestIdx = ranking[0];
-    const bestPoint = points[bestIdx];
-    if (bestEl && bestPoint && bestPoint.top10 && bestPoint.top10.length) {
-      bestEl.textContent = 'Найкраща: ' + bestPoint.name + ' (' + bestPoint.top10[0].levelUa + ')';
-    } else if (bestEl) {
-      bestEl.textContent = 'Найкраща: —';
-    }
-
-    // Update headers
-    for (let i = 0; i < 3; i++) {
-      const hdr = document.getElementById('compare-hdr-' + i);
-      if (hdr) hdr.textContent = i < points.length ? points[i].name : ('Точка ' + (i + 1));
-    }
-
-    const rows = [
-      { label: 'Координати', render: (p) => p ? p.lat.toFixed(2) + ', ' + p.lng.toFixed(2) : '—' },
-      { label: 'Тип лісу', render: (p) => p ? p.forestType : '—' },
-      { label: 'Top-1', render: (p) => p && p.top10 && p.top10.length ? p.top10[0].nameUa : '—' },
-      { label: 'Рівень', render: (p) => {
-        if (!p || !p.top10 || !p.top10.length) return '—';
-        const m = p.top10[0];
-        return '<span class="badge ' + (m.badgeClass || 'badge-neutral') + ' text-[10px]">' + esc(m.levelUa || '—') + '</span>';
-      }},
-      { label: 'Альтернатива', render: (p) => p && p.top10 && p.top10.length > 1 ? p.top10[1].nameUa : '—' },
-      { label: 'Днів після дощу', render: (p) => {
-        if (!p || !p.top10 || !p.top10.length) return '—';
-        const when = p.top10[0].when || '';
-        const m = when.match(/(\d+)/);
-        return m ? m[1] + ' днів' : '—';
-      }},
-      { label: 'Вік лісу', render: (p) => p ? (p.forestAge + ' років') : '—' },
-      { label: 'Рейтинг', render: (p) => {
-        if (!p || !p.top10 || !p.top10.length) return '—';
-        const top = p.top10[0];
-        const s = LEVEL_WEIGHTS[top.level] || 0;
-        const stars = s >= 3 ? '⭐⭐⭐⭐⭐' : s >= 2 ? '⭐⭐⭐⭐' : s >= 1 ? '⭐⭐⭐' : '⭐';
-        return stars + ' ' + s.toFixed(1);
-      }}
-    ];
-
-    let tbody = '';
-    rows.forEach(row => {
-      tbody += '<tr class="compare-row">' +
-        '<td class="compare-label">' + row.label + '</td>';
-      for (let i = 0; i < 3; i++) {
-        const p = points[i];
-        tbody += '<td class="text-center">' + row.render(p) + '</td>';
-      }
-      tbody += '</tr>';
-    });
-    body.innerHTML = tbody;
-  }
-
   function fetchBatchForecast() {
     if (!isFeatureEnabled('multi_point_enabled')) return;
     if (points.length === 0) {
       points.forEach(p => { p.top10 = null; p.ranking = null; });
       updateForecastUI();
-      renderMiniMap();
-      renderComparison();
       return;
     }
 
@@ -3939,8 +3930,7 @@ body.modal-open { overflow: hidden; }
       }
     });
     updateForecastUI();
-    renderMiniMap();
-    renderComparison();
+    renderBigMap();
   }
 
   function initCarouselSwipe() {
@@ -3980,31 +3970,9 @@ body.modal-open { overflow: hidden; }
           activeIndex = closest;
           updateDots();
           updateForecastUI();
-          renderMiniMap();
+          renderBigMap();
         }
       });
-    });
-  }
-
-  function initMinimapToggle() {
-    const btn = document.getElementById('btn-toggle-minimap');
-    const chevron = document.getElementById('minimap-chevron');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      minimapOpen = !minimapOpen;
-      if (chevron) chevron.style.transform = minimapOpen ? 'rotate(180deg)' : '';
-      renderMiniMap();
-    });
-  }
-
-  function initCompareToggle() {
-    const btn = document.getElementById('btn-toggle-compare');
-    const chevron = document.getElementById('compare-chevron');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      compareOpen = !compareOpen;
-      if (chevron) chevron.style.transform = compareOpen ? 'rotate(180deg)' : '';
-      renderComparison();
     });
   }
 
@@ -4037,9 +4005,9 @@ body.modal-open { overflow: hidden; }
     seedDemoPoint();
     initCarouselSwipe();
     initMapPicker();
-    initMinimapToggle();
-    initCompareToggle();
+    initMushroomListToggle();
     initExpandedSwipe();
+    renderBigMap();
 
     const btnCloseExpanded = document.getElementById('btn-close-expanded');
     if (btnCloseExpanded) {
