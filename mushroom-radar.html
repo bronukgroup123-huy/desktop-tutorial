@@ -1623,19 +1623,9 @@ body.modal-open { overflow: hidden; }
           <span><span class="dot dot-green"></span> Росте</span>
           <span><span class="dot dot-amber"></span> Пік</span>
           <span><span class="dot dot-gray"></span> Поза сезоном</span>
-        </div>
-      </div>
     </div>
-
-    <!-- Welcome modal (shared for 9 elements: 3 chips + 6 cards) -->
-    <div id="welcome-modal" class="modal-overlay" aria-modal="true" role="dialog">
-      <div class="modal-card">
-        <button class="modal-close" id="welcome-modal-close" aria-label="Закрити">✕</button>
-        <div id="welcome-modal-emoji" class="text-2xl mb-1.5"></div>
-        <div id="welcome-modal-title" class="modal-title"></div>
-        <p id="welcome-modal-text" class="text-[12px] text-ink-muted leading-relaxed" style="padding-right: 24px;"></p>
-      </div>
-    </div>
+  </div>
+</div>
 
     <!-- Bottom navigation -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-cream-300" style="padding-bottom: env(safe-area-inset-bottom); z-index: 20;">
@@ -1667,6 +1657,16 @@ body.modal-open { overflow: hidden; }
       </div>
     </nav>
 
+  </div>
+</div>
+
+<!-- Welcome modal moved out of #screen-app so it does not inherit .screen opacity -->
+<div id="welcome-modal" class="modal-overlay" aria-modal="true" role="dialog">
+  <div class="modal-card">
+    <button class="modal-close" id="welcome-modal-close" aria-label="Закрити">✕</button>
+    <div id="welcome-modal-emoji" class="text-2xl mb-1.5"></div>
+    <div id="welcome-modal-title" class="modal-title"></div>
+    <p id="welcome-modal-text" class="text-[12px] text-ink-muted leading-relaxed" style="padding-right: 24px;"></p>
   </div>
 </div>
 
