@@ -67,6 +67,33 @@ def extract_month_range(text):
     return list(range(nums[0], nums[-1] + 1))
 
 
+def try_table_format(lines):
+    """
+    Try to extract season text from table format when there is no 📅 marker.
+    Header example: Де росте\tКоли збирати\tПорада\tПоширення в Україні
+    Next line:      <де росте>\t<сезон>\t<порада>\t<поширення>
+    Returns season text or None.
+    """
+    for i, line in enumerate(lines):
+        if 'коли збирати' not in line.lower() or '\t' not in line:
+            continue
+        headers = line.split('\t')
+        col_idx = None
+        for j, h in enumerate(headers):
+            if 'коли збирати' in h.lower():
+                col_idx = j
+                break
+        if col_idx is None:
+            continue
+        if i + 1 >= len(lines):
+            return None
+        values = lines[i + 1].split('\t')
+        if col_idx >= len(values):
+            return None
+        return values[col_idx].strip()
+    return None
+
+
 def parse_season_text(raw_desc):
     """
     Parse 📅 section from raw description.
@@ -74,15 +101,20 @@ def parse_season_text(raw_desc):
     """
     lines = raw_desc.split('\n')
     season_text = None
+    
+    # Try old format first: 📅 Коли збирати?\t<text>
     for line in lines:
         if '📅' in line and 'коли збирати' in line.lower():
-            # Extract text after tab
             if '\t' in line:
                 season_text = line.split('\t', 1)[1].strip()
             else:
                 season_text = line.split('📅', 1)[-1].strip().lstrip(' Коли збирати? ')
             break
-
+    
+    # Try table format: Де росте\tКоли збирати\tПорада\t...
+    if not season_text:
+        season_text = try_table_format(lines)
+    
     if not season_text:
         return None, None
 
@@ -134,7 +166,7 @@ def main():
         sp_id = sp['id']
         desc = descriptions.get(sp_id, '')
 
-        if '📅' in desc:
+        if '📅' in desc or 'коли збирати' in desc.lower():
             months, peak_months = parse_season_text(desc)
             if months:
                 sp['months'] = months

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated": "2026-09-23T21:08:18",
+    "generated": "2026-09-24T12:05:00",
     "rows_total": 333,
     "total": 326,
     "with_photos": 132,
@@ -126,7 +126,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -171,7 +171,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -209,7 +209,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -248,7 +248,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -285,7 +285,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -322,7 +322,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -363,7 +363,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -411,7 +411,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -456,7 +456,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -494,7 +494,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -538,7 +538,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -578,7 +578,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -611,7 +611,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -650,7 +650,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -687,7 +687,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -733,7 +733,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -771,7 +771,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -809,7 +809,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -853,7 +853,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -902,7 +902,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": true,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -937,7 +937,12 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -948,6 +953,9 @@
         "фото популярні 55 грибів (webp)/Альбатрел злитий Albatrellopsis confluens/large.webp",
         "фото популярні 55 грибів (webp)/Альбатрел злитий Albatrellopsis confluens/large (1).webp",
         "фото популярні 55 грибів (webp)/Альбатрел злитий Albatrellopsis confluens/large_2.webp"
+      ],
+      "peak_months": [
+        9
       ]
     },
     {
@@ -963,7 +971,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1067,7 +1079,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        7,
+        8,
+        9
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1097,7 +1113,14 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1110,6 +1133,11 @@
         "фото популярні 55 грибів (webp)/Глива легенева Pleurotus pulmonarius/large (2).webp",
         "фото популярні 55 грибів (webp)/Глива легенева Pleurotus pulmonarius/large (3).webp",
         "фото популярні 55 грибів (webp)/Глива легенева Pleurotus pulmonarius/large (4).webp"
+      ],
+      "peak_months": [
+        5,
+        6,
+        7
       ]
     },
     {
@@ -1125,7 +1153,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1153,7 +1185,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1180,7 +1216,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1208,7 +1248,12 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1220,6 +1265,10 @@
         "фото популярні 55 грибів (webp)/Їжовик рудуватий Hydnum rufescens/large (1).webp",
         "фото популярні 55 грибів (webp)/Їжовик рудуватий Hydnum rufescens/large (5).webp",
         "фото популярні 55 грибів (webp)/Їжовик рудуватий Hydnum rufescens/large_2.webp"
+      ],
+      "peak_months": [
+        9,
+        10
       ]
     },
     {
@@ -1235,7 +1284,12 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1258,7 +1312,7 @@
       "rarity": "",
       "has_photo": false,
       "top20": false,
-      "popular": true,
+      "popular": false,
       "ai_recognition": true,
       "features": "",
       "months": [],
@@ -1283,7 +1337,11 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1766,7 +1824,13 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1792,7 +1856,13 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1804,6 +1874,10 @@
         "фото популярні 55 грибів (webp)/Опеньок літній Kuehneromyces mutabilis/large (1).webp",
         "фото популярні 55 грибів (webp)/Опеньок літній Kuehneromyces mutabilis/large (2).webp",
         "фото популярні 55 грибів (webp)/Опеньок літній Kuehneromyces mutabilis/large (3).webp"
+      ],
+      "peak_months": [
+        7,
+        8
       ]
     },
     {
@@ -1819,7 +1893,12 @@
       "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -1831,6 +1910,10 @@
         "фото популярні 55 грибів (webp)/Опеньок темний Armillaria ostoyae/large (1).webp",
         "фото популярні 55 грибів (webp)/Опеньок темний Armillaria ostoyae/large (2).webp",
         "фото популярні 55 грибів (webp)/Опеньок темний Armillaria ostoyae/large_2.webp"
+      ],
+      "peak_months": [
+        9,
+        10
       ]
     },
     {
@@ -2099,7 +2182,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2137,10 +2220,14 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2164,7 +2251,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2198,7 +2285,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2234,10 +2321,14 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2262,10 +2353,14 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2277,6 +2372,9 @@
         "фото популярні 55 грибів (webp)/Рядовка ліловонога Collybia personata/large (1).webp",
         "фото популярні 55 грибів (webp)/Рядовка ліловонога Collybia personata/large (2).webp",
         "фото популярні 55 грибів (webp)/Рядовка ліловонога Collybia personata/large_2.webp"
+      ],
+      "peak_months": [
+        10
       ]
     },
     {
@@ -2289,10 +2387,13 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        5,
+        6
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2317,10 +2418,14 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2332,6 +2437,10 @@
         "фото популярні 55 грибів (webp)/Рядовка сіра Tricholoma portentosum/large (1).webp",
         "фото популярні 55 грибів (webp)/Рядовка сіра Tricholoma portentosum/large (2).webp",
         "фото популярні 55 грибів (webp)/Рядовка сіра Tricholoma portentosum/large_2.webp"
+      ],
+      "peak_months": [
+        10,
+        11
       ]
     },
     {
@@ -2344,10 +2453,15 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        8,
+        9,
+        10,
+        11
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2370,7 +2484,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2404,7 +2518,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2440,7 +2554,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2476,7 +2590,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2513,7 +2627,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2547,10 +2661,18 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2563,6 +2685,10 @@
         "фото популярні 55 грибів (webp)/Трутовик лускатий Cerioporus squamosus/large (2).webp",
         "фото популярні 55 грибів (webp)/Трутовик лускатий Cerioporus squamosus/large (3).webp",
         "фото популярні 55 грибів (webp)/Трутовик лускатий Cerioporus squamosus/large (4).webp"
+      ],
+      "peak_months": [
+        5,
+        6
       ]
     },
     {
@@ -2575,10 +2701,17 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
-      "months": [],
+      "months": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
       "attrs": {
         "color": [],
         "stem": [],
@@ -2591,6 +2724,12 @@
         "фото популярні 55 грибів (webp)/Трутовик сірчано-жовтий Laetiporus sulphureus/large (2).webp",
         "фото популярні 55 грибів (webp)/Трутовик сірчано-жовтий Laetiporus sulphureus/large (3).webp",
         "фото популярні 55 грибів (webp)/Трутовик сірчано-жовтий Laetiporus sulphureus/large (5).webp"
+      ],
+      "peak_months": [
+        5,
+        6,
+        7,
+        8
       ]
     },
     {
@@ -2603,7 +2742,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2635,7 +2774,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2668,7 +2807,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
@@ -2707,7 +2846,7 @@
       "rarity": "",
       "has_photo": true,
       "top20": false,
-      "popular": false,
+      "popular": true,
       "ai_recognition": true,
       "features": "",
       "months": [
