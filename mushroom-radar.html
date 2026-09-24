@@ -1623,9 +1623,9 @@ body.modal-open { overflow: hidden; }
           <span><span class="dot dot-green"></span> Росте</span>
           <span><span class="dot dot-amber"></span> Пік</span>
           <span><span class="dot dot-gray"></span> Поза сезоном</span>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
     <!-- Bottom navigation -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-cream-300" style="padding-bottom: env(safe-area-inset-bottom); z-index: 20;">
@@ -2302,39 +2302,66 @@ body.modal-open { overflow: hidden; }
     return { key: m[1], value: m[2] };
   }
 
-  function renderDescription(raw) {
-    if (!raw) return '<div class="desc-empty">Опису ще немає.</div>';
-    const lines = String(raw).split(/\r?\n/);
-    const out = [];
-    let i = 0;
-    let inUl = false, inTable = false;
+  // --- Section-aware renderer ---
+  let CURRENT_SPECIES = null;
 
+  function shouldShowSeasonButton(sp) {
+    if (!sp) return false;
+    if (!sp.top20 && !sp.popular) return false;
+    if (sp.red_listed) return false;
+    if (sp.edibility === 'poisonous' || sp.edibility === 'deadly_poisonous') return false;
+    if (!sp.has_photo) return false;
+    if (!sp.months || !sp.months.length) return false;
+    return true;
+  }
+
+  function splitSections(raw) {
+    const lines = raw.split(/\r?\n/);
+    const sections = [];
+    let current = null;
+    for (const line of lines) {
+      if (isEmojiHeading(line)) {
+        const m = line.trim().match(/^(\S+)\s+(.+)$/);
+        if (m) {
+          if (current) sections.push(current);
+          current = { heading: m[1], title: m[2], lines: [] };
+        } else if (current) {
+          current.lines.push(line);
+        }
+      } else if (current) {
+        current.lines.push(line);
+      } else {
+        if (!sections.length) sections.push({ heading: null, title: null, lines: [] });
+        sections[0].lines.push(line);
+      }
+    }
+    if (current) sections.push(current);
+    return sections;
+  }
+
+  function renderContent(lines) {
+    const out = [];
+    let i = 0, inUl = false, inTable = false;
     function closeList() { if (inUl) { out.push('</ul>'); inUl = false; } }
     function closeTable() { if (inTable) { out.push('</tbody></table>'); inTable = false; } }
     function closeBoth() { closeList(); closeTable(); }
-
     while (i < lines.length) {
-      const line = lines[i];
-      const trimmed = line.trim();
-
+      const line = lines[i], trimmed = line.trim();
       if (trimmed === '') { closeBoth(); i++; continue; }
-
-      // Таб-рядок (таблиця)
+      if (isEmojiHeading(trimmed)) { i++; continue; }
       if (line.indexOf('\t') >= 0) {
         closeList();
         const cells = splitRow(line);
         if (!inTable) {
           inTable = true;
           out.push('<table class="desc-table">');
-          const looksLikeHeader = cells.length >= 2 && cells.some(c => c.length > 0 && c.length < 30 && !/\.$/.test(c));
-          if (looksLikeHeader) {
+          const hdr = cells.length >= 2 && cells.some(c => c.length > 0 && c.length < 30 && !/\.$/.test(c));
+          if (hdr) {
             out.push('<thead><tr>');
             cells.forEach(c => out.push('<th>' + inlineFormat(c) + '</th>'));
-            out.push('</tr></thead>');
-            out.push('<tbody>');
+            out.push('</tr></thead><tbody>');
           } else {
-            out.push('<tbody>');
-            out.push('<tr>' + cells.map((c, idx) =>
+            out.push('<tbody><tr>' + cells.map((c, idx) =>
               '<td' + (idx === 0 ? ' class="col-key"' : '') + '>' + inlineFormat(c) + '</td>'
             ).join('') + '</tr>');
           }
@@ -2343,57 +2370,31 @@ body.modal-open { overflow: hidden; }
             '<td' + (idx === 0 ? ' class="col-key"' : '') + '>' + inlineFormat(c) + '</td>'
           ).join('') + '</tr>');
         }
-        i++;
-        continue;
+        i++; continue;
       }
-
-      // Emoji-заголовок
-      if (isEmojiHeading(trimmed)) {
-        closeBoth();
-        const m = trimmed.match(/^(\S+)\s+(.+)$/);
-        const emoji = m ? m[1] : '📌';
-        const title = m ? m[2] : trimmed;
-        out.push('<h3 class="desc-h3"><span class="desc-emoji">' + emoji + '</span><span>' + inlineFormat(title) + '</span></h3>');
-        i++;
-        continue;
-      }
-
-      // Буліт-список
       if (BULLET.test(trimmed)) {
         closeTable();
         if (!inUl) { out.push('<ul>'); inUl = true; }
-        const isIndented = BULLET_INDENTED.test(line);
+        const isInd = BULLET_INDENTED.test(line);
         let content = trimmed.replace(/^\s*[-•*]\s+/, '');
         const kv = parseKeyValue(content);
-        if (kv) {
-          content = '<strong>' + inlineFormat(kv.key) + '</strong>: ' + inlineFormat(kv.value);
-        } else {
-          content = inlineFormat(content);
-        }
-        out.push('<li' + (isIndented ? ' class="nested"' : '') + '>' + content + '</li>');
-        i++;
-        continue;
+        content = kv ? '<strong>' + inlineFormat(kv.key) + '</strong>: ' + inlineFormat(kv.value) : inlineFormat(content);
+        out.push('<li' + (isInd ? ' class="nested"' : '') + '>' + content + '</li>');
+        i++; continue;
       }
-
-      // Ключ: значення
       const kvLine = parseKeyValue(trimmed);
       if (kvLine) {
         closeBoth();
         out.push('<p class="desc-kv"><strong>' + inlineFormat(kvLine.key) + '</strong>: ' + inlineFormat(kvLine.value) + '</p>');
-        i++;
-        continue;
+        i++; continue;
       }
-
-      // Абзац
       closeBoth();
       let paraBuf = [trimmed];
       let j = i + 1;
       while (j < lines.length) {
         const nxt = lines[j].trim();
-        if (nxt === '') break;
-        if (isEmojiHeading(nxt) || BULLET.test(nxt) || lines[j].indexOf('\t') >= 0 || parseKeyValue(nxt)) break;
-        paraBuf.push(nxt);
-        j++;
+        if (nxt === '' || isEmojiHeading(nxt) || BULLET.test(nxt) || lines[j].indexOf('\t') >= 0 || parseKeyValue(nxt)) break;
+        paraBuf.push(nxt); j++;
       }
       out.push('<p>' + paraBuf.map(inlineFormat).join('<br>') + '</p>');
       i = j;
@@ -2401,6 +2402,102 @@ body.modal-open { overflow: hidden; }
     closeBoth();
     return out.join('\n');
   }
+
+  function renderAccordion(emoji, title, contentHtml) {
+    const id = 'acc-' + Math.random().toString(36).substr(2, 8);
+    return '<div class="desc-accordion">' +
+      '<div class="acc-header" onclick="toggleAccordion(\'' + id + '\')">' +
+      '<span class="acc-emoji">' + escHtml(emoji) + '</span>' +
+      '<span class="acc-title">' + inlineFormat(title) + '</span>' +
+      '<span class="acc-arrow" id="' + id + '-arrow">&#9660;</span>' +
+      '</div>' +
+      '<div class="acc-body" id="' + id + '">' +
+      '<div class="acc-content"><div class="acc-content-inner">' + contentHtml + '</div></div>' +
+      '</div></div>';
+  }
+
+  function renderSeasonButton() {
+    return '<button class="season-btn" onclick="openSeasonModal()">' +
+      '<span class="season-icon">📅</span><span>Сезон</span></button>';
+  }
+  function renderDescription(raw) {
+    if (!raw) return '<div class="desc-empty">Опису ще немає.</div>';
+    const sections = splitSections(raw);
+    const out = [];
+    for (const sec of sections) {
+      if (sec.heading) {
+        const ch = renderContent(sec.lines);
+        if (sec.heading === '🍳' || sec.heading === '🍽️') {
+          out.push(renderAccordion(sec.heading, sec.title, ch));
+        } else {
+          out.push('<h3 class="desc-h3"><span class="desc-emoji">' + escHtml(sec.heading) + '</span><span>' + inlineFormat(sec.title) + '</span></h3>');
+          out.push(ch);
+          if (sec.heading === '🗺️' && shouldShowSeasonButton(CURRENT_SPECIES)) {
+            out.push(renderSeasonButton());
+          }
+        }
+      } else {
+        out.push(renderContent(sec.lines));
+      }
+    }
+    return out.join('\n');
+  }
+
+  // --- Accordion toggle ---
+  function toggleAccordion(id) {
+    const body = document.getElementById(id);
+    if (!body) return;
+    const arrow = document.getElementById(id + '-arrow');
+    const isOpen = body.classList.toggle('open');
+    if (arrow) arrow.classList.toggle('rotated', isOpen);
+  }
+
+  // --- Season modal ---
+  const MONTH_NAMES_SHORT = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+
+  function openSeasonModal() {
+    if (!CURRENT_SPECIES) return;
+    const modal = document.getElementById('season-modal');
+    const calendar = document.getElementById('season-calendar');
+    const titleEl = document.getElementById('season-modal-title');
+    const subtitleEl = document.getElementById('season-modal-subtitle');
+
+    const months = new Set(CURRENT_SPECIES.months || []);
+    const peak = new Set(CURRENT_SPECIES.peak_months || []);
+
+    let html = '';
+    for (let i = 1; i <= 12; i++) {
+      let cls = 'off';
+      if (peak.has(i)) cls = 'peak';
+      else if (months.has(i)) cls = 'on';
+      html += '<div class="season-month ' + cls + '">' +
+        '<span>' + MONTH_NAMES_SHORT[i - 1] + '</span>' +
+        '<span class="month-num">' + i + '</span>' +
+        '</div>';
+    }
+    calendar.innerHTML = html;
+
+    if (titleEl) titleEl.textContent = CURRENT_SPECIES.name;
+    if (subtitleEl) subtitleEl.textContent = 'Сезон плодоношення';
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSeasonModal() {
+    const modal = document.getElementById('season-modal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Escape key & click-outside handlers
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeSeasonModal();
+  });
+  document.getElementById('season-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSeasonModal();
+  });
+  document.getElementById('season-modal-close').addEventListener('click', closeSeasonModal);
 
   // --- Відкриття / закриття detail ---
   function findSpeciesById(id) {
@@ -2415,6 +2512,7 @@ body.modal-open { overflow: hidden; }
     const s = findSpeciesById(id);
     if (!s) return;
     currentDetailId = id;
+    CURRENT_SPECIES = s;
 
     const activeTab = document.querySelector('.tab-btn.active');
     if (activeTab && activeTab.dataset.tab) detailReturnTab = activeTab.dataset.tab;
