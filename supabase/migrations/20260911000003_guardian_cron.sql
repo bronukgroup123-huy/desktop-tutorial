@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS forest_polygons (
   polygon GEOGRAPHY(MultiPolygon, 4326) NOT NULL,
   source TEXT NOT NULL DEFAULT 'osm',
   osm_id BIGINT,
-  region_id INT REFERENCES regions(id),
+  region_id INT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -69,6 +69,8 @@ CREATE INDEX IF NOT EXISTS guardian_tick_log_started_idx
 -- ============================================================================
 -- Примітка: для 30-секундного інтервалу налаштуйте Scheduled Functions в Dashboard.
 -- Цей job — fallback для dev-середовища.
+-- FK на regions буде додано окремою міграцією після створення regions.
+-- Наразі region_id зберігається як звичайний INT для гнучкості імпорту.
 
 SELECT cron.schedule(
   'guardian-tick-every-minute',
