@@ -14,7 +14,7 @@ CREATE TABLE public.users (
   rating INT NOT NULL DEFAULT 0,
   total_verified_picks INT NOT NULL DEFAULT 0,
 
-  home_region_id INT,
+  home_region_id INT REFERENCES public.regions(id) ON DELETE SET NULL,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
