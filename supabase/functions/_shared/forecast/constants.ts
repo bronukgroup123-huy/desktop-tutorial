@@ -4,11 +4,10 @@
 
 import type { Wave } from "./types.ts";
 
-/** Правила MVP-етапу (заповнюється в групі 8.4) */
-export const MVP_RULES: string[] = [];
-
 /** Правила V2 (заповнюється пізніше) */
 export const V2_RULES: string[] = [];
+
+/** Динамічні правила MVP-етапу — у rules.ts (група 8.4b) */
 
 /** GDD-пороги для хвиль (§11.3) */
 export const GDD_THRESHOLDS: Record<Wave, number> = {

@@ -53,7 +53,7 @@ export type SoilState =
 
 export type LightRecord = "full_sun" | "partial_shade" | "deep_shade";
 
-export type ProbabilityLevel = "none" | "low" | "medium" | "high" | "peak";
+export type ProbabilityLevel = "no_data" | "low" | "medium" | "high" | "peak";
 
 // ============================================================================
 // Weather (§11.1)
@@ -241,6 +241,7 @@ export interface ScoredSpecies {
   matched: string[];            // які умови спрацювали
   missed: string[];             // які ні
   wave: Wave | null;
+  where?: string | null;        // overrideWhere від Rule 3 / Rule 8 (мікрорефугіум)
 }
 
 export interface ForecastResult {
