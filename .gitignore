@@ -1,5 +1,11 @@
 node_modules
-.env.local
 .env
+.env.*
+!.env.example
+.env.test
 *.log
 .DS_Store
+discovery-report-*.md
+session.json
+*.jwt
+supabase/.temp/

@@ -88,13 +88,17 @@ export async function dispatchAlert(
         await updateNotificationStatus(
           db,
           notif.id,
-          sendResult.success ? "sent" : "failed",
+          sendResult.queued
+            ? "queued"
+            : sendResult.success
+            ? "sent"
+            : "failed",
           sendResult
         );
 
-        if (sendResult.success) {
+        if (sendResult.success && !sendResult.queued) {
           result.push_attempted++;
-        } else {
+        } else if (!sendResult.success) {
           if (sendResult.errorMessage && isTokenInvalidError(sendResult.errorMessage)) {
             await db
               .from("guardian_push_tokens")
@@ -137,11 +141,15 @@ export async function dispatchAlert(
         await updateNotificationStatus(
           db,
           notif.id,
-          smsResult.success ? "sent" : "failed",
+          smsResult.queued
+            ? "queued"
+            : smsResult.success
+            ? "sent"
+            : "failed",
           smsResult
         );
 
-        if (smsResult.success) {
+        if (smsResult.success && !smsResult.queued) {
           result.sms_attempted++;
         }
       }
@@ -223,7 +231,7 @@ function buildGuardianUrl(_guardianId: string): string {
 async function updateNotificationStatus(
   db: SupabaseClient,
   notificationId: number,
-  status: "sent" | "failed",
+  status: "queued" | "sent" | "failed",
   result: { providerMessageId?: string; errorMessage?: string }
 ): Promise<void> {
   await db

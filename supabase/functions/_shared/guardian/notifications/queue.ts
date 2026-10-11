@@ -137,6 +137,7 @@ async function processQueuedNotification(
     const body = `${notif.alert.alert_type}`;
 
     let anySuccess = false;
+    let anyQueued = false;
     for (const t of tokens) {
       const result = await sendPush({
         token: t.fcm_token,
@@ -146,6 +147,7 @@ async function processQueuedNotification(
       });
 
       if (result.success) anySuccess = true;
+      if (result.queued) anyQueued = true;
       if (!result.success && result.errorMessage && isTokenInvalidError(result.errorMessage)) {
         await db
           .from("guardian_push_tokens")
@@ -154,7 +156,10 @@ async function processQueuedNotification(
       }
     }
 
-    if (anySuccess) {
+    if (anyQueued) {
+      await updateNotificationStatus(db, notif.id, "queued");
+      stats.skipped++;
+    } else if (anySuccess) {
       await updateNotificationStatus(db, notif.id, "sent");
       stats.push_sent++;
     } else {
@@ -185,11 +190,16 @@ async function updateNotification(
   id: number,
   result: SendResult
 ): Promise<void> {
+  const status = result.queued
+    ? "queued"
+    : result.success
+    ? "sent"
+    : "failed";
   await db
     .from("guardian_notifications")
     .update({
-      status: result.success ? "sent" : "failed",
-      sent_at: result.success ? new Date().toISOString() : null,
+      status,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
       provider_message_id: result.providerMessageId ?? null,
       error_message: result.errorMessage ?? null,
     })

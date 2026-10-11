@@ -3,6 +3,11 @@ import type { SmsPayload, SendResult } from "./types.ts";
 const TURBOSMS_API_URL = "https://api.turbosms.ua/message/send.json";
 
 export async function sendSms(payload: SmsPayload): Promise<SendResult> {
+  if (Deno.env.get("SMS_ENABLED") !== "true") {
+    console.log("[sms] sms skipped (SMS_ENABLED=false)");
+    return { success: true, queued: true, providerMessageId: "disabled-stub" };
+  }
+
   const token = Deno.env.get("TURBOSMS_TOKEN");
   const sender = Deno.env.get("TURBOSMS_SENDER") ?? "MushroomRadar";
 

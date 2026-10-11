@@ -44,6 +44,7 @@ export interface SmsPayload {
 
 export interface SendResult {
   success: boolean;
+  queued?: boolean;
   providerMessageId?: string;
   errorMessage?: string;
 }

@@ -5,6 +5,22 @@
 
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
 
+-- Гарантуємо видимість extensions у search_path (лікує "type geography
+-- does not exist" у CI, де search_path може не містити extensions)
+ALTER DATABASE postgres SET search_path TO public, extensions;
+
+-- Функція оновлення updated_at (створюється тут, бо це найперший файл,
+-- який її використовує; create_users теж її створює — OR REPLACE ідемпотентний)
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
 CREATE TABLE public.regions (
   id SERIAL PRIMARY KEY,
 

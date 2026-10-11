@@ -39,6 +39,11 @@ function ensureInitialized(): void {
 }
 
 export async function sendPush(payload: PushPayload): Promise<SendResult> {
+  if (Deno.env.get("FIREBASE_ENABLED") !== "true") {
+    console.log("[firebase] push skipped (FIREBASE_ENABLED=false)");
+    return { success: true, queued: true, providerMessageId: "disabled-stub" };
+  }
+
   try {
     ensureInitialized();
   } catch (err) {
@@ -94,6 +99,14 @@ export async function sendPushMulti(
   notification: { title: string; body: string; data?: Record<string, string>; priority: "high" | "normal" }
 ): Promise<Array<{ token: string; result: SendResult }>> {
   if (tokens.length === 0) return [];
+
+  if (Deno.env.get("FIREBASE_ENABLED") !== "true") {
+    console.log("[firebase] push skipped (FIREBASE_ENABLED=false)");
+    return tokens.map((t) => ({
+      token: t,
+      result: { success: true, queued: true, providerMessageId: "disabled-stub" },
+    }));
+  }
 
   try {
     ensureInitialized();
