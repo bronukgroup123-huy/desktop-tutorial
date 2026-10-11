@@ -2,6 +2,8 @@
 -- regions — області України з полігонами
 -- PostGIS включається тут, бо це перше місце, де він потрібен
 -- ============================================================================
+-- ІДЕМПОТЕНТНА ВЕРСІЯ: таблиця могла бути створена вручну в SQL Editor,
+-- тому всі операції безпечні для повторного виконання.
 
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
 
@@ -14,14 +16,14 @@ ALTER DATABASE postgres SET search_path TO public, extensions;
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-AS $$
+AS $fn_upd$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$;
+$fn_upd$;
 
-CREATE TABLE public.regions (
+CREATE TABLE IF NOT EXISTS public.regions (
   id SERIAL PRIMARY KEY,
 
   name TEXT NOT NULL,
@@ -34,18 +36,35 @@ CREATE TABLE public.regions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX regions_polygon_idx
+-- Дожати ключові колонки, якщо таблиця була створена вручну без них
+ALTER TABLE public.regions ADD COLUMN IF NOT EXISTS koatuu TEXT;
+ALTER TABLE public.regions ADD COLUMN IF NOT EXISTS katottg TEXT;
+
+CREATE INDEX IF NOT EXISTS regions_polygon_idx
   ON public.regions USING GIST (polygon);
 
-CREATE INDEX regions_name_idx
+CREATE INDEX IF NOT EXISTS regions_name_idx
   ON public.regions (name);
 
-CREATE TRIGGER regions_updated_at
-  BEFORE UPDATE ON public.regions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+-- Trigger (guarded: CREATE TRIGGER не має IF NOT EXISTS в PG15)
+DO $do_regions$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'regions_updated_at'
+      AND tgrelid = 'public.regions'::regclass
+      AND NOT tgisinternal
+  ) THEN
+    CREATE TRIGGER regions_updated_at
+      BEFORE UPDATE ON public.regions
+      FOR EACH ROW
+      EXECUTE FUNCTION public.update_updated_at_column();
+  END IF;
+END;
+$do_regions$;
 
 ALTER TABLE public.regions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS regions_read ON public.regions;
 CREATE POLICY regions_read ON public.regions
   FOR SELECT USING (auth.role() = 'authenticated');
