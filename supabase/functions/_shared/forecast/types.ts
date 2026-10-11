@@ -2,6 +2,10 @@
 // Forecast Engine — Types (plan v6.0 §11.1)
 // ============================================================================
 
+import type { FeatureFlags } from "./flags.ts";
+
+export type { FeatureFlags };
+
 export type Wave = "spring" | "summer1" | "summer2" | "autumn" | "late";
 
 export type ForestType =
@@ -15,7 +19,8 @@ export type ForestType =
   | "hornbeam"
   | "deciduous"
   | "coniferous"
-  | "mixed";
+  | "mixed"
+  | "any";
 
 export type HabitatType =
   | "forest_floor"
@@ -51,32 +56,60 @@ export type LightRecord = "full_sun" | "partial_shade" | "deep_shade";
 export type ProbabilityLevel = "none" | "low" | "medium" | "high" | "peak";
 
 // ============================================================================
-// Weather / Crowd
+// Weather (§11.1)
 // ============================================================================
 
+export type PressureTrend =
+  | "rising"
+  | "falling"
+  | "stable"
+  | "smooth_decline_before_rain";
+
+/** Стан ґрунту за вологістю (§13) — не плутати з SoilState (текстура) */
+export type SoilMoistureState = "dry" | "normal" | "wet" | "waterlogged";
+
 export interface WeatherData {
-  date: string;                 // ISO
-  temp_min: number;             // °C
-  temp_max: number;
-  temp_avg: number;
-  humidity: number;             // %
-  rain_1d: number;              // mm
-  rain_2d: number;              // mm
-  rain_3d: number;              // mm
-  rain_7d?: number;             // mm
-  pressure?: number;            // hPa
-  pressure_trend?: "rising" | "falling" | "stable";
-  wind_kmh?: number;
-  cloudiness?: number;          // %
-  drought_days?: number;        // днів без дощу
-  days_after_rain?: number;
+  // Температура
+  tempAvg7d: number;
+  tempAvg14d: number;
+  tempAvg20d: number;
+  tempMin: number;
+  tempMax: number;
+
+  // Вологість і опади
+  humidity: number;       // середня за 7 днів, %
+  rain1d: number;         // мм за 1 день
+  rain2d: number;         // мм за 2 дні
+  rain3d: number;         // мм за 3 дні
+  rain7d: number;         // мм за 7 днів
+  rain14d: number;        // мм за 14 днів
+  rain30d: number;        // мм за 30 днів
+  droughtDays: number;    // днів з опадами <1 мм/24 год (§11.1)
+  daysAfterRain: number;  // днів після останнього дощу ≥10 мм/24 год
+
+  // Тиск
+  pressure: number;       // гПа
+  pressureTrend: PressureTrend;
+
+  // Стан ґрунту (§13)
+  soilState: SoilMoistureState;
+
+  // Додаткові (для GDD)
+  gdd: number | null;     // Growing Degree Days, або null якщо недоступно
+
+  // Метадані
+  fetchedAt: string;      // ISO timestamp
+  source: "open-meteo" | "openweather" | "cached" | "unavailable";
 }
 
+// ============================================================================
+// Crowd
+// ============================================================================
+
 export interface CrowdData {
-  date: string;
-  crowd_level: "low" | "medium" | "high" | "extreme";
-  is_weekend: boolean;
-  is_holiday?: boolean;
+  verifiedPicks7d: number;
+  negativeReports7d: number;
+  indicatorSpecies: string[];
 }
 
 // ============================================================================
@@ -84,11 +117,14 @@ export interface CrowdData {
 // ============================================================================
 
 export interface ForecastInput {
-  user_id: string;
-  coords: { lat: number; lng: number };
-  region_id?: number | null;
-  date_range: string[];         // ISO dates
-  mushroom_types?: string[];    // filter (optional)
+  lat: number;
+  lng: number;
+  date: Date;
+  forestType: ForestType | null;
+  forestConfirmed: boolean;
+  homeRegionId: number | null;
+  userId?: string;
+  mushroomTypes?: string[];    // filter (optional)
 }
 
 export interface ForestZoneRef {
@@ -100,15 +136,35 @@ export interface ForestZoneRef {
   light_type: LightRecord | null;
 }
 
+export interface ForestZoneData {
+  standAgeYears: number | null;
+  standAgeSource: "inventory" | "ndvi" | "user" | null;
+  standAgeConfidence: number;
+  reliefType: ReliefType | null;
+  lightType: string | null;
+}
+
 export interface ForecastContext {
-  region_id: number | null;
-  region_name: string | null;
-  forest_zone: ForestZoneRef | null;
-  weather: WeatherData[];
-  crowd: CrowdData[];
-  gdd_accumulated?: number;     // growing degree days
-  day_of_year: number;
-  in_forest: boolean;
+  input: ForecastInput;
+  weather: WeatherData;
+  crowd: CrowdData;
+  wave: Wave;
+
+  // FIX 2.6 — окремі прапорці
+  forestTypeUnknown: boolean;
+  standAgeUnknown: boolean;
+
+  // Значення
+  standAge: number | null;
+  standAgeConfidence: number;
+  reliefType: ReliefType | null;
+  lightType: string | null;
+
+  config: FeatureFlags;
+  regionName: string | null;  // null у 8.2 (seed regions у 9.1)
+
+  // Метадані
+  computedAt: string;
 }
 
 // ============================================================================
@@ -188,10 +244,13 @@ export interface ScoredSpecies {
 }
 
 export interface ForecastResult {
+  regionName: string | null;
+  date: string;
+  forest: string;
   top1: ScoredSpecies | null;
   alternative: ScoredSpecies | null;
   warnings: string[];
-  noDataReason: "no_forest_zone" | "no_weather" | "no_region" | "no_rules" | null;
+  noDataReason?: string;
 }
 
 // ============================================================================

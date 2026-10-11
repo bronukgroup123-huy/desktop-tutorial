@@ -64,11 +64,10 @@ export async function findForestZoneByPoint(
   lat: number,
   lng: number
 ): Promise<ForestZoneRef | null> {
-  // PostgREST не вміє ST_Contains напряму — викликаємо RPC, якщо є.
-  // Fallback: остання зона (для 8.1 достатньо інтерфейсу).
-  const { data, error } = await db.rpc("find_forest_zone_by_point", {
-    p_lng: lng,
-    p_lat: lat,
+  // PostgREST не вміє ST_Contains напряму — викликаємо RPC (group 8.2).
+  const { data, error } = await db.rpc("find_zone_by_point", {
+    lat,
+    lng,
   });
 
   if (error || !data) return null;
