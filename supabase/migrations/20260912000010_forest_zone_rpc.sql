@@ -31,7 +31,7 @@ AS $fn$
     fz.forest_type
   FROM public.forest_zones fz
   WHERE ST_Contains(
-    fz.polygon::geometry,
+    fz.polygon::extensions.geometry,
     ST_SetSRID(ST_MakePoint(lng, lat), 4326)
   )
   ORDER BY fz.id
