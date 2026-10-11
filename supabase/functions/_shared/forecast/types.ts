@@ -193,3 +193,85 @@ export interface ForecastResult {
   warnings: string[];
   noDataReason: "no_forest_zone" | "no_weather" | "no_region" | "no_rules" | null;
 }
+
+// ============================================================================
+// CatalogEntry — рядок mushroom_catalog (канонічний довідник 326 видів)
+// ============================================================================
+
+export type Edibility =
+  | "edible"
+  | "conditionally_edible"
+  | "inedible"
+  | "poisonous"
+  | "deadly_poisonous";
+
+export interface CatalogAttrs {
+  color: string[];
+  stem: string[];
+  tree: string[];
+  season: string[];
+}
+
+export interface CatalogEntry {
+  id: string;
+  nameUa: string;
+  nameLat: string;
+  edibility: Edibility;
+  edibilityLabel: string;
+  redListed: boolean;
+  rarity: string;
+  hasPhoto: boolean;
+  top20: boolean;
+  popular: boolean;
+  aiRecognition: boolean;
+  features: string;
+  months: number[];
+  attrs: CatalogAttrs;
+  photos: Array<{ url: string }>;
+  peakMonths: number[];
+  zones: string[];
+  license?: Record<string, unknown>;
+  redBookSource?: Record<string, unknown>;
+}
+
+/** snake_case → camelCase рядок mushroom_catalog */
+export function catalogRowToEntry(row: Record<string, unknown>): CatalogEntry {
+  const attrs = (row.attrs ?? {}) as Record<string, unknown>;
+  const photos = Array.isArray(row.photos)
+    ? (row.photos as Array<Record<string, unknown>>).map((p) => ({ url: String(p.url ?? "") }))
+    : [];
+  return {
+    id: String(row.id),
+    nameUa: String(row.name_ua),
+    nameLat: String(row.name_lat),
+    edibility: (row.edibility as Edibility) ?? "inedible",
+    edibilityLabel: String(row.edibility_label ?? ""),
+    redListed: Boolean(row.red_listed),
+    rarity: String(row.rarity ?? ""),
+    hasPhoto: Boolean(row.has_photo),
+    top20: Boolean(row.top20),
+    popular: Boolean(row.popular),
+    aiRecognition: Boolean(row.ai_recognition),
+    features: String(row.features ?? ""),
+    months: intArray(row.months),
+    attrs: {
+      color: strArray(attrs.color),
+      stem: strArray(attrs.stem),
+      tree: strArray(attrs.tree),
+      season: strArray(attrs.season),
+    },
+    photos,
+    peakMonths: intArray(row.peak_months),
+    zones: strArray(row.zones),
+    license: (row.license as Record<string, unknown>) ?? undefined,
+    redBookSource: (row.red_book_source as Record<string, unknown>) ?? undefined,
+  };
+}
+
+function intArray(v: unknown): number[] {
+  return Array.isArray(v) ? v.map(Number).filter((n) => !Number.isNaN(n)) : [];
+}
+
+function strArray(v: unknown): string[] {
+  return Array.isArray(v) ? v.map(String) : [];
+}
