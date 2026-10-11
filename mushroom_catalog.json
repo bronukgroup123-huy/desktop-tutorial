@@ -114,7 +114,7 @@
   },
   "species": [
     {
-      "id": "boletus-edulis",
+      "id": "boletus_edulis",
       "name": "Білий гриб",
       "latin": "Boletus edulis",
       "edibility": "edible",
@@ -184,7 +184,7 @@
       ]
     },
     {
-      "id": "lactarius-torminosus",
+      "id": "lactarius_torminosus",
       "name": "Вовнянка рожева",
       "latin": "Lactarius torminosus",
       "edibility": "conditionally_edible",
@@ -237,7 +237,7 @@
       ]
     },
     {
-      "id": "pleurotus-ostreatus",
+      "id": "pleurotus_ostreatus",
       "name": "Глива звичайна",
       "latin": "Pleurotus ostreatus",
       "edibility": "edible",
@@ -307,7 +307,7 @@
       ]
     },
     {
-      "id": "lactarius-resimus",
+      "id": "lactarius_resimus",
       "name": "Груздь справжній",
       "latin": "Lactarius resimus",
       "edibility": "conditionally_edible",
@@ -349,7 +349,7 @@
       ]
     },
     {
-      "id": "lycoperdon-perlatum",
+      "id": "lycoperdon_perlatum",
       "name": "Дощовик їстівний",
       "latin": "Lycoperdon perlatum",
       "edibility": "edible",
@@ -411,7 +411,7 @@
       ]
     },
     {
-      "id": "boletus-luridus",
+      "id": "boletus_luridus",
       "name": "Дубовик звичайний",
       "latin": "Boletus luridus",
       "edibility": "edible",
@@ -471,7 +471,7 @@
       ]
     },
     {
-      "id": "flammulina-velutipes",
+      "id": "flammulina_velutipes",
       "name": "Зимовий опеньок",
       "latin": "Flammulina velutipes",
       "edibility": "edible",
@@ -537,7 +537,7 @@
       ]
     },
     {
-      "id": "hydnum-repandum",
+      "id": "hydnum_repandum",
       "name": "Їжовик жовтуватий",
       "latin": "Hydnum repandum",
       "edibility": "edible",
@@ -604,7 +604,7 @@
       ]
     },
     {
-      "id": "suillus-bovinus",
+      "id": "suillus_bovinus",
       "name": "Козляк",
       "latin": "Suillus bovinus",
       "edibility": "edible",
@@ -658,7 +658,7 @@
       ]
     },
     {
-      "id": "cantharellus-cibarius",
+      "id": "cantharellus_cibarius",
       "name": "Лисичка справжня",
       "latin": "Cantharellus cibarius",
       "edibility": "edible",
@@ -715,7 +715,7 @@
       ]
     },
     {
-      "id": "suillus-luteus",
+      "id": "suillus_luteus",
       "name": "Маслюк пізній",
       "latin": "Suillus luteus",
       "edibility": "edible",
@@ -777,7 +777,7 @@
       ]
     },
     {
-      "id": "xerocomus-subtomentosus",
+      "id": "xerocomus_subtomentosus",
       "name": "Моховик зелений",
       "latin": "Xerocomus subtomentosus",
       "edibility": "edible",
@@ -838,7 +838,7 @@
       ]
     },
     {
-      "id": "armillaria-mellea",
+      "id": "armillaria_mellea",
       "name": "Опеньок осінній",
       "latin": "Armillaria mellea",
       "edibility": "edible",
@@ -907,7 +907,7 @@
       ]
     },
     {
-      "id": "agaricus-campestris",
+      "id": "agaricus_campestris",
       "name": "Печериця звичайна",
       "latin": "Agaricus campestris",
       "edibility": "edible",
@@ -965,7 +965,7 @@
       ]
     },
     {
-      "id": "leccinum-scabrum",
+      "id": "leccinum_scabrum",
       "name": "Підберезник звичайний",
       "latin": "Leccinum scabrum",
       "edibility": "edible",
@@ -1033,7 +1033,7 @@
       ]
     },
     {
-      "id": "leccinum-aurantiacum",
+      "id": "leccinum_aurantiacum",
       "name": "Підосичник",
       "latin": "Leccinum aurantiacum",
       "edibility": "edible",
@@ -1093,7 +1093,7 @@
       ]
     },
     {
-      "id": "imleria-badia",
+      "id": "imleria_badia",
       "name": "Польський гриб",
       "latin": "Imleria badia",
       "edibility": "edible",
@@ -1147,7 +1147,7 @@
       ]
     },
     {
-      "id": "lactarius-deliciosus",
+      "id": "lactarius_deliciosus",
       "name": "Рижик справжній",
       "latin": "Lactarius deliciosus",
       "edibility": "edible",
@@ -1205,7 +1205,7 @@
       ]
     },
     {
-      "id": "russula-vesca",
+      "id": "russula_vesca",
       "name": "Сироїжка",
       "latin": "Russula vesca",
       "edibility": "edible",
@@ -1272,7 +1272,7 @@
       ]
     },
     {
-      "id": "morchella-esculenta",
+      "id": "morchella_esculenta",
       "name": "Сморчок звичайний",
       "latin": "Morchella esculenta",
       "edibility": "edible",
@@ -1318,7 +1318,7 @@
       ]
     },
     {
-      "id": "albatrellus-confluens",
+      "id": "albatrellus_confluens",
       "name": "Альбатрел злитий",
       "latin": "Albatrellus confluens",
       "edibility": "edible",
@@ -1364,7 +1364,7 @@
       ]
     },
     {
-      "id": "albatrellus-ovinus",
+      "id": "albatrellus_ovinus",
       "name": "Альбатрел овечий",
       "latin": "Albatrellus ovinus",
       "edibility": "edible",
@@ -1407,7 +1407,7 @@
       ]
     },
     {
-      "id": "boletus-reticulatus",
+      "id": "boletus_reticulatus",
       "name": "Білий гриб сітчастий",
       "latin": "Boletus reticulatus",
       "edibility": "edible",
@@ -1461,7 +1461,7 @@
       ]
     },
     {
-      "id": "boletus-pinophilus",
+      "id": "boletus_pinophilus",
       "name": "Білий гриб сосновий",
       "latin": "Boletus pinophilus",
       "edibility": "edible",
@@ -1523,7 +1523,7 @@
       ]
     },
     {
-      "id": "pleurotus-dryinus",
+      "id": "pleurotus_dryinus",
       "name": "Глива дубова",
       "latin": "Pleurotus dryinus",
       "edibility": "edible",
@@ -1575,7 +1575,7 @@
       ]
     },
     {
-      "id": "pleurotus-pulmonarius",
+      "id": "pleurotus_pulmonarius",
       "name": "Глива легенева",
       "latin": "Pleurotus pulmonarius",
       "edibility": "edible",
@@ -1624,7 +1624,7 @@
       ]
     },
     {
-      "id": "macrolepiota-procera",
+      "id": "macrolepiota_procera",
       "name": "Гриб-зонтик великий",
       "latin": "Macrolepiota procera",
       "edibility": "edible",
@@ -1686,7 +1686,7 @@
       ]
     },
     {
-      "id": "macrolepiota-mastoidea",
+      "id": "macrolepiota_mastoidea",
       "name": "Гриб-зонтик сосковидний",
       "latin": "Macrolepiota mastoidea",
       "edibility": "edible",
@@ -1726,7 +1726,7 @@
       ]
     },
     {
-      "id": "tricholoma-equestre",
+      "id": "tricholoma_equestre",
       "name": "Зеленушка",
       "latin": "Tricholoma equestre",
       "edibility": "conditionally_edible",
@@ -1771,7 +1771,7 @@
       ]
     },
     {
-      "id": "hydnum-rufescens",
+      "id": "hydnum_rufescens",
       "name": "Їжовик рудуватий",
       "latin": "Hydnum rufescens",
       "edibility": "edible",
@@ -1830,7 +1830,7 @@
       ]
     },
     {
-      "id": "hydnum-umbilicatum",
+      "id": "hydnum_umbilicatum",
       "name": "Їжовик ямчастий",
       "latin": "Hydnum umbilicatum",
       "edibility": "edible",
@@ -1873,7 +1873,7 @@
       ]
     },
     {
-      "id": "clavulina-cristata",
+      "id": "clavulina_cristata",
       "name": "Клавуліна гребінчаста",
       "latin": "Clavulina cristata",
       "edibility": "edible",
@@ -1905,7 +1905,7 @@
       ]
     },
     {
-      "id": "clavulina-coralloides",
+      "id": "clavulina_coralloides",
       "name": "Клавуліна зморшкувата",
       "latin": "Clavulina coralloides",
       "edibility": "edible",
@@ -1945,7 +1945,7 @@
       ]
     },
     {
-      "id": "cantharellus-amethysteus",
+      "id": "cantharellus_amethysteus",
       "name": "Лисичка аметистова",
       "latin": "Cantharellus amethysteus",
       "edibility": "edible",
@@ -1997,7 +1997,7 @@
       ]
     },
     {
-      "id": "craterellus-lutescens",
+      "id": "craterellus_lutescens",
       "name": "Лисичка жовта",
       "latin": "Craterellus lutescens",
       "edibility": "edible",
@@ -2038,7 +2038,7 @@
       ]
     },
     {
-      "id": "craterellus-cinereus",
+      "id": "craterellus_cinereus",
       "name": "Лисичка сіра",
       "latin": "Craterellus cinereus",
       "edibility": "edible",
@@ -2091,7 +2091,7 @@
       ]
     },
     {
-      "id": "craterellus-tubaeformis",
+      "id": "craterellus_tubaeformis",
       "name": "Лисичка трубчаста",
       "latin": "Craterellus tubaeformis",
       "edibility": "edible",
@@ -2139,7 +2139,7 @@
       ]
     },
     {
-      "id": "cantharellus-friesii",
+      "id": "cantharellus_friesii",
       "name": "Лисичка Фріза",
       "latin": "Cantharellus friesii",
       "edibility": "edible",
@@ -2207,7 +2207,7 @@
       ]
     },
     {
-      "id": "suillus-placidus",
+      "id": "suillus_placidus",
       "name": "Маслюк білий",
       "latin": "Suillus placidus",
       "edibility": "edible",
@@ -2253,7 +2253,7 @@
       ]
     },
     {
-      "id": "suillus-variegatus",
+      "id": "suillus_variegatus",
       "name": "Маслюк жовто-бурий",
       "latin": "Suillus variegatus",
       "edibility": "edible",
@@ -2314,7 +2314,7 @@
       ]
     },
     {
-      "id": "suillus-granulatus",
+      "id": "suillus_granulatus",
       "name": "Маслюк зернистий",
       "latin": "Suillus granulatus",
       "edibility": "edible",
@@ -2387,7 +2387,7 @@
       ]
     },
     {
-      "id": "suillus-grevillei",
+      "id": "suillus_grevillei",
       "name": "Маслюк модриновий",
       "latin": "Suillus grevillei",
       "edibility": "edible",
@@ -2437,7 +2437,7 @@
       ]
     },
     {
-      "id": "xerocomellus-chrysenteron",
+      "id": "xerocomellus_chrysenteron",
       "name": "Моховик тріщинуватий",
       "latin": "Xerocomellus chrysenteron",
       "edibility": "edible",
@@ -2491,7 +2491,7 @@
       ]
     },
     {
-      "id": "amanita-excelsa",
+      "id": "amanita_excelsa",
       "name": "Мухомор високий",
       "latin": "Amanita excelsa",
       "edibility": "conditionally_edible",
@@ -2551,7 +2551,7 @@
       ]
     },
     {
-      "id": "amanita-rubescens",
+      "id": "amanita_rubescens",
       "name": "Мухомор червоніючий",
       "latin": "Amanita rubescens",
       "edibility": "conditionally_edible",
@@ -2630,7 +2630,7 @@
       ]
     },
     {
-      "id": "amanita-crocea",
+      "id": "amanita_crocea",
       "name": "Мухомор шафрановий",
       "latin": "Amanita crocea",
       "edibility": "edible",
@@ -2672,7 +2672,7 @@
       ]
     },
     {
-      "id": "kuehneromyces-mutabilis",
+      "id": "kuehneromyces_mutabilis",
       "name": "Опеньок літній",
       "latin": "Kuehneromyces mutabilis",
       "edibility": "edible",
@@ -2719,7 +2719,7 @@
       ]
     },
     {
-      "id": "armillaria-ostoyae",
+      "id": "armillaria_ostoyae",
       "name": "Опеньок темний",
       "latin": "Armillaria ostoyae",
       "edibility": "edible",
@@ -2761,7 +2761,7 @@
       ]
     },
     {
-      "id": "leccinellum-pseudoscabrum",
+      "id": "leccinellum_pseudoscabrum",
       "name": "Підберезник грабовий",
       "latin": "Leccinellum pseudoscabrum",
       "edibility": "edible",
@@ -2825,7 +2825,7 @@
       ]
     },
     {
-      "id": "leccinum-versipelle",
+      "id": "leccinum_versipelle",
       "name": "Підберезник жовто-бурий",
       "latin": "Leccinum versipelle",
       "edibility": "edible",
@@ -2894,7 +2894,7 @@
       ]
     },
     {
-      "id": "leccinum-variicolor",
+      "id": "leccinum_variicolor",
       "name": "Підберезник різнокольоровий",
       "latin": "Leccinum variicolor",
       "edibility": "edible",
@@ -2942,7 +2942,7 @@
       ]
     },
     {
-      "id": "leccinum-duriusculum",
+      "id": "leccinum_duriusculum",
       "name": "Підберезник тополевий",
       "latin": "Leccinum duriusculum",
       "edibility": "edible",
@@ -2994,7 +2994,7 @@
       ]
     },
     {
-      "id": "russula-delica",
+      "id": "russula_delica",
       "name": "Підгруздь",
       "latin": "Russula delica",
       "edibility": "edible",
@@ -3051,7 +3051,7 @@
       ]
     },
     {
-      "id": "leccinum-albostipitatum",
+      "id": "leccinum_albostipitatum",
       "name": "Підосичник білоніжковий",
       "latin": "Leccinum albostipitatum",
       "edibility": "edible",
@@ -3122,7 +3122,7 @@
       ]
     },
     {
-      "id": "amanita-fulva",
+      "id": "amanita_fulva",
       "name": "Поплавок жовто-коричневий",
       "latin": "Amanita fulva",
       "edibility": "edible",
@@ -3180,7 +3180,7 @@
       ]
     },
     {
-      "id": "amanita-vaginata",
+      "id": "amanita_vaginata",
       "name": "Поплавок сірий",
       "latin": "Amanita vaginata",
       "edibility": "edible",
@@ -3255,7 +3255,7 @@
       ]
     },
     {
-      "id": "ramaria-botrytis",
+      "id": "ramaria_botrytis",
       "name": "Рамарія гроновидна",
       "latin": "Ramaria botrytis",
       "edibility": "edible",
@@ -3309,7 +3309,7 @@
       ]
     },
     {
-      "id": "lactarius-deterrimus",
+      "id": "lactarius_deterrimus",
       "name": "Рижик ялиновий",
       "latin": "Lactarius deterrimus",
       "edibility": "edible",
@@ -3355,7 +3355,7 @@
       ]
     },
     {
-      "id": "lactarius-salmonicolor",
+      "id": "lactarius_salmonicolor",
       "name": "Рижик ялицевий",
       "latin": "Lactarius salmonicolor",
       "edibility": "edible",
@@ -3403,7 +3403,7 @@
       ]
     },
     {
-      "id": "tricholoma-terreum",
+      "id": "tricholoma_terreum",
       "name": "Рядовка землиста",
       "latin": "Tricholoma terreum",
       "edibility": "edible",
@@ -3449,7 +3449,7 @@
       ]
     },
     {
-      "id": "lepista-personata",
+      "id": "lepista_personata",
       "name": "Рядовка ліловонога",
       "latin": "Lepista personata",
       "edibility": "edible",
@@ -3512,7 +3512,7 @@
       ]
     },
     {
-      "id": "calocybe-gambosa",
+      "id": "calocybe_gambosa",
       "name": "Рядовка майська",
       "latin": "Calocybe gambosa",
       "edibility": "edible",
@@ -3569,7 +3569,7 @@
       ]
     },
     {
-      "id": "tricholoma-portentosum",
+      "id": "tricholoma_portentosum",
       "name": "Рядовка сіра",
       "latin": "Tricholoma portentosum",
       "edibility": "edible",
@@ -3613,7 +3613,7 @@
       ]
     },
     {
-      "id": "lepista-nuda",
+      "id": "lepista_nuda",
       "name": "Рядовка фіолетова",
       "latin": "Lepista nuda",
       "edibility": "edible",
@@ -3657,7 +3657,7 @@
       ]
     },
     {
-      "id": "russula-xerampelina",
+      "id": "russula_xerampelina",
       "name": "Сироїжка буро-червона",
       "latin": "Russula xerampelina",
       "edibility": "edible",
@@ -3702,7 +3702,7 @@
       ]
     },
     {
-      "id": "russula-virescens",
+      "id": "russula_virescens",
       "name": "Сироїжка зелена",
       "latin": "Russula virescens",
       "edibility": "edible",
@@ -3746,7 +3746,7 @@
       ]
     },
     {
-      "id": "russula-cyanoxantha",
+      "id": "russula_cyanoxantha",
       "name": "Сироїжка синьо-жовта",
       "latin": "Russula cyanoxantha",
       "edibility": "edible",
@@ -3796,7 +3796,7 @@
       ]
     },
     {
-      "id": "russula-foetens",
+      "id": "russula_foetens",
       "name": "Сироїжка смердюча",
       "latin": "Russula foetens",
       "edibility": "inedible",
@@ -3870,7 +3870,7 @@
       ]
     },
     {
-      "id": "lactarius-vellereus",
+      "id": "lactarius_vellereus",
       "name": "Скрипиця",
       "latin": "Lactarius vellereus",
       "edibility": "conditionally_edible",
@@ -3930,7 +3930,7 @@
       ]
     },
     {
-      "id": "polyporus-squamosus",
+      "id": "polyporus_squamosus",
       "name": "Трутовик лускатий",
       "latin": "Polyporus squamosus",
       "edibility": "edible",
@@ -3988,7 +3988,7 @@
       ]
     },
     {
-      "id": "laetiporus-sulphureus",
+      "id": "laetiporus_sulphureus",
       "name": "Трутовик сірчано-жовтий",
       "latin": "Laetiporus sulphureus",
       "edibility": "edible",
@@ -4063,7 +4063,7 @@
       ]
     },
     {
-      "id": "lactarius-quietus",
+      "id": "lactarius_quietus",
       "name": "Хрящ-молочник дубовий",
       "latin": "Lactarius quietus",
       "edibility": "edible",
@@ -4128,7 +4128,7 @@
       ]
     },
     {
-      "id": "lactifluus-volemus",
+      "id": "lactifluus_volemus",
       "name": "Хрящ-молочник їстівний",
       "latin": "Lactifluus volemus",
       "edibility": "edible",
@@ -4174,7 +4174,7 @@
       ]
     },
     {
-      "id": "lactarius-piperatus",
+      "id": "lactarius_piperatus",
       "name": "Хрящ-молочник перцевий",
       "latin": "Lactarius piperatus",
       "edibility": "conditionally_edible",
@@ -4229,7 +4229,7 @@
       ]
     },
     {
-      "id": "lactarius-subdulcis",
+      "id": "lactarius_subdulcis",
       "name": "Хрящ-молочник солодкуватий",
       "latin": "Lactarius subdulcis",
       "edibility": "edible",
@@ -4281,7 +4281,7 @@
       ]
     },
     {
-      "id": "boletus-aereus",
+      "id": "boletus_aereus",
       "name": "Боровик бронзовий",
       "latin": "Boletus aereus",
       "edibility": "edible",
@@ -4313,7 +4313,7 @@
       }
     },
     {
-      "id": "rubroboletus-lupinus",
+      "id": "rubroboletus_lupinus",
       "name": "Боровик вовчий",
       "latin": "Rubroboletus lupinus",
       "edibility": "inedible",
@@ -4353,7 +4353,7 @@
       }
     },
     {
-      "id": "butyriboletus-appendiculatus",
+      "id": "butyriboletus_appendiculatus",
       "name": "Боровик дівочий",
       "latin": "Butyriboletus appendiculatus",
       "edibility": "edible",
@@ -4395,7 +4395,7 @@
       }
     },
     {
-      "id": "butyriboletus-regius",
+      "id": "butyriboletus_regius",
       "name": "Боровик королівський",
       "latin": "Butyriboletus regius",
       "edibility": "edible",
@@ -4435,7 +4435,7 @@
       }
     },
     {
-      "id": "butyriboletus-subappendiculatus",
+      "id": "butyriboletus_subappendiculatus",
       "name": "Боровик напівапендикулярний",
       "latin": "Butyriboletus subappendiculatus",
       "edibility": "edible",
@@ -4479,7 +4479,7 @@
       }
     },
     {
-      "id": "butyriboletus-fuscoroseus",
+      "id": "butyriboletus_fuscoroseus",
       "name": "Боровик рожево-бурий",
       "latin": "Butyriboletus fuscoroseus",
       "edibility": "edible",
@@ -4523,7 +4523,7 @@
       }
     },
     {
-      "id": "rubroboletus-rhodoxanthus",
+      "id": "rubroboletus_rhodoxanthus",
       "name": "Боровик рожево-жовтий",
       "latin": "Rubroboletus rhodoxanthus",
       "edibility": "poisonous",
@@ -4565,7 +4565,7 @@
       }
     },
     {
-      "id": "rubroboletus-satanas",
+      "id": "rubroboletus_satanas",
       "name": "Боровик сатанинський",
       "latin": "Rubroboletus satanas",
       "edibility": "poisonous",
@@ -4607,7 +4607,7 @@
       }
     },
     {
-      "id": "butyriboletus-fechtneri",
+      "id": "butyriboletus_fechtneri",
       "name": "Боровик Фехтнера",
       "latin": "Butyriboletus fechtneri",
       "edibility": "edible",
@@ -4649,7 +4649,7 @@
       }
     },
     {
-      "id": "rubroboletus-rubrosanguineus",
+      "id": "rubroboletus_rubrosanguineus",
       "name": "Боровик червоно-кривавий",
       "latin": "Rubroboletus rubrosanguineus",
       "edibility": "poisonous",
@@ -4689,7 +4689,7 @@
       }
     },
     {
-      "id": "phallus-duplicatus",
+      "id": "phallus_duplicatus",
       "name": "Веселка подвоєна",
       "latin": "Phallus duplicatus",
       "edibility": "inedible",
@@ -4730,7 +4730,7 @@
       }
     },
     {
-      "id": "hemileccinum-depilatum",
+      "id": "hemileccinum_depilatum",
       "name": "Гемілецінум безволосий",
       "latin": "Hemileccinum depilatum",
       "edibility": "edible",
@@ -4772,7 +4772,7 @@
       }
     },
     {
-      "id": "hericium-erinaceus",
+      "id": "hericium_erinaceus",
       "name": "Герицій їжаковий",
       "latin": "Hericium erinaceus",
       "edibility": "edible",
@@ -4806,7 +4806,7 @@
       }
     },
     {
-      "id": "hericium-coralloides",
+      "id": "hericium_coralloides",
       "name": "Герицій кораловий",
       "latin": "Hericium coralloides",
       "edibility": "inedible",
@@ -4838,7 +4838,7 @@
       }
     },
     {
-      "id": "hygrocybe-calyptriformis",
+      "id": "hygrocybe_calyptriformis",
       "name": "Гігроцибе ковпакоподібна",
       "latin": "Hygrocybe calyptriformis",
       "edibility": "inedible",
@@ -4869,7 +4869,7 @@
       }
     },
     {
-      "id": "gomphus-clavatus",
+      "id": "gomphus_clavatus",
       "name": "Гомф булавоподібний",
       "latin": "Gomphus clavatus",
       "edibility": "edible",
@@ -4901,7 +4901,7 @@
       }
     },
     {
-      "id": "grifola-frondosa",
+      "id": "grifola_frondosa",
       "name": "Грифола листувата",
       "latin": "Grifola frondosa",
       "edibility": "edible",
@@ -4933,7 +4933,7 @@
       }
     },
     {
-      "id": "morchella-steppicola",
+      "id": "morchella_steppicola",
       "name": "Зморшок степовий",
       "latin": "Morchella steppicola",
       "edibility": "edible",
@@ -4977,7 +4977,7 @@
       }
     },
     {
-      "id": "pseudocolus-fusiformis",
+      "id": "pseudocolus_fusiformis",
       "name": "Кальмарник веретеноподібний",
       "latin": "Pseudocolus fusiformis",
       "edibility": "inedible",
@@ -5008,7 +5008,7 @@
       }
     },
     {
-      "id": "catathelasma-imperiale",
+      "id": "catathelasma_imperiale",
       "name": "Катателазма царська",
       "latin": "Catathelasma imperiale",
       "edibility": "edible",
@@ -5050,7 +5050,7 @@
       }
     },
     {
-      "id": "anthurus-archeri",
+      "id": "anthurus_archeri",
       "name": "Квітохвісник Арчера",
       "latin": "Anthurus archeri",
       "edibility": "inedible",
@@ -5082,7 +5082,7 @@
       }
     },
     {
-      "id": "clavariadelphus-pistillaris",
+      "id": "clavariadelphus_pistillaris",
       "name": "Клаваріадельф товкачиковий",
       "latin": "Clavariadelphus pistillaris",
       "edibility": "inedible",
@@ -5114,7 +5114,7 @@
       }
     },
     {
-      "id": "lyophyllum-favrei",
+      "id": "lyophyllum_favrei",
       "name": "Ліофіл Фавре",
       "latin": "Lyophyllum favrei",
       "edibility": "inedible",
@@ -5151,7 +5151,7 @@
       }
     },
     {
-      "id": "helvella-monachella",
+      "id": "helvella_monachella",
       "name": "Лопатевик чорний",
       "latin": "Helvella monachella",
       "edibility": "inedible",
@@ -5183,7 +5183,7 @@
       }
     },
     {
-      "id": "suillus-plorans",
+      "id": "suillus_plorans",
       "name": "Маслюк кедровий",
       "latin": "Suillus plorans",
       "edibility": "edible",
@@ -5225,7 +5225,7 @@
       }
     },
     {
-      "id": "myriostoma-coliforme",
+      "id": "myriostoma_coliforme",
       "name": "Міріостома шийкова",
       "latin": "Myriostoma coliforme",
       "edibility": "inedible",
@@ -5256,7 +5256,7 @@
       }
     },
     {
-      "id": "boletus-parasiticus",
+      "id": "boletus_parasiticus",
       "name": "Моховик паразитний",
       "latin": "Boletus parasiticus",
       "edibility": "inedible",
@@ -5288,7 +5288,7 @@
       }
     },
     {
-      "id": "amanita-caesarea",
+      "id": "amanita_caesarea",
       "name": "Мухомор цезарів",
       "latin": "Amanita caesarea",
       "edibility": "edible",
@@ -5321,7 +5321,7 @@
       }
     },
     {
-      "id": "amanita-strobiliformis",
+      "id": "amanita_strobiliformis",
       "name": "Мухомор щетинистий",
       "latin": "Amanita strobiliformis",
       "edibility": "conditionally_edible",
@@ -5353,7 +5353,7 @@
       }
     },
     {
-      "id": "chalciporus-rubinus",
+      "id": "chalciporus_rubinus",
       "name": "Решетняк карміново-червоний",
       "latin": "Chalciporus rubinus",
       "edibility": "inedible",
@@ -5397,7 +5397,7 @@
       }
     },
     {
-      "id": "clathrus-ruber",
+      "id": "clathrus_ruber",
       "name": "Решіточник червоний",
       "latin": "Clathrus ruber",
       "edibility": "inedible",
@@ -5429,7 +5429,7 @@
       }
     },
     {
-      "id": "tricholoma-colossus",
+      "id": "tricholoma_colossus",
       "name": "Рядовка величезна",
       "latin": "Tricholoma colossus",
       "edibility": "inedible",
@@ -5473,7 +5473,7 @@
       }
     },
     {
-      "id": "tricholoma-focale",
+      "id": "tricholoma_focale",
       "name": "Рядовка опеньковидна",
       "latin": "Tricholoma focale",
       "edibility": "inedible",
@@ -5504,7 +5504,7 @@
       }
     },
     {
-      "id": "sarcosoma-globosum",
+      "id": "sarcosoma_globosum",
       "name": "Саркосома куляста",
       "latin": "Sarcosoma globosum",
       "edibility": "inedible",
@@ -5537,7 +5537,7 @@
       }
     },
     {
-      "id": "russula-turci",
+      "id": "russula_turci",
       "name": "Сироїжка синювата",
       "latin": "Russula turci",
       "edibility": "edible",
@@ -5585,7 +5585,7 @@
       }
     },
     {
-      "id": "scleroderma-geaster",
+      "id": "scleroderma_geaster",
       "name": "Склеродерма зірчаста",
       "latin": "Scleroderma geaster",
       "edibility": "inedible",
@@ -5620,7 +5620,7 @@
       }
     },
     {
-      "id": "sparassis-crispa",
+      "id": "sparassis_crispa",
       "name": "Спарасис кучерявий",
       "latin": "Sparassis crispa",
       "edibility": "edible",
@@ -5652,7 +5652,7 @@
       }
     },
     {
-      "id": "polyporus-umbellatus",
+      "id": "polyporus_umbellatus",
       "name": "Трутовик зонтичний",
       "latin": "Polyporus umbellatus",
       "edibility": "edible",
@@ -5684,7 +5684,7 @@
       }
     },
     {
-      "id": "tuber-aestivum",
+      "id": "tuber_aestivum",
       "name": "Трюфель літній",
       "latin": "Tuber aestivum",
       "edibility": "edible",
@@ -5728,7 +5728,7 @@
       }
     },
     {
-      "id": "phellorinia-herculeana",
+      "id": "phellorinia_herculeana",
       "name": "Фелоринія геркулесова",
       "latin": "Phellorinia herculeana",
       "edibility": "inedible",
@@ -5768,7 +5768,7 @@
       }
     },
     {
-      "id": "phaeolepiota-aurea",
+      "id": "phaeolepiota_aurea",
       "name": "Феолепіота золотиста",
       "latin": "Phaeolepiota aurea",
       "edibility": "inedible",
@@ -5800,7 +5800,7 @@
       }
     },
     {
-      "id": "phylloporus-pelletieri",
+      "id": "phylloporus_pelletieri",
       "name": "Філопор рожево-золотистий",
       "latin": "Phylloporus pelletieri",
       "edibility": "edible",
@@ -5842,7 +5842,7 @@
       }
     },
     {
-      "id": "lactarius-lignyotus",
+      "id": "lactarius_lignyotus",
       "name": "Хрящ-молочник чорний",
       "latin": "Lactarius lignyotus",
       "edibility": "edible",
@@ -5874,7 +5874,7 @@
       }
     },
     {
-      "id": "strobilomyces-strobilaceus",
+      "id": "strobilomyces_strobilaceus",
       "name": "Шишкогриб лускатий",
       "latin": "Strobilomyces strobilaceus",
       "edibility": "inedible",
@@ -5906,7 +5906,7 @@
       }
     },
     {
-      "id": "amanita-muscaria",
+      "id": "amanita_muscaria",
       "name": "Мухомор червоний",
       "latin": "Amanita muscaria",
       "edibility": "poisonous",
@@ -5933,7 +5933,7 @@
       ]
     },
     {
-      "id": "amanita-pantherina",
+      "id": "amanita_pantherina",
       "name": "Мухомор пантерний",
       "latin": "Amanita pantherina",
       "edibility": "poisonous",
@@ -5960,7 +5960,7 @@
       ]
     },
     {
-      "id": "amanita-phalloides",
+      "id": "amanita_phalloides",
       "name": "Бліда поганка",
       "latin": "Amanita phalloides",
       "edibility": "deadly_poisonous",
@@ -5987,7 +5987,7 @@
       ]
     },
     {
-      "id": "amanita-verna",
+      "id": "amanita_verna",
       "name": "Мухомор весняний",
       "latin": "Amanita verna",
       "edibility": "deadly_poisonous",
@@ -6021,7 +6021,7 @@
       }
     },
     {
-      "id": "amanita-virosa",
+      "id": "amanita_virosa",
       "name": "Мухомор смердючий",
       "latin": "Amanita virosa",
       "edibility": "deadly_poisonous",
@@ -6048,7 +6048,7 @@
       ]
     },
     {
-      "id": "clitocybe-candicans",
+      "id": "clitocybe_candicans",
       "name": "Говорушка білувата",
       "latin": "Clitocybe candicans",
       "edibility": "poisonous",
@@ -6074,7 +6074,7 @@
       ]
     },
     {
-      "id": "clitocybe-dealbata",
+      "id": "clitocybe_dealbata",
       "name": "Говорушка воскова",
       "latin": "Clitocybe dealbata",
       "edibility": "poisonous",
@@ -6100,7 +6100,7 @@
       ]
     },
     {
-      "id": "entoloma-sinuatum",
+      "id": "entoloma_sinuatum",
       "name": "Ентолома отруйна",
       "latin": "Entoloma sinuatum",
       "edibility": "poisonous",
@@ -6126,7 +6126,7 @@
       ]
     },
     {
-      "id": "galerina-marginata",
+      "id": "galerina_marginata",
       "name": "Галерина облямована",
       "latin": "Galerina marginata",
       "edibility": "deadly_poisonous",
@@ -6156,7 +6156,7 @@
       ]
     },
     {
-      "id": "gyromitra-esculenta",
+      "id": "gyromitra_esculenta",
       "name": "Строчок звичайний",
       "latin": "Gyromitra esculenta",
       "edibility": "deadly_poisonous",
@@ -6185,7 +6185,7 @@
       ]
     },
     {
-      "id": "hygrophoropsis-aurantiaca",
+      "id": "hygrophoropsis_aurantiaca",
       "name": "Лисичка несправжня",
       "latin": "Hygrophoropsis aurantiaca",
       "edibility": "poisonous",
@@ -6215,7 +6215,7 @@
       ]
     },
     {
-      "id": "inocybe-erubescens",
+      "id": "inocybe_erubescens",
       "name": "Волоконниця червоніюча",
       "latin": "Inocybe erubescens",
       "edibility": "poisonous",
@@ -6245,7 +6245,7 @@
       ]
     },
     {
-      "id": "inocybe-geophylla",
+      "id": "inocybe_geophylla",
       "name": "Іноцибе звичайний",
       "latin": "Inocybe geophylla",
       "edibility": "poisonous",
@@ -6283,7 +6283,7 @@
       ]
     },
     {
-      "id": "paxillus-involutus",
+      "id": "paxillus_involutus",
       "name": "Свинуха тонка",
       "latin": "Paxillus involutus",
       "edibility": "poisonous",
@@ -6313,7 +6313,7 @@
       ]
     },
     {
-      "id": "agaricus-arvensis",
+      "id": "agaricus_arvensis",
       "name": "Печериця польова",
       "latin": "Agaricus arvensis",
       "edibility": "edible",
@@ -6351,7 +6351,7 @@
       "photos": []
     },
     {
-      "id": "agaricus-silvaticus",
+      "id": "agaricus_silvaticus",
       "name": "Печериця лісова",
       "latin": "Agaricus silvaticus",
       "edibility": "edible",
@@ -6390,7 +6390,7 @@
       "photos": []
     },
     {
-      "id": "agaricus-xanthodermus",
+      "id": "agaricus_xanthodermus",
       "name": "Печериця жовтошкіра",
       "latin": "Agaricus xanthodermus",
       "edibility": "poisonous",
@@ -6425,7 +6425,7 @@
       "photos": []
     },
     {
-      "id": "amanita-citrina",
+      "id": "amanita_citrina",
       "name": "Мухомор цитриновий",
       "latin": "Amanita citrina",
       "edibility": "poisonous",
@@ -6466,7 +6466,7 @@
       "photos": []
     },
     {
-      "id": "amanita-porphyria",
+      "id": "amanita_porphyria",
       "name": "Мухомор пурпуровий",
       "latin": "Amanita porphyria",
       "edibility": "poisonous",
@@ -6507,7 +6507,7 @@
       "photos": []
     },
     {
-      "id": "amanita-vittadinii",
+      "id": "amanita_vittadinii",
       "name": "Мухомор Віттадіні",
       "latin": "Amanita vittadinii",
       "edibility": "poisonous",
@@ -6543,7 +6543,7 @@
       "photos": []
     },
     {
-      "id": "amanita-echinocephala",
+      "id": "amanita_echinocephala",
       "name": "Мухомор колючоголовий",
       "latin": "Amanita echinocephala",
       "edibility": "inedible",
@@ -6583,7 +6583,7 @@
       "photos": []
     },
     {
-      "id": "boletus-calopus",
+      "id": "boletus_calopus",
       "name": "Боровик неїстівний",
       "latin": "Boletus calopus",
       "edibility": "inedible",
@@ -6621,7 +6621,7 @@
       "photos": []
     },
     {
-      "id": "boletus-impolitus",
+      "id": "boletus_impolitus",
       "name": "Боровик жовтий",
       "latin": "Boletus impolitus",
       "edibility": "edible",
@@ -6661,7 +6661,7 @@
       "photos": []
     },
     {
-      "id": "boletus-queletii",
+      "id": "boletus_queletii",
       "name": "Боровик Келета",
       "latin": "Boletus queletii",
       "edibility": "conditionally_edible",
@@ -6701,7 +6701,7 @@
       "photos": []
     },
     {
-      "id": "boletus-erythropus",
+      "id": "boletus_erythropus",
       "name": "Боровик зернистоногий",
       "latin": "Boletus erythropus",
       "edibility": "conditionally_edible",
@@ -6743,7 +6743,7 @@
       "photos": []
     },
     {
-      "id": "boletus-purpureus",
+      "id": "boletus_purpureus",
       "name": "Боровик пурпуровий",
       "latin": "Boletus purpureus",
       "edibility": "poisonous",
@@ -6781,7 +6781,7 @@
       "photos": []
     },
     {
-      "id": "gyroporus-castaneus",
+      "id": "gyroporus_castaneus",
       "name": "Гіропор каштановий",
       "latin": "Gyroporus castaneus",
       "edibility": "edible",
@@ -6818,7 +6818,7 @@
       "photos": []
     },
     {
-      "id": "gyroporus-cyanescens",
+      "id": "gyroporus_cyanescens",
       "name": "Гіропор синіючий",
       "latin": "Gyroporus cyanescens",
       "edibility": "edible",
@@ -6857,7 +6857,7 @@
       "photos": []
     },
     {
-      "id": "gyrodon-lividus",
+      "id": "gyrodon_lividus",
       "name": "Гіродон сизуватий",
       "latin": "Gyrodon lividus",
       "edibility": "edible",
@@ -6894,7 +6894,7 @@
       "photos": []
     },
     {
-      "id": "boletinus-cavipes",
+      "id": "boletinus_cavipes",
       "name": "Болетин порожньоногий",
       "latin": "Boletinus cavipes",
       "edibility": "edible",
@@ -6931,7 +6931,7 @@
       "photos": []
     },
     {
-      "id": "tylopilus-felleus",
+      "id": "tylopilus_felleus",
       "name": "Тилопіл жовчний",
       "latin": "Tylopilus felleus",
       "edibility": "inedible",
@@ -6974,7 +6974,7 @@
       "photos": []
     },
     {
-      "id": "porphyrellus-porphyrosporus",
+      "id": "porphyrellus_porphyrosporus",
       "name": "Порфірел пурпуровоспоровий",
       "latin": "Porphyrellus porphyrosporus",
       "edibility": "inedible",
@@ -7004,7 +7004,7 @@
       "photos": []
     },
     {
-      "id": "gomphidius-glutinosus",
+      "id": "gomphidius_glutinosus",
       "name": "Мокруха клейка",
       "latin": "Gomphidius glutinosus",
       "edibility": "edible",
@@ -7042,7 +7042,7 @@
       "photos": []
     },
     {
-      "id": "gomphidius-roseus",
+      "id": "gomphidius_roseus",
       "name": "Мокруха рожева",
       "latin": "Gomphidius roseus",
       "edibility": "edible",
@@ -7077,7 +7077,7 @@
       "photos": []
     },
     {
-      "id": "gomphidius-rutilus",
+      "id": "gomphidius_rutilus",
       "name": "Мокруха слизька",
       "latin": "Gomphidius rutilus",
       "edibility": "edible",
@@ -7114,7 +7114,7 @@
       "photos": []
     },
     {
-      "id": "gomphidius-maculatus",
+      "id": "gomphidius_maculatus",
       "name": "Мокруха плямиста",
       "latin": "Gomphidius maculatus",
       "edibility": "edible",
@@ -7149,7 +7149,7 @@
       "photos": []
     },
     {
-      "id": "paxillus-atrotomentosus",
+      "id": "paxillus_atrotomentosus",
       "name": "Паксил чорноповстистий",
       "latin": "Paxillus atrotomentosus",
       "edibility": "conditionally_edible",
@@ -7187,7 +7187,7 @@
       "photos": []
     },
     {
-      "id": "paxillus-panuoides",
+      "id": "paxillus_panuoides",
       "name": "Паксил вохряно-рудий",
       "latin": "Paxillus panuoides",
       "edibility": "conditionally_edible",
@@ -7224,7 +7224,7 @@
       "photos": []
     },
     {
-      "id": "ripartites-tricholoma",
+      "id": "ripartites_tricholoma",
       "name": "Рипартитес рядовковидний",
       "latin": "Ripartites tricholoma",
       "edibility": "edible",
@@ -7259,7 +7259,7 @@
       "photos": []
     },
     {
-      "id": "ripartites-helomorpha",
+      "id": "ripartites_helomorpha",
       "name": "Рипартит геломорфний",
       "latin": "Ripartites helomorpha",
       "edibility": "edible",
@@ -7295,7 +7295,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-sanguifluus",
+      "id": "lactarius_sanguifluus",
       "name": "Рижик червоний",
       "latin": "Lactarius sanguifluus",
       "edibility": "edible",
@@ -7332,7 +7332,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-semisanguifluus",
+      "id": "lactarius_semisanguifluus",
       "name": "Хрящ-молочник зеленувато-червоний",
       "latin": "Lactarius semisanguifluus",
       "edibility": "edible",
@@ -7369,7 +7369,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-fuliginosus",
+      "id": "lactarius_fuliginosus",
       "name": "Хрящ-молочник сірий",
       "latin": "Lactarius fuliginosus",
       "edibility": "conditionally_edible",
@@ -7410,7 +7410,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-acris",
+      "id": "lactarius_acris",
       "name": "Хрящ-молочник червоніючий",
       "latin": "Lactarius acris",
       "edibility": "inedible",
@@ -7449,7 +7449,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-chrysorrheus",
+      "id": "lactarius_chrysorrheus",
       "name": "Хрящ-молочник золотисто-жовтий",
       "latin": "Lactarius chrysorrheus",
       "edibility": "inedible",
@@ -7491,7 +7491,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-theiogalus",
+      "id": "lactarius_theiogalus",
       "name": "Хрящ-молочник болотний",
       "latin": "Lactarius theiogalus",
       "edibility": "inedible",
@@ -7530,7 +7530,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-hepaticus",
+      "id": "lactarius_hepaticus",
       "name": "Хрящ-молочник оранжево-пластинчастий",
       "latin": "Lactarius hepaticus",
       "edibility": "inedible",
@@ -7565,7 +7565,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-scrobiculatus",
+      "id": "lactarius_scrobiculatus",
       "name": "Хрящ-молочник жовтий",
       "latin": "Lactarius scrobiculatus",
       "edibility": "conditionally_edible",
@@ -7602,7 +7602,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-trivialis",
+      "id": "lactarius_trivialis",
       "name": "Хрящ-молочник сизий",
       "latin": "Lactarius trivialis",
       "edibility": "conditionally_edible",
@@ -7643,7 +7643,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-musteus",
+      "id": "lactarius_musteus",
       "name": "Хрящ-молочник моховий",
       "latin": "Lactarius musteus",
       "edibility": "inedible",
@@ -7679,7 +7679,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-rubrocinctus",
+      "id": "lactarius_rubrocinctus",
       "name": "Хрящ-молочник рубчастий",
       "latin": "Lactarius rubrocinctus",
       "edibility": "inedible",
@@ -7721,7 +7721,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-glaucescens",
+      "id": "lactarius_glaucescens",
       "name": "Хрящ-молочник зеленіючий",
       "latin": "Lactarius glaucescens",
       "edibility": "edible",
@@ -7759,7 +7759,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-blennius",
+      "id": "lactarius_blennius",
       "name": "Хрящ-молочник сіро-зелений",
       "latin": "Lactarius blennius",
       "edibility": "edible",
@@ -7797,7 +7797,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-vietus",
+      "id": "lactarius_vietus",
       "name": "Хрящ-молочник бляклий",
       "latin": "Lactarius vietus",
       "edibility": "conditionally_edible",
@@ -7832,7 +7832,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-uvidus",
+      "id": "lactarius_uvidus",
       "name": "Хрящ-молочник ліловіючий",
       "latin": "Lactarius uvidus",
       "edibility": "conditionally_edible",
@@ -7871,7 +7871,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-violascens",
+      "id": "lactarius_violascens",
       "name": "Хрящ-молочник фіолетовий",
       "latin": "Lactarius violascens",
       "edibility": "inedible",
@@ -7910,7 +7910,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-aspideus",
+      "id": "lactarius_aspideus",
       "name": "Хрящ-молочник жовтуватий ліловіючий",
       "latin": "Lactarius aspideus",
       "edibility": "inedible",
@@ -7947,7 +7947,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-repraesentaneus",
+      "id": "lactarius_repraesentaneus",
       "name": "Хрящ-молочник золотисто-жовтий ліловіючий",
       "latin": "Lactarius repraesentaneus",
       "edibility": "conditionally_edible",
@@ -7987,7 +7987,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-pubescens",
+      "id": "lactarius_pubescens",
       "name": "Хрящ-молочник пухнастий",
       "latin": "Lactarius pubescens",
       "edibility": "conditionally_edible",
@@ -8020,7 +8020,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-controversus",
+      "id": "lactarius_controversus",
       "name": "Хрящ-молочник осиковий",
       "latin": "Lactarius controversus",
       "edibility": "conditionally_edible",
@@ -8061,7 +8061,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-turpis",
+      "id": "lactarius_turpis",
       "name": "Хрящ-молочник оливково-чорний",
       "latin": "Lactarius turpis",
       "edibility": "conditionally_edible",
@@ -8100,7 +8100,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-mammosus",
+      "id": "lactarius_mammosus",
       "name": "Хрящ-молочник сосочковий",
       "latin": "Lactarius mammosus",
       "edibility": "inedible",
@@ -8136,7 +8136,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-flexuosus",
+      "id": "lactarius_flexuosus",
       "name": "Хрящ-молочник сіро-лілуватий",
       "latin": "Lactarius flexuosus",
       "edibility": "conditionally_edible",
@@ -8177,7 +8177,7 @@
       "photos": []
     },
     {
-      "id": "lactarius-spinosulus",
+      "id": "lactarius_spinosulus",
       "name": "Хрящ-молочник шипастий",
       "latin": "Lactarius spinosulus",
       "edibility": "inedible",
@@ -8215,7 +8215,7 @@
       "photos": []
     },
     {
-      "id": "russula-albonigra",
+      "id": "russula_albonigra",
       "name": "Сироїжка біло-чорна",
       "latin": "Russula albonigra",
       "edibility": "conditionally_edible",
@@ -8250,7 +8250,7 @@
       "photos": []
     },
     {
-      "id": "russula-nigricans",
+      "id": "russula_nigricans",
       "name": "Сироїжка чорніюча",
       "latin": "Russula nigricans",
       "edibility": "conditionally_edible",
@@ -8292,7 +8292,7 @@
       "photos": []
     },
     {
-      "id": "russula-densifolia",
+      "id": "russula_densifolia",
       "name": "Сироїжка густопластинчаста",
       "latin": "Russula densifolia",
       "edibility": "inedible",
@@ -8332,7 +8332,7 @@
       "photos": []
     },
     {
-      "id": "russula-adusta",
+      "id": "russula_adusta",
       "name": "Сироїжка чорна",
       "latin": "Russula adusta",
       "edibility": "conditionally_edible",
@@ -8369,7 +8369,7 @@
       "photos": []
     },
     {
-      "id": "russula-decolorans",
+      "id": "russula_decolorans",
       "name": "Сироїжка вицвітаюча",
       "latin": "Russula decolorans",
       "edibility": "edible",
@@ -8407,7 +8407,7 @@
       "photos": []
     },
     {
-      "id": "russula-obscura",
+      "id": "russula_obscura",
       "name": "Сироїжка темна",
       "latin": "Russula obscura",
       "edibility": "edible",
@@ -8443,7 +8443,7 @@
       "photos": []
     },
     {
-      "id": "russula-claroflava",
+      "id": "russula_claroflava",
       "name": "Сироїжка світло-жовта",
       "latin": "Russula claroflava",
       "edibility": "edible",
@@ -8482,7 +8482,7 @@
       "photos": []
     },
     {
-      "id": "russula-ochroleuca",
+      "id": "russula_ochroleuca",
       "name": "Сироїжка вохряно-жовта",
       "latin": "Russula ochroleuca",
       "edibility": "inedible",
@@ -8517,7 +8517,7 @@
       "photos": []
     },
     {
-      "id": "russula-puellaris",
+      "id": "russula_puellaris",
       "name": "Сироїжка дівоча",
       "latin": "Russula puellaris",
       "edibility": "edible",
@@ -8557,7 +8557,7 @@
       "photos": []
     },
     {
-      "id": "russula-viscida",
+      "id": "russula_viscida",
       "name": "Сироїжка слизька",
       "latin": "Russula viscida",
       "edibility": "edible",
@@ -8597,7 +8597,7 @@
       "photos": []
     },
     {
-      "id": "russula-lilacea",
+      "id": "russula_lilacea",
       "name": "Сироїжка лілова",
       "latin": "Russula lilacea",
       "edibility": "edible",
@@ -8636,7 +8636,7 @@
       "photos": []
     },
     {
-      "id": "russula-pulchella",
+      "id": "russula_pulchella",
       "name": "Сироїжка гарна",
       "latin": "Russula pulchella",
       "edibility": "edible",
@@ -8676,7 +8676,7 @@
       "photos": []
     },
     {
-      "id": "russula-olivacea",
+      "id": "russula_olivacea",
       "name": "Сироїжка оливково-зелена",
       "latin": "Russula olivacea",
       "edibility": "edible",
@@ -8717,7 +8717,7 @@
       "photos": []
     },
     {
-      "id": "russula-atropurpurea",
+      "id": "russula_atropurpurea",
       "name": "Сироїжка чорно-пурпурова",
       "latin": "Russula atropurpurea",
       "edibility": "edible",
@@ -8757,7 +8757,7 @@
       "photos": []
     },
     {
-      "id": "russula-lutea",
+      "id": "russula_lutea",
       "name": "Сироїжка червоно-жовта",
       "latin": "Russula lutea",
       "edibility": "edible",
@@ -8797,7 +8797,7 @@
       "photos": []
     },
     {
-      "id": "russula-mustelina",
+      "id": "russula_mustelina",
       "name": "Сироїжка коричнева",
       "latin": "Russula mustelina",
       "edibility": "edible",
@@ -8836,7 +8836,7 @@
       "photos": []
     },
     {
-      "id": "russula-mollis",
+      "id": "russula_mollis",
       "name": "Сироїжка м'яка",
       "latin": "Russula mollis",
       "edibility": "edible",
@@ -8875,7 +8875,7 @@
       "photos": []
     },
     {
-      "id": "russula-aeruginosa",
+      "id": "russula_aeruginosa",
       "name": "Сироїжка зелена велика",
       "latin": "Russula aeruginosa",
       "edibility": "edible",
@@ -8915,7 +8915,7 @@
       "photos": []
     },
     {
-      "id": "russula-amoena",
+      "id": "russula_amoena",
       "name": "Сироїжка зерниста",
       "latin": "Russula amoena",
       "edibility": "edible",
@@ -8954,7 +8954,7 @@
       "photos": []
     },
     {
-      "id": "russula-heterophylla",
+      "id": "russula_heterophylla",
       "name": "Сироїжка різнопластинчаста",
       "latin": "Russula heterophylla",
       "edibility": "edible",
@@ -8995,7 +8995,7 @@
       "photos": []
     },
     {
-      "id": "russula-grisea",
+      "id": "russula_grisea",
       "name": "Сироїжка сіра",
       "latin": "Russula grisea",
       "edibility": "edible",
@@ -9037,7 +9037,7 @@
       "photos": []
     },
     {
-      "id": "russula-roseipes",
+      "id": "russula_roseipes",
       "name": "Сироїжка рожевонога",
       "latin": "Russula roseipes",
       "edibility": "edible",
@@ -9074,7 +9074,7 @@
       "photos": []
     },
     {
-      "id": "russula-brunneoviolacea",
+      "id": "russula_brunneoviolacea",
       "name": "Сироїжка коричнево-лілова",
       "latin": "Russula brunneoviolacea",
       "edibility": "edible",
@@ -9111,7 +9111,7 @@
       "photos": []
     },
     {
-      "id": "russula-melliolens",
+      "id": "russula_melliolens",
       "name": "Сироїжка медова",
       "latin": "Russula melliolens",
       "edibility": "edible",
@@ -9151,7 +9151,7 @@
       "photos": []
     },
     {
-      "id": "russula-aurata",
+      "id": "russula_aurata",
       "name": "Сироїжка золотиста",
       "latin": "Russula aurata",
       "edibility": "edible",
@@ -9189,7 +9189,7 @@
       "photos": []
     },
     {
-      "id": "russula-paludosa",
+      "id": "russula_paludosa",
       "name": "Сироїжка болотяна",
       "latin": "Russula paludosa",
       "edibility": "edible",
@@ -9225,7 +9225,7 @@
       "photos": []
     },
     {
-      "id": "russula-curtipes",
+      "id": "russula_curtipes",
       "name": "Сироїжка коротконога",
       "latin": "Russula curtipes",
       "edibility": "edible",
@@ -9261,7 +9261,7 @@
       "photos": []
     },
     {
-      "id": "russula-alutacea",
+      "id": "russula_alutacea",
       "name": "Сироїжка зелено-червона",
       "latin": "Russula alutacea",
       "edibility": "edible",
@@ -9299,7 +9299,7 @@
       "photos": []
     },
     {
-      "id": "russula-integra",
+      "id": "russula_integra",
       "name": "Сироїжка бездоганна",
       "latin": "Russula integra",
       "edibility": "edible",
@@ -9338,7 +9338,7 @@
       "photos": []
     },
     {
-      "id": "russula-fellea",
+      "id": "russula_fellea",
       "name": "Сироїжка жовта",
       "latin": "Russula fellea",
       "edibility": "inedible",
@@ -9376,7 +9376,7 @@
       "photos": []
     },
     {
-      "id": "russula-farinipes",
+      "id": "russula_farinipes",
       "name": "Сироїжка валуєвидна",
       "latin": "Russula farinipes",
       "edibility": "inedible",
@@ -9415,7 +9415,7 @@
       "photos": []
     },
     {
-      "id": "russula-consobrina",
+      "id": "russula_consobrina",
       "name": "Сироїжка сірувато-бура",
       "latin": "Russula consobrina",
       "edibility": "inedible",
@@ -9454,7 +9454,7 @@
       "photos": []
     },
     {
-      "id": "russula-pectinata",
+      "id": "russula_pectinata",
       "name": "Сироїжка гребінчаста",
       "latin": "Russula pectinata",
       "edibility": "inedible",
@@ -9491,7 +9491,7 @@
       "photos": []
     },
     {
-      "id": "russula-maculata",
+      "id": "russula_maculata",
       "name": "Сироїжка плямиста",
       "latin": "Russula maculata",
       "edibility": "inedible",
@@ -9530,7 +9530,7 @@
       "photos": []
     },
     {
-      "id": "russula-rubra",
+      "id": "russula_rubra",
       "name": "Сироїжка червона",
       "latin": "Russula rubra",
       "edibility": "inedible",
@@ -9569,7 +9569,7 @@
       "photos": []
     },
     {
-      "id": "russula-sanguinea",
+      "id": "russula_sanguinea",
       "name": "Сироїжка криваво-червона",
       "latin": "Russula sanguinea",
       "edibility": "inedible",
@@ -9606,7 +9606,7 @@
       "photos": []
     },
     {
-      "id": "russula-badia",
+      "id": "russula_badia",
       "name": "Сироїжка пурпурово-коричнева",
       "latin": "Russula badia",
       "edibility": "inedible",
@@ -9641,7 +9641,7 @@
       "photos": []
     },
     {
-      "id": "russula-sardonia",
+      "id": "russula_sardonia",
       "name": "Сироїжка темно-фіолетова",
       "latin": "Russula sardonia",
       "edibility": "inedible",
@@ -9677,7 +9677,7 @@
       "photos": []
     },
     {
-      "id": "russula-queletii",
+      "id": "russula_queletii",
       "name": "Сироїжка Келета",
       "latin": "Russula queletii",
       "edibility": "inedible",
@@ -9712,7 +9712,7 @@
       "photos": []
     },
     {
-      "id": "russula-rosea",
+      "id": "russula_rosea",
       "name": "Сироїжка рожева",
       "latin": "Russula rosea",
       "edibility": "conditionally_edible",
@@ -9750,7 +9750,7 @@
       "photos": []
     },
     {
-      "id": "russula-pseudointegra",
+      "id": "russula_pseudointegra",
       "name": "Сироїжка рум'яна",
       "latin": "Russula pseudointegra",
       "edibility": "conditionally_edible",
@@ -9788,7 +9788,7 @@
       "photos": []
     },
     {
-      "id": "russula-caerulea",
+      "id": "russula_caerulea",
       "name": "Сироїжка лазурова",
       "latin": "Russula caerulea",
       "edibility": "edible",
@@ -9824,7 +9824,7 @@
       "photos": []
     },
     {
-      "id": "russula-nauseosa",
+      "id": "russula_nauseosa",
       "name": "Сироїжка бридка",
       "latin": "Russula nauseosa",
       "edibility": "inedible",
@@ -9857,7 +9857,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-album",
+      "id": "tricholoma_album",
       "name": "Рядовка біла",
       "latin": "Tricholoma album",
       "edibility": "poisonous",
@@ -9895,7 +9895,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-sulphureum",
+      "id": "tricholoma_sulphureum",
       "name": "Рядовка сірчано-жовта",
       "latin": "Tricholoma sulphureum",
       "edibility": "poisonous",
@@ -9933,7 +9933,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-virgatum",
+      "id": "tricholoma_virgatum",
       "name": "Рядовка волокниста",
       "latin": "Tricholoma virgatum",
       "edibility": "poisonous",
@@ -9969,7 +9969,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-vaccinum",
+      "id": "tricholoma_vaccinum",
       "name": "Рядовка рудувато-червона",
       "latin": "Tricholoma vaccinum",
       "edibility": "inedible",
@@ -10006,7 +10006,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-imbricatum",
+      "id": "tricholoma_imbricatum",
       "name": "Рядовка черепичаста",
       "latin": "Tricholoma imbricatum",
       "edibility": "inedible",
@@ -10043,7 +10043,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-pessundatum",
+      "id": "tricholoma_pessundatum",
       "name": "Рядовка згубна",
       "latin": "Tricholoma pessundatum",
       "edibility": "poisonous",
@@ -10078,7 +10078,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-populinum",
+      "id": "tricholoma_populinum",
       "name": "Рядовка тополева",
       "latin": "Tricholoma populinum",
       "edibility": "edible",
@@ -10113,7 +10113,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-saponaceum",
+      "id": "tricholoma_saponaceum",
       "name": "Рядовка сіра",
       "latin": "Tricholoma saponaceum",
       "edibility": "inedible",
@@ -10151,7 +10151,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-sejunctum",
+      "id": "tricholoma_sejunctum",
       "name": "Рядовка відокремлена",
       "latin": "Tricholoma sejunctum",
       "edibility": "inedible",
@@ -10190,7 +10190,7 @@
       "photos": []
     },
     {
-      "id": "tricholoma-orirubens",
+      "id": "tricholoma_orirubens",
       "name": "Рядовка червоніюча",
       "latin": "Tricholoma orirubens",
       "edibility": "inedible",
@@ -10226,7 +10226,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-nebularis",
+      "id": "clitocybe_nebularis",
       "name": "Говорушка сіра",
       "latin": "Clitocybe nebularis",
       "edibility": "conditionally_edible",
@@ -10264,7 +10264,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-geotropa",
+      "id": "clitocybe_geotropa",
       "name": "Говорушка руда",
       "latin": "Clitocybe geotropa",
       "edibility": "edible",
@@ -10303,7 +10303,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-gigantea",
+      "id": "clitocybe_gigantea",
       "name": "Говорушка гігантська",
       "latin": "Clitocybe gigantea",
       "edibility": "edible",
@@ -10338,7 +10338,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-odora",
+      "id": "clitocybe_odora",
       "name": "Говорушка ароматна",
       "latin": "Clitocybe odora",
       "edibility": "edible",
@@ -10376,7 +10376,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-clavipes",
+      "id": "clitocybe_clavipes",
       "name": "Говорушка булавовиднонога",
       "latin": "Clitocybe clavipes",
       "edibility": "inedible",
@@ -10415,7 +10415,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-infundibuliformis",
+      "id": "clitocybe_infundibuliformis",
       "name": "Говорушка лійковидна",
       "latin": "Clitocybe infundibuliformis",
       "edibility": "edible",
@@ -10455,7 +10455,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-rivulosa",
+      "id": "clitocybe_rivulosa",
       "name": "Говорушка червонувата",
       "latin": "Clitocybe rivulosa",
       "edibility": "poisonous",
@@ -10487,7 +10487,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-phyllophila",
+      "id": "clitocybe_phyllophila",
       "name": "Говорушка листолюбна",
       "latin": "Clitocybe phyllophila",
       "edibility": "poisonous",
@@ -10522,7 +10522,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-suaveolens",
+      "id": "clitocybe_suaveolens",
       "name": "Говорушка запашна",
       "latin": "Clitocybe suaveolens",
       "edibility": "edible",
@@ -10561,7 +10561,7 @@
       "photos": []
     },
     {
-      "id": "clitocybe-brumalis",
+      "id": "clitocybe_brumalis",
       "name": "Говорушка зимова",
       "latin": "Clitocybe brumalis",
       "edibility": "inedible",
@@ -10595,7 +10595,7 @@
       "photos": []
     },
     {
-      "id": "collybia-dryophila",
+      "id": "collybia_dryophila",
       "name": "Колібія лісолюбна",
       "latin": "Collybia dryophila",
       "edibility": "edible",
@@ -10641,7 +10641,7 @@
       "photos": []
     },
     {
-      "id": "collybia-peronata",
+      "id": "collybia_peronata",
       "name": "Колібія обгорнута",
       "latin": "Collybia peronata",
       "edibility": "inedible",
@@ -10681,7 +10681,7 @@
       "photos": []
     },
     {
-      "id": "collybia-confluens",
+      "id": "collybia_confluens",
       "name": "Колібія численна",
       "latin": "Collybia confluens",
       "edibility": "edible",
@@ -10722,7 +10722,7 @@
       "photos": []
     },
     {
-      "id": "collybia-maculata",
+      "id": "collybia_maculata",
       "name": "Колібія плямиста",
       "latin": "Collybia maculata",
       "edibility": "inedible",
@@ -10759,7 +10759,7 @@
       "photos": []
     },
     {
-      "id": "collybia-butyracea",
+      "id": "collybia_butyracea",
       "name": "Колібія рудувато-сіра",
       "latin": "Collybia butyracea",
       "edibility": "edible",
@@ -10801,7 +10801,7 @@
       "photos": []
     },
     {
-      "id": "collybia-fusipes",
+      "id": "collybia_fusipes",
       "name": "Колібія веретенонога",
       "latin": "Collybia fusipes",
       "edibility": "conditionally_edible",
@@ -10838,7 +10838,7 @@
       "photos": []
     },
     {
-      "id": "mycena-pura",
+      "id": "mycena_pura",
       "name": "Міцена чиста",
       "latin": "Mycena pura",
       "edibility": "poisonous",
@@ -10883,7 +10883,7 @@
       "photos": []
     },
     {
-      "id": "mycena-galericulata",
+      "id": "mycena_galericulata",
       "name": "Міцена ковпаковидна",
       "latin": "Mycena galericulata",
       "edibility": "inedible",
@@ -10925,7 +10925,7 @@
       "photos": []
     },
     {
-      "id": "mycena-polygramma",
+      "id": "mycena_polygramma",
       "name": "Міцена штрихувата",
       "latin": "Mycena polygramma",
       "edibility": "inedible",
@@ -10967,7 +10967,7 @@
       "photos": []
     },
     {
-      "id": "mycena-haematopus",
+      "id": "mycena_haematopus",
       "name": "Міцена кривавонога",
       "latin": "Mycena haematopus",
       "edibility": "inedible",
@@ -11008,7 +11008,7 @@
       "photos": []
     },
     {
-      "id": "mycena-rosella",
+      "id": "mycena_rosella",
       "name": "Міцена рожева",
       "latin": "Mycena rosella",
       "edibility": "inedible",
@@ -11043,7 +11043,7 @@
       "photos": []
     },
     {
-      "id": "mycena-epipterygia",
+      "id": "mycena_epipterygia",
       "name": "Міцена слизька",
       "latin": "Mycena epipterygia",
       "edibility": "inedible",
@@ -11078,7 +11078,7 @@
       "photos": []
     },
     {
-      "id": "mycena-inclinata",
+      "id": "mycena_inclinata",
       "name": "Міцена нахилена",
       "latin": "Mycena inclinata",
       "edibility": "inedible",
@@ -11120,7 +11120,7 @@
       "photos": []
     },
     {
-      "id": "mycena-aetites",
+      "id": "mycena_aetites",
       "name": "Міцена лужна",
       "latin": "Mycena aetites",
       "edibility": "inedible",
@@ -11156,7 +11156,7 @@
       "photos": []
     },
     {
-      "id": "mycena-galopus",
+      "id": "mycena_galopus",
       "name": "Міцена білосокова",
       "latin": "Mycena galopus",
       "edibility": "inedible",
@@ -11192,7 +11192,7 @@
       "photos": []
     },
     {
-      "id": "mycena-sanguinolenta",
+      "id": "mycena_sanguinolenta",
       "name": "Міцена кривавоплямиста",
       "latin": "Mycena sanguinolenta",
       "edibility": "inedible",
@@ -11233,7 +11233,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-oreades",
+      "id": "marasmius_oreades",
       "name": "Опеньок луговий",
       "latin": "Marasmius oreades",
       "edibility": "edible",
@@ -11270,7 +11270,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-alliaceus",
+      "id": "marasmius_alliaceus",
       "name": "Часничник великий",
       "latin": "Marasmius alliaceus",
       "edibility": "edible",
@@ -11307,7 +11307,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-scorodonius",
+      "id": "marasmius_scorodonius",
       "name": "Часничник дрібний",
       "latin": "Marasmius scorodonius",
       "edibility": "edible",
@@ -11345,7 +11345,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-prasiosmus",
+      "id": "marasmius_prasiosmus",
       "name": "Маразмій вицвітаючий",
       "latin": "Marasmius prasiosmus",
       "edibility": "edible",
@@ -11383,7 +11383,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-rotula",
+      "id": "marasmius_rotula",
       "name": "Маразмій колесовидний",
       "latin": "Marasmius rotula",
       "edibility": "inedible",
@@ -11418,7 +11418,7 @@
       "photos": []
     },
     {
-      "id": "marasmius-epiphyllus",
+      "id": "marasmius_epiphyllus",
       "name": "Маразмій листовий",
       "latin": "Marasmius epiphyllus",
       "edibility": "inedible",
@@ -11457,7 +11457,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-clypeatum",
+      "id": "entoloma_clypeatum",
       "name": "Ентолома щитовидна",
       "latin": "Entoloma clypeatum",
       "edibility": "edible",
@@ -11490,7 +11490,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-rhodopolium",
+      "id": "entoloma_rhodopolium",
       "name": "Ентолома рожево-сива",
       "latin": "Entoloma rhodopolium",
       "edibility": "poisonous",
@@ -11526,7 +11526,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-nidorosum",
+      "id": "entoloma_nidorosum",
       "name": "Ентолома смердюча",
       "latin": "Entoloma nidorosum",
       "edibility": "poisonous",
@@ -11562,7 +11562,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-sericeum",
+      "id": "entoloma_sericeum",
       "name": "Ентолома шовковиста",
       "latin": "Entoloma sericeum",
       "edibility": "edible",
@@ -11594,7 +11594,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-jubatum",
+      "id": "entoloma_jubatum",
       "name": "Ентолома волохата",
       "latin": "Entoloma jubatum",
       "edibility": "edible",
@@ -11629,7 +11629,7 @@
       "photos": []
     },
     {
-      "id": "entoloma-aprile",
+      "id": "entoloma_aprile",
       "name": "Ентолома квітнева",
       "latin": "Entoloma aprile",
       "edibility": "poisonous",
@@ -11663,7 +11663,7 @@
       "photos": []
     },
     {
-      "id": "pluteus-cervinus",
+      "id": "pluteus_cervinus",
       "name": "Плютей бурий",
       "latin": "Pluteus cervinus",
       "edibility": "edible",
@@ -11703,7 +11703,7 @@
       "photos": []
     },
     {
-      "id": "pluteus-salicinus",
+      "id": "pluteus_salicinus",
       "name": "Плютей вербовий",
       "latin": "Pluteus salicinus",
       "edibility": "edible",
@@ -11744,7 +11744,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-eburneus",
+      "id": "hygrophorus_eburneus",
       "name": "Гігрофор жовтувато-білий",
       "latin": "Hygrophorus eburneus",
       "edibility": "edible",
@@ -11778,7 +11778,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-chrysodon",
+      "id": "hygrophorus_chrysodon",
       "name": "Гігрофор золотистий",
       "latin": "Hygrophorus chrysodon",
       "edibility": "edible",
@@ -11815,7 +11815,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-hypothejus",
+      "id": "hygrophorus_hypothejus",
       "name": "Гігрофор пізній",
       "latin": "Hygrophorus hypothejus",
       "edibility": "edible",
@@ -11850,7 +11850,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-olivaceo-albus",
+      "id": "hygrophorus_olivaceo_albus",
       "name": "Гігрофор оливково-білий",
       "latin": "Hygrophorus olivaceo-albus",
       "edibility": "edible",
@@ -11885,7 +11885,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-russula",
+      "id": "hygrophorus_russula",
       "name": "Гігрофор сироїжковидний",
       "latin": "Hygrophorus russula",
       "edibility": "edible",
@@ -11920,7 +11920,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-pratensis",
+      "id": "hygrophorus_pratensis",
       "name": "Гігрофор луговий",
       "latin": "Hygrophorus pratensis",
       "edibility": "edible",
@@ -11953,7 +11953,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-nemoreus",
+      "id": "hygrophorus_nemoreus",
       "name": "Гігрофор дібровний",
       "latin": "Hygrophorus nemoreus",
       "edibility": "edible",
@@ -11988,7 +11988,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-camarophyllus",
+      "id": "hygrophorus_camarophyllus",
       "name": "Гігрофор козячий",
       "latin": "Hygrophorus camarophyllus",
       "edibility": "edible",
@@ -12025,7 +12025,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-virgineus",
+      "id": "hygrophorus_virgineus",
       "name": "Гігрофор дівочий",
       "latin": "Hygrophorus virgineus",
       "edibility": "edible",
@@ -12058,7 +12058,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-fornicatus",
+      "id": "hygrophorus_fornicatus",
       "name": "Гігрофор склепистий",
       "latin": "Hygrophorus fornicatus",
       "edibility": "edible",
@@ -12091,7 +12091,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-foetens",
+      "id": "hygrophorus_foetens",
       "name": "Гігрофор смердючий",
       "latin": "Hygrophorus foetens",
       "edibility": "inedible",
@@ -12124,7 +12124,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-capreolarius",
+      "id": "hygrophorus_capreolarius",
       "name": "Гігрофор винно-червоний",
       "latin": "Hygrophorus capreolarius",
       "edibility": "edible",
@@ -12163,7 +12163,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-marzuolus",
+      "id": "hygrophorus_marzuolus",
       "name": "Гігрофор ранній",
       "latin": "Hygrophorus marzuolus",
       "edibility": "edible",
@@ -12201,7 +12201,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-penarius",
+      "id": "hygrophorus_penarius",
       "name": "Гігрофор їстівний",
       "latin": "Hygrophorus penarius",
       "edibility": "edible",
@@ -12236,7 +12236,7 @@
       "photos": []
     },
     {
-      "id": "hygrophorus-lucorum",
+      "id": "hygrophorus_lucorum",
       "name": "Гігрофор модриновий",
       "latin": "Hygrophorus lucorum",
       "edibility": "edible",
@@ -12270,7 +12270,7 @@
       "photos": []
     },
     {
-      "id": "coprinus-comatus",
+      "id": "coprinus_comatus",
       "name": "Гнойовик білий",
       "latin": "Coprinus comatus",
       "edibility": "edible",
@@ -12308,7 +12308,7 @@
       "photos": []
     },
     {
-      "id": "coprinus-atramentarius",
+      "id": "coprinus_atramentarius",
       "name": "Гнойовик сірий",
       "latin": "Coprinus atramentarius",
       "edibility": "conditionally_edible",
@@ -12347,7 +12347,7 @@
       "photos": []
     },
     {
-      "id": "coprinus-micaceus",
+      "id": "coprinus_micaceus",
       "name": "Гнойовик мерехтливий",
       "latin": "Coprinus micaceus",
       "edibility": "edible",
@@ -12386,7 +12386,7 @@
       "photos": []
     },
     {
-      "id": "coprinus-radians",
+      "id": "coprinus_radians",
       "name": "Гнойовик променистий",
       "latin": "Coprinus radians",
       "edibility": "inedible",
@@ -12424,7 +12424,7 @@
       "photos": []
     },
     {
-      "id": "coprinus-lagopus",
+      "id": "coprinus_lagopus",
       "name": "Гнойовик заяча лапа",
       "latin": "Coprinus lagopus",
       "edibility": "inedible",
@@ -12461,7 +12461,7 @@
       "photos": []
     },
     {
-      "id": "hypholoma-fasciculare",
+      "id": "hypholoma_fasciculare",
       "name": "Опеньок сірчано-жовтий",
       "latin": "Hypholoma fasciculare",
       "edibility": "poisonous",
@@ -12499,7 +12499,7 @@
       "photos": []
     },
     {
-      "id": "hypholoma-capnoides",
+      "id": "hypholoma_capnoides",
       "name": "Опеньок димчастий",
       "latin": "Hypholoma capnoides",
       "edibility": "edible",
@@ -12535,7 +12535,7 @@
       "photos": []
     },
     {
-      "id": "stropharia-aeruginosa",
+      "id": "stropharia_aeruginosa",
       "name": "Строфарія синьо-зелена",
       "latin": "Stropharia aeruginosa",
       "edibility": "inedible",
@@ -12569,7 +12569,7 @@
       "photos": []
     },
     {
-      "id": "pholiota-squarrosa",
+      "id": "pholiota_squarrosa",
       "name": "Лускатка луската",
       "latin": "Pholiota squarrosa",
       "edibility": "conditionally_edible",
@@ -12603,7 +12603,7 @@
       "photos": []
     },
     {
-      "id": "pholiota-aurivella",
+      "id": "pholiota_aurivella",
       "name": "Лускатка золотиста",
       "latin": "Pholiota aurivella",
       "edibility": "edible",
@@ -12638,7 +12638,7 @@
       "photos": []
     },
     {
-      "id": "cortinarius-violaceus",
+      "id": "cortinarius_violaceus",
       "name": "Павутинник фіолетовий",
       "latin": "Cortinarius violaceus",
       "edibility": "edible",
@@ -12677,7 +12677,7 @@
       "photos": []
     },
     {
-      "id": "cortinarius-armillatus",
+      "id": "cortinarius_armillatus",
       "name": "Павутинник браслетний",
       "latin": "Cortinarius armillatus",
       "edibility": "edible",
@@ -12715,7 +12715,7 @@
       "photos": []
     },
     {
-      "id": "cortinarius-triumphans",
+      "id": "cortinarius_triumphans",
       "name": "Павутинник тріумфальний",
       "latin": "Cortinarius triumphans",
       "edibility": "edible",
@@ -12753,7 +12753,7 @@
       "photos": []
     },
     {
-      "id": "inocybe-rimosa",
+      "id": "inocybe_rimosa",
       "name": "Волоконниця тріщинувата",
       "latin": "Inocybe rimosa",
       "edibility": "poisonous",
@@ -12783,7 +12783,7 @@
       "photos": []
     },
     {
-      "id": "inocybe-fastigiata",
+      "id": "inocybe_fastigiata",
       "name": "Волоконниця рівновершинна",
       "latin": "Inocybe fastigiata",
       "edibility": "poisonous",
@@ -12821,7 +12821,7 @@
       "photos": []
     },
     {
-      "id": "macrolepiota-rhacodes",
+      "id": "macrolepiota_rhacodes",
       "name": "Гриб-зонтик червоніючий",
       "latin": "Macrolepiota rhacodes",
       "edibility": "edible",
@@ -12856,7 +12856,7 @@
       "photos": []
     },
     {
-      "id": "lepiota-clypeolaria",
+      "id": "lepiota_clypeolaria",
       "name": "Лепіота щитоносна",
       "latin": "Lepiota clypeolaria",
       "edibility": "inedible",
@@ -12894,7 +12894,7 @@
       "photos": []
     },
     {
-      "id": "lepiota-cristata",
+      "id": "lepiota_cristata",
       "name": "Лепіота гребінчаста",
       "latin": "Lepiota cristata",
       "edibility": "poisonous",
@@ -12929,7 +12929,7 @@
       "photos": []
     },
     {
-      "id": "lepiota-felina",
+      "id": "lepiota_felina",
       "name": "Лепіота котяча",
       "latin": "Lepiota felina",
       "edibility": "inedible",
@@ -12965,7 +12965,7 @@
       "photos": []
     },
     {
-      "id": "lepiota-lilacea",
+      "id": "lepiota_lilacea",
       "name": "Лепіота лілова",
       "latin": "Lepiota lilacea",
       "edibility": "inedible",
@@ -13000,7 +13000,7 @@
       "photos": []
     },
     {
-      "id": "lyophyllum-decastes",
+      "id": "lyophyllum_decastes",
       "name": "Ліофіл груповий",
       "latin": "Lyophyllum decastes",
       "edibility": "edible",
@@ -13036,7 +13036,7 @@
       "photos": []
     },
     {
-      "id": "lyophyllum-connatum",
+      "id": "lyophyllum_connatum",
       "name": "Ліофіл зрослий",
       "latin": "Lyophyllum connatum",
       "edibility": "edible",
@@ -13072,7 +13072,7 @@
       "photos": []
     },
     {
-      "id": "lyophyllum-ulmarium",
+      "id": "lyophyllum_ulmarium",
       "name": "Ліофіл в'язовий",
       "latin": "Lyophyllum ulmarium",
       "edibility": "edible",
@@ -13108,7 +13108,7 @@
       "photos": []
     },
     {
-      "id": "lyophyllum-loricatum",
+      "id": "lyophyllum_loricatum",
       "name": "Ліофіл панцирний",
       "latin": "Lyophyllum loricatum",
       "edibility": "edible",
@@ -13143,7 +13143,7 @@
       "photos": []
     },
     {
-      "id": "lyophyllum-immundum",
+      "id": "lyophyllum_immundum",
       "name": "Ліофіл чорніючий",
       "latin": "Lyophyllum immundum",
       "edibility": "edible",
@@ -13179,7 +13179,7 @@
       "photos": []
     },
     {
-      "id": "pleurotus-cornucopiae",
+      "id": "pleurotus_cornucopiae",
       "name": "Плеврот рясний",
       "latin": "Pleurotus cornucopiae",
       "edibility": "edible",
@@ -13222,7 +13222,7 @@
       "photos": []
     },
     {
-      "id": "pleurotus-calyptratus",
+      "id": "pleurotus_calyptratus",
       "name": "Плеврот ковпаковидний",
       "latin": "Pleurotus calyptratus",
       "edibility": "edible",
@@ -13263,7 +13263,7 @@
       "photos": []
     },
     {
-      "id": "pleurotus-eryngii",
+      "id": "pleurotus_eryngii",
       "name": "Плеврот миколайчиковий",
       "latin": "Pleurotus eryngii",
       "edibility": "edible",
@@ -13301,7 +13301,7 @@
       "photos": []
     },
     {
-      "id": "lentinus-tigrinus",
+      "id": "lentinus_tigrinus",
       "name": "Лентин тигровий",
       "latin": "Lentinus tigrinus",
       "edibility": "edible",
@@ -13338,7 +13338,7 @@
       "photos": []
     },
     {
-      "id": "lentinus-cyathiformis",
+      "id": "lentinus_cyathiformis",
       "name": "Лентин бокаловидний",
       "latin": "Lentinus cyathiformis",
       "edibility": "edible",
@@ -13376,7 +13376,7 @@
       "photos": []
     },
     {
-      "id": "lentinus-lepideus",
+      "id": "lentinus_lepideus",
       "name": "Лентин лускатий",
       "latin": "Lentinus lepideus",
       "edibility": "edible",
@@ -13416,7 +13416,7 @@
       "photos": []
     },
     {
-      "id": "schizophyllum-commune",
+      "id": "schizophyllum_commune",
       "name": "Схізофіл звичайний",
       "latin": "Schizophyllum commune",
       "edibility": "inedible",
@@ -13451,7 +13451,7 @@
       "photos": []
     },
     {
-      "id": "volvariella-speciosa",
+      "id": "volvariella_speciosa",
       "name": "Вольварієла прекрасна",
       "latin": "Volvariella speciosa",
       "edibility": "edible",
@@ -13487,7 +13487,7 @@
       "photos": []
     },
     {
-      "id": "volvariella-bombycina",
+      "id": "volvariella_bombycina",
       "name": "Вольварієла надеревна",
       "latin": "Volvariella bombycina",
       "edibility": "edible",
@@ -13526,7 +13526,7 @@
       "photos": []
     },
     {
-      "id": "pluteus-atromarginatus",
+      "id": "pluteus_atromarginatus",
       "name": "Плютей чорнооторочений",
       "latin": "Pluteus atromarginatus",
       "edibility": "edible",
