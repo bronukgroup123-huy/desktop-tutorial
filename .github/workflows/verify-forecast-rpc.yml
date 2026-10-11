@@ -1,7 +1,9 @@
 name: Verify Forecast RPC (temporary)
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/verify-forecast-rpc.yml'
 
 jobs:
   verify:
