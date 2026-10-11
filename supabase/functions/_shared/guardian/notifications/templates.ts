@@ -127,8 +127,8 @@ export function renderNotification(
   };
 
   if (context.coords) {
-    vars.lat = String(context.coords.lat);
-    vars.lng = String(context.coords.lng);
+    vars.lat = context.coords.lat.toFixed(5);
+    vars.lng = context.coords.lng.toFixed(5);
   }
 
   if (context.expected_return) {
