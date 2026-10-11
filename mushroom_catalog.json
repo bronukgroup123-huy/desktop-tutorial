@@ -234,6 +234,10 @@
         "kharkivska",
         "cherkaska",
         "chernihivska"
+      ],
+      "peak_months": [
+        9,
+        10
       ]
     },
     {
@@ -254,7 +258,11 @@
         7,
         8,
         9,
-        10
+        10,
+        11,
+        12,
+        1,
+        2
       ],
       "attrs": {
         "color": [],
@@ -304,6 +312,12 @@
         "cherkaska",
         "chernivetska",
         "chernihivska"
+      ],
+      "peak_months": [
+        11,
+        12,
+        1,
+        2
       ]
     },
     {
@@ -346,6 +360,10 @@
         "zhytomyrska",
         "lvivska",
         "rivnenska"
+      ],
+      "peak_months": [
+        7,
+        8
       ]
     },
     {
@@ -534,6 +552,12 @@
         "kharkivska",
         "khmelnytska",
         "chernihivska"
+      ],
+      "peak_months": [
+        11,
+        12,
+        1,
+        2
       ]
     },
     {
@@ -655,6 +679,10 @@
         "khmelnytska",
         "cherkaska",
         "chernihivska"
+      ],
+      "peak_months": [
+        7,
+        8
       ]
     },
     {
@@ -835,6 +863,10 @@
         "cherkaska",
         "chernivetska",
         "chernihivska"
+      ],
+      "peak_months": [
+        7,
+        8
       ]
     },
     {
@@ -962,6 +994,10 @@
         "cherkaska",
         "chernivetska",
         "chernihivska"
+      ],
+      "peak_months": [
+        7,
+        8
       ]
     },
     {
@@ -1144,6 +1180,10 @@
         "khmelnytska",
         "cherkaska",
         "chernivetska"
+      ],
+      "peak_months": [
+        9,
+        10
       ]
     },
     {
@@ -1315,6 +1355,10 @@
         "ternopilska",
         "khmelnytska",
         "cherkaska"
+      ],
+      "peak_months": [
+        4,
+        5
       ]
     },
     {
