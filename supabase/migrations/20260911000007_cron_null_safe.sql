@@ -1,52 +1,50 @@
 -- ============================================================================
--- Fix: cron jobs NULL-safe config (guardian-tick / guardian-retry)
+-- Fix: cron jobs config via Supabase Vault
 -- ============================================================================
--- Причина падіння (job_run_details = failed щохвилини):
---   ERROR: unrecognized configuration parameter "app.settings.supabase_url"
+-- Попередня версія читала GUC app.settings.* — Supabase блокує їх
+-- встановлення (42501 permission denied), тому параметри завжди NULL
+-- і cron/тригер тихо пропускали всі запуски.
 --
--- cron.schedule()-тіла в міграціях 20260911000003 та ...004 читали
--- current_setting('app.settings.supabase_url') БЕЗ флага missing_ok=true,
--- а GUC app.settings.supabase_url / app.settings.service_role_key
--- ніде не встановлювались → кожен запуск job падав.
+-- Тепер конфіг читається з Supabase Vault (наповнений вручну):
+--   - guardian_supabase_url      (URL проєкту, не секрет)
+--   - guardian_service_role_key  (service_role key, зашифрований)
 --
--- Ця міграція:
---   1. Створює helper public.guardian_fn_config() — читає GUC безопасно
---      (missing_ok=true), URL має дефолт для цього проєкту (не секрет),
---      service_role_key беруться ТІЛЬКИ з GUC (жодних секретів у git).
---   2. Перестворює обидва cron jobs з NULL-safe командою: якщо ключ не
---      виставлено — job тихо пропускає запуск замість ERROR щохвилини.
---
--- ЩО ПОТРІБНО ЗРОБИТИ ОДИН РАЗ (вручну, SQL Editor, як postgres):
---   ALTER DATABASE postgres SET app.settings.service_role_key = '<key>';
--- (url має дефолт у helper, але можна перевизначити тим же ALTER DATABASE)
---
--- ALTER DATABASE SET застосовується лише до НОВИХ з'єднань — нові
--- запуски cron відкривають нові сесії, тому підхоплять значення
--- протягом 1 хвилини.
---
--- ПРИМІТКА: зовнішній DO-блок використовує тег $do$ (не $$), бо
--- cron.schedule()-тіла всередині самі використовують $$.
+-- ПРИМІТКА: helper має SECURITY DEFINER, бо vault.decrypted_secrets
+-- доступний лише postgres/supabase_admin, а cron pg_net працює
+-- від іншої ролі.
 
 -- ============================================================================
--- 1. Helper: конфіг для Edge Functions
+-- 0. Гарантуємо наявність Vault (no-op, якщо вже встановлено)
+-- ============================================================================
+
+CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
+
+-- ============================================================================
+-- 1. Helper: конфіг для Edge Functions (читає з Vault)
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.guardian_fn_config()
 RETURNS TABLE (url TEXT, service_key TEXT)
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
+SET search_path = public, vault
 AS $fn$
   SELECT
-    COALESCE(
-      current_setting('app.settings.supabase_url', true),
-      'https://wrukmuxdbkbmkygfasai.supabase.co'
-    ) AS url,
-    current_setting('app.settings.service_role_key', true) AS service_key;
+    (SELECT decrypted_secret FROM vault.decrypted_secrets
+     WHERE name = 'guardian_supabase_url') AS url,
+    (SELECT decrypted_secret FROM vault.decrypted_secrets
+     WHERE name = 'guardian_service_role_key') AS service_key;
 $fn$;
 
 COMMENT ON FUNCTION public.guardian_fn_config() IS
   'url + service_role_key для виклику Edge Functions з cron/pg_net. '
-  'service_key — тільки з GUC app.settings.service_role_key (ніколи у git).';
+  'Читає з Supabase Vault. SECURITY DEFINER — бо vault.decrypted_secrets '
+  'не доступний anon/authenticated.';
+
+-- Обмежити прямий доступ — тільки через SECURITY DEFINER
+REVOKE ALL ON FUNCTION public.guardian_fn_config() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.guardian_fn_config() TO postgres, service_role;
 
 -- ============================================================================
 -- 2. Перестворити cron jobs з NULL-safe тілом
@@ -74,7 +72,8 @@ BEGIN
       ),
       body := '{}'::jsonb
     )
-    WHERE (SELECT service_key FROM public.guardian_fn_config()) IS NOT NULL;
+    WHERE (SELECT service_key FROM public.guardian_fn_config()) IS NOT NULL
+      AND (SELECT url FROM public.guardian_fn_config()) IS NOT NULL;
     $tick$
   );
 
@@ -96,24 +95,27 @@ BEGIN
       ),
       body := '{}'::jsonb
     )
-    WHERE (SELECT service_key FROM public.guardian_fn_config()) IS NOT NULL;
+    WHERE (SELECT service_key FROM public.guardian_fn_config()) IS NOT NULL
+      AND (SELECT url FROM public.guardian_fn_config()) IS NOT NULL;
     $retry$
   );
 END;
 $do$;
 
 -- ============================================================================
--- 3. Тригер notify_guardian_alert — на helper (targeting the same config)
+-- 3. Тригер notify_guardian_alert — на helper
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.notify_guardian_alert()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, vault
 AS $trg$
 BEGIN
-  IF (SELECT service_key FROM public.guardian_fn_config()) IS NULL THEN
-    RETURN NEW;  -- канал вимкнено — тихо пропускаємо
+  IF (SELECT service_key FROM public.guardian_fn_config()) IS NULL
+     OR (SELECT url FROM public.guardian_fn_config()) IS NULL THEN
+    RETURN NEW;  -- Vault не наповнений — тихо пропускаємо
   END IF;
 
   PERFORM net.http_post(
