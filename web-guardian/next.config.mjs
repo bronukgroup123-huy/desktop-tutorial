@@ -1,8 +1,17 @@
-import type { NextConfig } from "next";
-
-const config: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/landing.html" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 
   async headers() {
     return [
@@ -29,4 +38,4 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+export default nextConfig;
