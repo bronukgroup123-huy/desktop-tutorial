@@ -9,7 +9,7 @@ export interface MatcherResult {
   hardFail: boolean;
 }
 
-const WAVE_KEY: Record<Wave, 'waveSpring' | 'waveSummer1' | 'waveSummer2' | 'waveAutumn' | 'waveLate'> = {
+export const WAVE_KEY: Record<Wave, 'waveSpring' | 'waveSummer1' | 'waveSummer2' | 'waveAutumn' | 'waveLate'> = {
   spring: 'waveSpring',
   summer1: 'waveSummer1',
   summer2: 'waveSummer2',

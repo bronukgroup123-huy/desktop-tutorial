@@ -4,11 +4,6 @@
 
 import type { Wave } from "./types.ts";
 
-/** Правила V2 (заповнюється пізніше) */
-export const V2_RULES: string[] = [];
-
-/** Динамічні правила MVP-етапу — у rules.ts (група 8.4b) */
-
 /** GDD-пороги для хвиль (§11.3) */
 export const GDD_THRESHOLDS: Record<Wave, number> = {
   spring: 150,
@@ -20,13 +15,6 @@ export const GDD_THRESHOLDS: Record<Wave, number> = {
 
 /** Порядок хвиль */
 export const WAVE_ORDER: Wave[] = ["spring", "summer1", "summer2", "autumn", "late"];
-
-/** Базові види, що трапляються майже завжди (fallback пори року) */
-export const BASIC_FALLBACK_SPECIES: string[] = [
-  "russula_spp",
-  "lycoperdon_spp",
-  "agaricus_campestris",
-];
 
 // ============================================================================
 // Сезонність (§18.1)
