@@ -1453,6 +1453,20 @@ body.modal-open { overflow: hidden; }
             </button>
           </div>
 
+          <!-- Demo Guardian (group 8.8) -->
+          <div class="safety-card p-4 mb-3">
+            <div class="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E9A96A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="text-[13px] font-semibold">Спробувати Наглядача</div>
+            </div>
+            <p class="text-[11px] text-white/60 leading-relaxed mb-3">Подивіться, як виглядає інтерфейс для родичів під час походу: карта, статус і сигнал SOS. Без реєстрації — тимчасова демо-сесія на 1 годину.</p>
+            <button class="btn-primary w-full py-2.5 text-[13px] flex items-center justify-center gap-2" id="demo-guardian-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M12 5l7 7-7 7"/></svg>
+              Відкрити демо
+            </button>
+            <div id="demo-guardian-status" class="mt-2 text-[12px]" style="display:none"></div>
+          </div>
+
           <!-- Disclaimer -->
           <div class="flex items-start gap-2 p-3 rounded-2xl border border-white/15" style="background: rgba(255,255,255,0.03);">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E9A96A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4 M12 8h.01"/></svg>
@@ -1925,6 +1939,7 @@ body.modal-open { overflow: hidden; }
     <div id="welcome-modal-emoji" class="text-2xl mb-1.5"></div>
     <div id="welcome-modal-title" class="modal-title"></div>
     <p id="welcome-modal-text" class="text-[12px] text-ink-muted leading-relaxed" style="padding-right: 24px;"></p>
+    <button class="btn-primary w-full mt-3 py-2.5 text-[13px]" id="demo-guardian-modal-btn" style="display:none">Спробувати демо Наглядача</button>
   </div>
 </div>
 
@@ -2063,6 +2078,9 @@ body.modal-open { overflow: hidden; }
     welcomeModalEmoji.textContent = entry.emoji;
     welcomeModalTitle.textContent = entry.title;
     welcomeModalText.textContent = entry.text;
+    // Demo-CTA тільки в модалці «Наглядач» (group 8.8)
+    const demoModalBtn = document.getElementById('demo-guardian-modal-btn');
+    if (demoModalBtn) demoModalBtn.style.display = key === 'guardian' ? 'block' : 'none';
     welcomeModalOpen = true;
     document.body.classList.add('modal-open');
     welcomeModalOverlay.classList.add('active');
@@ -2075,6 +2093,8 @@ body.modal-open { overflow: hidden; }
   function closeWelcomeModal() {
     if (!welcomeModalOpen || !welcomeModalOverlay) return;
     welcomeModalOpen = false;
+    const demoModalBtn = document.getElementById('demo-guardian-modal-btn');
+    if (demoModalBtn) demoModalBtn.style.display = 'none';
     welcomeModalOverlay.classList.remove('modal-open');
     document.body.classList.remove('modal-open');
     setTimeout(() => {
@@ -4014,6 +4034,54 @@ body.modal-open { overflow: hidden; }
       btnCloseExpanded.addEventListener('click', closeExpandedMushroom);
     }
   }
+
+  // ---------- Demo Guardian (group 8.8) ----------
+  (function () {
+    const FUNCTIONS_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co/functions/v1';
+    const demoStatus = document.getElementById('demo-guardian-status');
+    const buttons = [
+      document.getElementById('demo-guardian-btn'),
+      document.getElementById('demo-guardian-modal-btn'),
+    ].filter(Boolean);
+
+    function setStatus(text, color) {
+      if (!demoStatus) return;
+      demoStatus.style.display = 'block';
+      demoStatus.textContent = text;
+      demoStatus.style.color = color;
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        buttons.forEach((b) => { b.disabled = true; });
+        setStatus('Створюємо демо-сесію…', 'rgba(255,255,255,0.7)');
+
+        try {
+          const res = await fetch(FUNCTIONS_URL + '/guardian-demo-create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            const msg = data && data.error === 'demo_limit_reached'
+              ? 'Зараз багато активних демо. Спробуйте за кілька хвилин.'
+              : 'Не вдалося створити демо. Спробуйте ще раз.';
+            setStatus('⚠ ' + msg, '#E9A96A');
+            buttons.forEach((b) => { b.disabled = false; });
+            return;
+          }
+
+          setStatus('✓ Переходимо…', '#9FD3A8');
+          window.location.href = data.data.url;
+
+        } catch (err) {
+          setStatus('⚠ Немає звʼязку. Перевірте інтернет.', '#E9A96A');
+          buttons.forEach((b) => { b.disabled = false; });
+        }
+      });
+    });
+  })();
 
   </script>
 
