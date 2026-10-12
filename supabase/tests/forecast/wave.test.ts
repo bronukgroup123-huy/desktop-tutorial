@@ -30,8 +30,22 @@ Deno.test("detectWave: без GDD → календарна", () => {
   assertEquals(w, "autumn");
 });
 
-Deno.test("detectWave: GDD занадто низький → попередня", () => {
-  // autumn має threshold 1500 (GDD_THRESHOLDS, §11.3). GDD=800 → summer2
-  const w = detectWave(new Date("2026-09-11T12:00:00Z"), 50.45, 800);
-  assertEquals(w, "summer2");
+Deno.test("detectWave: GDD більше не впливає — завжди calendar wave (8.7a)", () => {
+  // FIX 8.7: ковзне вікно computeGDD не сумісне з кумулятивною шкалою
+  // порогів → detectWave довіряє calendarWave за будь-якого GDD.
+  const d = new Date("2026-09-11T12:00:00Z");
+  assertEquals(detectWave(d, 50.45, null), "autumn");
+  assertEquals(detectWave(d, 50.45, 100), "autumn");
+  assertEquals(detectWave(d, 50.45, 9999), "autumn");
+});
+
+Deno.test("detectWave: GDD=100 (раніше → previousWave) теж autumn (8.7a)", () => {
+  const w = detectWave(new Date("2026-09-11T12:00:00Z"), 50.45, 100);
+  assertEquals(w, "autumn");
+});
+
+Deno.test("detectWave: latitude offset досі працює (8.7a)", () => {
+  // lat 45 (південніше 50.45) → offset +14 днів: 25.09 + 14 = 09.10 → autumn
+  const w = detectWave(new Date("2026-09-25T12:00:00Z"), 45, 50);
+  assertEquals(w, "autumn");
 });

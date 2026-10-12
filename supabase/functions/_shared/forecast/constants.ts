@@ -4,7 +4,9 @@
 
 import type { Wave } from "./types.ts";
 
-/** GDD-пороги для хвиль (§11.3) */
+// DEPRECATED (8.7a): thresholds призначені для кумулятивного GDD.
+// Використання з ковзним вікном computeGDD некоректне — див. wave.ts.
+// Активуються знову після впровадження кумулятивного GDD (V2, docs/8.7_gdd_fix.md).
 export const GDD_THRESHOLDS: Record<Wave, number> = {
   spring: 150,
   summer1: 450,

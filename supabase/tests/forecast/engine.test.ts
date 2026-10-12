@@ -157,7 +157,7 @@ function ruleToRow(rule: SpeciesRule): Record<string, unknown> {
 
 // ─── Stub fetch (open-meteo): ContextBuilder → fetchWeather ──
 // Реальні дані: temp 15, hum 70, rain3d 12, soil 0.3 → soilState normal,
-// droughtDays 0, GDD=300 → detectWave(11.10) = summer2 (GDD < 1500).
+// droughtDays 0, GDD=300. FIX 8.7a: GDD ігнорується → wave = calendar = autumn.
 
 const HOURLY = 30 * 24;
 const DAILY = 30;
@@ -288,7 +288,7 @@ Deno.test('engine: нормальний flow — 3 rules → top1 + alternative'
   // різні forestType (pine vs birch) → alternative = russula (Рівень 1)
   assert(result.alternative !== null);
   assertEquals(result.alternative.mushroom_type, 'russula_vesca');
-  assert(result.warnings.some((w) => w.includes('червиві'))); // wave=summer2
+  assert(result.warnings.some((w) => w.includes('міцні'))); // wave=autumn (8.7a: calendar only)
   assertEquals(result.date, '2026-10-11');
   assertEquals(result.forest, 'Ліс: невідомо. Прогноз базовий.');
 });
@@ -305,8 +305,9 @@ Deno.test('engine: 0 кандидатів → buildFallback (0 базових у
 // ─── 7. Anti-double (§12.5) ─────────────────────────────────
 
 Deno.test('engine: anti-double — лисичка топ → білий −0.10', async () => {
-  // білий із fruitingTempMin=13 → transition zone ×0.7 (слабший за лисичку)
-  const boletusTransition = makeRule({ fruitingTempMin: 13 });
+  // білий: fruitingTempMin=13 → transition ×0.7 + humidityMin=85 (soft-miss −0.1),
+  // щоб лисичка (autumn, clamp 1.0) була детерміновано вищою за білого
+  const boletusTransition = makeRule({ fruitingTempMin: 13, humidityMin: 85 });
 
   const solo = await runForecast([boletusTransition, JUNK]);
   assertEquals(solo.result.top1?.mushroom_type, 'boletus_edulis');

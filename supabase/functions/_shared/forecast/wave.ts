@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { Wave } from "./types.ts";
-import { GDD_THRESHOLDS, WAVE_ORDER } from "./constants.ts";
+import { WAVE_ORDER } from "./constants.ts";
 
 /**
  * Додати N днів до дати.
@@ -38,28 +38,32 @@ export function previousWave(w: Wave): Wave {
  * Визначити хвилю за §11.3 плану v6.0:
  * 1. Latitude offset — північні області відстають
  * 2. Calendar wave — базова хвиля за місяцем
- * 3. GDD adjustment — якщо GDD < порогу, беремо попередню хвилю
  *
- * F-7: GDD + latitude offset.
+ * FIX 8.7 (2026-10-12): GDD-корекція тимчасово вимкнена.
+ *
+ * Причина: computeGDD (weather.ts) дає 37-денне КОВЗНЕ вікно
+ * (past_days=30 + forecast_days=7). Воно НЕ монотонне по сезону:
+ * у листопаді GDD менше, ніж у жовтні. GDD_THRESHOLDS має
+ * КУМУЛЯТИВНУ шкалу з 1 січня. Порівняння некоректне —
+ * autumn:1500 ніколи не досягається з ковзним вікном, тому
+ * жовтень деградував у summer2.
+ *
+ * Кумулятивний GDD → ticket V2: docs/8.7_gdd_fix.md.
+ * До впровадження — довіряємо calendar wave.
+ * Сигнатура (date, lat, gdd) збережена для сумісності з ContextBuilder.
  */
 export function detectWave(
   date: Date,
   lat: number,
   gdd: number | null
 ): Wave {
+  // gdd on purpose unused until cumulative GDD (ticket V2)
+  void gdd;
+
   // Крок 1: latitude offset (50.45 — центральна Україна, південь — додатні дні)
   const latOffsetDays = Math.round((50.45 - lat) * 2.5);
   const adjustedDate = addDays(date, latOffsetDays);
 
-  // Крок 2: календарна хвиля
-  const calWave = calendarWave(adjustedDate);
-
-  // Крок 3: GDD (якщо доступний)
-  if (gdd === null) return calWave;
-
-  const threshold = GDD_THRESHOLDS[calWave];
-  if (threshold !== undefined && gdd < threshold) {
-    return previousWave(calWave);
-  }
-  return calWave;
+  // Крок 2: календарна хвиля — єдине джерело істини до V2
+  return calendarWave(adjustedDate);
 }
