@@ -7,9 +7,10 @@ import type {
 // ─── Fixtures (дубль matchers.test.ts — тести самостійні) ────
 //
 // Дефолтна фікстура (wave=autumn, peakWaves=['autumn']) дає від правил
-// 8.4b: rule1 (вік 50) = 0, rule2 skip (droughtDays=0), rule3 = 0,
-// rule4 = +0.20 (autumn 0.15 + peak 0.05), rule5 skip, rule6 = 0,
-// rule8 (норма) = 0  →  Σ = +0.20
+// 8.4b + 8.7b: rule1 (вік 50) = 0, rule2 skip (droughtDays=0), rule3 = 0,
+// rule4 = +0.15 (autumn, БЕЗ peak — 8.7b), rule5 skip, rule6 = 0,
+// rule8 (норма) = 0  →  Σ = +0.15
+// peak_wave_bonus (scorer) = +0.05 — керований flag peak_wave_bonus_enabled
 //
 function makeRule(overrides: Partial<SpeciesRule> = {}): SpeciesRule {
   return {
@@ -132,7 +133,7 @@ Deno.test('scoreSpecies: всі матчери 1.0, soil 1.0 → 1.0 / peak', ()
     weather: makeWeather({ tempAvg7d: 15, droughtDays: 10, rain1d: 5 }),
   });
   const r = scoreSpecies(rule, ctx);
-  // base 1.0 (bonus skipped: 1.0 не < 1.0) + rule2 +0.05 + rule4 +0.20 → clamp 1.0
+  // base 1.0 (bonus skipped: 1.0 не < 1.0) + rule2 +0.05 + rule4 +0.15 → clamp 1.0
   assertEquals(r.score, 1);
   assertEquals(r.probability, 'peak');
   assert(r.matched.length > 0);
@@ -142,14 +143,14 @@ Deno.test('scoreSpecies: всі матчери 1.0, soil 1.0 → 1.0 / peak', ()
 // ─── soil multiplier (peak_wave_bonus off → ізоляція soil) ───
 Deno.test('scoreSpecies: waterlogged penalty 0.3 → ×0.7', () => {
   // weather = 0.9 (peak+humidity+rain3d), season = 1.0, geo = 1.0
-  // base = (1 + 1.5*0.9 + 1)/3.5 = 0.9571; × soil 0.7 = 0.67; + rule4 0.20 = 0.87
+  // base = (1 + 1.5*0.9 + 1)/3.5 = 0.9571; × soil 0.7 = 0.67; + rule4 0.15 = 0.82
   // peak_wave_bonus вимкнено — ізолюємо саме soil-множник
   const ctx = makeCtx({
     weather: makeWeather({ soilState: 'waterlogged' }),
     config: makeFlags({ peak_wave_bonus_enabled: false }),
   });
   const r = scoreSpecies(makeRule(), ctx);
-  assert(Math.abs(r.score - 0.87) < 0.001, `score=${r.score}`);
+  assert(Math.abs(r.score - 0.82) < 0.001, `score=${r.score}`);
 });
 
 // ─── fruiting_temp_buffer ────────────────────────────────────
@@ -204,15 +205,15 @@ Deno.test('scoreSpecies: peak wave bonus → +0.05', () => {
   });
   const weakWeather = { humidity: 50, rain3d: 5 };
   const withBonus = scoreSpecies(rule, makeCtx({ weather: makeWeather(weakWeather) }));
-  // 0.72143 + bonus 0.05 + rule4 0.20 = 0.97143
-  assert(Math.abs(withBonus.score - 0.971428571) < 1e-6, `score=${withBonus.score}`);
+  // 0.72143 + bonus 0.05 + rule4 0.15 = 0.92143
+  assert(Math.abs(withBonus.score - 0.921428571) < 1e-6, `score=${withBonus.score}`);
 
   const withoutBonus = scoreSpecies(rule, makeCtx({
     weather: makeWeather(weakWeather),
     config: makeFlags({ peak_wave_bonus_enabled: false }),
   }));
-  // 0.72143 + rule4 0.20 = 0.92143
-  assert(Math.abs(withoutBonus.score - 0.921428571) < 1e-6, `score=${withoutBonus.score}`);
+  // 0.72143 + rule4 0.15 = 0.87143
+  assert(Math.abs(withoutBonus.score - 0.871428571) < 1e-6, `score=${withoutBonus.score}`);
 
   // різниця рівно бонус
   assert(Math.abs((withBonus.score - withoutBonus.score) - 0.05) < 1e-6);
@@ -220,7 +221,7 @@ Deno.test('scoreSpecies: peak wave bonus → +0.05', () => {
 
 Deno.test('scoreSpecies: peak bonus капується на 1.0', () => {
   // без drought-trigger: weather=0.9 → base=0.9571 → +0.05 = 1.0071 → cap 1.0
-  // + rule4 0.20 = 1.2 → clamp 1.0
+  // + rule4 0.15 = 1.15 → clamp 1.0
   const r = scoreSpecies(makeRule(), makeCtx());
   assertEquals(r.score, 1);
   assertEquals(r.probability, 'peak');

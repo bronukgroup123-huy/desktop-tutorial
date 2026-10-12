@@ -113,15 +113,15 @@ const WAVE_MODIFIERS: Record<Wave, { mod: number; reason: string }> = {
   late:       { mod: 0.05, reason: "Пізня хвиля" },
 };
 
-export const rule4_Waves: DynamicRule = (rule, ctx) => {
+// FIX 8.7b (2026-10-12): peak-гілка (+0.05) видалена.
+// Дублювалась з scorer.ts (peak_wave_bonus_enabled flag) —
+// давала +0.10 замість +0.05 за один факт (wave ∈ rule.peakWaves).
+// WAVE_MODIFIERS тепер — чиста таблиця клімату хвиль.
+// Peak-бонус виду керується flag у scorer.ts (SQL kill-switch).
+// Див. docs/8.7b_peak_bonus_fix.md.
+export const rule4_Waves: DynamicRule = (_rule, ctx) => {
   const entry = WAVE_MODIFIERS[ctx.wave];
-  let mod = entry.mod;
-  let reason = entry.reason;
-  if (rule.peakWaves.includes(ctx.wave)) {
-    mod += 0.05;
-    reason += " + peak";
-  }
-  return { modifier: mod, reason };
+  return { modifier: entry.mod, reason: entry.reason };
 };
 
 // ────────────────────────────────────────────────────────────────────

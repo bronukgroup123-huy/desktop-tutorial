@@ -194,9 +194,20 @@ Deno.test('rule3: білий + прохолода (tempAvg7d < tempAvg14d−3) �
 });
 
 // ─── Rule 4 — Хвиля ──────────────────────────────────────────
-Deno.test("rule4: autumn + peakWaves=['autumn'] → +0.20 (0.15+0.05)", () => {
+Deno.test('rule4: autumn (peak) → +0.15 (без peak-бонусу — він у scorer.ts, 8.7b)', () => {
   const r = rule4_Waves(makeRule(), makeCtx({ wave: 'autumn' }));
-  assertEquals(r.modifier, 0.20);
+  assertEquals(r.modifier, 0.15);
+  // FIX 8.7b: reason більше не містить "+ peak" — peak-бонус тільки у scorer.ts
+  assert(!r.reason?.includes('+ peak'));
+});
+
+Deno.test('rule4: autumn з peakWaves=[\'autumn\'] → modifier 0.15 (регресія 8.7b)', () => {
+  // Фіксує: peak-гілка (+0.05) видалена з rule4 назавжди.
+  // Раніше було 0.20 (0.15 + 0.05 peak) — дублювало scorer bonus.
+  const rule = makeRule({ peakWaves: ['autumn'] });
+  const r = rule4_Waves(rule, makeCtx({ wave: 'autumn' }));
+  assertEquals(r.modifier, 0.15);
+  assertEquals(r.reason, 'Осіння хвиля (пік)');
 });
 
 Deno.test('rule4: spring, peakWaves=[] → +0.05', () => {
