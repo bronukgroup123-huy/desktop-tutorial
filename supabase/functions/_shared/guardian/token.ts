@@ -48,7 +48,13 @@ export async function generateGuardianToken(
   };
 
   const secret = await getSecret();
-  const token = await create({ alg: "HS256", typ: "JWT" }, payload, secret);
+  // FIX 8.6d: djwt Payload вимагає index signature; наш typed interface
+  // GuardianTokenPayload його не має. Type-only bridge, runtime не змінюється.
+  const token = await create(
+    { alg: "HS256", typ: "JWT" },
+    payload as unknown as Record<string, unknown>,
+    secret,
+  );
 
   const tokenHash = await hashToken(token);
   const tokenPrefix = token.slice(0, 8);
