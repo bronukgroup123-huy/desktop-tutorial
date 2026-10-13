@@ -11,3 +11,4 @@ session.json
 supabase/.temp/
 web-guardian/.next/
 web-guardian/next-env.d.ts
+web-guardian/.vercel/

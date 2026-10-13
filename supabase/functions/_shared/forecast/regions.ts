@@ -32,3 +32,38 @@ export async function pointInRegion(
   if (error) return false; // graceful — RPC-збій не валить прогноз
   return data === true;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// find_region_by_slug (migration 00015) — резолв slug → region
+// Для Flutter: slug ('kyiv', 'lvivska') → { id, name, slug, koatuu, katottg }
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface RegionBySlug {
+  id: number;
+  name: string;
+  slug: string;
+  koatuu: string | null;
+  katottg: string | null;
+}
+
+/**
+ * Резолвить slug регіону в повний рядок регіону.
+ *
+ * Graceful: помилка RPC, порожня відповідь або slug=null → null.
+ */
+export async function findRegionBySlug(
+  db: ForecastDbClient,
+  slug: string
+): Promise<RegionBySlug | null> {
+  const { data, error } = await db.rpc("find_region_by_slug", {
+    slug_input: slug,
+  });
+
+  if (error || !data) return null; // graceful — RPC-збій не валить запит
+
+  // RPC повертає TABLE — supabase-js віддає масив рядків (або єдиний рядок)
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== "object") return null;
+
+  return row as RegionBySlug;
+}

@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert';
-import { pointInRegion } from '../../functions/_shared/forecast/regions.ts';
+import { pointInRegion, findRegionBySlug } from '../../functions/_shared/forecast/regions.ts';
 import type { ForecastDbClient } from '../../functions/_shared/forecast/context.ts';
 
 // Мок ForecastDbClient: лічильник викликів + керована відповідь rpc
@@ -43,4 +43,28 @@ Deno.test('pointInRegion: RPC → { data: false } → false', async () => {
   const { db } = makeDbMock({ data: false, error: null });
   const r = await pointInRegion(db, 50.45, 30.52, 1);
   assertEquals(r, false);
+});
+
+// ─── findRegionBySlug (migration 00015) ─────────────────────
+
+Deno.test('findRegionBySlug: RPC → [{...}] → RegionBySlug', async () => {
+  const { db, calls } = makeDbMock({
+    data: [{ id: 1, name: 'Київ', slug: 'kyiv', koatuu: '8036600000', katottg: 'UA8000000000' }],
+    error: null,
+  });
+  const r = await findRegionBySlug(db, 'kyiv');
+  assertEquals(r, { id: 1, name: 'Київ', slug: 'kyiv', koatuu: '8036600000', katottg: 'UA8000000000' });
+  assertEquals(calls, ['find_region_by_slug({"slug_input":"kyiv"})']);
+});
+
+Deno.test("findRegionBySlug: 'unknown' → [] → null", async () => {
+  const { db } = makeDbMock({ data: [], error: null });
+  const r = await findRegionBySlug(db, 'unknown');
+  assertEquals(r, null);
+});
+
+Deno.test('findRegionBySlug: RPC error → null (graceful)', async () => {
+  const { db } = makeDbMock({ data: null, error: { message: 'boom' } });
+  const r = await findRegionBySlug(db, 'kyiv');
+  assertEquals(r, null);
 });
