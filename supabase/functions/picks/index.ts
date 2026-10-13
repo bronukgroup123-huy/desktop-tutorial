@@ -21,6 +21,9 @@ import {
   validatePicksBody,
   detectImageFormat,
 } from "../_shared/forecast/picks-validate.ts";
+import { handlePicksListRequest } from "../_shared/forecast/picks-list.ts";
+import type { PicksListDbClient } from "../_shared/forecast/picks-list.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const BUCKET = "mushroom-photos";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MiB (bucket limit)
@@ -38,6 +41,49 @@ function jsonResponse(data: unknown, status: number): Response {
   });
 }
 
+/**
+ * Клієнти для GET /picks (group 9.4):
+ *   readDb  — anon-key + JWT → RLS mushroom_picks_read enforced
+ *   adminDb — service_role → enrichment (users/regions/catalog/signed URLs)
+ * userId — null для аноніма або невалідного токена (mine/friends → 401).
+ */
+async function createPicksListClients(req: Request): Promise<{
+  readDb: PicksListDbClient;
+  adminDb: PicksListDbClient;
+  userId: string | null;
+}> {
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const authHeader = req.headers.get("Authorization");
+  const bearer =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : null;
+
+  const readDb = createClient(url, anonKey, {
+    global: bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : {},
+    auth: { persistSession: false, autoRefreshToken: false },
+  }) as unknown as PicksListDbClient;
+
+  const adminDb = createClient(url, serviceKey, {
+    auth: { persistSession: false },
+  }) as unknown as PicksListDbClient;
+
+  let userId: string | null = null;
+  if (bearer) {
+    const authClient = createClient(url, anonKey, {
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await authClient.auth.getUser(bearer);
+    if (data.user) userId = data.user.id;
+  }
+
+  return { readDb, adminDb, userId };
+}
+
 const EXT: Record<string, string> = { jpeg: "jpg", png: "png", webp: "webp" };
 
 Deno.serve(withErrorHandling(async (req: Request) => {
@@ -45,6 +91,13 @@ Deno.serve(withErrorHandling(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  // 1b. GET — стрічка трофеїв (group 9.4); POST — існуючий handler нижче
+  if (req.method === "GET") {
+    const { readDb, adminDb, userId } = await createPicksListClients(req);
+    return handlePicksListRequest(readDb, adminDb, userId, req);
+  }
+
   if (req.method !== "POST") {
     throw Errors.notFound("Method not allowed");
   }
