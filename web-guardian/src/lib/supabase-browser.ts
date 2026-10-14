@@ -14,8 +14,8 @@ export function getSupabaseBrowser(): SupabaseClient {
 
   client = createClient(url, key, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+      persistSession: true,
+      autoRefreshToken: true,
     },
     realtime: {
       params: { eventsPerSecond: 5 },

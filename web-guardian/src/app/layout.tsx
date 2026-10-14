@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthInit } from "@/components/auth/AuthInit";
 
 export const metadata: Metadata = {
   title: "MushroomRadar Guardian",
@@ -31,6 +32,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="antialiased bg-gray-50 text-gray-900">
+        <AuthInit />
         {children}
       </body>
     </html>
