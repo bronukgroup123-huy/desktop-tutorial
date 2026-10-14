@@ -3,6 +3,7 @@ import type {
   TrackResponse,
   RescueView,
 } from "./types";
+import { useAuthStore } from "@/store/auth-store";
 
 const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL!;
 
@@ -42,12 +43,19 @@ export class GuardianApiError extends Error {
 
 async function apiCall<T>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  auth = false
 ): Promise<T> {
+  // JWT — ЛИШЕ для явно позначених auth-викликів (/me).
+  // Guardian-виклики за замовчуванням auth=false → ніколи не додаємо
+  // Authorization у X-Guardian-Token flow (урок фіксу 27539f1).
+  const token = auth ? useAuthStore.getState().accessToken : null;
+
   const res = await fetch(`${FUNCTIONS_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
   });
@@ -120,4 +128,47 @@ export function getGpxUrl(token: string): string {
 
 export function getRescueGpxUrl(token: string): string {
   return `${FUNCTIONS_URL}/guardian-rescue-get/${token}/gpx`;
+}
+
+// ============================================================================
+// Auth-scope API (JWT через apiCall auth=true) — Phase 2
+// ============================================================================
+// Формат відповідей = MeProfile (snake_case) із _shared/forecast/me-endpoint.ts.
+// apiCall<T> повертає РОЗГОРНУТЕ data (ApiSuccess<T>.data), тому без .data.
+
+export interface MeProfile {
+  id: string;
+  name: string | null;
+  rating: number;
+  total_verified_picks: number;
+  home_region: { id: number; slug: string; name: string } | null;
+  created_at: string;
+}
+
+export interface RegionItem {
+  id: number;
+  name: string;
+  slug: string;
+  koatuu: string | null;
+  katottg: string | null;
+}
+
+export async function fetchMe(): Promise<MeProfile> {
+  return apiCall<MeProfile>("/me", { method: "GET" }, true);
+}
+
+export async function patchMe(input: {
+  name?: string;
+  home_region_slug?: string;
+}): Promise<MeProfile> {
+  return apiCall<MeProfile>(
+    "/me",
+    { method: "PATCH", body: JSON.stringify(input) },
+    true
+  );
+}
+
+// Публічний довідник областей (без JWT).
+export async function fetchRegions(): Promise<RegionItem[]> {
+  return apiCall<RegionItem[]>("/regions", { method: "GET" });
 }
