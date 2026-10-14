@@ -47,7 +47,8 @@ const NOT_EDIBLE_VALUES = ["inedible", "poisonous", "deadly_poisonous"];
 
 const SELECT_COLUMNS =
   "id, name_ua, name_lat, edibility, edibility_label, red_listed, " +
-  "rarity, has_photo, top20, popular, months, peak_months, zones, attrs, photos";
+  "rarity, has_photo, top20, popular, months, peak_months, zones, attrs, photos, " +
+  "ai_recognition, features";
 
 const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
 

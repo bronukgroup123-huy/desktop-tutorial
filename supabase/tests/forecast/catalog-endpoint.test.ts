@@ -129,7 +129,7 @@ Deno.test('catalog handler: GET → 200 + {data(camelCase), total, limit, offset
   assertEquals(body.data[0].peakMonths, [9, 10]);
   assertEquals(calls, [
     'from:mushroom_catalog',
-    'select:id, name_ua, name_lat, edibility, edibility_label, red_listed, rarity, has_photo, top20, popular, months, peak_months, zones, attrs, photos:{"count":"exact"}',
+    'select:id, name_ua, name_lat, edibility, edibility_label, red_listed, rarity, has_photo, top20, popular, months, peak_months, zones, attrs, photos, ai_recognition, features:{"count":"exact"}',
     'order:name_ua:true',
     'range:40:59',
   ]);

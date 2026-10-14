@@ -10,6 +10,10 @@ Edge Functions (`supabase/functions/*/index.ts`) та спільних моду�
 - **Схема БД:** [DB_SCHEMA.md](./DB_SCHEMA.md)
 - **Авторизація:** [AUTH_FLOW.md](./AUTH_FLOW.md)
 
+> ⚠️ **Заголовок `apikey`:** усі запити до Edge Functions потребують заголовок
+> `apikey: <SUPABASE_ANON_KEY>`. Це публічний ключ проєкту (анон-рівень),
+> не секрет — разом із `Authorization: Bearer $ACCESS_TOKEN` для JWT-ендпоінтів.
+
 ---
 
 ## Загальні правила
@@ -34,6 +38,9 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 
 ### Формат помилок
 
+Єдиний формат помилки для **всіх** ендпоінтів (окремі ендпоінти можуть
+опускати опційне `message`):
+
 ```json
 {
   "error": "invalid_coordinates",
@@ -41,15 +48,27 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 }
 ```
 
+| Поле | Тип | Обов'язкове |
+|---|---|---|
+| `error` | string | так — машинний код (`snake_case`), не людський текст |
+| `message` | string | ні — людиночитабельне уточнення, може бути відсутнє |
+
 | HTTP | Коли | Типові коди |
 |---|---|---|
-| 400 | Невалідний запит | `invalid_json`, `invalid_coordinates`, `invalid_date`, `invalid_input`, `invalid_photo_format`, `photo_too_large`, `invalid_scope`, `invalid_period`, `invalid_pagination`, `limit_out_of_range`, `invalid_offset`, `invalid_mushroom_type`, `invalid_region_slug`, `missing_region_slug`, `invalid_season`, `invalid_edible`, `search_too_long`, `invalid_body`, `invalid_name` |
+| 400 | Невалідний запит | `invalid_json`, `invalid_coordinates`, `invalid_date`, `invalid_photo_format`, `photo_too_large`, `invalid_scope`, `invalid_period`, `invalid_pagination`, `limit_out_of_range`, `invalid_offset`, `invalid_mushroom_type`, `invalid_region_slug`, `missing_region_slug`, `invalid_season`, `invalid_edible`, `search_too_long`, `invalid_body`, `invalid_name` |
 | 401 | Немає/битий JWT там, де він обов'язковий | `unauthorized` |
 | 403 | RegionGuard: точка поза домашньою области | `outside_home_region` |
 | 404 | Ресурс не знайдено | `region_not_found`, `me_not_found` |
 | 405 | Неправильний HTTP-метод | `method_not_allowed` |
-| 422 | Schema-помилка тіла `/picks` | `invalid_input` |
+| 422 | Schema-помилка тіла `POST /picks` (Zod: тип/ліміт/відсутнє обов'язкове поле) | `invalid_input` (з `message` формату `"<field>: <reason>"`) |
 | 500 | Внутрішня помилка | `internal_error`, `storage_error`, `db_error` |
+
+> Деякі ендпоінти повертають `{ "error": ... }` **без** `message` —
+> це відповідає контракту (`message` опційне). Крім того, `POST /picks`
+> для невалідного JSON повертає **422** `{ "error": "validation_error",
+> "message": "invalid_json" }` (`Errors.validation`, `_shared/guardian/errors.ts`),
+> а не 400 `invalid_json` — код `validation_error` є guardian-контуровим
+> псевдонімом для Zod-помилок.
 
 ### Rate limiting
 
@@ -194,6 +213,12 @@ curl -X POST "$SUPABASE_URL/functions/v1/picks" \
 
 ### Помилки
 
+Невалідний JSON у тілі → **422** `{ "error": "validation_error",
+"message": "invalid_json" }` (guardian-хелпер `Errors.validation`,
+`_shared/guardian/errors.ts`).
+Схема-помилки Zod (тип/ліміти/відсутні обов'язкові поля) → **422**
+`invalid_input` (з `message` формату `"<field>: <reason>"`).
+
 ```json
 { "error": "invalid_input", "message": "photoBase64: String must contain at least 100 character(s)" }
 ```
@@ -207,8 +232,9 @@ curl -X POST "$SUPABASE_URL/functions/v1/picks" \
 { "error": "storage_error" }
 ```
 
-`invalid_input` → **422**; решта фото-помилок → **400**; `storage_error`/`db_error` → **500**.
-При провалі вставки фото видаляється (rollback).
+Помилки фото / формату → **400** (`photo_too_large`, `invalid_photo_format`,
+невдалий base64-декод); схема → **422** (`invalid_input`);
+`storage_error`/`db_error` → **500**. При провалі вставки фото видаляється (rollback).
 
 ---
 
@@ -278,7 +304,8 @@ curl "$SUPABASE_URL/functions/v1/picks?scope=public&period=week&limit=20&offset=
 
 ## 4. GET /regions
 
-Публічний довідник 27 областей України для випадаючого списку Home Region.
+Публічний довідник 27 регіонів України (24 області + АР Крим + Київ +
+Севастополь) для випадаючого списку Home Region.
 Без геометрії (`polygon` не віддається). Оновлення регіону профілю —
 див. [PATCH /me](#7-patch-me).
 
@@ -297,22 +324,25 @@ curl "$SUPABASE_URL/functions/v1/regions"
       "id": 1,
       "name": "Київська",
       "slug": "kyivska",
-      "koatuu": "UA8000000000",
-      "katottg": "UA80020000000066663"
+      "koatuu": "3200000000",
+      "katottg": "UA32000000000030281"
     },
     {
-      "id": 13,
-      "name": "Львівська",
-      "slug": "lvivska",
-      "koatuu": "UA4614000000",
-      "katottg": "UA46120000000015887"
+      "id": 26,
+      "name": "Київ",
+      "slug": "kyiv",
+      "koatuu": null,
+      "katottg": "UA80000000000093317"
     }
   ]
 }
 ```
 
-Сортування — за `name` (ascending). Помилки: `method_not_allowed` (**405**),
-`db_error` (**500**).
+Поля `koatuu` та `katottg` — **nullable**: для міських регіонів
+(Київ, Севастополь) `koatuu = null`. Кожен КАТОТТГ — рівно **19 символів**
+(`UA` + 17 цифр); `koatuu` — 10 символів (або `null`).
+Сортування — за `name` (ascending) для стабільного UI.
+Помилки: `method_not_allowed` (**405**), `db_error` (**500**).
 
 > **Правило для клієнта:** показуй `name`, відправляй на сервер **`slug`**
 > (див. [AUTH_FLOW.md](./AUTH_FLOW.md#home-region)). Ніколи не хардкодь `id`.
@@ -365,7 +395,9 @@ curl "$SUPABASE_URL/functions/v1/catalog?forest=pine,spruce&season=autumn&edible
         "tree": ["pine", "spruce", "oak", "birch", "deciduous", "coniferous"],
         "season": ["summer", "autumn"]
       },
-      "photos": [{ "url": "https://<PROJECT_REF>.supabase.co/storage/v1/object/public/mushroom-photos/boletus/1.webp" }],
+      "photos": [{ "url": "<приватний шлях у bucket>" }],
+      "license": { "code": "cc-by", "author": "…" },
+      "redBookSource": { "url": "https://redbook-ua.org/item/…" },
       "peakMonths": [9, 10],
       "zones": ["kyivska", "lvivska", "vinnytska"]
     }
@@ -376,9 +408,21 @@ curl "$SUPABASE_URL/functions/v1/catalog?forest=pine,spruce&season=autumn&edible
 }
 ```
 
+Поля заповнені частково (nullish): `license?: Record<string,unknown>` і
+`redBookSource?: Record<string,unknown>` — відсутні (ключ не віддається),
+якщо в БД `NULL`. Значення у прикладі вище — **наприклад**, точний shape
+кожного об'єкта верифікується окремо з живої БД.
+`features` — **рядок** (не boolean): вільний текст-опис, може бути порожнім.
+
+> ⚠️ `photos[].url` — **не публічний URL**. Значення з БД — приватний шлях
+> у bucket `mushroom-photos` (відносний шлях файлу). Клієнт **не** може
+> завантажити фото за ним напряму: потрібен signed URL через Storage API
+> (або окремий механізм, як у `GET /picks`).
+
+Сортування: `name_ua` ASC (стабільний довідник).
 Помилки: `invalid_season`, `invalid_edible`, `search_too_long`,
 `invalid_pagination`, `limit_out_of_range`, `invalid_offset` → **400**;
-`method_not_allowed` → **405**; `db_error` → **500**.
+`method_not_allowed` → **405**; `db_error` / `internal_error` → **500**.
 
 ---
 
@@ -480,6 +524,12 @@ curl -X PATCH "$SUPABASE_URL/functions/v1/me" \
 `invalid_region_slug` → **400**; `region_not_found` (slug не існує) → **404**;
 `me_not_found` → **404**; `unauthorized` → **401**; `db_error` → **500**.
 
+> **405 vs 401 (порядок перевірок):** авторизація виконується **до**
+> диспетчеризації HTTP-методу. Тому `DELETE /me` (будь-який непідтримуваний
+> метод) з валідним JWT → **405** `method_not_allowed`, але **без** JWT
+> (або з простроченим токеном) → **401** `unauthorized`, і тіло запиту
+> навіть не парситься. `OPTIONS` → **204** до перевірки JWT.
+
 > Slug → id резолвиться через RPC `find_region_by_slug` (migration
 > `20260912000015`). Обмеження «1 зміна регіону / 30 днів» —
 > **TODO/V2**, див. [AUTH_FLOW.md](./AUTH_FLOW.md#home-region).
@@ -488,11 +538,14 @@ curl -X PATCH "$SUPABASE_URL/functions/v1/me" \
 
 ## 8. forecast-weather (службовий)
 
-Погода + хвиля для точки (group 8.2). Використовується клієнтом для
-діагностики таUI «поточні умови»; основний прогноз йде через `POST /forecast`.
+> ⚠️ **Внутрішній endpoint. Не використовується клієнтом.**
+> Наведено лише для повноти контракту — Flutter-команда використовує
+> `POST /forecast`. Опис може змінюватися без попередження.
 
-**Auth:** публічний. Graceful degradation — завжди `200` (при збої Open-Meteo
-повертає `source: "unavailable"`).
+**Auth:** публічний. При збої Open-Meteo → **200** з `source: "unavailable"`
+(graceful degradation). Відсутні/нечислові `lat`/`lng` → **400**
+`{ "error": "lat and lng required (numbers)" }` (людиночитабельний рядок,
+не `snake_case`-код); неочікувана помилка → **500** `internal_error`.
 
 ```bash
 curl -X POST "$SUPABASE_URL/functions/v1/forecast-weather" \
