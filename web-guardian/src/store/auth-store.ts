@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { getSupabaseAuth } from "@/lib/supabase-auth";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthState {
@@ -20,7 +20,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   init: async () => {
-    const supabase = getSupabaseBrowser();
+    const supabase = getSupabaseAuth();
     const { data: { session } } = await supabase.auth.getSession();
     set({
       user: session?.user ?? null,
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signInWithGoogle: async () => {
-    const supabase = getSupabaseBrowser();
+    const supabase = getSupabaseAuth();
     const redirectTo = `${window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signInWithEmail: async (email: string) => {
-    const supabase = getSupabaseBrowser();
+    const supabase = getSupabaseAuth();
     const emailRedirectTo = `${window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
-    const supabase = getSupabaseBrowser();
+    const supabase = getSupabaseAuth();
     await supabase.auth.signOut();
     set({ user: null, accessToken: null });
   },
