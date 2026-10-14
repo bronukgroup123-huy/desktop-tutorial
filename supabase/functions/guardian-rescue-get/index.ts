@@ -4,6 +4,7 @@ import {
   withErrorHandling,
   Errors,
 } from "../_shared/guardian/index.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import { getRescueByToken } from "../_shared/guardian/rescue.ts";
 import { buildGpx } from "../_shared/guardian/gpx.ts";
 import type { GuardianTrackPoint } from "../_shared/guardian/types.ts";
@@ -58,6 +59,7 @@ Deno.serve(withErrorHandling(async (req) => {
     return new Response(gpx, {
       status: 200,
       headers: {
+        ...corsHeaders,
         "Content-Type": "application/gpx+xml; charset=utf-8",
         "Content-Disposition": `attachment; filename="rescue-${rescue.rescue_id}.gpx"`,
       },

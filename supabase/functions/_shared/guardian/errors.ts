@@ -1,3 +1,5 @@
+import { corsHeaders } from "../cors.ts";
+
 export class AppError extends Error {
   constructor(
     public code: string,
@@ -63,7 +65,7 @@ export function errorResponse(err: unknown): Response {
     };
     return new Response(JSON.stringify(body), {
       status: err.status,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -71,21 +73,27 @@ export function errorResponse(err: unknown): Response {
   console.error("[Unhandled error]", err);
   return new Response(
     JSON.stringify({ error: "internal_error", message }),
-    { status: 500, headers: { "Content-Type": "application/json" } }
+    {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
   );
 }
 
 export function successResponse<T>(data: T, status = 200): Response {
   return new Response(JSON.stringify({ data }), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
 export function withErrorHandling(
   handler: (req: Request) => Promise<Response>
 ): (req: Request) => Promise<Response> {
-  return async (req: Request) => {
+  return async (req: Request): Promise<Response> => {
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
     try {
       return await handler(req);
     } catch (err) {
