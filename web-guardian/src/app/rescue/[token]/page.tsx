@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchRescue, getRescueGpxUrl, GuardianApiError } from "@/lib/api";
 import { formatCoords, formatDateTime } from "@/lib/format";
 import type { RescueView } from "@/lib/types";
@@ -8,9 +8,9 @@ import type { RescueView } from "@/lib/types";
 export default function RescuePage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: { token: string };
 }) {
-  const { token } = use(params);
+  const { token } = params;
   const [rescue, setRescue] = useState<RescueView | null>(null);
   const [error, setError] = useState<string | null>(null);
 

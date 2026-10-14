@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import { MapView } from "@/components/map/MapView";
 import { GuardianHeader } from "@/components/guardian/GuardianHeader";
 import { GuardianFooter } from "@/components/guardian/GuardianFooter";
@@ -15,9 +14,9 @@ import { useGuardianStore } from "@/store/guardian-store";
 export default function GuardianPage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: { token: string };
 }) {
-  const { token } = use(params);
+  const { token } = params;
   const { notFound, unauthorized } = useGuardianSession(token);
 
   const session = useGuardianStore((s) => s.session);
