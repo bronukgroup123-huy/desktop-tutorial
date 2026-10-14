@@ -29,7 +29,7 @@ ForecastEngine прогнозує плодоношення грибів за т�
 
 ```
 supabase/
-  migrations/     SQL-міграції (21 файл — джерело істини схеми БД)
+  migrations/     SQL-міграції (24 файли — джерело істини схеми БД)
   functions/      Edge Functions (Deno)
     _shared/      спільні модулі: forecast engine, guardian, auth, errors
     forecast/     POST /forecast — основний прогноз
@@ -135,6 +135,29 @@ deno test supabase/tests/forecast/regression.test.ts --allow-net --allow-read
    (temp/humidity/rain) і зафіксувати, який саме сценарій ламається.
 4. Мінімум — 2 записи; бажано покривати кожну хвилю (spring/summer2/autumn/late)
    і негативні кейси (поза сезоном, поза регіоном).
+
+---
+
+## Migration history
+
+Нумерація міграцій — `YYYYMMDDHHMMSS_<slug>.sql`, застосовуються лексикографічно
+(`supabase db push`). Застосовані версії — `supabase_migrations.schema_migrations`.
+
+| Версія | Що | Примітка |
+|---|---|---|
+| `20260910000000`, `20260910000001` | regions, users | |
+| `20260911000001`–`000007` | Guardian foundation, cron, notifications, SOS, ревоки | |
+| `20260912000001`–`000002` | forecast foundation + seed expert_rules | |
+| `202609120000003` | — (**пропущено**) | номер не використовувався |
+| `202609120000004`–`000015` | catalog, forecast fixes, RPC, storage, seeds | |
+| `20260912000016` | — (**пропущено свідомо**) | аудит B ухвалив рішення одразу `000017` |
+| `20260912000017` | security hardening (audit B) | REVOKE + FORCE RLS + WITH CHECK |
+| `20260912000018` | formalize `rls_auto_enable` (audit E) | функція + event trigger `ensure_rls` були створені вручну в Dashboard 2026-09-11 — тепер у міграціях |
+
+Правила для нових міграцій:
+- Наступний номер — **`20260912000019`** (наступний робочий день — нова дата-частина).
+- Тримати gaps відображеними в цій таблиці (не «пере нумеровувати»).
+- Жодного DDL через Dashboard — усе через міграції (урок audit E).
 
 ---
 

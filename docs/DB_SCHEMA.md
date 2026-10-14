@@ -3,7 +3,7 @@
 Схема бази даних Supabase (PostgreSQL + PostGIS). Всі таблиці — у схемі `public`,
 геометрія — `extensions.GEOMETRY(MultiPolygon, 4326)` / `GEOGRAPHY`.
 
-Джерело істини — міграції `supabase/migrations/` (21 файл). API-контракти —
+Джерело істини — міграції `supabase/migrations/` (24 файли). API-контракти —
 [API.md](./API.md).
 
 ---
@@ -87,7 +87,7 @@ hardening 20260912000017).
 | `red_listed` | BOOLEAN NOT NULL DEFAULT FALSE | Червона книга |
 | `rarity` | TEXT | рідкісність |
 | `has_photo` / `popular` / `ai_recognition` | BOOLEAN NOT NULL DEFAULT FALSE | |
-| `top20` | BOOLEAN | ТОП-20 (без DEFAULT — виставляється сидом) |
+| `top20` | BOOLEAN NOT NULL DEFAULT FALSE | ТОП-20 (сид виставляє TRUE) |
 | `features` | TEXT | |
 | `months` | INT[] NOT NULL DEFAULT '{}' | місяці плодоношення |
 | `attrs` | JSONB NOT NULL DEFAULT '{}' | `{tree: [], season: [], color: [], stem: []}` |
@@ -217,8 +217,9 @@ same `home_region`; `mushroom_picks_insert` — тільки свої рядки
 
 ### `guardian_sessions`
 
-19 колонок: `id` UUID PK, `user_id` → `users(id)` CASCADE, `status`
-(`pending`/`active`/`closing`/`closed`/`recoverable`), `expected_return`,
+20 колонок: `id` UUID PK, `user_id` → `users(id)` CASCADE, `status`
+(`pending`/`active`/`closing`/`closed`/`recoverable`), `previous_status`
+(той самий enum; додано `20260911000002`, для cancel-close), `expected_return`,
 `original_return`, `started_at`, `closing_started_at`, `closed_at`,
 `recoverable_until`, `last_known_coords` GEOGRAPHY, `last_known_at`,
 `last_battery_pct` (0..100), `last_signal_strength` (0..5),
