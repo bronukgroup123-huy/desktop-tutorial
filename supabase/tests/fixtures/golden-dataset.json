@@ -1,0 +1,299 @@
+{
+  "_format": {
+    "description": "Golden Dataset для regression-тесту ForecastEngine (аудит C). weather_payload = снапшот відповіді Open-Meteo (без живих запитів).",
+    "convention": "hourly-скаляри → заповнюють масив 30*24=720 однакових значень; daily-скаляри → масив 30 значень; масиви використовуються як є (30 денних одиниць). Час — умовні індекси (h0..h719, d0..d29), fetchWeather слайсить з кінця.",
+    "derived_per_payload": {
+      "rain1d": 3,
+      "rain2d": 6,
+      "rain3d": 16,
+      "rain7d": 20,
+      "rain14d": 30,
+      "rain30d": 50,
+      "droughtDays": 0,
+      "daysAfterRain": 2
+    },
+    "source_rules": "Параметри 9 правил — з supabase/migrations/20260912000002_forecast_seed.sql (після неймінг-фіксу 20260912000007): rules-subset.json"
+  },
+  "records": [
+    {
+      "id": "rec-001",
+      "description": "Київ, 12 жовтня, сосняк — білий гриб (autumn wave)",
+      "input": {
+        "lat": 50.45,
+        "lng": 30.52,
+        "date": "2026-10-12T00:00:00Z",
+        "forestType": "pine",
+        "forestConfirmed": true,
+        "homeRegionId": 1
+      },
+      "weather_payload": {
+        "hourly": {
+          "temperature_2m": 13,
+          "relative_humidity_2m": 70,
+          "precipitation": 0,
+          "pressure_msl": 1013,
+          "soil_moisture_0_to_7cm": 0.3
+        },
+        "daily": {
+          "temperature_2m_max": 17,
+          "temperature_2m_min": 9,
+          "precipitation_sum": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            5,
+            2,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            10,
+            3,
+            3
+          ]
+        }
+      },
+      "weather_summary": {
+        "tempAvg7d": 13,
+        "humidity": 70,
+        "rain3d": 16,
+        "soilState": "normal",
+        "gdd": 240,
+        "note": "temp 13 ∈ peak boletus [12-18]; hum 70 ≥ 60; rain3d 16 ≥ 10; daysAfterRain 2 → soft −0.1 для boletus (min 5), але peak-bonus +0.2 вирішує; rain7d 20 → soilState normal"
+      },
+      "expected": {
+        "top1_slug": "boletus_edulis",
+        "top1_wave": "autumn",
+        "actual_found": true
+      }
+    },
+    {
+      "id": "rec-002",
+      "description": "Львівська, 20 серпня, березняк — лисичка (summer2 wave)",
+      "input": {
+        "lat": 49.84,
+        "lng": 24.03,
+        "date": "2026-08-20T00:00:00Z",
+        "forestType": "birch",
+        "forestConfirmed": true,
+        "homeRegionId": 13
+      },
+      "weather_payload": {
+        "hourly": {
+          "temperature_2m": 18,
+          "relative_humidity_2m": 72,
+          "precipitation": 0,
+          "pressure_msl": 1013,
+          "soil_moisture_0_to_7cm": 0.35
+        },
+        "daily": {
+          "temperature_2m_max": 22,
+          "temperature_2m_min": 14,
+          "precipitation_sum": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            5,
+            2,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            10,
+            3,
+            3
+          ]
+        }
+      },
+      "weather_summary": {
+        "tempAvg7d": 18,
+        "humidity": 72,
+        "rain3d": 16,
+        "soilState": "normal",
+        "gdd": 390,
+        "note": "temp 18 ∈ peak cantharellus [15-20]; березняк відсікає boletus/suillus/lactarius по forest; Rule 1 (stand_age 50 ∈ 41-60) дає лисичці +0.15"
+      },
+      "expected": {
+        "top1_slug": "cantharellus_cibarius",
+        "top1_wave": "summer2",
+        "actual_found": true
+      }
+    },
+    {
+      "id": "rec-003",
+      "description": "Київ, 15 листопада, листковий ліс — зимовий опеньок (late wave, сезон через рік 10-01..03-31)",
+      "input": {
+        "lat": 50.45,
+        "lng": 30.52,
+        "date": "2026-11-15T00:00:00Z",
+        "forestType": "deciduous",
+        "forestConfirmed": true,
+        "homeRegionId": 1
+      },
+      "weather_payload": {
+        "hourly": {
+          "temperature_2m": 5,
+          "relative_humidity_2m": 75,
+          "precipitation": 0,
+          "pressure_msl": 1008,
+          "soil_moisture_0_to_7cm": 0.45
+        },
+        "daily": {
+          "temperature_2m_max": 7,
+          "temperature_2m_min": 3,
+          "precipitation_sum": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            5,
+            2,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            10,
+            3,
+            3
+          ]
+        }
+      },
+      "weather_summary": {
+        "tempAvg7d": 5,
+        "humidity": 75,
+        "rain3d": 16,
+        "soilState": "normal",
+        "gdd": 0,
+        "note": "temp 5 ∈ peak flammulina [5-12] (в fruiting-діапазоні [0-15], поза transition); armillaria hard-fail (5 < 8); late wave допускає лише flammulina+armillaria"
+      },
+      "expected": {
+        "top1_slug": "flammulina_velutipes",
+        "top1_wave": "late",
+        "actual_found": true
+      }
+    },
+    {
+      "id": "rec-004",
+      "description": "Київ, 20 квітня, сосняк — сезон не почався: 0 кандидатів → fallback → базові види поза сезоном → top1=null (TN)",
+      "input": {
+        "lat": 50.45,
+        "lng": 30.52,
+        "date": "2026-04-20T00:00:00Z",
+        "forestType": "pine",
+        "forestConfirmed": true,
+        "homeRegionId": 1
+      },
+      "weather_payload": {
+        "hourly": {
+          "temperature_2m": 13,
+          "relative_humidity_2m": 65,
+          "precipitation": 0,
+          "pressure_msl": 1013,
+          "soil_moisture_0_to_7cm": 0.3
+        },
+        "daily": {
+          "temperature_2m_max": 17,
+          "temperature_2m_min": 9,
+          "precipitation_sum": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            5,
+            2,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            10,
+            3,
+            3
+          ]
+        }
+      },
+      "weather_summary": {
+        "tempAvg7d": 13,
+        "humidity": 65,
+        "rain3d": 16,
+        "soilState": "normal",
+        "gdd": 240,
+        "note": "spring wave: дозволені лише flammulina (season 10-01..03-31 → 04-20 NOT in season); 0 кандидатів → fallback: russula/lycoperdon/agaricus теж hard-fail по wave+season"
+      },
+      "expected": {
+        "top1_slug": null,
+        "top1_wave": "spring",
+        "actual_found": false
+      }
+    }
+  ]
+}
