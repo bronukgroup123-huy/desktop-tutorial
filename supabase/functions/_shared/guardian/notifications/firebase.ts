@@ -40,8 +40,15 @@ function ensureInitialized(): void {
 
 export async function sendPush(payload: PushPayload): Promise<SendResult> {
   if (Deno.env.get("FIREBASE_ENABLED") !== "true") {
-    console.log("[firebase] push skipped (FIREBASE_ENABLED=false)");
-    return { success: true, queued: true, providerMessageId: "disabled-stub" };
+    // Честний stub: повертаємо failure, щоб dispatcher записав
+    // status='failed' + error_message, а alerts лишилися delivered_at=NULL
+    // і їх можна побачити через SELECT. Попередня поведлінка
+    // (success:true) маскувала вимкнений push.
+    return {
+      success: false,
+      queued: false,
+      errorMessage: "firebase_disabled",
+    };
   }
 
   try {
@@ -101,10 +108,9 @@ export async function sendPushMulti(
   if (tokens.length === 0) return [];
 
   if (Deno.env.get("FIREBASE_ENABLED") !== "true") {
-    console.log("[firebase] push skipped (FIREBASE_ENABLED=false)");
     return tokens.map((t) => ({
       token: t,
-      result: { success: true, queued: true, providerMessageId: "disabled-stub" },
+      result: { success: false, queued: false, errorMessage: "firebase_disabled" },
     }));
   }
 

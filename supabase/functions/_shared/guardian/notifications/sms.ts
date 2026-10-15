@@ -4,8 +4,12 @@ const TURBOSMS_API_URL = "https://api.turbosms.ua/message/send.json";
 
 export async function sendSms(payload: SmsPayload): Promise<SendResult> {
   if (Deno.env.get("SMS_ENABLED") !== "true") {
-    console.log("[sms] sms skipped (SMS_ENABLED=false)");
-    return { success: true, queued: true, providerMessageId: "disabled-stub" };
+    // Честний stub — див. firebase.ts sendPush.
+    return {
+      success: false,
+      queued: false,
+      errorMessage: "sms_disabled",
+    };
   }
 
   const token = Deno.env.get("TURBOSMS_TOKEN");

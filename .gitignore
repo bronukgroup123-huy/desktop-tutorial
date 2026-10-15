@@ -12,3 +12,9 @@ supabase/.temp/
 web-guardian/.next/
 web-guardian/next-env.d.ts
 web-guardian/.vercel/
+
+# Security: never commit secrets (audit G2/G3)
+*.secret.txt
+*_secret.txt
+.env.local
+jwt_secret*

@@ -5,6 +5,13 @@ import type { SendResult } from "./types.ts";
 
 const RETRY_DELAYS_SEC = [10, 60, 300];
 
+function guardianBaseUrl(): string {
+  return (
+    Deno.env.get("GUARDIAN_BASE_URL") ??
+    "https://desktop-tutorial-eta-tan.vercel.app"
+  );
+}
+
 export interface RetryStats {
   queued_processed: number;
   push_sent: number;
@@ -97,7 +104,7 @@ export async function processQueue(db: SupabaseClient): Promise<RetryStats> {
     if (!newSms) continue;
 
     try {
-      const smsText = `MushroomRadar: ${push.alert.alert_type}\nhttps://guardian.mushroomradar.com.ua/s/`;
+      const smsText = `MushroomRadar: ${push.alert.alert_type}\n${guardianBaseUrl()}/s/`;
       const result = await sendSms({
         phone: push.guardian.phone,
         text: smsText,
