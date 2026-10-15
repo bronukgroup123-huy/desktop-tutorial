@@ -23,9 +23,21 @@ Deno.serve(withErrorHandling(async (req) => {
     updatedSession = await transitionSession(db, session, "active");
   }
 
-  if (["stale", "offline", "overdue_soft", "overdue_medium"].includes(session.status)) {
+  const resumableFromExit =
+    session.status === "exiting" &&
+    !session.exit_detected_at;
+
+  if (
+    session.status === "pending" ||
+    ["stale", "offline", "exiting", "overdue_soft", "overdue_medium"].includes(
+      session.status
+    )
+  ) {
     updatedSession = await transitionSession(db, session, "active", {
-      extraUpdates: { overdue_level: null },
+      extraUpdates: {
+        overdue_level: null,
+        ...(resumableFromExit ? { exit_detected_at: null } : {}),
+      },
     });
   }
 
@@ -47,7 +59,10 @@ Deno.serve(withErrorHandling(async (req) => {
 
   if (trackError) throw Errors.internal(trackError.message);
 
-  const { error: sessionError } = await db
+  // Optimistic locking: матчимо status, який бачили при fetch.
+  // Виняток — `pending`: для нього transitionSession (вище) вже виконав
+  // атомарний перехід у `active`, тому .eq("status", "pending") не матчив би.
+  let sessionUpdate = db
     .from("guardian_sessions")
     .update({
       last_known_coords: `POINT(${input.lng} ${input.lat})`,
@@ -56,6 +71,12 @@ Deno.serve(withErrorHandling(async (req) => {
       last_signal_strength: input.signal_strength ?? null,
     })
     .eq("id", session.id);
+
+  if (session.status !== "pending") {
+    sessionUpdate = sessionUpdate.eq("status", session.status);
+  }
+
+  const { error: sessionError } = await sessionUpdate;
 
   if (sessionError) throw Errors.internal(sessionError.message);
 

@@ -19,7 +19,10 @@ Deno.serve(withErrorHandling(async (req) => {
   }
 
   const updated = await transitionSession(db, session, "exiting", {
-    extraUpdates: { overdue_level: null },
+    extraUpdates: {
+      overdue_level: null,
+      exit_detected_at: new Date().toISOString(),
+    },
   });
 
   await db.from("guardian_alerts").insert({

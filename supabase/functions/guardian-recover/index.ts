@@ -42,6 +42,8 @@ Deno.serve(withErrorHandling(async (req) => {
       recoverable_until: null,
     })
     .eq("id", s.id)
+    .eq("status", "closed")
+    .eq("user_id", userId)
     .select("*")
     .single();
 

@@ -212,11 +212,13 @@ async function processSession(
     return;
   }
 
-  const expectedReturnMs = new Date(session.expected_return).getTime();
-  const minutesSinceExpectedReturn = (now - expectedReturnMs) / (1000 * 60);
+  // Overdue рахуємо від original_return — продовження (extend) дозволяє
+  // перенести expected_return, але не скидає відлік прострочення.
+  const originalReturnMs = new Date(session.original_return).getTime();
+  const minutesSinceOriginalReturn = (now - originalReturnMs) / (1000 * 60);
 
   const isOverdueCondition =
-    minutesSinceExpectedReturn >= 0 &&
+    minutesSinceOriginalReturn >= 0 &&
     (!movement.hasFreshData || !movement.isMoving);
 
   const overdueThresholds = {
@@ -228,13 +230,13 @@ async function processSession(
   let targetStatus: SessionStatus | null = null;
 
   if (isOverdueCondition) {
-    if (minutesSinceExpectedReturn >= overdueThresholds.hard) {
+    if (minutesSinceOriginalReturn >= overdueThresholds.hard) {
       targetOverdueLevel = "hard";
       targetStatus = "overdue_hard";
-    } else if (minutesSinceExpectedReturn >= overdueThresholds.medium) {
+    } else if (minutesSinceOriginalReturn >= overdueThresholds.medium) {
       targetOverdueLevel = "medium";
       targetStatus = "overdue_medium";
-    } else if (minutesSinceExpectedReturn >= overdueThresholds.soft) {
+    } else if (minutesSinceOriginalReturn >= overdueThresholds.soft) {
       targetOverdueLevel = "soft";
       targetStatus = "overdue_soft";
     }
@@ -265,7 +267,7 @@ async function processSession(
         session.id,
         alertMap[targetOverdueLevel],
         {
-          minutes_over: Math.round(minutesSinceExpectedReturn),
+          minutes_over: Math.round(minutesSinceOriginalReturn),
           level: targetOverdueLevel,
         }
       );

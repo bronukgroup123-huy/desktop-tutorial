@@ -37,6 +37,7 @@ Deno.serve(withErrorHandling(async (req) => {
     .from("guardian_sessions")
     .update(updates)
     .eq("id", session.id)
+    .eq("status", session.status)
     .select("*")
     .single();
 

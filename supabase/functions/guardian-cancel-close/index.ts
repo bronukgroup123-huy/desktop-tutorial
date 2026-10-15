@@ -29,6 +29,7 @@ Deno.serve(withErrorHandling(async (req) => {
       previous_status: null,
     })
     .eq("id", session.id)
+    .eq("status", "closing")
     .select("*")
     .single();
 
