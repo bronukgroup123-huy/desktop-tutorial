@@ -27,6 +27,12 @@ export const THRESHOLDS = {
 
   /** Час після last_known_at, коли сесія остаточно закривається (24 год) */
   AUTO_CLOSE_HOURS: 24,
+
+  /** Escape-hatch: overdue_hard → повторний алерт, якщо все ще не вирішено */
+  OVERDUE_HARD_ESCALATE_HOURS: 6,
+
+  /** Час після активації SOS, коли надсилається нагадування Наглядачу */
+  SOS_ESCALATE_MIN: 30,
 } as const;
 
 /** Дефолтні пороги Overdue (в хвилинах після expected_return) */

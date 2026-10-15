@@ -101,6 +101,7 @@ export async function cancelSos(
     .update({
       status: safeTarget,
       previous_status: null,
+      ...(safeTarget === "active" ? { overdue_level: null } : {}),
     })
     .eq("id", session.id)
     .eq("status", "sos")

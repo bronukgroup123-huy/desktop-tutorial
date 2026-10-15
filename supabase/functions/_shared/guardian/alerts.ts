@@ -55,3 +55,27 @@ export async function createAlertOnce(
 
   return true;
 }
+
+/**
+ * Годин з моменту останнього алерта даного типу для сесії.
+ * null — такого алерта ще не було.
+ */
+export async function getHoursSinceLastAlert(
+  db: SupabaseClient,
+  sessionId: string,
+  alertType: AlertType
+): Promise<number | null> {
+  const { data } = await db
+    .from("guardian_alerts")
+    .select("created_at")
+    .eq("session_id", sessionId)
+    .eq("alert_type", alertType)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data?.created_at) return null;
+
+  const ms = Date.now() - new Date(data.created_at).getTime();
+  return ms / (1000 * 60 * 60);
+}

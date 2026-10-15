@@ -40,6 +40,7 @@ Deno.serve(withErrorHandling(async (req) => {
       status: "active",
       closed_at: null,
       recoverable_until: null,
+      overdue_level: null,
     })
     .eq("id", s.id)
     .eq("status", "closed")

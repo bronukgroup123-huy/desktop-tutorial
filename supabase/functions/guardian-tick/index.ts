@@ -3,7 +3,7 @@ import { withErrorHandling, successResponse } from "../_shared/guardian/errors.t
 import { THRESHOLDS, DEFAULT_OVERDUE_THRESHOLDS } from "../_shared/guardian/thresholds.ts";
 import { analyzeMovement } from "../_shared/guardian/movement.ts";
 import { detectForestExit } from "../_shared/guardian/geofence.ts";
-import { createAlertOnce } from "../_shared/guardian/alerts.ts";
+import { createAlertOnce, getHoursSinceLastAlert } from "../_shared/guardian/alerts.ts";
 import type { GuardianSession, SessionStatus } from "../_shared/guardian/types.ts";
 
 interface TickStats {
@@ -105,7 +105,7 @@ Deno.serve(withErrorHandling(async (req) => {
   }
 }));
 
-async function processSession(
+export async function processSession(
   db: ReturnType<typeof createServiceClient>,
   session: GuardianSession,
   stats: TickStats
@@ -139,6 +139,19 @@ async function processSession(
   ) {
     await finalClose(db, session, "auto_close_no_ping_24h", stats);
     return;
+  }
+
+  // G4: сесія жодного разу не ping'ила — auto-close за started_at.
+  // `pending` вже оброблений вище (auto_close_pending_timeout), тому тут
+  // лишаються non-pending статуси без жодного ping.
+  if (lastKnownMs === null && session.status !== "sos") {
+    const hoursSinceStart =
+      (now - new Date(session.started_at).getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceStart >= THRESHOLDS.AUTO_CLOSE_HOURS) {
+      await finalClose(db, session, "auto_close_no_ping_ever", stats);
+      return;
+    }
   }
 
   if (session.status === "closing") {
@@ -179,7 +192,55 @@ async function processSession(
     return;
   }
 
+  // G3: escape-hatch — overdue_hard без прогресу. Повторний алерт кожні
+  // OVERDUE_HARD_ESCALATE_HOURS, поки ситуація не вирішена. Статус не змінюємо.
+  if (session.status === "overdue_hard") {
+    const hoursSinceHard = await getHoursSinceLastAlert(
+      db,
+      session.id,
+      "overdue_hard"
+    );
+
+    if (
+      hoursSinceHard !== null &&
+      hoursSinceHard >= THRESHOLDS.OVERDUE_HARD_ESCALATE_HOURS
+    ) {
+      const created = await createAlertOnce(db, session.id, "overdue_hard", {
+        action: "still_unresolved",
+        hours_since_hard: Math.round(hoursSinceHard * 10) / 10,
+      });
+      if (created) stats.alerts_created++;
+    }
+    return;
+  }
+
+  // G5: SOS — лише нагадування (статус НЕ змінюємо, Phase 1).
   if (session.status === "sos") {
+    if (session.sos_activated_at) {
+      const minSinceSos =
+        (now - new Date(session.sos_activated_at).getTime()) / (1000 * 60);
+
+      if (minSinceSos >= THRESHOLDS.SOS_ESCALATE_MIN) {
+        // Окремий cooldown, бо createAlertOnce для `sos` має cooldown = 0
+        // і створював би alert щохвилини (tick-інтервал).
+        const hoursSinceLastSos = await getHoursSinceLastAlert(
+          db,
+          session.id,
+          "sos"
+        );
+        const minSinceLastSos = hoursSinceLastSos === null
+          ? null
+          : hoursSinceLastSos * 60;
+
+        if (minSinceLastSos === null || minSinceLastSos >= THRESHOLDS.SOS_ESCALATE_MIN) {
+          const created = await createAlertOnce(db, session.id, "sos", {
+            action: "sos_unresolved",
+            minutes_since_sos: Math.round(minSinceSos),
+          });
+          if (created) stats.alerts_created++;
+        }
+      }
+    }
     return;
   }
 
