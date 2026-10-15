@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "MushroomRadar Guardian",
   description: "Слідкуйте за грибником у лісі в реальному часі",
   manifest: "/manifest.json",
+  // Запобігає витоку токена з URL (/s/<token>) через Referer header
+  // до сторонніх CDN (maptiler, Google Fonts, analytics).
+  referrer: "no-referrer",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

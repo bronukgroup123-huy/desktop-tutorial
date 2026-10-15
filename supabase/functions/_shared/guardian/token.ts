@@ -57,7 +57,10 @@ export async function generateGuardianToken(
   );
 
   const tokenHash = await hashToken(token);
-  const tokenPrefix = token.slice(0, 8);
+  // Random prefix (не JWT.slice(0,8) — усі HS256-JWT починаються зі
+  // спільного 'eyJhbGciOi…' header-prefix). Використовується лише як
+  // UI-ідентифікатор (display/debug), не для lookup.
+  const tokenPrefix = crypto.randomUUID().slice(0, 8).replace(/-/g, "");
 
   return {
     token,

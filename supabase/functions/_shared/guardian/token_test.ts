@@ -19,6 +19,18 @@ Deno.test("generateGuardianToken — повертає валідний JWT", asy
   assert(result.expiresAt > new Date());
 });
 
+Deno.test("generateGuardianToken — tokenPrefix random (не JWT header-prefix)", async () => {
+  const a = await generateGuardianToken("session-1", "guardian-1");
+  const b = await generateGuardianToken("session-1", "guardian-1");
+
+  // Раніше було token.slice(0, 8) → усі JWT ділили спільний
+  // base64(header)='eyJhbGciOi…'. Тепер prefix — random UUID-derived.
+  assert(!a.tokenPrefix.startsWith("eyJhbGci"), "prefix не має бути JWT header");
+  assert(!a.tokenPrefix.startsWith(a.token.slice(0, 4)));
+  assertNotEquals(a.tokenPrefix, b.tokenPrefix, "prefix має бути унікальним");
+  assertEquals(a.tokenPrefix.length, 8);
+});
+
 Deno.test("validateGuardianToken — валідний токен проходить", async () => {
   const { token } = await generateGuardianToken("s1", "g1");
   const result = await validateGuardianToken(token);
