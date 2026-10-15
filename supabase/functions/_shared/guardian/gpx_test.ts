@@ -6,6 +6,7 @@ const mockSession: GuardianSession = {
   id: "sess-123",
   user_id: "user-1",
   status: "active",
+  previous_status: null,
   expected_return: "2026-09-11T18:00:00Z",
   original_return: "2026-09-11T18:00:00Z",
   started_at: "2026-09-11T14:00:00Z",

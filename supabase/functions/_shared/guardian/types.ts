@@ -54,6 +54,7 @@ export interface GuardianSession {
   id: string;
   user_id: string;
   status: SessionStatus;
+  previous_status: SessionStatus | null;
   expected_return: string;
   original_return: string;
   started_at: string;

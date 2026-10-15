@@ -44,7 +44,7 @@ export async function createAlertOnce(
 
   const { error } = await db.from("guardian_alerts").insert({
     session_id: sessionId,
-    alert_type,
+    alert_type: alertType,
     payload,
   });
 
