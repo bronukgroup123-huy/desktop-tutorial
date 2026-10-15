@@ -50,6 +50,9 @@ jobs:
           SMS_ENABLED: ${{ secrets.SMS_ENABLED || 'false' }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           TURBOSMS_TOKEN: ${{ secrets.TURBOSMS_TOKEN }}
+          TEXTBEE_ENABLED: ${{ secrets.TEXTBEE_ENABLED || 'false' }}
+          TEXTBEE_API_KEY: ${{ secrets.TEXTBEE_API_KEY }}
+          TEXTBEE_DEVICE_ID: ${{ secrets.TEXTBEE_DEVICE_ID }}
         run: |
           supabase secrets set \
             GUARDIAN_JWT_SECRET="$GUARDIAN_JWT_SECRET" \
@@ -58,4 +61,7 @@ jobs:
             SMS_ENABLED="$SMS_ENABLED" \
             FIREBASE_SERVICE_ACCOUNT_JSON="$FIREBASE_SERVICE_ACCOUNT_JSON" \
             TURBOSMS_TOKEN="$TURBOSMS_TOKEN" \
+            TEXTBEE_ENABLED="$TEXTBEE_ENABLED" \
+            TEXTBEE_API_KEY="$TEXTBEE_API_KEY" \
+            TEXTBEE_DEVICE_ID="$TEXTBEE_DEVICE_ID" \
             --project-ref "$PROJECT_ID"

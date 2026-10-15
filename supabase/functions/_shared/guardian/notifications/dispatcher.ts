@@ -3,6 +3,8 @@ import type { GuardianSession, GuardianAlert, Guardian } from "../types.ts";
 import { renderNotification, getTemplate } from "./templates.ts";
 import { sendPush, isTokenInvalidError } from "./firebase.ts";
 import { sendSms, buildSmsText } from "./sms.ts";
+import { sendSmsViaTextbee, isTextbeePermanentError, isTextbeeRateLimited } from "./textbee.ts";
+import { checkAndIncrementRateLimit } from "./rate-limit.ts";
 import type { DispatchTarget, DispatchResult, RenderedNotification } from "./types.ts";
 
 const CRITICAL_ALERT_TYPES: Set<string> = new Set([
@@ -57,6 +59,9 @@ export async function dispatchAlert(
       url: buildGuardianUrl(target.guardian_id),
     };
 
+    // Чи доставлено push-ом? Якщо так — SMS не надсилаємо.
+    let pushDelivered = false;
+
     if (target.fcm_tokens.length > 0) {
       for (const token of target.fcm_tokens) {
         const { data: notif, error } = await db
@@ -81,7 +86,10 @@ export async function dispatchAlert(
           token,
           title: rendered.title,
           body: rendered.body,
-          data: { ...rendered.data, url: rendered.url },
+          data: {
+            ...rendered.data,
+            ...(rendered.url ? { url: rendered.url } : {}),
+          },
           priority: template.priority <= 2 ? "high" : "normal",
         });
 
@@ -98,6 +106,7 @@ export async function dispatchAlert(
 
         if (sendResult.success && !sendResult.queued) {
           result.push_attempted++;
+          pushDelivered = true;
         } else if (!sendResult.success) {
           if (sendResult.errorMessage && isTokenInvalidError(sendResult.errorMessage)) {
             await db
@@ -109,11 +118,26 @@ export async function dispatchAlert(
       }
     }
 
+    // SMS ніколи не дублює успішно доставлений push.
+    if (pushDelivered) continue;
+
     const needsSms =
       template.requiresSms ||
       target.fcm_tokens.length === 0;
 
     if (needsSms && target.phone) {
+      // Rate limit перевіряємо ПЕРЕД відправкою, ключ — user сесії.
+      const rl = await checkAndIncrementRateLimit(
+        db,
+        session.user_id,
+        "sms"
+      );
+
+      if (!rl.allowed) {
+        result.skipped++;
+        continue;
+      }
+
       const { data: notif, error } = await db
         .from("guardian_notifications")
         .insert({
@@ -132,26 +156,54 @@ export async function dispatchAlert(
 
       result.notifications_created++;
 
-      if (template.requiresSms) {
-        const smsResult = await sendSms({
+      // Fallback chain: Textbee (основний) → TurboSMS (legacy).
+      // Textbee пробує першим; лише якщо він перманентно відмовив
+      // (немає пристрою/ключа) — пробуємо legacy-шлюз.
+      const smsText = buildSmsText(rendered, pickerName);
+
+      let smsResult = await sendSmsViaTextbee({
+        phone: target.phone,
+        text: smsText,
+      });
+
+      const textbeeUnavailable =
+        !smsResult.success &&
+        !smsResult.queued &&
+        (isTextbeePermanentError(smsResult.errorMessage ?? "") ||
+          smsResult.errorMessage === "textbee_disabled");
+
+      if (textbeeUnavailable && Deno.env.get("SMS_ENABLED") === "true") {
+        // Legacy-шлях TurboSMS: той самий notification-рядок.
+        const legacyResult = await sendSms({
           phone: target.phone,
-          text: buildSmsText(rendered, pickerName),
+          text: smsText,
         });
 
-        await updateNotificationStatus(
-          db,
-          notif.id,
-          smsResult.queued
-            ? "queued"
-            : smsResult.success
-            ? "sent"
-            : "failed",
-          smsResult
-        );
-
-        if (smsResult.success && !smsResult.queued) {
-          result.sms_attempted++;
+        if (legacyResult.success || legacyResult.queued) {
+          smsResult = legacyResult;
+        } else {
+          // Лишаємо оригінальну textbee-помилку — вона інформативніша
+          // (каже, що власне зламалось у primary-каналі).
+          console.warn(
+            "[dispatcher] Textbee unavailable, TurboSMS fallback also failed:",
+            legacyResult.errorMessage
+          );
         }
+      }
+
+      await updateNotificationStatus(
+        db,
+        notif.id,
+        smsResult.queued
+          ? "queued"
+          : smsResult.success
+          ? "sent"
+          : "failed",
+        smsResult
+      );
+
+      if (smsResult.success && !smsResult.queued) {
+        result.sms_attempted++;
       }
     } else if (!target.phone && target.fcm_tokens.length === 0) {
       result.skipped++;
