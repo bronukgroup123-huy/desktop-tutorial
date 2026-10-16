@@ -17,6 +17,22 @@ interface TickStats {
 Deno.serve(withErrorHandling(async (req) => {
   const db = createServiceClient();
 
+  // Advisory lock — не допустити одночасних запусків (cron + manual виклик)
+  const { data: lockAcquired, error: lockError } = await db.rpc(
+    'pg_try_advisory_lock',
+    { key: 737001 },
+  );
+  if (lockError || !lockAcquired) {
+    console.log('[tick] another instance running, skip');
+    return new Response(JSON.stringify({ skipped: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let released = false;
+  let tickId: number | undefined;
+
   const stats: TickStats = {
     sessions_scanned: 0,
     transitions_made: 0,
@@ -31,7 +47,7 @@ Deno.serve(withErrorHandling(async (req) => {
     .select("id")
     .single();
 
-  const tickId = tickLog?.id;
+  tickId = tickLog?.id;
 
   try {
     const CHUNK_SIZE = 100;
@@ -102,6 +118,15 @@ Deno.serve(withErrorHandling(async (req) => {
         .eq("id", tickId);
     }
     throw err;
+  } finally {
+    if (!released) {
+      released = true;
+      try {
+        await db.rpc('pg_advisory_unlock', { key: 737001 });
+      } catch {
+        // unlock error — non-fatal
+      }
+    }
   }
 }));
 
