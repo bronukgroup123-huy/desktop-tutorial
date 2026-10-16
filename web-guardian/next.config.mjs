@@ -28,6 +28,32 @@ const nextConfig = {
           { key: "Content-Type", value: "application/manifest+json" },
         ],
       },
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          {
+            key: "Permissions-Policy",
+            value: "geolocation=(self), camera=(self), microphone=(), payment=()",
+          },
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "img-src 'self' data: blob: https:",
+              "connect-src 'self' https://wrukmuxdbkbmkygfasai.supabase.co wss://wrukmuxdbkbmkygfasai.supabase.co https://tile.openstreetmap.org https://www.google.com https://fonts.googleapis.com https://fonts.gstatic.com https://guardian.mushroomradar.com.ua",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
+        ],
+      },
     ];
   },
 

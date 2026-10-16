@@ -1,4 +1,4 @@
-import { corsHeaders } from "../cors.ts";
+import { buildCorsHeaders, corsHeaders } from "../cors.ts";
 
 export class AppError extends Error {
   constructor(
@@ -56,34 +56,37 @@ export interface ApiSuccessResponse<T> {
   data: T;
 }
 
-export function errorResponse(err: unknown): Response {
+export function errorResponse(err: unknown, req?: Request): Response {
   if (err instanceof AppError) {
     const body: ApiErrorResponse = {
       error: err.code,
       message: err.message,
       ...(err.details ? { details: err.details } : {}),
     };
+    const headers = req ? buildCorsHeaders(req) : corsHeaders;
     return new Response(JSON.stringify(body), {
       status: err.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
   const message = err instanceof Error ? err.message : "Unknown error";
   console.error("[Unhandled error]", err);
+  const headers = req ? buildCorsHeaders(req) : corsHeaders;
   return new Response(
     JSON.stringify({ error: "internal_error", message }),
     {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...headers, "Content-Type": "application/json" },
     }
   );
 }
 
-export function successResponse<T>(data: T, status = 200): Response {
+export function successResponse<T>(data: T, status = 200, req?: Request): Response {
+  const headers = req ? buildCorsHeaders(req) : corsHeaders;
   return new Response(JSON.stringify({ data }), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
@@ -92,7 +95,7 @@ export function withErrorHandling(
 ): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
     }
 
     // Global body size limit (DoS protection)
@@ -111,7 +114,7 @@ export function withErrorHandling(
     try {
       return await handler(req);
     } catch (err) {
-      return errorResponse(err);
+      return errorResponse(err, req);
     }
   };
 }
