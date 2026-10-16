@@ -2285,7 +2285,7 @@ body.modal-open { overflow: hidden; }
   function cardHtml(s) {
     const b = badgeFor(s);
     const photo = (s.photos && s.photos.length) ? s.photos[0] : (s.photo || '');
-    const desc = (window.MUSHROOM_DESCRIPTIONS || {})[s.id] || '';
+    const desc = (window.MUSHROOM_DESCRIPTIONS || {})[s.id.replace(/_/g, '-')] || '';
     const descShort = desc.length > 120 ? esc(desc.slice(0, 120)) + '…' : esc(desc);
     return '<div class="card p-2.5 card-hover" data-species-id="' + esc(s.id) + '" role="button" tabindex="0">' +
       '<div class="guide-thumb mb-2">' +
@@ -2970,7 +2970,7 @@ body.modal-open { overflow: hidden; }
     }
 
     const descEl = document.getElementById('detail-desc');
-    const raw = DESCRIPTIONS[id] || '';
+    const raw = DESCRIPTIONS[id.replace(/_/g, '-')] || '';
     if (descEl) {
       descEl.innerHTML = renderDescription(raw);
       descEl.classList.toggle('desc-empty', !raw);
