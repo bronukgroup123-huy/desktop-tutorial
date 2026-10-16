@@ -1,5 +1,12 @@
 import { createServiceClient } from "../_shared/guardian/db.ts";
 import { withErrorHandling, successResponse, Errors } from "../_shared/guardian/errors.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+const WebhookSmsSchema = z.object({
+  message_id: z.string().min(1),
+  status: z.string().min(1),
+  error: z.string().optional(),
+});
 
 Deno.serve(withErrorHandling(async (req) => {
   if (req.method !== "POST") throw Errors.notFound("Method not allowed");
@@ -11,12 +18,11 @@ Deno.serve(withErrorHandling(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const messageId = body?.message_id;
-  const status = body?.status;
-
-  if (!messageId || !status) {
-    throw Errors.validation("Missing message_id or status");
+  const bodyParse = WebhookSmsSchema.safeParse(body);
+  if (!bodyParse.success) {
+    throw Errors.validation("Validation failed", { issues: bodyParse.error.issues });
   }
+  const { message_id: messageId, status } = bodyParse.data;
 
   const db = createServiceClient();
 

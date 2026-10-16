@@ -2,12 +2,23 @@ import { createServiceClient } from "../_shared/guardian/db.ts";
 import { withErrorHandling, successResponse, Errors } from "../_shared/guardian/errors.ts";
 import { dispatchAlert } from "../_shared/guardian/notifications/dispatcher.ts";
 import type { GuardianAlert, GuardianSession } from "../_shared/guardian/types.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+const NotifySchema = z.object({
+  session_id: z.string().uuid().optional(),
+  alert_type: z.string().min(1).max(50).optional(),
+  payload: z.record(z.unknown()).optional(),
+});
 
 Deno.serve(withErrorHandling(async (req) => {
   if (req.method !== "POST") throw Errors.notFound("Method not allowed");
 
   const body = await req.json().catch(() => ({}));
-  const alertId = body?.alert_id;
+  const bodyParse = NotifySchema.safeParse(body);
+  if (!bodyParse.success) {
+    throw Errors.validation("Validation failed", { issues: bodyParse.error.issues });
+  }
+  const alertId = bodyParse.data?.alert_id;
 
   const db = createServiceClient();
 

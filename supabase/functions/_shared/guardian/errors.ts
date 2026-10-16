@@ -94,6 +94,20 @@ export function withErrorHandling(
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
+
+    // Global body size limit (DoS protection)
+    const contentLength = req.headers.get("content-length");
+    const MAX_BODY_SIZE = 8 * 1024 * 1024; // 8 MiB
+    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+      return errorResponse(
+        new AppError(
+          "payload_too_large",
+          `Request body exceeds 8 MB`,
+          413
+        )
+      );
+    }
+
     try {
       return await handler(req);
     } catch (err) {

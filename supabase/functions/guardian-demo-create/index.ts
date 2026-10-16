@@ -27,6 +27,7 @@ import {
   generateGuardianToken,
   buildGuardianUrl,
 } from "../_shared/guardian/token.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 function json(data: unknown, status: number): Response {
   return new Response(JSON.stringify(data), {
@@ -42,6 +43,17 @@ Deno.serve(async (req: Request) => {
   }
   if (req.method !== "POST") {
     return json({ error: "method_not_allowed" }, 405);
+  }
+
+  // Validate body is empty — this endpoint accepts no payload
+  const body = await req.json().catch(() => ({}));
+  const DemoBodySchema = z.object({}).strict();
+  const bodyParse = DemoBodySchema.safeParse(body);
+  if (!bodyParse.success) {
+    return json(
+      { error: "invalid_input", details: bodyParse.error.issues },
+      400
+    );
   }
 
   const url = Deno.env.get("SUPABASE_URL");
