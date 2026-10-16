@@ -246,31 +246,44 @@ export async function processSession(
 
   const movement = await analyzeMovement(db, session.id, session.last_known_at);
 
-  let exitResult = { isOutsideForest: false, isConfirmedExit: false, consecutiveOutsideCount: 0 };
-  if (session.last_known_coords) {
-    exitResult = await detectForestExit(db, session.id);
-  }
+  // ─── Geofence (feature-flagged, min-time, 3-state) ─────
+  const { data: flag } = await db
+    .from("feature_flags")
+    .select("enabled")
+    .eq("key", "geofence_enabled")
+    .maybeSingle();
+  const geofenceEnabled = flag?.enabled ?? false;
+
+  const minutesSinceStart =
+    (Date.now() - new Date(session.started_at).getTime()) / (1000 * 60);
 
   if (
-    exitResult.isConfirmedExit &&
-    !session.exit_detected_at &&
-    !["exiting", "closing", "closed"].includes(session.status)
+    geofenceEnabled &&
+    minutesSinceStart >= 15 &&
+    session.last_known_coords
   ) {
-    await transitionTo(
-      db,
-      session,
-      "exiting",
-      { exit_detected_at: nowIso, overdue_level: null },
-      stats
-    );
+    const exitResult = await detectForestExit(db, session.id);
+    if (
+      exitResult.isConfirmedExit &&
+      !session.exit_detected_at &&
+      !["exiting", "closing", "closed"].includes(session.status)
+    ) {
+      await transitionTo(
+        db,
+        session,
+        "exiting",
+        { exit_detected_at: nowIso, overdue_level: null },
+        stats
+      );
 
-    const created = await createAlertOnce(db, session.id, "exit", {
-      action: "os_auto_detected",
-      consecutive_outside: exitResult.consecutiveOutsideCount,
-    });
-    if (created) stats.alerts_created++;
+      const created = await createAlertOnce(db, session.id, "exit", {
+        action: "os_auto_detected",
+        consecutive_outside: exitResult.consecutiveOutsideCount,
+      });
+      if (created) stats.alerts_created++;
 
-    return;
+      return;
+    }
   }
 
   // Overdue рахуємо від original_return — продовження (extend) дозволяє
