@@ -29,6 +29,3 @@ CREATE POLICY "catalog_photos_public_read"
 
 -- Запис тільки через service_role (скрипт upload на ПК)
 -- Storage RLS увімкнено за дефолтом Supabase, тому service_role обходить.
-
-COMMENT ON TABLE storage.buckets IS
-  'mushroom-photos: private (user picks). mushroom-catalog-photos: public (довідник, PC-TASK #8).';
