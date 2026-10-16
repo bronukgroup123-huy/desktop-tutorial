@@ -2237,7 +2237,6 @@ body.modal-open { overflow: hidden; }
   }
 
   function categoryMatch(s) {
-    if (!s.has_photo) return false;
     switch (state.category) {
       case 'top20': return !!s.top20;
       case 'popular': return !!s.popular;
@@ -2286,14 +2285,17 @@ body.modal-open { overflow: hidden; }
   function cardHtml(s) {
     const b = badgeFor(s);
     const photo = (s.photos && s.photos.length) ? s.photos[0] : (s.photo || '');
+    const desc = (window.MUSHROOM_DESCRIPTIONS || {})[s.id] || '';
+    const descShort = desc.length > 120 ? esc(desc.slice(0, 120)) + '…' : esc(desc);
     return '<div class="card p-2.5 card-hover" data-species-id="' + esc(s.id) + '" role="button" tabindex="0">' +
       '<div class="guide-thumb mb-2">' +
         (photo
-          ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.closest(\'.card\').remove()">'
+          ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'no-photo\')">'
           : '')
         + '</div>' +
       '<div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">' + esc(s.name) + '</div>' +
       '<div class="text-[10px] text-ink-muted italic font-serif mb-1.5">' + esc(s.latin) + '</div>' +
+      (descShort ? '<p class="card-desc text-[10px] text-ink-muted mt-1.5">' + descShort + '</p>' : '') +
       '<span class="badge ' + b.cls + ' text-[10px]">' + esc(b.label) + '</span>' +
       '</div>';
   }
