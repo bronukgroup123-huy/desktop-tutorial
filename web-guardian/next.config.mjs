@@ -42,7 +42,7 @@ const nextConfig = {
             key: "Content-Security-Policy-Report-Only",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com",
+              "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https:",
