@@ -2,7 +2,7 @@
 importScripts("https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js");
 
-const params = new URL(self.location).searchParams;
+const params = new URL(self.location.href).searchParams;
 const config = {
   apiKey: params.get("apiKey"),
   projectId: params.get("projectId"),
