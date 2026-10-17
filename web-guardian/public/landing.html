@@ -2064,6 +2064,7 @@ body.modal-open { overflow: hidden; }
 <!-- CATALOG: loaded from mushroom_catalog.js (no fetch / works via file://) -->
 <script src="mushroom_catalog.js"></script>
 <script src="mushroom_descriptions.js"></script>
+<script src="mushroomIcons.js"></script>
 <script>
 
   // ---------- Tab switching ----------
@@ -2376,7 +2377,7 @@ body.modal-open { overflow: hidden; }
       '<div class="guide-thumb mb-2">' +
         (photo
           ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'no-photo\')">'
-          : '<div class="guide-card-ph">🍄</div>')
+          : '<div class="guide-card-ph">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '') + '</div>')
         + '</div>' +
       '<div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">' + esc(s.name) + '</div>' +
       '<div class="text-[10px] text-ink-muted italic font-serif mb-1.5">' + esc(s.latin) + '</div>' +
@@ -3032,7 +3033,7 @@ body.modal-open { overflow: hidden; }
         ).join('');
         galleryEl.classList.remove('hidden');
       } else {
-        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg text-6xl">🍄</div>';
+        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml('', 'Без фото') : '<span class="text-6xl">🍄</span>') + '</div>';
         galleryEl.classList.remove('hidden');
       }
     }
@@ -3524,12 +3525,13 @@ body.modal-open { overflow: hidden; }
 
       const top1 = (p.top10 && p.top10.length) ? p.top10[0] : null;
       const isActive = i === activeIndex;
+      const stickerId = top1 && top1.sticker ? top1.sticker.replace('mushroom_', '').replace('.svg', '') : '';
 
       html += '<button class="bigmap-sticker' + (isActive ? ' active' : '') + '"' +
         ' style="top:' + top.toFixed(1) + '%;left:' + left.toFixed(1) + '%;"' +
         ' data-index="' + i + '"' +
         ' aria-label="Точка ' + (i + 1) + (top1 ? ': ' + top1.nameUa : '') + '">' +
-        '<span class="text-2xl">🍄</span>' +
+        '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, top1 ? top1.nameUa : '') : '🍄') + '</span>' +
       '</button>';
     });
     markers.innerHTML = html;
@@ -3653,9 +3655,10 @@ body.modal-open { overflow: hidden; }
     p.top10.forEach((mushroom, idx) => {
       const badgeClass = mushroom.badgeClass || 'badge-neutral';
       const levelText = mushroom.levelUa || 'Мало даних';
+      const stickerId = mushroom.sticker ? mushroom.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="compact-card" data-index="' + idx + '">' +
         '<div class="compact-icon" style="background: #FBF8F1; padding: 4px;">' +
-          '<span class="text-3xl">🍄</span>' +
+          '<span class="text-3xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, mushroom.nameUa) : '🍄') + '</span>' +
         '</div>' +
         '<div class="compact-body">' +
           '<div class="compact-title">' + esc(mushroom.nameUa) + '</div>' +
@@ -3727,15 +3730,16 @@ body.modal-open { overflow: hidden; }
 
     let html = '';
     p.top10.forEach((m, idx) => {
+      const stickerId = m.sticker ? m.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="expanded-slide">' +
         '<div class="p-4 flex justify-center" style="background: #FBF8F1;">' +
-          '<span class="text-4xl">🍄</span>' +
+          '<span class="text-4xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '🍄') + '</span>' +
         '</div>' +
         '<div class="p-4">' +
           '<div class="flex items-start justify-between gap-3">' +
             '<div class="flex items-center gap-3">' +
               '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #FBF8F1; padding: 4px;">' +
-                '<span class="text-2xl">🍄</span>' +
+                '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '🍄') + '</span>' +
               '</div>' +
               '<div class="min-w-0">' +
                 '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
