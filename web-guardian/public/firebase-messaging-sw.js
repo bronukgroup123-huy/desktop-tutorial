@@ -1,44 +1,41 @@
-/* global importScripts firebase */
-importScripts("https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js");
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
-const params = new URL(self.location.href).searchParams;
-const apiKey = params.get("apiKey");
-if (!apiKey) {
-  console.error("[SW] No apiKey provided in URL query. SW will not initialize.");
-  return;
+const urlParams = new URL(self.location.href).searchParams;
+const apiKey = urlParams.get('apiKey');
+
+if (apiKey) {
+  const firebaseConfig = {
+    apiKey: apiKey,
+    projectId: urlParams.get('projectId'),
+    messagingSenderId: urlParams.get('messagingSenderId'),
+    appId: urlParams.get('appId'),
+  };
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+
+    messaging.onBackgroundMessage((payload) => {
+      console.log('[SW] Background message:', payload);
+      const notificationTitle = payload.notification?.title || 'Грибний Радар';
+      const notificationOptions = {
+        body: payload.notification?.body || 'Нове сповіщення',
+        icon: '/icons/icon-192.png',
+        data: payload.data
+      };
+      self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+  } catch (error) {
+    console.error('[SW] Firebase init error:', error);
+  }
+} else {
+  console.warn('[SW] No apiKey provided. Skipping Firebase init.');
 }
 
-const config = {
-  apiKey: params.get("apiKey"),
-  projectId: params.get("projectId"),
-  messagingSenderId: params.get("messagingSenderId"),
-  appId: params.get("appId"),
-};
-
-firebase.initializeApp(config);
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const notification = payload.notification || {};
-  const data = payload.data || {};
-
-  self.registration.showNotification(notification.title || "MushroomRadar", {
-    body: notification.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/badge-72.png",
-    tag: data.alert_type || "guardian-alert",
-    requireInteraction: data.alert_type === "sos",
-    data: {
-      url: data.url || "/",
-      alert_type: data.alert_type,
-    },
-  });
-});
-
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
-  event.waitUntil(clients.openWindow(url));
+  event.waitUntil(
+    clients.openWindow('/s/' + (event.notification.data?.token || ''))
+  );
 });
