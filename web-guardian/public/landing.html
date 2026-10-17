@@ -2321,6 +2321,7 @@ body.modal-open { overflow: hidden; }
   }
 
   function categoryMatch(s) {
+    if (!s.has_photo) return false;
     switch (state.category) {
       case 'top20': return !!s.top20;
       case 'popular': return !!s.popular;
@@ -2375,7 +2376,7 @@ body.modal-open { overflow: hidden; }
       '<div class="guide-thumb mb-2">' +
         (photo
           ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'no-photo\')">'
-          : '')
+          : '<div class="guide-card-ph">🍄</div>')
         + '</div>' +
       '<div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">' + esc(s.name) + '</div>' +
       '<div class="text-[10px] text-ink-muted italic font-serif mb-1.5">' + esc(s.latin) + '</div>' +
