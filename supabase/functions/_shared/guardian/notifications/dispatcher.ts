@@ -25,8 +25,11 @@ export async function dispatchAlert(
     skipped: 0,
   };
 
+  let anyDelivered = false;
+
   const targets = await loadTargets(db, session.id, alert.alert_type);
   if (targets.length === 0) {
+    console.warn(`[dispatcher] alert ${alert.id} has no targets, marking as delivered to avoid stuck state.`);
     await markAlertDelivered(db, alert.id);
     return result;
   }
@@ -103,6 +106,10 @@ export async function dispatchAlert(
             : "failed",
           sendResult
         );
+
+        if (sendResult.success || sendResult.queued) {
+          anyDelivered = true;
+        }
 
         if (sendResult.success && !sendResult.queued) {
           result.push_attempted++;
@@ -202,6 +209,10 @@ export async function dispatchAlert(
         smsResult
       );
 
+      if (smsResult.success || smsResult.queued) {
+        anyDelivered = true;
+      }
+
       if (smsResult.success && !smsResult.queued) {
         result.sms_attempted++;
       }
@@ -210,8 +221,12 @@ export async function dispatchAlert(
     }
   }
 
-  if (result.notifications_created > 0) {
+  if (result.notifications_created > 0 && anyDelivered) {
     await markAlertDelivered(db, alert.id);
+  } else if (result.notifications_created > 0 && !anyDelivered) {
+    console.warn(
+      `[dispatcher] alert ${alert.id} had ${result.notifications_created} notification attempts, but NONE delivered/queued. Leaving alert undelivered.`
+    );
   }
 
   return result;
