@@ -8,6 +8,13 @@ import path from "node:path";
 const CATALOG_PATH = "web-guardian/public/mushroom_catalog.js";
 const CDN_BASE = "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos";
 
+function sanitizePath(p) {
+  return p
+    .replace(/\s+/g, '_')
+    .replace(/[()]/g, '')
+    .replace(/[^\w\-./]/g, '_');
+}
+
 const content = fs.readFileSync(CATALOG_PATH, "utf8");
 
 let replaced = 0, skipped = 0, errors = 0;
@@ -23,7 +30,8 @@ const newContent = content.replace(/"photos":\[([^\]]*)\]/g, (match, inner) => {
       return `"${raw}"`;
     }
     try {
-      const cdnUrl = CDN_BASE + "/" + raw;
+      const safePath = sanitizePath(raw);
+      const cdnUrl = CDN_BASE + "/" + safePath;
       replaced++;
       if (examples.length < 3) examples.push({ from: raw, to: cdnUrl });
       return `"${cdnUrl}"`;

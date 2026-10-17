@@ -8,6 +8,13 @@ import path from "node:path";
 
 const BUCKET = "mushroom-catalog-photos";
 
+function sanitizePath(p) {
+  return p
+    .replace(/\s+/g, '_')
+    .replace(/[()]/g, '')
+    .replace(/[^\w\-./]/g, '_');
+}
+
 const PHOTO_DIRS = [
   "фото Топ-20 грибів (webp)",
   "фото популярні 55 грибів (webp)",
@@ -49,7 +56,7 @@ async function main() {
     for (const file of files) {
       total++;
       const buffer = fs.readFileSync(file);
-      const storagePath = file;
+      const storagePath = sanitizePath(file);
       const { error } = await supabase.storage
         .from(BUCKET)
         .upload(storagePath, buffer, {
