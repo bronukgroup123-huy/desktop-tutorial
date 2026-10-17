@@ -125,6 +125,13 @@ function escHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+// Alias map: forecast sticker IDs → actual species IDs in SPECIES_WITH_PHOTO
+const SPECIES_ALIASES = {
+  "morchella_spp": "morchella_esculenta",
+  "lycoperdon_spp": "lycoperdon_perlatum",
+  "xerocomus_spp": "xerocomus_subtomentosus",
+};
+
 function buildSvgString({ capColor, stemColor, accentColor, hasRing, style }) {
   const cx = 32, capY = 22, stemX = 27, stemY = 34, stemH = 24, stemW = 10;
   let body = "";
@@ -170,14 +177,14 @@ function buildSvgString({ capColor, stemColor, accentColor, hasRing, style }) {
     body += `<circle cx="${cx}" cy="${capY+8}" r="16" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">${body}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">${body}</svg>`;
 }
 
 function detailedSvg(species) {
   switch (species) {
     case "boletus_edulis": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M20 30 Q32 18 44 30 Q32 36 20 30 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <ellipse cx="32" cy="30" rx="12" ry="6" fill="${stem}" opacity="0.6" />
         <path d="M27 34 L27 56 M37 34 L37 56" stroke="${stem}" stroke-width="9" stroke-linecap="round" />
@@ -187,7 +194,7 @@ function detailedSvg(species) {
     }
     case "cantharellus_cibarius": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M14 26 Q32 14 50 26 Q32 34 14 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <path d="M24 30 Q32 36 40 30 Z" fill="none" stroke="#e65100" stroke-width="2" stroke-linecap="round" />
         <path d="M27 36 Q32 50 37 36 Q32 44 27 36 Z" fill="${stem}" stroke="#3e2723" stroke-width="1.5" />
@@ -196,7 +203,7 @@ function detailedSvg(species) {
     }
     case "leccinum_scabrum": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M16 28 Q32 16 48 28 Q32 36 16 28 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <path d="M25 42 L25 46 M29 44 L29 48 M33 42 L33 46 M37 44 L37 48 M39 42 L39 46" stroke="#5d4037" stroke-width="2.5" stroke-linecap="round" />
         <path d="M26 36 L26 56 M38 36 L38 56" stroke="${stem}" stroke-width="10" stroke-linecap="round" />
@@ -205,7 +212,7 @@ function detailedSvg(species) {
     }
     case "armillaria_mellea": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M16 26 Q32 14 48 26 Q32 34 16 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <path d="M23 32 L23 54 M41 32 L41 54" stroke="${stem}" stroke-width="7" stroke-linecap="round" />
         <path d="M21 32 Q32 28 43 32" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round" />
@@ -214,7 +221,7 @@ function detailedSvg(species) {
     }
     case "lactarius_deliciosus": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M14 28 Q32 16 50 28 Q32 36 14 28 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <path d="M22 32 Q32 38 42 32 Z" fill="none" stroke="#b71c1c" stroke-width="2.5" stroke-linecap="round" />
         <path d="M26 38 Q32 46 38 38 Z" fill="${stem}" opacity="0.8" stroke="#3e2723" stroke-width="1.5" />
@@ -224,7 +231,7 @@ function detailedSvg(species) {
     }
     case "amanita_muscaria": {
       const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
         <path d="M14 26 Q32 12 50 26 Q32 36 14 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
         <circle cx="24" cy="24" r="3" fill="${accent}" />
         <circle cx="40" cy="22" r="3" fill="${accent}" />
@@ -241,7 +248,7 @@ function detailedSvg(species) {
 
 function fallbackSvg(title) {
   const safeTitle = escHtml(title);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="${safeTitle}" role="img">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" aria-label="${safeTitle}" role="img">
     <circle cx="32" cy="32" r="20" fill="#cfd8dc" />
     <path d="M22 38 Q32 26 42 38" stroke="#90a4ae" stroke-width="4" stroke-linecap="round" />
     <path d="M27 46 L27 56 M37 46 L37 56" stroke="#b0bec5" stroke-width="6" stroke-linecap="round" />
@@ -256,14 +263,19 @@ function fallbackSvg(title) {
  * @returns {string} HTML-рядок <svg>...</svg>
  */
 function getMushroomIconHtml(species, title = "") {
-  if (!species || !SPECIES_WITH_PHOTO.has(species)) {
+  if (!species) {
     return fallbackSvg(title || "Невідомий гриб");
   }
-  const detailed = detailedSvg(species);
+  // Resolve forecast sticker aliases (e.g. morchella_spp → morchella_esculenta)
+  const resolved = SPECIES_ALIASES[species] || species;
+  if (!SPECIES_WITH_PHOTO.has(resolved)) {
+    return fallbackSvg(title || "Невідомий гриб");
+  }
+  const detailed = detailedSvg(resolved);
   if (detailed) return detailed;
-  const { cap: capColor, stem: stemColor, accent: accentColor } = colorsFor(species);
-  const style = styleFor(species);
-  const hasRing = hasRingFor(species);
+  const { cap: capColor, stem: stemColor, accent: accentColor } = colorsFor(resolved);
+  const style = styleFor(resolved);
+  const hasRing = hasRingFor(resolved);
   return buildSvgString({ capColor, stemColor, accentColor, hasRing, style });
 }
 

@@ -3033,7 +3033,7 @@ body.modal-open { overflow: hidden; }
         ).join('');
         galleryEl.classList.remove('hidden');
       } else {
-        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml('', 'Без фото') : '<span class="text-6xl">🍄</span>') + '</div>';
+        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '<span class="text-6xl">🍄</span>') + '</div>';
         galleryEl.classList.remove('hidden');
       }
     }
@@ -3531,7 +3531,7 @@ body.modal-open { overflow: hidden; }
         ' style="top:' + top.toFixed(1) + '%;left:' + left.toFixed(1) + '%;"' +
         ' data-index="' + i + '"' +
         ' aria-label="Точка ' + (i + 1) + (top1 ? ': ' + top1.nameUa : '') + '">' +
-        '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, top1 ? top1.nameUa : '') : '🍄') + '</span>' +
+        '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, top1 ? top1.nameUa : '') : '') + '</span>' +
       '</button>';
     });
     markers.innerHTML = html;
@@ -3658,7 +3658,7 @@ body.modal-open { overflow: hidden; }
       const stickerId = mushroom.sticker ? mushroom.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="compact-card" data-index="' + idx + '">' +
         '<div class="compact-icon" style="background: #FBF8F1; padding: 4px;">' +
-          '<span class="text-3xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, mushroom.nameUa) : '🍄') + '</span>' +
+          '<span class="text-3xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, mushroom.nameUa) : '') + '</span>' +
         '</div>' +
         '<div class="compact-body">' +
           '<div class="compact-title">' + esc(mushroom.nameUa) + '</div>' +
@@ -3733,13 +3733,13 @@ body.modal-open { overflow: hidden; }
       const stickerId = m.sticker ? m.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="expanded-slide">' +
         '<div class="p-4 flex justify-center" style="background: #FBF8F1;">' +
-          '<span class="text-4xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '🍄') + '</span>' +
+          '<span class="text-4xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '') + '</span>' +
         '</div>' +
         '<div class="p-4">' +
           '<div class="flex items-start justify-between gap-3">' +
             '<div class="flex items-center gap-3">' +
               '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #FBF8F1; padding: 4px;">' +
-                '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '🍄') + '</span>' +
+                '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '') + '</span>' +
               '</div>' +
               '<div class="min-w-0">' +
                 '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
