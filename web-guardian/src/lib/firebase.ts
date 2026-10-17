@@ -63,6 +63,12 @@ export interface PushRegistrationResult {
 }
 
 export async function requestPushToken(): Promise<PushRegistrationResult> {
+  console.log("[firebase.ts] ENV Check:", {
+    apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    vapidKey: !!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+  });
+
   if (!isMessagingSupported()) {
     return {
       success: false,

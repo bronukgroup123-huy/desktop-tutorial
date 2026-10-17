@@ -46,6 +46,7 @@ export function useWebPush(token: string) {
       await registerGuardianDevice(token, result.token, navigator.userAgent);
       setState("registered");
     } catch (err) {
+      console.error("[useWebPush] Push registration failed:", err);
       setState("error");
       setError(err instanceof Error ? err.message : "Помилка реєстрації");
     }
