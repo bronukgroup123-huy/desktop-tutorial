@@ -93,10 +93,17 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     flex-direction: column;
     background-color: #f4f1e8;
   }
+  .app-shell > .screen {
+    position: relative;
+    inset: auto;
+    flex-grow: 1;
+    height: auto;
+  }
   .app-shell > .screen, .app-shell > .tab-panel {
     overflow-y: auto;
     flex-grow: 1;
   }
+  #screen-welcome { overflow-y: auto; }
 }
 
 /* Large Desktop (1440px+) */
@@ -126,10 +133,17 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     flex-direction: column;
     background-color: #f4f1e8;
   }
+  .app-shell > .screen {
+    position: relative;
+    inset: auto;
+    flex-grow: 1;
+    height: auto;
+  }
   .app-shell > .screen, .app-shell > .tab-panel {
     overflow-y: auto;
     flex-grow: 1;
   }
+  #screen-welcome { overflow-y: auto; }
 }
 
 @media (max-width: 600px) {
