@@ -69,6 +69,7 @@ async function main() {
       } else {
         uploaded++;
       }
+      await new Promise(resolve => setTimeout(resolve, 150));
       if (total % 50 === 0) {
         console.log(`  прогрес: ${total} оброблено, ${uploaded} завантажено, ${errors} помилок`);
       }
