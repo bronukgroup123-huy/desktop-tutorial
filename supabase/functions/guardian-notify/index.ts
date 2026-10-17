@@ -72,3 +72,4 @@ Deno.serve(withErrorHandling(async (req) => {
 
   return successResponse({ processed: results.length, results });
 }));
+// trigger deploy
