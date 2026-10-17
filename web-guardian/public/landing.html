@@ -3033,7 +3033,7 @@ body.modal-open { overflow: hidden; }
         ).join('');
         galleryEl.classList.remove('hidden');
       } else {
-        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '<span class="text-6xl">🍄</span>') + '</div>';
+        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '') + '</div>';
         galleryEl.classList.remove('hidden');
       }
     }

@@ -1,8 +1,12 @@
 /**
  * mushroomIcons.js
  * Кастомні SVG-іконки для видів грибів, що мають фото (has_photo: true).
- * viewBox="0 0 64 64" для всіх іконок. Експортує функцію getMushroomIconHtml(species)
- * яка повертає HTML-рядок SVG для використання у vanilla-JS коді (landing.html).
+ * viewBox="0 0 64 64" для всіх іконок.
+ * Експортує функцію getMushroomIconHtml(species, size = 32),
+ * яка повертає HTML-рядок <svg>...</svg> для використання у vanilla-JS коді (landing.html).
+ *
+ * Підхід: 4 базові SVG-шаблони (трубчастий, з юбочкою, воронкоподібний, мухомор)
+ * + динамічні CSS-змінні (--cap-color, --stem-color, --detail-color) для кольорів.
  */
 
 const SPECIES_WITH_PHOTO = new Set([
@@ -35,87 +39,33 @@ const SPECIES_WITH_PHOTO = new Set([
   "hygrophoropsis_aurantiaca","inocybe_erubescens","inocybe_geophylla","paxillus_involutus",
 ]);
 
-function colorsFor(species) {
-  if (species.startsWith("amanita_")) return { cap: "#e53935", stem: "#fffde7", accent: "#ffffff" };
-  if (species.startsWith("boletus_")) return { cap: "#6d4c41", stem: "#efebe9", accent: "#8d6e63" };
-  if (species.includes("rubroboletus") || species.includes("butyriboletus")) return { cap: "#5d4037", stem: "#d7ccc8", accent: "#4e342e" };
-  if (species.includes("cantharellus") || species.includes("craterellus")) return { cap: "#fb8c00", stem: "#ffecb3", accent: "#ffcc00" };
-  if (species.includes("suillus")) return { cap: "#bcaaa4", stem: "#d7ccc8", accent: "#ffd54f" };
-  if (species.includes("leccinum")) return { cap: "#a1887f", stem: "#cfd8dc", accent: "#78909c" };
-  if (species.includes("lactarius") || species.includes("lactifluus")) return { cap: "#bf360c", stem: "#efebe9", accent: "#ff7043" };
-  if (species.startsWith("russula_")) return { cap: "#ffcc80", stem: "#fff9c4", accent: "#ffd54f" };
-  if (species.startsWith("tricholoma_")) return { cap: "#795548", stem: "#d7ccc8", accent: "#6d4c41" };
-  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return { cap: "#ffb300", stem: "#fffde7", accent: "#ffeb3b" };
-  if (species.includes("macrolepiota")) return { cap: "#d7ccc8", stem: "#f5f5f5", accent: "#efebe9" };
-  if (species.includes("cortinarius") || species.includes("inocybe")) return { cap: "#7986cb", stem: "#e8eaf6", accent: "#c5cae9" };
-  if (species.includes("pleurotus")) return { cap: "#eceff1", stem: "#cfd8dc", accent: "#b0bec5" };
-  if (species.includes("polyporus") || species.includes("laetiporus") || species.includes("grifola") || species.includes("sparassis")) return { cap: "#8d6e63", stem: "#6d4c41", accent: "#a1887f" };
-  if (species.includes("morchella") || species.includes("gyromitra")) return { cap: "#d7ccc8", stem: "#d7ccc8", accent: "#bcaaa4" };
-  if (species.includes("phallus") || species.includes("pseudocolus") || species.includes("anthurus")) return { cap: "#e53935", stem: "#fffde7", accent: "#fff176" };
-  if (species.startsWith("clitocybe_") || species.startsWith("collybia_") || species.startsWith("entoloma_") || species.startsWith("galerina_")) return { cap: "#795548", stem: "#efebe9", accent: "#6d4c41" };
-  if (species.includes("hydnum")) return { cap: "#a1887f", stem: "#cfd8dc", accent: "#78909c" };
-  if (species.includes("lycoperdon") || species.includes("myriostoma") || species.includes("scleroderma")) return { cap: "#cfd8dc", stem: "#eceff1", accent: "#b0bec5" };
-  if (species.includes("clavulina") || species.includes("ramaria") || species.includes("clavariadelphus")) return { cap: "#bcaaa4", stem: "#d7ccc8", accent: "#a1887f" };
-  if (species.includes("helvella")) return { cap: "#424242", stem: "#616161", accent: "#757575" };
-  if (species.includes("tuber")) return { cap: "#5d4037", stem: "#6d4c41", accent: "#3e2723" };
-  if (species.includes("strobilomyces")) return { cap: "#424242", stem: "#424242", accent: "#212121" };
-  if (species.includes("hemileccinum")) return { cap: "#a1887f", stem: "#cfd8dc", accent: "#78909c" };
-  if (species.includes("hericium")) return { cap: "#fffde7", stem: "#fffde7", accent: "#ffecb3" };
-  if (species.includes("hygrocybe")) return { cap: "#e53935", stem: "#fffde7", accent: "#ffeb3b" };
-  if (species.includes("gomphus")) return { cap: "#795548", stem: "#d7ccc8", accent: "#6d4c41" };
-  if (species.includes("albatrellus")) return { cap: "#cfd8dc", stem: "#f5f5f5", accent: "#eceff1" };
-  if (species.includes("imleria")) return { cap: "#6d4c41", stem: "#d7ccc8", accent: "#5d4037" };
-  if (species.includes("phaeolepiota") || species.includes("phylloporus")) return { cap: "#fb8c00", stem: "#ffecb3", accent: "#ffcc00" };
-  if (species.includes("phellorinia") || species.includes("sarcosoma")) return { cap: "#424242", stem: "#424242", accent: "#212121" };
-  if (species.includes("catathelasma")) return { cap: "#d7ccc8", stem: "#f5f5f5", accent: "#eceff1" };
-  if (species.includes("agaricus")) return { cap: "#f5f5f5", stem: "#ffffff", accent: "#e0e0e0" };
-  return { cap: "#8d6e63", stem: "#d7ccc8", accent: "#ffeb3b" };
-}
+// Alias map: forecast sticker IDs → actual species IDs in SPECIES_WITH_PHOTO
+const SPECIES_ALIASES = {
+  "morchella_spp": "morchella_esculenta",
+  "lycoperdon_spp": "lycoperdon_perlatum",
+  "xerocomus_spp": "xerocomus_subtomentosus",
+};
 
-function styleFor(species) {
-  if (species.startsWith("amanita_")) return "cap-stem";
-  if (species.startsWith("boletus_") || species.includes("rubroboletus") || species.includes("butyriboletus")) return "cap-stem";
-  if (species.includes("leccinum")) return "cap-stem";
-  if (species.includes("cantharellus") || species.includes("craterellus")) return "funnel";
-  if (species.includes("suillus")) return "cap-stem";
-  if (species.includes("lactarius") || species.includes("lactifluus")) return "funnel";
-  if (species.startsWith("russula_")) return "cap-stem";
-  if (species.startsWith("tricholoma_")) return "cap-stem";
-  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return "cap-stem";
-  if (species.includes("macrolepiota")) return "flat-cap";
-  if (species.includes("cortinarius") || species.includes("inocybe")) return "cap-stem";
-  if (species.includes("pleurotus")) return "bracket";
-  if (species.includes("polyporus") || species.includes("laetiporus") || species.includes("grifola") || species.includes("sparassis")) return "bracket";
-  if (species.includes("morchella") || species.includes("gyromitra")) return "morel";
-  if (species.includes("phallus") || species.includes("pseudocolus") || species.includes("anthurus")) return "stinkhorn";
-  if (species.startsWith("clitocybe_") || species.startsWith("collybia_") || species.startsWith("entoloma_") || species.startsWith("galerina_")) return "cap-stem";
-  if (species.includes("hydnum")) return "cap-stem";
-  if (species.includes("lycoperdon") || species.includes("myriostoma") || species.includes("scleroderma")) return "puffball";
-  if (species.includes("clavulina") || species.includes("ramaria") || species.includes("clavariadelphus")) return "coral";
-  if (species.includes("helvella")) return "morel";
-  if (species.includes("tuber")) return "truffle";
-  if (species.includes("strobilomyces")) return "globular";
-  if (species.includes("hemileccinum")) return "cap-stem";
-  if (species.includes("hericium")) return "globular";
-  if (species.includes("hygrocybe")) return "cap-stem";
-  if (species.includes("gomphus")) return "funnel";
-  if (species.includes("albatrellus")) return "cap-stem";
-  if (species.includes("imleria")) return "cap-stem";
-  if (species.includes("phaeolepiota") || species.includes("phylloporus")) return "cap-stem";
-  if (species.includes("phellorinia") || species.includes("sarcosoma")) return "globular";
-  if (species.includes("catathelasma")) return "cap-stem";
-  if (species.includes("agaricus")) return "cap-stem";
-  return "cap-stem";
-}
+// ---------------------------------------------------------------------------
+// Конфігурація видів: template + кольори + додаткові деталі
+// template: "tubular" | "ringed" | "funnel" | "amanita"
+// ---------------------------------------------------------------------------
+const ICON_CONFIG = {
+  "boletus_edulis":        { template: "tubular", cap: "#8B4513", stem: "#F5F5DC", detail: "#5D4037", ring: false, spots: false },
+  "cantharellus_cibarius": { template: "funnel",  cap: "#FFD700", stem: "#FFD700", detail: "#FF8C00", ring: false, spots: false },
+  "armillaria_mellea":     { template: "ringed",   cap: "#D2B48C", stem: "#FFF8DC", detail: "#FFFFFF", ring: true,  spots: false },
+  "leccinum_scabrum":      { template: "tubular", cap: "#808080", stem: "#F5F5DC", detail: "#000000", ring: false, spots: true },
+  "lactarius_deliciosus":  { template: "funnel",  cap: "#FF8C00", stem: "#FF8C00", detail: "#B71C1C", ring: false, spots: false },
+  "lactarius_resimus":     { template: "funnel",  cap: "#FFF8DC", stem: "#FFFFFF", detail: "#FFF8DC", ring: false, spots: false },
+  "amanita_muscaria":      { template: "amanita",  cap: "#E32636", stem: "#FFFFFF", detail: "#FFFFFF", ring: true,  spots: false },
+};
 
-function hasRingFor(species) {
-  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return true;
-  if (species.startsWith("amanita_")) return true;
-  if (species.includes("macrolepiota")) return true;
-  if (species.includes("lepiota")) return true;
-  return false;
-}
+// Колірна паліпа для Сироїжок (Russula) — різні кольори шапки
+const RUSSULA_COLORS = ["#DC2626", "#15803D", "#CA8A04", "#BE185D", "#0891B2", "#4D7C0F"];
 
+// ---------------------------------------------------------------------------
+// Допоміжні функції
+// ---------------------------------------------------------------------------
 function escHtml(unsafe) {
   return unsafe
     .replace(/&/g, "&amp;")
@@ -125,158 +75,161 @@ function escHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
-// Alias map: forecast sticker IDs → actual species IDs in SPECIES_WITH_PHOTO
-const SPECIES_ALIASES = {
-  "morchella_spp": "morchella_esculenta",
-  "lycoperdon_spp": "lycoperdon_perlatum",
-  "xerocomus_spp": "xerocomus_subtomentosus",
-};
-
-function buildSvgString({ capColor, stemColor, accentColor, hasRing, style }) {
-  const cx = 32, capY = 22, stemX = 27, stemY = 34, stemH = 24, stemW = 10;
-  let body = "";
-
-  if (style === "cap-stem") {
-    body += `<path d="M${cx-20} ${capY} Q${cx} ${capY-14} ${cx+20} ${capY} Q${cx} ${capY+10} ${cx-20} ${capY} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    if (hasRing) {
-      body += `<path d="M${stemX-2} ${stemY+4} Q${cx} ${stemY} ${stemX+stemW+2} ${stemY+4} Z" fill="none" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round" />`;
-    }
-  } else if (style === "flat-cap") {
-    body += `<path d="M${cx-18} ${capY} Q${cx} ${capY-8} ${cx+18} ${capY} Q${cx} ${capY+6} ${cx-18} ${capY} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "funnel") {
-    body += `<path d="M${cx-20} ${capY} Q${cx} ${capY-6} ${cx+20} ${capY} Q${cx} ${capY+14} ${cx-20} ${capY} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<path d="M${cx-8} ${capY+4} Q${cx} ${capY+10} ${cx+8} ${capY+4} Z" fill="none" stroke="#5d4037" stroke-width="2" stroke-linecap="round" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "coral") {
-    body += `<path d="M${cx-16} ${capY} Q${cx-6} ${capY-10} ${cx} ${capY} Q${cx+6} ${capY-10} ${cx+16} ${capY} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<path d="M${cx-10} ${capY} L${cx-10} ${capY+12}" stroke="${capColor}" stroke-width="5" stroke-linecap="round" />`;
-    body += `<path d="M${cx+10} ${capY} L${cx+10} ${capY+12}" stroke="${capColor}" stroke-width="5" stroke-linecap="round" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "puffball") {
-    body += `<circle cx="${cx}" cy="${capY+10}" r="18" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "star") {
-    body += `<path d="M${cx} ${capY-8} L${cx+4} ${capY+4} L${cx+14} ${capY+6} L${cx+6} ${capY+10} L${cx+10} ${capY+16} L${cx} ${capY+12} L${cx-10} ${capY+16} L${cx-6} ${capY+10} L${cx-14} ${capY+6} L${cx-4} ${capY+4} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "bracket") {
-    body += `<path d="M${cx-18} ${capY+2} Q${cx} ${capY+12} ${cx+18} ${capY+2} Q${cx} ${capY+20} ${cx-18} ${capY+2} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<path d="M${cx-14} ${capY+6} Q${cx} ${capY+12} ${cx+14} ${capY+6} Z" fill="none" stroke="#5d4037" stroke-width="2" />`;
-  } else if (style === "morel") {
-    body += `<path d="M${cx-14} ${capY} Q${cx} ${capY-14} ${cx+14} ${capY} Q${cx} ${capY+6} ${cx-14} ${capY} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<path d="M${cx-10} ${capY+2} L${cx-10} ${capY+10} M${cx-4} ${capY+2} L${cx-4} ${capY+10} M${cx+2} ${capY+2} L${cx+2} ${capY+10} M${cx+8} ${capY+2} L${cx+8} ${capY+10}" stroke="#5d4037" stroke-width="2" stroke-linecap="round" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "stinkhorn") {
-    body += `<path d="M${cx-12} ${capY+2} Q${cx} ${capY-12} ${cx+12} ${capY+2} Q${cx} ${capY+8} ${cx-12} ${capY+2} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<rect x="${stemX}" y="${stemY}" width="${stemW}" height="${stemH}" rx="2" fill="${stemColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  } else if (style === "truffle") {
-    body += `<path d="M${cx-16} ${capY+8} Q${cx} ${capY-4} ${cx+16} ${capY+8} Q${cx} ${capY+18} ${cx-16} ${capY+8} Z" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-    body += `<path d="M${cx-10} ${capY+10} Q${cx} ${capY+14} ${cx+10} ${capY+10} Z" fill="none" stroke="#5d4037" stroke-width="2" />`;
-  } else if (style === "globular") {
-    body += `<circle cx="${cx}" cy="${capY+8}" r="16" fill="${capColor}" stroke="#3e2723" stroke-width="1.5" />`;
-  }
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">${body}</svg>`;
+// Визначення шаблону за типом гриба (для видів, що не в ICON_CONFIG)
+function templateFor(species) {
+  if (species.startsWith("amanita_")) return "amanita";
+  if (species.includes("cantharellus") || species.includes("craterellus")) return "funnel";
+  if (species.includes("lactarius") || species.includes("lactifluus")) return "funnel";
+  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return "ringed";
+  if (species.startsWith("leccinum") || species.includes("leccinum")) return "tubular";
+  if (species.startsWith("boletus_") || species.includes("boletus")) return "tubular";
+  if (species.startsWith("russula_")) return "tubular";
+  return "tubular";
 }
 
-function detailedSvg(species) {
-  switch (species) {
-    case "boletus_edulis": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M20 30 Q32 18 44 30 Q32 36 20 30 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <ellipse cx="32" cy="30" rx="12" ry="6" fill="${stem}" opacity="0.6" />
-        <path d="M27 34 L27 56 M37 34 L37 56" stroke="${stem}" stroke-width="9" stroke-linecap="round" />
-        <path d="M27 56 L27 58 M37 56 L37 58" stroke="#3e2723" stroke-width="1" />
-        <path d="M24 24 Q32 20 40 24 M26 28 Q32 26 38 28" fill="none" stroke="${accent}" stroke-width="1.5" stroke-linecap="round" />
-      </svg>`;
-    }
-    case "cantharellus_cibarius": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M14 26 Q32 14 50 26 Q32 34 14 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M24 30 Q32 36 40 30 Z" fill="none" stroke="#e65100" stroke-width="2" stroke-linecap="round" />
-        <path d="M27 36 Q32 50 37 36 Q32 44 27 36 Z" fill="${stem}" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M20 22 Q32 30 44 22 M18 26 Q32 34 46 26" fill="none" stroke="${accent}" stroke-width="1.5" stroke-linecap="round" />
-      </svg>`;
-    }
-    case "leccinum_scabrum": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M16 28 Q32 16 48 28 Q32 36 16 28 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M25 42 L25 46 M29 44 L29 48 M33 42 L33 46 M37 44 L37 48 M39 42 L39 46" stroke="#5d4037" stroke-width="2.5" stroke-linecap="round" />
-        <path d="M26 36 L26 56 M38 36 L38 56" stroke="${stem}" stroke-width="10" stroke-linecap="round" />
-        <path d="M20 24 Q32 18 44 24" fill="none" stroke="${accent}" stroke-width="1.5" stroke-linecap="round" />
-      </svg>`;
-    }
-    case "armillaria_mellea": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M16 26 Q32 14 48 26 Q32 34 16 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M23 32 L23 54 M41 32 L41 54" stroke="${stem}" stroke-width="7" stroke-linecap="round" />
-        <path d="M21 32 Q32 28 43 32" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round" />
-        <path d="M20 22 Q32 26 44 22" fill="none" stroke="#3e2723" stroke-width="1" stroke-linecap="round" />
-      </svg>`;
-    }
-    case "lactarius_deliciosus": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M14 28 Q32 16 50 28 Q32 36 14 28 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M22 32 Q32 38 42 32 Z" fill="none" stroke="#b71c1c" stroke-width="2.5" stroke-linecap="round" />
-        <path d="M26 38 Q32 46 38 38 Z" fill="${stem}" opacity="0.8" stroke="#3e2723" stroke-width="1.5" />
-        <path d="M27 40 L27 54 M37 40 L37 54" stroke="${stem}" stroke-width="8" stroke-linecap="round" />
-        <path d="M20 24 Q32 28 44 24" fill="none" stroke="${accent}" stroke-width="1.5" stroke-linecap="round" />
-      </svg>`;
-    }
-    case "amanita_muscaria": {
-      const { cap, stem, accent } = colorsFor(species);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M14 26 Q32 12 50 26 Q32 36 14 26 Z" fill="${cap}" stroke="#3e2723" stroke-width="1.5" />
-        <circle cx="24" cy="24" r="3" fill="${accent}" />
-        <circle cx="40" cy="22" r="3" fill="${accent}" />
-        <circle cx="30" cy="30" r="3" fill="${accent}" />
-        <circle cx="46" cy="28" r="3" fill="${accent}" />
-        <path d="M24 40 L24 56 M40 40 L40 56" stroke="${stem}" stroke-width="10" stroke-linecap="round" />
-        <path d="M22 32 Q32 28 42 32" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round" />
-      </svg>`;
-    }
-    default:
-      return null;
+// Визначення кольорів за типом гриба (для видів, що не в ICON_CONFIG)
+function colorsFor(species) {
+  if (species.startsWith("amanita_")) return { cap: "#E32636", stem: "#FFFFFF", detail: "#FFFFFF" };
+  if (species.startsWith("boletus_") || species.includes("boletus")) return { cap: "#8B4513", stem: "#F5F5DC", detail: "#5D4037" };
+  if (species.includes("cantharellus") || species.includes("craterellus")) return { cap: "#FB8C00", stem: "#FFECB3", detail: "#FF8C00" };
+  if (species.includes("lactarius") || species.includes("lactifluus")) return { cap: "#BF360C", stem: "#EFEBE9", detail: "#FF7043" };
+  if (species.startsWith("russula_")) {
+    // Детермінований "випадковий" колір на основі назви виду
+    const idx = species.charCodeAt(species.length - 1) % RUSSULA_COLORS.length;
+    return { cap: RUSSULA_COLORS[idx], stem: "#FFF9C4", detail: "#FDD835" };
   }
+  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return { cap: "#FFB300", stem: "#FFFDE7", detail: "#FFEB3B" };
+  if (species.includes("leccinum")) return { cap: "#808080", stem: "#F5F5DC", detail: "#000000" };
+  if (species.includes("suillus")) return { cap: "#BCAAA4", stem: "#D7CCC8", detail: "#FFD54F" };
+  if (species.includes("tricholoma_")) return { cap: "#795548", stem: "#D7CCC8", detail: "#6D4C41" };
+  if (species.includes("macrolepiota")) return { cap: "#D7CCC8", stem: "#F5F5F5", detail: "#EFEBE9" };
+  if (species.includes("pleurotus")) return { cap: "#ECEFF1", stem: "#CFD8DC", detail: "#B0BEC5" };
+  if (species.includes("polyporus") || species.includes("laetiporus") || species.includes("grifola") || species.includes("sparassis")) return { cap: "#8D6E63", stem: "#6D4C41", detail: "#A1887F" };
+  if (species.includes("morchella") || species.includes("gyromitra")) return { cap: "#D7CCC8", stem: "#D7CCC8", detail: "#BCAAA4" };
+  if (species.includes("phallus") || species.includes("pseudocolus") || species.includes("anthurus")) return { cap: "#E53935", stem: "#FFFDE7", detail: "#FFF176" };
+  return { cap: "#8D6E63", stem: "#D7CCC8", detail: "#FFEB3B" };
 }
 
+// Чи має вид юбочку (кільце)
+function hasRingFor(species) {
+  if (ICON_CONFIG[species] && ICON_CONFIG[species].ring) return true;
+  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return true;
+  if (species.startsWith("amanita_")) return true;
+  if (species.includes("macrolepiota")) return true;
+  if (species.includes("lepiota")) return true;
+  return false;
+}
+
+// Чи мають бути чорні крапки на нічці (лусочки Підберезника)
+function hasSpotsFor(species) {
+  if (ICON_CONFIG[species] && ICON_CONFIG[species].spots) return true;
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// 4 Базові SVG-шаблони (CSS-змінні: --cap-color, --stem-color, --detail-color)
+// ---------------------------------------------------------------------------
+function templateTubular({ size, capColor, stemColor, detailColor, spots }) {
+  const spotsHtml = spots
+    ? `<circle cx="26" cy="48" r="1.5" fill="${detailColor}" />
+       <circle cx="30" cy="50" r="1.5" fill="${detailColor}" />
+       <circle cx="34" cy="46" r="1.5" fill="${detailColor}" />
+       <circle cx="38" cy="52" r="1.5" fill="${detailColor}" />`
+    : "";
+  return `
+<svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
+  <path d="M18 32 C18 18, 46 18, 46 32 C46 38, 40 42, 32 42 C24 42, 18 38, 18 32 Z" fill="var(--cap-color,#8B4513)"/>
+  <path d="M26 42 C26 42, 24 56, 28 58 L36 58 C40 56, 38 42, 38 42 Z" fill="var(--stem-color,#F5F5DC)"/>
+  ${spotsHtml}
+  <path d="M18 32 C18 38, 24 42, 32 42 C40 42, 46 38, 46 32" stroke="rgba(0,0,0,0.2)" stroke-width="2" stroke-linecap="round"/>
+</svg>`;
+}
+
+function templateRinged({ size, capColor, stemColor, detailColor }) {
+  return `
+<svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
+  <path d="M16 30 C16 16, 48 16, 48 30 C48 36, 42 38, 32 38 C22 38, 16 36, 16 30 Z" fill="var(--cap-color,#D2B48C)"/>
+  <path d="M28 38 C28 38, 26 52, 28 56 L36 56 C38 52, 36 38, 36 38 Z" fill="var(--stem-color,#FFF8DC)"/>
+  <path d="M24 42 C28 46, 36 46, 40 42 C38 40, 26 40, 24 42 Z" fill="var(--detail-color,#FFF)" opacity="0.8"/>
+  <path d="M16 30 C16 36, 22 38, 32 38 C42 38, 48 36, 48 30" stroke="rgba(0,0,0,0.2)" stroke-width="2"/>
+</svg>`;
+}
+
+function templateFunnel({ size, capColor, stemColor, detailColor }) {
+  return `
+<svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
+  <path d="M12 28 C12 16, 20 12, 32 12 C44 12, 52 16, 52 28 C52 32, 46 36, 42 40 C38 44, 36 50, 36 56 L28 56 C28 50, 26 44, 22 40 C18 36, 12 32, 12 28 Z" fill="var(--cap-color,#FFA500)"/>
+  <ellipse cx="32" cy="26" rx="8" ry="4" fill="rgba(0,0,0,0.1)"/>
+</svg>`;
+}
+
+function templateAmanita({ size, capColor, stemColor, detailColor }) {
+  return `
+<svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
+     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
+  <path d="M12 32 C12 12, 52 12, 52 32 C52 36, 44 40, 32 40 C20 40, 12 36, 12 32 Z" fill="var(--cap-color,#E32636)"/>
+  <circle cx="24" cy="22" r="3" fill="#FFF"/>
+  <circle cx="38" cy="20" r="4" fill="#FFF"/>
+  <circle cx="32" cy="30" r="3" fill="#FFF"/>
+  <circle cx="44" cy="28" r="2" fill="#FFF"/>
+  <path d="M28 40 C28 40, 26 52, 28 56 L36 56 C38 52, 36 40, 36 40 Z" fill="var(--stem-color,#FFF)"/>
+  <path d="M22 44 C28 48, 36 48, 42 44 C38 42, 26 42, 22 44 Z" fill="#FFF" opacity="0.9"/>
+</svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Fallback SVG для видів без фото / невідомих
+// ---------------------------------------------------------------------------
 function fallbackSvg(title) {
   const safeTitle = escHtml(title);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" aria-label="${safeTitle}" role="img">
-    <circle cx="32" cy="32" r="20" fill="#cfd8dc" />
-    <path d="M22 38 Q32 26 42 38" stroke="#90a4ae" stroke-width="4" stroke-linecap="round" />
-    <path d="M27 46 L27 56 M37 46 L37 56" stroke="#b0bec5" stroke-width="6" stroke-linecap="round" />
+    <circle cx="32" cy="32" r="20" fill="#CFD8DC" />
+    <path d="M22 38 Q32 26 42 38" stroke="#90A4AE" stroke-width="4" stroke-linecap="round" />
+    <path d="M27 46 L27 56 M37 46 L37 56" stroke="#B0BEC5" stroke-width="6" stroke-linecap="round" />
     <title>${safeTitle}</title>
   </svg>`;
 }
 
 /**
- * Повертає HTML-рядок SVG-іконки для вида.
+ * Повертає HTML-рядок SVG-іконки для виду.
  * @param {string} species - програмне ім'я виду (id)
- * @param {string} title - ARIA/title
+ * @param {number|string} size - розмір іконки (за замовчуванням 32)
  * @returns {string} HTML-рядок <svg>...</svg>
  */
-function getMushroomIconHtml(species, title = "") {
+function getMushroomIconHtml(species, size = 32) {
   if (!species) {
-    return fallbackSvg(title || "Невідомий гриб");
+    return fallbackSvg("Невідомий гриб");
   }
+
   // Resolve forecast sticker aliases (e.g. morchella_spp → morchella_esculenta)
   const resolved = SPECIES_ALIASES[species] || species;
+
   if (!SPECIES_WITH_PHOTO.has(resolved)) {
-    return fallbackSvg(title || "Невідомий гриб");
+    return fallbackSvg(resolved);
   }
-  const detailed = detailedSvg(resolved);
-  if (detailed) return detailed;
-  const { cap: capColor, stem: stemColor, accent: accentColor } = colorsFor(resolved);
-  const style = styleFor(resolved);
-  const hasRing = hasRingFor(resolved);
-  return buildSvgString({ capColor, stemColor, accentColor, hasRing, style });
+
+  const cfg = ICON_CONFIG[resolved] || null;
+  const template = cfg ? cfg.template : templateFor(resolved);
+  const colors = cfg
+    ? { cap: cfg.cap, stem: cfg.stem, detail: cfg.detail }
+    : colorsFor(resolved);
+  const ring = cfg ? cfg.ring : hasRingFor(resolved);
+  const spots = cfg ? cfg.spots : hasSpotsFor(resolved);
+
+  switch (template) {
+    case "ringed":
+      return templateRinged({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+    case "funnel":
+      return templateFunnel({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+    case "amanita":
+      return templateAmanita({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+    case "tubular":
+    default:
+      return templateTubular({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail, spots });
+  }
 }
 
 window.getMushroomIconHtml = getMushroomIconHtml;
