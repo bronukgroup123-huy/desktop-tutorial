@@ -50,12 +50,26 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
   min-height: 100vh;
   position: relative;
 }
-@media (min-width: 601px) {
+@media (min-width: 601px) and (max-width: 1023px) {
   .desktop-bg { display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
   .app-shell {
-    width: 520px;
+    width: 100%;
+    max-width: 640px;
     height: 92vh;
-    max-height: 940px;
+    margin: 0 auto;
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(47, 74, 58, 0.22), 0 10px 28px rgba(47, 74, 58, 0.10);
+    overflow: hidden;
+    position: relative;
+  }
+}
+@media (min-width: 1024px) {
+  .desktop-bg { display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+  .app-shell {
+    width: 100%;
+    max-width: 900px;
+    height: 92vh;
+    margin: 0 auto;
     border-radius: 40px;
     box-shadow: 0 40px 100px rgba(47, 74, 58, 0.22), 0 10px 28px rgba(47, 74, 58, 0.10);
     overflow: hidden;
@@ -452,7 +466,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
   background: #FFFBF3;
   border-radius: 20px;
   padding: 24px;
-  max-width: 380px; width: 100%;
+  width: 100%; max-width: 480px;
   position: relative;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   border: 1px solid #E5DFD0;
@@ -887,7 +901,7 @@ body.modal-open { overflow: hidden; }
     </div>
 
     <!-- Benefits -->
-    <div class="mt-10 grid grid-cols-3 gap-2.5">
+    <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
       <div class="card p-3 flex flex-col items-center text-center" data-modal="offline">
         <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 12 22"/><path d="M5 9 L 12 2 L 19 9"/><path d="M5 9 L 12 16 L 19 9"/></svg>
@@ -920,7 +934,7 @@ body.modal-open { overflow: hidden; }
     <!-- What's inside -->
     <div class="mt-4">
       <div class="text-[11px] text-ink-muted font-medium uppercase tracking-wide mb-2">Що всередині</div>
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
         <div class="card p-2.5 flex flex-col items-center text-center" data-modal="forecast">
           <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83 M2 12h4 M18 12h4 M4.93 19.07l2.83-2.83 M16.24 7.76l2.83-2.83"/></svg>
@@ -1073,7 +1087,7 @@ body.modal-open { overflow: hidden; }
         <div class="text-[15px] font-semibold text-forest-dark">87%</div>
       </div>
     </div>
-    <div class="grid grid-cols-4 gap-2 text-center mb-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center mb-3">
       <div class="weather-day"><div class="text-[10px] text-ink-muted">Пн</div><div class="text-[16px] leading-none my-1">🌧️</div><div class="text-[11px] font-semibold text-forest-dark">+10°</div></div>
       <div class="weather-day"><div class="text-[10px] text-ink-muted">Вт</div><div class="text-[16px] leading-none my-1">⛅</div><div class="text-[11px] font-semibold text-forest-dark">+12°</div></div>
       <div class="weather-day"><div class="text-[10px] text-ink-muted">Ср</div><div class="text-[16px] leading-none my-1">☀️</div><div class="text-[11px] font-semibold text-forest-dark">+14°</div></div>
@@ -1301,7 +1315,7 @@ body.modal-open { overflow: hidden; }
           </div>
 
           <!-- Guide grid — рендериться з mushroom_catalog.json (scripts/build_catalog.ps1) -->
-          <div id="guide-grid" class="grid grid-cols-2 gap-2.5"></div>
+          <div id="guide-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5"></div>
           <div id="guide-empty" class="hidden card p-5 text-center">
             <div class="text-[13px] font-semibold text-forest-dark">Нічого не знайдено</div>
             <div class="text-[11px] text-ink-muted mt-1">Спробуй інший запит або скинь фільтри</div>
