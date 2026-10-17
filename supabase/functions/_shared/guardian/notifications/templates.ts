@@ -118,6 +118,7 @@ export function renderNotification(
   }
 
   const template = TEMPLATES[alertType];
+  let body = template.body;
 
   const vars: Record<string, string> = {
     name: context.picker_name,
@@ -126,9 +127,21 @@ export function renderNotification(
     ),
   };
 
-  if (context.coords) {
-    vars.lat = context.coords.lat.toFixed(5);
-    vars.lng = context.coords.lng.toFixed(5);
+  // Спробуємо взяти coordonіти з контексту, а якщо немає — з payload
+  let coords = context.coords;
+  if (!coords && payload.coords?.coordinates) {
+    const [lng, lat] = payload.coords.coordinates;
+    if (typeof lat === "number" && typeof lng === "number") {
+      coords = { lat, lng };
+    }
+  }
+
+  if (coords) {
+    vars.lat = coords.lat.toFixed(5);
+    vars.lng = coords.lng.toFixed(5);
+  } else {
+    // Якщо немає координат, прибираємо literal {lat}, {lng} з тіла
+    body = body.replace(/ Координати: \{lat\}, \{lng\}/, "");
   }
 
   if (context.expected_return) {
@@ -145,7 +158,7 @@ export function renderNotification(
 
   return {
     title: interpolate(template.title, vars),
-    body: interpolate(template.body, vars),
+    body: interpolate(body, vars),
     url: context.guardian_url,
     data: {
       alert_type: alertType,
