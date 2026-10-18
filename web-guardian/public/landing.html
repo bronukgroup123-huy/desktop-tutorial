@@ -3017,7 +3017,7 @@ body.modal-open { overflow: hidden; }
     const nameEl = document.getElementById('detail-name');
     const latinEl = document.getElementById('detail-latin');
     const inlineBadgeEl = document.getElementById('detail-badge-inline');
-    if (nameEl) nameEl.textContent = s.name || '—';
+    if (nameEl) nameEl.innerHTML = (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, 32) : '') + ' ' + esc(s.name || '—');
     if (latinEl) latinEl.textContent = s.latin || '';
     if (inlineBadgeEl) {
       const b = badgeFor(s);

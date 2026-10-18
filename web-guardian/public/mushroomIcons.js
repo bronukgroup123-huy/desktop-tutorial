@@ -5,8 +5,8 @@
  * Експортує функцію getMushroomIconHtml(species, size = 32),
  * яка повертає HTML-рядок <svg>...</svg> для використання у vanilla-JS коді (landing.html).
  *
- * Підхід: 4 базові SVG-шаблони (трубчастий, з юбочкою, воронкоподібний, мухомор)
- * + динамічні CSS-змінні (--cap-color, --stem-color, --detail-color) для кольорів.
+ * Підхід: 4 базові SVG-шаблони з чітким контуром (stroke="#333", stroke-width="2")
+ * + динамічні CSS-змінні (--cap-color, --stem-color) для кольорів.
  */
 
 const SPECIES_WITH_PHOTO = new Set([
@@ -51,16 +51,15 @@ const SPECIES_ALIASES = {
 // template: "tubular" | "ringed" | "funnel" | "amanita"
 // ---------------------------------------------------------------------------
 const ICON_CONFIG = {
-  "boletus_edulis":        { template: "tubular", cap: "#8B4513", stem: "#F5F5DC", detail: "#5D4037", ring: false, spots: false },
-  "cantharellus_cibarius": { template: "funnel",  cap: "#FFD700", stem: "#FFD700", detail: "#FF8C00", ring: false, spots: false },
-  "armillaria_mellea":     { template: "ringed",   cap: "#D2B48C", stem: "#FFF8DC", detail: "#FFFFFF", ring: true,  spots: false },
-  "leccinum_scabrum":      { template: "tubular", cap: "#808080", stem: "#F5F5DC", detail: "#000000", ring: false, spots: true },
-  "lactarius_deliciosus":  { template: "funnel",  cap: "#FF8C00", stem: "#FF8C00", detail: "#B71C1C", ring: false, spots: false },
-  "lactarius_resimus":     { template: "funnel",  cap: "#FFF8DC", stem: "#FFFFFF", detail: "#FFF8DC", ring: false, spots: false },
-  "amanita_muscaria":      { template: "amanita",  cap: "#E32636", stem: "#FFFFFF", detail: "#FFFFFF", ring: true,  spots: false },
+  "boletus_edulis":        { template: "tubular", cap: "#8B4513", stem: "#E6D3B6", spots: false },
+  "leccinum_scabrum":      { template: "tubular", cap: "#696969", stem: "#E6D3B6", spots: true },
+  "cantharellus_cibarius": { template: "funnel",  cap: "#FFD700", stem: "#FFD700", spots: false },
+  "lactarius_deliciosus":  { template: "funnel",  cap: "#FF8C00", stem: "#FF8C00", spots: false },
+  "armillaria_mellea":     { template: "ringed",   cap: "#D2B48C", stem: "#FFF8DC", spots: false },
+  "amanita_muscaria":      { template: "amanita",  cap: "#E32636", stem: "#FFFFFF", spots: false },
 };
 
-// Колірна паліпа для Сироїжок (Russula) — різні кольори шапки
+// Колірна палітра для Сироїжок (Russula) — різні кольори шапки
 const RUSSULA_COLORS = ["#DC2626", "#15803D", "#CA8A04", "#BE185D", "#0891B2", "#4D7C0F"];
 
 // ---------------------------------------------------------------------------
@@ -81,38 +80,34 @@ function templateFor(species) {
   if (species.includes("cantharellus") || species.includes("craterellus")) return "funnel";
   if (species.includes("lactarius") || species.includes("lactifluus")) return "funnel";
   if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return "ringed";
-  if (species.startsWith("leccinum") || species.includes("leccinum")) return "tubular";
-  if (species.startsWith("boletus_") || species.includes("boletus")) return "tubular";
-  if (species.startsWith("russula_")) return "tubular";
   return "tubular";
 }
 
 // Визначення кольорів за типом гриба (для видів, що не в ICON_CONFIG)
 function colorsFor(species) {
-  if (species.startsWith("amanita_")) return { cap: "#E32636", stem: "#FFFFFF", detail: "#FFFFFF" };
-  if (species.startsWith("boletus_") || species.includes("boletus")) return { cap: "#8B4513", stem: "#F5F5DC", detail: "#5D4037" };
-  if (species.includes("cantharellus") || species.includes("craterellus")) return { cap: "#FB8C00", stem: "#FFECB3", detail: "#FF8C00" };
-  if (species.includes("lactarius") || species.includes("lactifluus")) return { cap: "#BF360C", stem: "#EFEBE9", detail: "#FF7043" };
+  if (species.startsWith("amanita_")) return { cap: "#E32636", stem: "#FFFFFF" };
+  if (species.startsWith("boletus_") || species.includes("boletus")) return { cap: "#8B4513", stem: "#E6D3B6" };
+  if (species.includes("cantharellus") || species.includes("craterellus")) return { cap: "#FB8C00", stem: "#FFECB3" };
+  if (species.includes("lactarius") || species.includes("lactifluus")) return { cap: "#BF360C", stem: "#EFEBE9" };
   if (species.startsWith("russula_")) {
-    // Детермінований "випадковий" колір на основі назви виду
     const idx = species.charCodeAt(species.length - 1) % RUSSULA_COLORS.length;
-    return { cap: RUSSULA_COLORS[idx], stem: "#FFF9C4", detail: "#FDD835" };
+    return { cap: RUSSULA_COLORS[idx], stem: "#FFF9C4" };
   }
-  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return { cap: "#FFB300", stem: "#FFFDE7", detail: "#FFEB3B" };
-  if (species.includes("leccinum")) return { cap: "#808080", stem: "#F5F5DC", detail: "#000000" };
-  if (species.includes("suillus")) return { cap: "#BCAAA4", stem: "#D7CCC8", detail: "#FFD54F" };
-  if (species.includes("tricholoma_")) return { cap: "#795548", stem: "#D7CCC8", detail: "#6D4C41" };
-  if (species.includes("macrolepiota")) return { cap: "#D7CCC8", stem: "#F5F5F5", detail: "#EFEBE9" };
-  if (species.includes("pleurotus")) return { cap: "#ECEFF1", stem: "#CFD8DC", detail: "#B0BEC5" };
-  if (species.includes("polyporus") || species.includes("laetiporus") || species.includes("grifola") || species.includes("sparassis")) return { cap: "#8D6E63", stem: "#6D4C41", detail: "#A1887F" };
-  if (species.includes("morchella") || species.includes("gyromitra")) return { cap: "#D7CCC8", stem: "#D7CCC8", detail: "#BCAAA4" };
-  if (species.includes("phallus") || species.includes("pseudocolus") || species.includes("anthurus")) return { cap: "#E53935", stem: "#FFFDE7", detail: "#FFF176" };
-  return { cap: "#8D6E63", stem: "#D7CCC8", detail: "#FFEB3B" };
+  if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return { cap: "#FFB300", stem: "#FFFDE7" };
+  if (species.includes("leccinum")) return { cap: "#808080", stem: "#E6D3B6" };
+  if (species.includes("suillus")) return { cap: "#BCAAA4", stem: "#D7CCC8" };
+  if (species.includes("tricholoma_")) return { cap: "#795548", stem: "#D7CCC8" };
+  if (species.includes("macrolepiota")) return { cap: "#D7CCC8", stem: "#F5F5F5" };
+  if (species.includes("pleurotus")) return { cap: "#ECEFF1", stem: "#CFD8DC" };
+  if (species.includes("polyporus") || species.includes("laetiporus") || species.includes("grifola") || species.includes("sparassis")) return { cap: "#8D6E63", stem: "#6D4C41" };
+  if (species.includes("morchella") || species.includes("gyromitra")) return { cap: "#D7CCC8", stem: "#D7CCC8" };
+  if (species.includes("phallus") || species.includes("pseudocolus") || species.includes("anthurus")) return { cap: "#E53935", stem: "#FFFDE7" };
+  return { cap: "#8D6E63", stem: "#E6D3B6" };
 }
 
 // Чи має вид юбочку (кільце)
 function hasRingFor(species) {
-  if (ICON_CONFIG[species] && ICON_CONFIG[species].ring) return true;
+  if (ICON_CONFIG[species] && ICON_CONFIG[species].template === "ringed") return true;
   if (species.includes("armillaria") || species.includes("kuehneromyces") || species.includes("hypholoma")) return true;
   if (species.startsWith("amanita_")) return true;
   if (species.includes("macrolepiota")) return true;
@@ -122,61 +117,59 @@ function hasRingFor(species) {
 
 // Чи мають бути чорні крапки на нічці (лусочки Підберезника)
 function hasSpotsFor(species) {
-  if (ICON_CONFIG[species] && ICON_CONFIG[species].spots) return true;
-  return false;
+  return ICON_CONFIG[species] && ICON_CONFIG[species].spots === true;
 }
 
 // ---------------------------------------------------------------------------
-// 4 Базові SVG-шаблони (CSS-змінні: --cap-color, --stem-color, --detail-color)
+// 4 Базові SVG-шаблони (stroke="#333", stroke-width="2" на всіх path)
 // ---------------------------------------------------------------------------
-function templateTubular({ size, capColor, stemColor, detailColor, spots }) {
+function templateTubular({ size, capColor, stemColor, spots }) {
   const spotsHtml = spots
-    ? `<circle cx="26" cy="48" r="1.5" fill="${detailColor}" />
-       <circle cx="30" cy="50" r="1.5" fill="${detailColor}" />
-       <circle cx="34" cy="46" r="1.5" fill="${detailColor}" />
-       <circle cx="38" cy="52" r="1.5" fill="${detailColor}" />`
+    ? `<circle cx="26" cy="48" r="2" fill="#000000" />
+       <circle cx="30" cy="50" r="2" fill="#000000" />
+       <circle cx="34" cy="46" r="2" fill="#000000" />
+       <circle cx="38" cy="52" r="2" fill="#000000" />`
     : "";
   return `
 <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
-  <path d="M18 32 C18 18, 46 18, 46 32 C46 38, 40 42, 32 42 C24 42, 18 38, 18 32 Z" fill="var(--cap-color,#8B4513)"/>
-  <path d="M26 42 C26 42, 24 56, 28 58 L36 58 C40 56, 38 42, 38 42 Z" fill="var(--stem-color,#F5F5DC)"/>
+     style="--cap-color:${capColor};--stem-color:${stemColor};">
+  <path d="M26 40 Q24 54 28 58 L36 58 Q40 54 38 40 Z" fill="var(--stem-color, #E6D3B6)" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M14 34 C14 16 50 16 50 34 C50 38 44 42 32 42 C20 42 14 38 14 34 Z" fill="var(--cap-color, #8B4513)" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M18 36 Q32 42 46 36" stroke="#333" stroke-width="2" opacity="0.3" fill="none"/>
   ${spotsHtml}
-  <path d="M18 32 C18 38, 24 42, 32 42 C40 42, 46 38, 46 32" stroke="rgba(0,0,0,0.2)" stroke-width="2" stroke-linecap="round"/>
 </svg>`;
 }
 
-function templateRinged({ size, capColor, stemColor, detailColor }) {
+function templateRinged({ size, capColor, stemColor }) {
   return `
 <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
-  <path d="M16 30 C16 16, 48 16, 48 30 C48 36, 42 38, 32 38 C22 38, 16 36, 16 30 Z" fill="var(--cap-color,#D2B48C)"/>
-  <path d="M28 38 C28 38, 26 52, 28 56 L36 56 C38 52, 36 38, 36 38 Z" fill="var(--stem-color,#FFF8DC)"/>
-  <path d="M24 42 C28 46, 36 46, 40 42 C38 40, 26 40, 24 42 Z" fill="var(--detail-color,#FFF)" opacity="0.8"/>
-  <path d="M16 30 C16 36, 22 38, 32 38 C42 38, 48 36, 48 30" stroke="rgba(0,0,0,0.2)" stroke-width="2"/>
+     style="--cap-color:${capColor};--stem-color:${stemColor};">
+  <path d="M28 38 L26 56 L38 56 L36 38 Z" fill="var(--stem-color, #FFF)" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 30 C16 16 48 16 48 30 C48 34 40 38 32 38 C24 38 16 34 16 30 Z" fill="var(--cap-color, #D2B48C)" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M22 42 Q32 48 42 42 Q38 40 32 40 Q26 40 22 42 Z" fill="#FFF" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
 </svg>`;
 }
 
-function templateFunnel({ size, capColor, stemColor, detailColor }) {
+function templateFunnel({ size, capColor, stemColor }) {
   return `
 <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
-  <path d="M12 28 C12 16, 20 12, 32 12 C44 12, 52 16, 52 28 C52 32, 46 36, 42 40 C38 44, 36 50, 36 56 L28 56 C28 50, 26 44, 22 40 C18 36, 12 32, 12 28 Z" fill="var(--cap-color,#FFA500)"/>
-  <ellipse cx="32" cy="26" rx="8" ry="4" fill="rgba(0,0,0,0.1)"/>
+     style="--cap-color:${capColor};--stem-color:${stemColor};">
+  <path d="M18 26 C14 14 50 14 46 26 C44 32 38 36 36 42 L36 56 L28 56 L28 42 C26 36 20 32 18 26 Z" fill="var(--cap-color, #FFA500)" stroke="#333" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="24" rx="10" ry="4" fill="rgba(0,0,0,0.15)" stroke="#333" stroke-width="1.5"/>
 </svg>`;
 }
 
-function templateAmanita({ size, capColor, stemColor, detailColor }) {
+function templateAmanita({ size, capColor, stemColor }) {
   return `
 <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg"
-     style="--cap-color:${capColor};--stem-color:${stemColor};--detail-color:${detailColor};">
-  <path d="M12 32 C12 12, 52 12, 52 32 C52 36, 44 40, 32 40 C20 40, 12 36, 12 32 Z" fill="var(--cap-color,#E32636)"/>
-  <circle cx="24" cy="22" r="3" fill="#FFF"/>
-  <circle cx="38" cy="20" r="4" fill="#FFF"/>
-  <circle cx="32" cy="30" r="3" fill="#FFF"/>
-  <circle cx="44" cy="28" r="2" fill="#FFF"/>
-  <path d="M28 40 C28 40, 26 52, 28 56 L36 56 C38 52, 36 40, 36 40 Z" fill="var(--stem-color,#FFF)"/>
-  <path d="M22 44 C28 48, 36 48, 42 44 C38 42, 26 42, 22 44 Z" fill="#FFF" opacity="0.9"/>
+     style="--cap-color:${capColor};--stem-color:${stemColor};">
+  <path d="M28 38 L26 56 L38 56 L36 38 Z" fill="#FFF" stroke="#333" stroke-width="2"/>
+  <path d="M12 32 C12 12 52 12 52 32 C52 36 44 38 32 38 C20 38 12 36 12 32 Z" fill="#E32636" stroke="#333" stroke-width="2"/>
+  <circle cx="24" cy="22" r="3" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <circle cx="38" cy="20" r="4" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <circle cx="32" cy="30" r="3" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <circle cx="44" cy="28" r="2" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <path d="M22 42 Q32 48 42 42 Q38 40 32 40 Q26 40 22 42 Z" fill="#FFF" stroke="#333" stroke-width="2"/>
 </svg>`;
 }
 
@@ -186,9 +179,9 @@ function templateAmanita({ size, capColor, stemColor, detailColor }) {
 function fallbackSvg(title) {
   const safeTitle = escHtml(title);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" aria-label="${safeTitle}" role="img">
-    <circle cx="32" cy="32" r="20" fill="#CFD8DC" />
-    <path d="M22 38 Q32 26 42 38" stroke="#90A4AE" stroke-width="4" stroke-linecap="round" />
-    <path d="M27 46 L27 56 M37 46 L37 56" stroke="#B0BEC5" stroke-width="6" stroke-linecap="round" />
+    <circle cx="32" cy="32" r="20" fill="#CFD8DC" stroke="#333" stroke-width="2"/>
+    <path d="M22 38 Q32 26 42 38" stroke="#90A4AE" stroke-width="4" stroke-linecap="round"/>
+    <path d="M27 46 L27 56 M37 46 L37 56" stroke="#B0BEC5" stroke-width="6" stroke-linecap="round"/>
     <title>${safeTitle}</title>
   </svg>`;
 }
@@ -214,21 +207,20 @@ function getMushroomIconHtml(species, size = 32) {
   const cfg = ICON_CONFIG[resolved] || null;
   const template = cfg ? cfg.template : templateFor(resolved);
   const colors = cfg
-    ? { cap: cfg.cap, stem: cfg.stem, detail: cfg.detail }
+    ? { cap: cfg.cap, stem: cfg.stem }
     : colorsFor(resolved);
-  const ring = cfg ? cfg.ring : hasRingFor(resolved);
   const spots = cfg ? cfg.spots : hasSpotsFor(resolved);
 
   switch (template) {
     case "ringed":
-      return templateRinged({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+      return templateRinged({ size, capColor: colors.cap, stemColor: colors.stem });
     case "funnel":
-      return templateFunnel({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+      return templateFunnel({ size, capColor: colors.cap, stemColor: colors.stem });
     case "amanita":
-      return templateAmanita({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail });
+      return templateAmanita({ size, capColor: colors.cap, stemColor: colors.stem });
     case "tubular":
     default:
-      return templateTubular({ size, capColor: colors.cap, stemColor: colors.stem, detailColor: colors.detail, spots });
+      return templateTubular({ size, capColor: colors.cap, stemColor: colors.stem, spots });
   }
 }
 
