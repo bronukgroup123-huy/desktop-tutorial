@@ -187,6 +187,388 @@ const MUSHROOM_VISUALS = {
 };
 
 // ---------------------------------------------------------------------------
+// ДЕТАЛІЗОВАНІ SVG-ІКОНКИ (20 видів з градієнтами, чіткими контурами та деталями)
+// Ключі за id з mushroom_catalog.json (підкреслення)
+// ---------------------------------------------------------------------------
+const DETAILED_SVGS = {
+  // 1. Білий гриб (Boletus edulis)
+  "boletus_edulis": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-edulis" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#A0522D" />
+          <stop offset="100%" stop-color="#5C2E0B" />
+        </linearGradient>
+        <linearGradient id="stem-edulis" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#E8DCC4" />
+          <stop offset="50%" stop-color="#FFF8DC" />
+          <stop offset="100%" stop-color="#D2B48C" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="14" ry="4" fill="rgba(0,0,0,0.15)" />
+      <path d="M24 40 Q20 55 26 58 L38 58 Q44 55 40 40 Z" fill="url(#stem-edulis)" />
+      <path d="M26 46 Q32 50 38 46 M25 50 Q32 54 39 50 M27 42 Q32 45 37 42" stroke="#D2B48C" stroke-width="1.5" fill="none" />
+      <path d="M10 32 C10 15 54 15 54 32 C54 38 44 42 32 42 C20 42 10 38 10 32 Z" fill="url(#cap-edulis)" />
+      <path d="M18 24 Q32 16 46 24" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // 2. Лисичка (Cantharellus cibarius)
+  "cantharellus_cibarius": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-canth" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFD700" />
+          <stop offset="100%" stop-color="#FFA500" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M14 28 C10 16 54 16 50 28 C48 34 40 40 38 48 L38 56 L26 56 L26 48 C24 40 16 34 14 28 Z" fill="url(#cap-canth)" />
+      <path d="M26 48 Q32 52 38 48" stroke="#E69500" stroke-width="2" fill="none" />
+      <path d="M14 28 Q18 32 22 28 Q26 32 32 28 Q38 32 42 28 Q46 32 50 28" stroke="#E69500" stroke-width="2" fill="none" />
+    </svg>`,
+
+  // 3. Підберезник (Leccinum scabrum)
+  "leccinum_scabrum": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-leccinum" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#8B7355" />
+          <stop offset="100%" stop-color="#4A3728" />
+        </linearGradient>
+        <linearGradient id="stem-leccinum" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#D3D3D3" />
+          <stop offset="50%" stop-color="#F5F5F5" />
+          <stop offset="100%" stop-color="#A9A9A9" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="12" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M25 40 Q22 55 26 58 L38 58 Q42 55 39 40 Z" fill="url(#stem-leccinum)" />
+      <circle cx="28" cy="45" r="1.5" fill="#333" />
+      <circle cx="35" cy="48" r="1.5" fill="#333" />
+      <circle cx="27" cy="52" r="1.5" fill="#333" />
+      <circle cx="36" cy="54" r="1.5" fill="#333" />
+      <circle cx="31" cy="50" r="1.5" fill="#333" />
+      <path d="M12 32 C12 20 52 20 52 32 C52 38 42 42 32 42 C22 42 12 38 12 32 Z" fill="url(#cap-leccinum)" />
+      <path d="M20 26 Q32 22 44 26" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // 4. Підосичник (Leccinum aurantiacum)
+  "leccinum_aurantiacum": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-aur" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FF6347" />
+          <stop offset="100%" stop-color="#B22222" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="12" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M25 40 Q22 55 26 58 L38 58 Q42 55 39 40 Z" fill="#E0E0E0" />
+      <circle cx="28" cy="45" r="1.5" fill="#555" />
+      <circle cx="35" cy="48" r="1.5" fill="#555" />
+      <circle cx="27" cy="52" r="1.5" fill="#555" />
+      <circle cx="36" cy="54" r="1.5" fill="#555" />
+      <path d="M12 32 C12 20 52 20 52 32 C52 38 42 42 32 42 C22 42 12 38 12 32 Z" fill="url(#cap-aur)" />
+      <path d="M20 26 Q32 22 44 26" stroke="rgba(255,255,255,0.3)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // 5. Маслюк (Suillus luteus)
+  "suillus_luteus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-sui" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#D2691E" />
+          <stop offset="100%" stop-color="#8B4513" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M27 38 Q26 55 28 58 L36 58 Q38 55 37 38 Z" fill="#FFD700" />
+      <path d="M23 44 Q32 48 41 44 Q37 42 32 42 Q27 42 23 44 Z" fill="#FFF" />
+      <path d="M14 32 C14 18 50 18 50 32 C50 36 42 40 32 40 C22 40 14 36 14 32 Z" fill="url(#cap-sui)" />
+      <path d="M22 24 Q32 20 42 24" stroke="#FFF" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>
+    </svg>`,
+
+  // 6. Опеньок осінній (Armillaria mellea)
+  "armillaria_mellea": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-arm" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#DAA520" />
+          <stop offset="100%" stop-color="#B8860B" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M28 38 L26 58 L38 58 L36 38 Z" fill="#FFF8DC" />
+      <path d="M22 42 Q32 48 42 42 Q38 40 32 40 Q26 40 22 42 Z" fill="#FFF" stroke="#E0E0E0" stroke-width="1" />
+      <path d="M16 32 C16 20 48 20 48 32 C48 36 40 40 32 40 C24 40 16 36 16 32 Z" fill="url(#cap-arm)" />
+      <circle cx="32" cy="26" r="2" fill="#8B6508" />
+      <circle cx="26" cy="28" r="1.5" fill="#8B6508" />
+      <circle cx="38" cy="28" r="1.5" fill="#8B6508" />
+    </svg>`,
+
+  // 7. Рижик (Lactarius deliciosus)
+  "lactarius_deliciosus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-lact" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FF8C00" />
+          <stop offset="100%" stop-color="#D2691E" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="9" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M27 38 Q26 52 28 58 L36 58 Q38 52 37 38 Z" fill="#FF8C00" />
+      <circle cx="30" cy="48" r="1" fill="#228B22" />
+      <circle cx="35" cy="52" r="1" fill="#228B22" />
+      <path d="M12 28 C12 16 52 16 52 28 C52 36 42 40 32 40 C22 40 12 36 12 28 Z" fill="url(#cap-lact)" />
+      <ellipse cx="32" cy="26" rx="8" ry="3" fill="#A0522D" opacity="0.6" />
+      <path d="M18 30 Q32 34 46 30" stroke="#D2691E" stroke-width="1.5" fill="none" opacity="0.5"/>
+    </svg>`,
+
+  // 8. Груздь (Lactarius resimus)
+  "lactarius_resimus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-gruz" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF" />
+          <stop offset="100%" stop-color="#E8E8E8" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="12" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M25 38 Q22 55 26 58 L38 58 Q42 55 39 38 Z" fill="#FFF" />
+      <path d="M12 32 C12 18 52 18 52 32 C52 38 46 42 32 42 C18 42 12 38 12 32 Z" fill="url(#cap-gruz)" stroke="#CCC" stroke-width="1" />
+      <ellipse cx="32" cy="30" rx="14" ry="6" fill="none" stroke="#DDD" stroke-width="1.5" />
+      <ellipse cx="32" cy="30" rx="8" ry="3" fill="none" stroke="#DDD" stroke-width="1.5" />
+    </svg>`,
+
+  // 9. Сироїжка (Russula vesca)
+  "russula_vesca": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-russ" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#E32636" />
+          <stop offset="100%" stop-color="#8B0000" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M27 38 L26 58 L38 58 L37 38 Z" fill="#FFFFFF" />
+      <path d="M14 34 C14 20 50 20 50 34 C50 38 42 40 32 40 C22 40 14 38 14 34 Z" fill="url(#cap-russ)" />
+      <path d="M22 28 Q32 24 42 28" stroke="#FFF" stroke-width="1.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+    </svg>`,
+
+  // 10. Печериця (Agaricus campestris)
+  "agaricus_campestris": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-agar" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#F5F5F5" />
+          <stop offset="100%" stop-color="#D3D3D3" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="9" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M27 38 L25 58 L39 58 L37 38 Z" fill="#FFF" />
+      <path d="M24 42 Q32 46 40 42 Q36 40 32 40 Q28 40 24 42 Z" fill="#F5F5F5" stroke="#CCC" stroke-width="1"/>
+      <path d="M14 34 C14 20 50 20 50 34 C50 38 42 40 32 40 C22 40 14 38 14 34 Z" fill="url(#cap-agar)" />
+    </svg>`,
+
+  // 11. Сморчок (Morchella esculenta)
+  "morchella_esculenta": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-mor" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#D2B48C" />
+          <stop offset="100%" stop-color="#8B7355" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M28 40 L26 58 L38 58 L36 40 Z" fill="#FFF8DC" />
+      <path d="M22 40 C22 20 42 20 42 40 C42 42 38 44 32 44 C26 44 22 42 22 40 Z" fill="url(#cap-mor)" />
+      <path d="M26 36 L38 36 M24 30 L40 30 M28 24 L36 24 M30 18 L34 18" stroke="#5C4033" stroke-width="1.5" fill="none" />
+      <path d="M32 38 L32 22 M28 34 L28 26 M36 34 L36 26" stroke="#5C4033" stroke-width="1.5" fill="none" />
+    </svg>`,
+
+  // 12. Дощовик (Lycoperdon perlatum)
+  "lycoperdon_perlatum": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-lyco" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF" />
+          <stop offset="100%" stop-color="#E0E0E0" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M22 40 C22 20 42 20 42 40 C42 52 38 58 32 58 C26 58 22 52 22 40 Z" fill="url(#cap-lyco)" />
+      <circle cx="28" cy="30" r="1.5" fill="#CCC" />
+      <circle cx="36" cy="32" r="1.5" fill="#CCC" />
+      <circle cx="32" cy="24" r="1.5" fill="#CCC" />
+      <circle cx="26" cy="38" r="1.5" fill="#CCC" />
+      <circle cx="38" cy="42" r="1.5" fill="#CCC" />
+      <circle cx="32" cy="46" r="1.5" fill="#CCC" />
+      <circle cx="30" cy="52" r="1.5" fill="#CCC" />
+      <circle cx="34" cy="36" r="1.5" fill="#CCC" />
+    </svg>`,
+
+  // 13. Дубовик (Boletus luridus)
+  "boletus_luridus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-lur" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#8B8B00" />
+          <stop offset="100%" stop-color="#556B2F" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="11" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M26 40 Q24 55 28 58 L36 58 Q40 55 38 40 Z" fill="#FFD700" />
+      <path d="M26 44 L38 44 M27 48 L37 48 M28 52 L36 52 M28 46 L32 44 M36 46 L32 44" stroke="#FF0000" stroke-width="1.5" fill="none" />
+      <path d="M12 34 C12 22 52 22 52 34 C52 40 42 44 32 44 C22 44 12 40 12 34 Z" fill="url(#cap-lur)" />
+      <path d="M20 28 Q32 24 44 28" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // 14. Моховик (Xerocomus subtomentosus)
+  "xerocomus_subtomentosus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-xero" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#A08B5C" />
+          <stop offset="100%" stop-color="#6B5B3E" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M26 40 Q24 55 28 58 L36 58 Q40 55 38 40 Z" fill="#DAA520" />
+      <path d="M12 34 C12 24 52 24 52 34 C52 40 42 42 32 42 C22 42 12 40 12 34 Z" fill="url(#cap-xero)" />
+      <path d="M20 28 Q32 25 44 28" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // 15. Вовнянка (Lactarius torminosus)
+  "lactarius_torminosus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-vovn" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFB6C1" />
+          <stop offset="100%" stop-color="#DB7093" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="9" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M27 38 Q26 52 28 58 L36 58 Q38 52 37 38 Z" fill="#FFC0CB" />
+      <path d="M14 30 C14 18 50 18 50 30 C50 36 42 40 32 40 C22 40 14 36 14 30 Z" fill="url(#cap-vovn)" />
+      <path d="M14 30 L12 32 M17 32 L16 35 M20 34 L19 37 M24 37 L24 40 M28 38 L28 41 M36 38 L36 41 M40 37 L40 40 M44 34 L45 37 M47 32 L48 35 M50 30 L52 32" stroke="#FFB6C1" stroke-width="1.5" fill="none" stroke-linecap="round" />
+      <path d="M20 28 Q32 32 44 28" stroke="#DB7093" stroke-width="1.5" fill="none" opacity="0.5"/>
+    </svg>`,
+
+  // 16. Глива (Pleurotus ostreatus)
+  "pleurotus_ostreatus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-gliva" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#A9A9A9" />
+          <stop offset="100%" stop-color="#696969" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="14" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M36 46 Q46 50 48 56 L40 56 Q36 52 34 46 Z" fill="#F5F5F5" />
+      <path d="M12 36 C12 16 46 20 44 36 C42 46 28 46 22 44 C16 42 12 36 12 36 Z" fill="url(#cap-gliva)" />
+      <path d="M18 36 Q26 42 34 40 M22 32 Q28 38 36 36 M26 28 Q30 34 38 32" stroke="#555" stroke-width="1.5" fill="none" opacity="0.6"/>
+    </svg>`,
+
+  // 17. Їжовик (Hydnum repandum)
+  "hydnum_repandum": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-hyd" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFDAB9" />
+          <stop offset="100%" stop-color="#F4A460" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M26 38 Q24 55 28 58 L36 58 Q40 55 38 38 Z" fill="#F5DEB3" />
+      <path d="M14 32 C14 22 50 22 50 32 C50 38 42 40 32 40 C22 40 14 38 14 32 Z" fill="url(#cap-hyd)" />
+      <path d="M18 38 L18 42 M22 39 L22 43 M26 40 L26 44 M30 40 L30 44 M34 40 L34 44 M38 39 L38 43 M42 38 L42 42" stroke="#E8C396" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    </svg>`,
+
+  // 18. Козляк (Suillus bovinus)
+  "suillus_bovinus": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-koz" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#D2B48C" />
+          <stop offset="100%" stop-color="#A0522D" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M28 38 Q26 55 28 58 L36 58 Q38 55 36 38 Z" fill="#D2B48C" />
+      <path d="M16 32 C16 22 48 22 48 32 C48 36 42 40 32 40 C22 40 16 36 16 32 Z" fill="url(#cap-koz)" />
+    </svg>`,
+
+  // 19. Зимовий опеньок (Flammulina velutipes)
+  "flammulina_velutipes": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-flam" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFA500" />
+          <stop offset="100%" stop-color="#D2691E" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M28 38 Q25 50 26 58 L38 58 Q39 50 36 38 Z" fill="#5C4033" />
+      <path d="M16 34 C16 22 48 22 48 34 C48 38 40 40 32 40 C24 40 16 38 16 34 Z" fill="url(#cap-flam)" />
+      <path d="M22 28 Q32 24 42 28" stroke="#FFF" stroke-width="1.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+    </svg>`,
+
+  // 20. Польський гриб (Imleria badia)
+  "imleria_badia": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-pol" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#5C4033" />
+          <stop offset="100%" stop-color="#2F1B14" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="10" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M26 40 Q24 55 28 58 L36 58 Q40 55 38 40 Z" fill="#8B4513" />
+      <path d="M12 34 C12 22 52 22 52 34 C52 40 42 42 32 42 C22 42 12 40 12 34 Z" fill="url(#cap-pol)" />
+      <path d="M20 28 Q32 25 44 28" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  // --- Ті, що на ваших скріншотах ---
+
+  // Гриб-зонтик великий (Macrolepiota procera)
+  "macrolepiota_procera": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-para" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#E8DCC4" />
+          <stop offset="100%" stop-color="#D2B48C" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M29 32 L27 58 L37 58 L35 32 Z" fill="#D2B48C" />
+      <path d="M24 38 Q32 42 40 38 Q36 36 32 36 Q28 36 24 38 Z" fill="#F5F5DC" stroke="#A0522D" stroke-width="1"/>
+      <path d="M24 40 Q32 44 40 40" stroke="#A0522D" stroke-width="1" fill="none" />
+      <path d="M8 30 C8 18 56 18 56 30 C56 32 44 34 32 34 C20 34 8 32 8 30 Z" fill="url(#cap-para)" />
+      <circle cx="32" cy="24" r="4" fill="#A0522D" opacity="0.6" />
+      <circle cx="20" cy="28" r="2" fill="#A0522D" opacity="0.4" />
+      <circle cx="44" cy="28" r="2" fill="#A0522D" opacity="0.4" />
+      <circle cx="14" cy="30" r="1.5" fill="#A0522D" opacity="0.4" />
+      <circle cx="50" cy="30" r="1.5" fill="#A0522D" opacity="0.4" />
+    </svg>`,
+
+  // Зморшок степовий (Morchella steppicola)
+  "morchella_steppicola": `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cap-step" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#E8DCC4" />
+          <stop offset="100%" stop-color="#A08B5C" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="8" ry="3" fill="rgba(0,0,0,0.15)" />
+      <path d="M28 40 L26 58 L38 58 L36 40 Z" fill="#FFF8DC" />
+      <path d="M18 40 C18 20 46 20 46 40 C46 44 38 46 32 46 C26 46 18 44 18 40 Z" fill="url(#cap-step)" />
+      <path d="M24 36 L40 36 M22 32 L42 32 M26 28 L38 28 M30 24 L34 24" stroke="#5C4033" stroke-width="1.5" fill="none" />
+      <path d="M30 42 L30 22 M34 42 L34 22" stroke="#5C4033" stroke-width="1.5" fill="none" />
+      <path d="M26 38 L26 26 M38 38 L38 26" stroke="#5C4033" stroke-width="1.5" fill="none" />
+    </svg>`
+};
+
+// ---------------------------------------------------------------------------
 // Допоміжні функції
 // ---------------------------------------------------------------------------
 function escHtml(unsafe) {
@@ -371,6 +753,13 @@ function getMushroomIconHtml(species, size = 32) {
     return fallbackSvg(resolved);
   }
 
+  // 1. Спочатку перевіряємо деталізовані SVG (з градієнтами, чіткими контурами)
+  const detailed = DETAILED_SVGS[resolved];
+  if (detailed) {
+    return `<span style="display:inline-block; width:${size}px; height:${size}px; vertical-align:middle;">${detailed}</span>`;
+  }
+
+  // 2. Інакше — шаблонна іконка з MUSHROOM_VISUALS
   const visual = MUSHROOM_VISUALS[resolved];
   if (!visual) {
     return fallbackSvg(resolved);

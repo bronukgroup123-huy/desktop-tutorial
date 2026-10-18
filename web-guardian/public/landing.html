@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Грибний Радар — Безпечний цифровий компаньйон грибника</title>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -2377,7 +2378,7 @@ body.modal-open { overflow: hidden; }
       '<div class="guide-thumb mb-2">' +
         (photo
           ? '<img src="' + esc(photo) + '" alt="' + esc(s.name) + '" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'no-photo\')">'
-          : '<div class="guide-card-ph">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '') + '</div>')
+          : '<div class="guide-card-ph">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, 24) : '') + '</div>')
         + '</div>' +
       '<div class="font-serif font-semibold text-forest-dark text-[14px] leading-tight">' + esc(s.name) + '</div>' +
       '<div class="text-[10px] text-ink-muted italic font-serif mb-1.5">' + esc(s.latin) + '</div>' +
@@ -2597,8 +2598,8 @@ body.modal-open { overflow: hidden; }
     const gp = document.getElementById('guide-photos');
     const wg = document.getElementById('welcome-guide-n');
     if (wg) wg.textContent = CATALOG_PHOTO_COUNT;
-    if (gt1) gt1.textContent = CATALOG_TOTAL;
-    if (gt2) gt2.textContent = CATALOG_TOTAL;
+    if (gt1) gt1.textContent = CATALOG_PHOTO_COUNT;
+    if (gt2) gt2.textContent = CATALOG_PHOTO_COUNT;
     if (gp) gp.textContent = CATALOG_PHOTO_COUNT;
     initCategoryChips();
     updateFacetChips();
@@ -3039,7 +3040,7 @@ body.modal-open { overflow: hidden; }
         ).join('');
         galleryEl.classList.remove('hidden');
       } else {
-        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, s.name) : '') + '</div>';
+        galleryEl.innerHTML = '<div class="flex items-center justify-center w-full h-48 bg-gray-100 rounded-lg">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, 32) : '') + '</div>';
         galleryEl.classList.remove('hidden');
       }
     }
@@ -3537,7 +3538,7 @@ body.modal-open { overflow: hidden; }
         ' style="top:' + top.toFixed(1) + '%;left:' + left.toFixed(1) + '%;"' +
         ' data-index="' + i + '"' +
         ' aria-label="Точка ' + (i + 1) + (top1 ? ': ' + top1.nameUa : '') + '">' +
-        '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, top1 ? top1.nameUa : '') : '') + '</span>' +
+        '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, 24) : '') + '</span>' +
       '</button>';
     });
     markers.innerHTML = html;
@@ -3664,7 +3665,7 @@ body.modal-open { overflow: hidden; }
       const stickerId = mushroom.sticker ? mushroom.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="compact-card" data-index="' + idx + '">' +
         '<div class="compact-icon" style="background: #FBF8F1; padding: 4px;">' +
-          '<span class="text-3xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, mushroom.nameUa) : '') + '</span>' +
+          '<span class="text-3xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, 32) : '') + '</span>' +
         '</div>' +
         '<div class="compact-body">' +
           '<div class="compact-title">' + esc(mushroom.nameUa) + '</div>' +
@@ -3739,13 +3740,13 @@ body.modal-open { overflow: hidden; }
       const stickerId = m.sticker ? m.sticker.replace('mushroom_', '').replace('.svg', '') : '';
       html += '<div class="expanded-slide">' +
         '<div class="p-4 flex justify-center" style="background: #FBF8F1;">' +
-          '<span class="text-4xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '') + '</span>' +
+          '<span class="text-4xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, 48) : '') + '</span>' +
         '</div>' +
         '<div class="p-4">' +
           '<div class="flex items-start justify-between gap-3">' +
             '<div class="flex items-center gap-3">' +
               '<div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #FBF8F1; padding: 4px;">' +
-                '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, m.nameUa) : '') + '</span>' +
+                '<span class="text-2xl">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(stickerId, 24) : '') + '</span>' +
               '</div>' +
               '<div class="min-w-0">' +
                 '<h3 class="font-serif font-semibold text-forest-dark leading-tight" style="font-size: 20px;">' + esc(m.nameUa) + '</h3>' +
