@@ -12,7 +12,7 @@
 // service_role обходить RLS (catalog_read — тільки authenticated).
 // ============================================================================
 
-import { corsHeaders } from "../cors.ts";
+import { buildCorsHeaders } from "../cors.ts";
 import { catalogRowToEntry } from "./types.ts";
 import type { CatalogEntry } from "./types.ts";
 
@@ -50,12 +50,10 @@ const SELECT_COLUMNS =
   "rarity, has_photo, top20, popular, months, peak_months, zones, attrs, photos, " +
   "ai_recognition, features";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
-function jsonResponse(data: unknown, status: number): Response {
+function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -137,15 +135,15 @@ export async function handleCatalogRequest(
   req: Request
 ): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
   if (req.method !== "GET") {
-    return jsonResponse({ error: "method_not_allowed" }, 405);
+    return jsonResponse({ error: "method_not_allowed" }, 405, req);
   }
 
   const filters = parseCatalogQuery(new URL(req.url));
   if ("error" in filters) {
-    return jsonResponse({ error: filters.error }, 400);
+    return jsonResponse({ error: filters.error }, 400, req);
   }
 
   try {
@@ -185,7 +183,7 @@ export async function handleCatalogRequest(
 
     if (error) {
       console.error("catalog query failed:", error);
-      return jsonResponse({ error: "db_error" }, 500);
+      return jsonResponse({ error: "db_error" }, 500, req);
     }
 
     const items = Array.isArray(data)
@@ -199,10 +197,11 @@ export async function handleCatalogRequest(
         limit: filters.limit,
         offset: filters.offset,
       },
-      200
+      200,
+      req
     );
   } catch (err) {
     console.error("catalog error:", err);
-    return jsonResponse({ error: "internal_error" }, 500);
+    return jsonResponse({ error: "internal_error" }, 500, req);
   }
 }

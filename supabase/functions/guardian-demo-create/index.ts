@@ -12,7 +12,7 @@
 // (Vercel subdomain) — консистентно зі звичайними Guardian-посиланнями.
 // ============================================================================
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   DEMO_USER_ID,
@@ -29,20 +29,20 @@ import {
 } from "../_shared/guardian/token.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-function json(data: unknown, status: number): Response {
+function json(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
   // 1. CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
   if (req.method !== "POST") {
-    return json({ error: "method_not_allowed" }, 405);
+    return json({ error: "method_not_allowed" }, 405, req);
   }
 
   // Validate body is empty — this endpoint accepts no payload
@@ -52,14 +52,15 @@ Deno.serve(async (req: Request) => {
   if (!bodyParse.success) {
     return json(
       { error: "invalid_input", details: bodyParse.error.issues },
-      400
+      400,
+      req,
     );
   }
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) {
-    return json({ error: "internal_error" }, 500);
+    return json({ error: "internal_error" }, 500, req);
   }
   const db = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -85,13 +86,14 @@ Deno.serve(async (req: Request) => {
 
     if (countErr) {
       console.error("count failed:", countErr);
-      return json({ error: "internal_error" }, 500);
+      return json({ error: "internal_error" }, 500, req);
     }
     const limitCheck = validateDemoLimit(count ?? 0);
     if (!limitCheck.ok) {
       return json(
         { error: limitCheck.error, message: limitCheck.message },
         limitCheck.status ?? 429,
+        req,
       );
     }
 
@@ -104,7 +106,7 @@ Deno.serve(async (req: Request) => {
 
     if (sErr || !session) {
       console.error("session insert failed:", sErr);
-      return json({ error: "db_error" }, 500);
+      return json({ error: "db_error" }, 500, req);
     }
 
     // 5. Insert guardian (PENDING token)
@@ -117,7 +119,7 @@ Deno.serve(async (req: Request) => {
     if (gErr || !guardian) {
       await db.from("guardian_sessions").delete().eq("id", session.id);
       console.error("guardian insert failed:", gErr);
-      return json({ error: "guardian_create_failed" }, 500);
+      return json({ error: "guardian_create_failed" }, 500, req);
     }
 
     // 6. Token (2 аргументи: sessionId, guardianId) → update hash
@@ -133,16 +135,17 @@ Deno.serve(async (req: Request) => {
     if (updErr) {
       await db.from("guardian_sessions").delete().eq("id", session.id);
       console.error("token update failed:", updErr);
-      return json({ error: "token_update_failed" }, 500);
+      return json({ error: "token_update_failed" }, 500, req);
     }
 
     // 7. Redirect URL → GUARDIAN_BASE_URL/s/<token>
     return json(
       { data: { url: buildGuardianUrl(token), session_id: session.id } },
       201,
+      req,
     );
   } catch (err) {
     console.error("demo-create error:", err);
-    return json({ error: "internal_error" }, 500);
+    return json({ error: "internal_error" }, 500, req);
   }
 });

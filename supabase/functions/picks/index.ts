@@ -12,7 +12,7 @@
 // (клієнт ре-компресить фото перед upload).
 // ============================================================================
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import {
   requireMushroomPicker,
 } from "../_shared/guardian/auth.ts";
@@ -34,10 +34,10 @@ const MIME: Record<string, string> = {
 };
 
 /** JSON-відповідь з CORS (successResponse/errorResponse його не додають) */
-function jsonResponse(data: unknown, status: number): Response {
+function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -89,7 +89,7 @@ const EXT: Record<string, string> = { jpeg: "jpg", png: "png", webp: "webp" };
 Deno.serve(withErrorHandling(async (req: Request) => {
   // 1. CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
 
   // 1b. GET — стрічка трофеїв (group 9.4); POST — існуючий handler нижче
@@ -119,6 +119,7 @@ Deno.serve(withErrorHandling(async (req: Request) => {
     return jsonResponse(
       { error: v.error, message: v.message },
       v.status ?? 400,
+      req,
     );
   }
   const input = v.input;
@@ -128,17 +129,18 @@ Deno.serve(withErrorHandling(async (req: Request) => {
   try {
     photoBuffer = Uint8Array.from(atob(input.photoBase64), (c) => c.charCodeAt(0));
   } catch {
-    return jsonResponse({ error: "invalid_photo_format" }, 400);
+    return jsonResponse({ error: "invalid_photo_format" }, 400, req);
   }
   if (photoBuffer.length > MAX_PHOTO_BYTES) {
     return jsonResponse(
       { error: "photo_too_large", message: "max 5 MiB" },
       400,
+      req,
     );
   }
   const format = detectImageFormat(input.photoBase64);
   if (!format) {
-    return jsonResponse({ error: "invalid_photo_format" }, 400);
+    return jsonResponse({ error: "invalid_photo_format" }, 400, req);
   }
 
   // 6. Upload to Storage (service_role обходить storage RLS)
@@ -154,7 +156,7 @@ Deno.serve(withErrorHandling(async (req: Request) => {
 
   if (uploadErr) {
     console.error("storage upload failed:", uploadErr);
-    return jsonResponse({ error: "storage_error" }, 500);
+    return jsonResponse({ error: "storage_error" }, 500, req);
   }
 
   // 7. Insert into mushroom_picks (geom — EWKT для PostGIS geography)
@@ -182,7 +184,7 @@ Deno.serve(withErrorHandling(async (req: Request) => {
     // Rollback: видалити завантажене фото
     await db.storage.from(BUCKET).remove([photoPath]);
     console.error("insert failed:", insertErr);
-    return jsonResponse({ error: "db_error" }, 500);
+    return jsonResponse({ error: "db_error" }, 500, req);
   }
 
   // 8. Response 201 (форма { data: ... } як successResponse, + CORS)
@@ -194,5 +196,6 @@ Deno.serve(withErrorHandling(async (req: Request) => {
       },
     },
     201,
+    req,
   );
 }));

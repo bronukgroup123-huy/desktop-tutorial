@@ -4,6 +4,15 @@ import { sendPush, isTokenInvalidError } from "./firebase.ts";
 import type { SendResult } from "./types.ts";
 
 const RETRY_DELAYS_SEC = [10, 60, 300];
+const MAX_RETRIES = RETRY_DELAYS_SEC.length;
+
+function nextRetryAfter(retryCount: number): Date | null {
+  // retryCount — кількість вже провальних спроб (0-indexed перед цим ретраєм).
+  // Якщо це перший ретрай (retryCount === 0), використовуємо RETRY_DELAYS_SEC[0].
+  const idx = Math.min(retryCount, MAX_RETRIES - 1);
+  const delaySec = RETRY_DELAYS_SEC[idx];
+  return new Date(Date.now() + delaySec * 1000);
+}
 
 function guardianBaseUrl(): string {
   return (
@@ -31,16 +40,19 @@ export async function processQueue(db: SupabaseClient): Promise<RetryStats> {
     skipped: 0,
   };
 
+  const nowIso = new Date().toISOString();
   const tenSecAgo = new Date(Date.now() - 10_000).toISOString();
 
   const { data: queued } = await db
     .from("guardian_notifications")
     .select(`
       id, guardian_id, alert_id, channel, status,
+      retry_count, next_retry_at,
       guardian:guardians!inner(id, phone, name),
       alert:guardian_alerts!inner(id, alert_type, payload)
     `)
     .eq("status", "queued")
+    .or("next_retry_at.is null,next_retry_at.lte." + nowIso)
     .lt("created_at", tenSecAgo)
     .limit(100);
 
@@ -170,7 +182,7 @@ async function processQueuedNotification(
       await updateNotificationStatus(db, notif.id, "sent");
       stats.push_sent++;
     } else {
-      await updateNotificationStatus(db, notif.id, "failed", "All push tokens failed");
+      await recordFailure(db, notif.id, notif.retry_count, "All push tokens failed");
       stats.failed++;
     }
     return;
@@ -186,9 +198,13 @@ async function processQueuedNotification(
     const text = `MushroomRadar: ${notif.alert.alert_type}`;
     const result = await sendSms({ phone: notif.guardian.phone, text });
 
-    await updateNotification(db, notif.id, result);
-    if (result.success) stats.sms_sent++;
-    else stats.failed++;
+    if (result.success || result.queued) {
+      await updateNotification(db, notif.id, result);
+      stats.sms_sent++;
+    } else {
+      await recordFailure(db, notif.id, notif.retry_count, result.errorMessage);
+      stats.failed++;
+    }
   }
 }
 
@@ -216,7 +232,7 @@ async function updateNotification(
 async function updateNotificationStatus(
   db: SupabaseClient,
   id: number,
-  status: "sent" | "failed" | "skipped",
+  status: "sent" | "failed" | "skipped" | "queued",
   errorMessage?: string
 ): Promise<void> {
   await db
@@ -227,4 +243,38 @@ async function updateNotificationStatus(
       error_message: errorMessage ?? null,
     })
     .eq("id", id);
+}
+
+async function recordFailure(
+  db: SupabaseClient,
+  id: number,
+  retryCount: number,
+  errorMessage?: string
+): Promise<void> {
+  const nextCount = (retryCount ?? 0) + 1;
+  const nextRetryAt = nextRetryAfter(nextCount - 1);
+
+  if (nextCount >= MAX_RETRIES) {
+    // Вичерпано всі спроби ретраю — позначити як постійно помилкове.
+    await db
+      .from("guardian_notifications")
+      .update({
+        status: "failed",
+        retry_count: nextCount,
+        next_retry_at: null,
+        sent_at: null,
+        error_message: errorMessage ?? null,
+      })
+      .eq("id", id);
+  } else {
+    await db
+      .from("guardian_notifications")
+      .update({
+        status: "queued",
+        retry_count: nextCount,
+        next_retry_at: nextRetryAt.toISOString(),
+        error_message: errorMessage ?? null,
+      })
+      .eq("id", id);
+  }
 }

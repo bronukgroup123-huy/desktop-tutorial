@@ -3,15 +3,13 @@
 // GET / POST — погода + хвиля для точки. graceful degradation → 200.
 // ============================================================================
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { fetchWeather } from "../_shared/forecast/weather.ts";
 import { detectWave } from "../_shared/forecast/wave.ts";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: buildCorsHeaders(req) });
   }
 
   try {
@@ -29,7 +27,10 @@ Deno.serve(async (req: Request) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       return new Response(
         JSON.stringify({ error: "lat and lng required (numbers)" }),
-        { status: 400, headers: JSON_HEADERS }
+        {
+          status: 400,
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -47,13 +48,13 @@ Deno.serve(async (req: Request) => {
           date: targetDate.toISOString().slice(0, 10),
         },
       }),
-      { status: 200, headers: JSON_HEADERS }
+      { status: 200, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("forecast-weather error:", e);
     return new Response(
       JSON.stringify({ error: "internal_error", message: (e as Error).message }),
-      { status: 500, headers: JSON_HEADERS }
+      { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 });

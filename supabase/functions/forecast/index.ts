@@ -11,7 +11,7 @@
 //   200 — ForecastResult (fallback та weather-unavailable — graceful, узгоджено 8.2)
 // ============================================================================
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ForecastEngine } from "../_shared/forecast/engine.ts";
 import { loadFeatureFlags } from "../_shared/forecast/flags.ts";
@@ -19,24 +19,22 @@ import { validateInput } from "../_shared/forecast/validate.ts";
 import type { ForecastDbClient } from "../_shared/forecast/context.ts";
 import type { DbClient } from "../_shared/forecast/db.ts";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
-function json(data: unknown, status: number): Response {
+function json(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req: Request) => {
   // 1. CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
 
   // 2. Тільки POST
   if (req.method !== "POST") {
-    return json({ error: "method_not_allowed" }, 405);
+    return json({ error: "method_not_allowed" }, 405, req);
   }
 
   // 3. Парсинг body
@@ -44,7 +42,7 @@ Deno.serve(async (req: Request) => {
   try {
     body = await req.json();
   } catch {
-    return json({ error: "invalid_json" }, 400);
+    return json({ error: "invalid_json" }, 400, req);
   }
 
   // 4. Валідація
@@ -53,6 +51,7 @@ Deno.serve(async (req: Request) => {
     return json(
       { error: validated.error, message: validated.message },
       validated.status,
+      req,
     );
   }
 
@@ -61,7 +60,7 @@ Deno.serve(async (req: Request) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) {
     console.error("forecast: missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
-    return json({ error: "internal_error", message: "server_misconfigured" }, 500);
+    return json({ error: "internal_error", message: "server_misconfigured" }, 500, req);
   }
   // SupabaseClient satisfies both at runtime; structural mismatch at type level only
   const db = createClient(url, serviceKey, {
@@ -81,10 +80,11 @@ Deno.serve(async (req: Request) => {
           message: "Ви поза вашою областю. Прогноз обмежено.",
         },
         403,
+        req,
       );
     }
 
-    return json(result, 200);
+    return json(result, 200, req);
   } catch (err) {
     console.error("forecast error:", err);
     return json(
@@ -93,6 +93,7 @@ Deno.serve(async (req: Request) => {
         message: err instanceof Error ? err.message : "unknown",
       },
       500,
+      req,
     );
   }
 });
