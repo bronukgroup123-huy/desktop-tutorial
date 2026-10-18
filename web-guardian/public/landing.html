@@ -2922,6 +2922,12 @@ body.modal-open { overflow: hidden; }
         const ch = renderContent(sec.lines);
         if (sec.heading === '🍳' || sec.heading === '🍽️') {
           out.push(renderAccordion(sec.heading, sec.title, ch));
+        } else if (sec.heading === '🍄') {
+          const iconHtml = CURRENT_SPECIES && typeof getMushroomIconHtml === 'function'
+            ? getMushroomIconHtml(CURRENT_SPECIES.id, 24)
+            : '';
+          out.push('<h3 class="desc-h3 flex items-center gap-2">' + iconHtml + '<span>' + inlineFormat(sec.title) + '</span></h3>');
+          out.push(ch);
         } else {
           out.push('<h3 class="desc-h3"><span class="desc-emoji">' + escHtml(sec.heading) + '</span><span>' + inlineFormat(sec.title) + '</span></h3>');
           out.push(ch);
