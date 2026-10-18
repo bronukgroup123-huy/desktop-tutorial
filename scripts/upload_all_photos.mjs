@@ -40,7 +40,7 @@ function loadJsonCatalog() {
   return Array.isArray(obj.species) ? obj.species : [];
 }
 
-const jsCatalog = loadJsCatalog();
+const jsCatalog = loadJsCatalog().species;
 const jsonSpecies = loadJsonCatalog();
 // Мапінг id -> локальний шлях до першого фото
 const localPhotoById = new Map();
