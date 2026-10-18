@@ -1,7 +1,7 @@
 // ============================================================================
 // scripts/match_real_urls.mjs
 // Знаходить реальні шляхи файлів у бакеті mushroom-catalog-photos
-// і оновлює photo_url у web-guardian/public/mushroom_catalog.js.
+// і оновлює photo_url + всі елементи масиву photos у web-guardian/public/mushroom_catalog.js.
 // Потрібні змінні оточення: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
 import { createClient } from "@supabase/supabase-js";
@@ -51,14 +51,14 @@ async function listAllFiles(prefix = "") {
   return files;
 }
 
-// Читаємо JSON каталог
+// Читаємо JSON каталог (джерело оригінальних шляхів photos[])
 const jsonSrc = fs.readFileSync(JSON_CATALOG, "utf8");
 const jsonObj = JSON.parse(jsonSrc);
 const jsonSpecies = Array.isArray(jsonObj.species) ? jsonObj.species : [];
-const photoById = new Map();
+const allPhotosById = new Map();
 for (const s of jsonSpecies) {
   if (s.photos && s.photos.length) {
-    photoById.set(s.id, s.photos[0]);
+    allPhotosById.set(s.id, s.photos);
   }
 }
 
@@ -98,20 +98,7 @@ async function main() {
     }
   }
 
-  let updated = 0;
-  let notFound = 0;
-  const foundExamples = [];
-
-  for (const s of species) {
-    if (s.has_photo !== true) continue;
-
-    const origPath = photoById.get(s.id);
-    if (!origPath) {
-      notFound++;
-      console.log(`❌ Не знайдено в Storage для ${s.name} (немає photos[0])`);
-      continue;
-    }
-
+  function matchOne(origPath) {
     const parts = origPath.split("/");
     const fileName = parts.pop();
     const fileNameNoExt = fileName.replace(/\.webp$/i, "");
@@ -120,49 +107,73 @@ async function main() {
     const fileKey = norm(fileNameNoExt);
     const folderKey = norm(folderName);
 
-    let matched = null;
-
     // Спроба 1: точний збіг імені файлу + папки
     const fileCandidates = fileIndex.get(fileKey) || [];
     const folderCandidates = folderIndex.get(folderKey) || [];
     for (const fp of fileCandidates) {
       if (folderCandidates.includes(fp)) {
-        matched = fp;
-        break;
+        return fp;
       }
     }
 
-    // Спроба 2: збіг лише імені файлу (беремо перший, якщо папки співпадають за нормалізацією)
-    if (!matched && fileCandidates.length) {
-      matched = fileCandidates[0];
+    // Спроба 2: збіг лише імені файлу
+    if (fileCandidates.length) {
+      return fileCandidates[0];
     }
 
-    // Спроба 3: збіг лише папки (беремо файли з цієї папки, де ім'я файлу схоже)
-    if (!matched && folderCandidates.length) {
+    // Спроба 3: збіг лише папки
+    if (folderCandidates.length) {
       const inFolder = folderCandidates.filter(fp => {
         const b = fp.split("/").pop().replace(/\.webp$/i, "");
         return norm(b) === fileKey || norm(b).includes(fileKey) || fileKey.includes(norm(b));
       });
-      if (inFolder.length) matched = inFolder[0];
-      else matched = folderCandidates[0];
+      if (inFolder.length) return inFolder[0];
+      return folderCandidates[0];
     }
 
-    if (!matched) {
+    return null;
+  }
+
+  let speciesUpdated = 0;
+  let photosUpdated = 0;
+  let notFound = 0;
+  const foundExamples = [];
+
+  for (const s of species) {
+    if (s.has_photo !== true) continue;
+
+    const origPhotos = allPhotosById.get(s.id);
+    if (!origPhotos || !Array.isArray(origPhotos) || origPhotos.length === 0) {
       notFound++;
-      console.log(`❌ Не знайдено в Storage для ${s.name}`);
+      console.log(`❌ Не знайдено в Storage для ${s.name} (немає photos)`);
       continue;
     }
 
-    const url = `https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/${matched}`;
-    s.photo_url = url;
-    if (Array.isArray(s.photos) && s.photos.length) {
-      s.photos[0] = url;
-    } else {
-      s.photos = [url];
+    const newPhotos = [];
+    let speciesNotFound = false;
+
+    for (const origPath of origPhotos) {
+      const matched = matchOne(origPath);
+      if (!matched) {
+        speciesNotFound = true;
+        console.log(`❌ Не знайдено в Storage для ${s.name}: ${origPath}`);
+        continue;
+      }
+      const url = `https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/${matched}`;
+      newPhotos.push(url);
+      photosUpdated++;
     }
-    updated++;
+
+    if (speciesNotFound && newPhotos.length === 0) {
+      notFound++;
+      continue;
+    }
+
+    s.photos = newPhotos;
+    s.photo_url = newPhotos[0];
+    speciesUpdated++;
     if (foundExamples.length < 3) {
-      foundExamples.push(`${s.name} -> ${url}`);
+      foundExamples.push(`${s.name} -> photos[0]=${newPhotos[0]} (${newPhotos.length} фото)`);
     }
   }
 
@@ -176,7 +187,8 @@ async function main() {
   fs.writeFileSync(JS_CATALOG, out, "utf8");
 
   console.log("\n=== ЗВІТ ===");
-  console.log(`Оновлено URL: ${updated}`);
+  console.log(`Оновлено видів: ${speciesUpdated}`);
+  console.log(`Оновлено фото URL: ${photosUpdated}`);
   console.log(`Не знайдено в Storage: ${notFound}`);
   if (foundExamples.length) {
     console.log("\nПриклади:");
