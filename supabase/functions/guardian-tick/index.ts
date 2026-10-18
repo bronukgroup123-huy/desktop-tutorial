@@ -4,7 +4,7 @@ import { THRESHOLDS, DEFAULT_OVERDUE_THRESHOLDS } from "../_shared/guardian/thre
 import { analyzeMovement } from "../_shared/guardian/movement.ts";
 import { detectForestExit } from "../_shared/guardian/geofence.ts";
 import { createAlertOnce, getHoursSinceLastAlert } from "../_shared/guardian/alerts.ts";
-import type { GuardianSession, SessionStatus } from "../_shared/guardian/types.ts";
+import type { GuardianSession, SessionStatus, AlertType } from "../_shared/guardian/types.ts";
 
 interface TickStats {
   sessions_scanned: number;
@@ -28,6 +28,31 @@ Deno.serve(withErrorHandling(async (req) => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // ── CT-7: Перевірка guardian_fn_config (Vault) ──────────────────────
+  // Якщо обидва поля NULL — алерти не працюватимуть (cron/тригери не будуть викликати EF).
+  try {
+    const { data: configData, error: configErr } = await db.rpc('guardian_fn_config', {});
+    if (configErr || !configData) {
+      console.warn('[tick] guardian_fn_config RPC failed:', configErr?.message);
+      await createAlertOnce(db, "system", "config_missing", {
+        check: "guardian_fn_config",
+        error: configErr?.message ?? "no_data",
+      });
+    } else {
+      const row = Array.isArray(configData) ? configData[0] : configData;
+      if ((!row?.url || !row?.service_key)) {
+        console.warn('[tick] guardian_fn_config returned NULL — Vault not populated');
+        await createAlertOnce(db, "system", "config_missing", {
+          check: "guardian_fn_config",
+          url_null: !row?.url,
+          service_key_null: !row?.service_key,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[tick] config check error:', err);
   }
 
   let released = false;
@@ -100,6 +125,33 @@ Deno.serve(withErrorHandling(async (req) => {
           error_details: stats.error_details.length > 0 ? stats.error_details : null,
         })
         .eq("id", tickId);
+    }
+
+    // ── CT-8: Моніторинг tick_log.errors ──────────────────────────────
+    // Якщо помилок за останню годину > 50 — алертимо адміна.
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recentLogs, error: logsErr } = await db
+        .from("guardian_tick_log")
+        .select("errors")
+        .gte("created_at", oneHourAgo)
+        .not("finished_at", "is", null);
+
+      if (!logsErr && recentLogs) {
+        const totalErrors = (recentLogs as Array<{ errors: number }>).reduce(
+          (sum, row) => sum + (row.errors ?? 0),
+          0,
+        );
+        if (totalErrors > 50) {
+          await createAlertOnce(db, "system", "tick_errors_high", {
+            errors_last_hour: totalErrors,
+            threshold: 50,
+            tick_id: tickId,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[tick] error monitoring check failed:', err);
     }
 
     return successResponse(stats);

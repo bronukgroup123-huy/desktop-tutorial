@@ -926,6 +926,29 @@ body.modal-open { overflow: hidden; }
   animation: bigmap-ring 6s linear infinite;
 }
 @keyframes bigmap-ring { to { transform: rotate(360deg); } }
+
+/* Анімація для іконок грибів */
+.mushroom-icon svg {
+  transition: transform 0.3s ease;
+}
+
+.mushroom-icon:hover #cap,
+.mushroom-icon:hover #large-cap,
+.mushroom-icon:hover #small-cap,
+.mushroom-icon:hover #cap1,
+.mushroom-icon:hover #cap2 {
+  transform-origin: center bottom;
+  animation: wiggle 0.6s ease-in-out;
+}
+
+@keyframes wiggle {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+  75% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
+
 </style>
 </head>
 <body class="bg-cream-100 font-sans">

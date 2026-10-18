@@ -12,6 +12,8 @@ const ALERT_COOLDOWN_MINUTES: Partial<Record<AlertType, number>> = {
   overdue_hard: 60,    // 1h
   offline: 30,         // 30 min
   sos: 0,              // кожен SOS унікальний — без cooldown
+  config_missing: 60,  // 1h — не спамити адміна
+  tick_errors_high: 60, // 1h — не спамити адміна
 };
 
 const DEFAULT_COOLDOWN_MINUTES = 60;

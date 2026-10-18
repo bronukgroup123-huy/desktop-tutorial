@@ -3,7 +3,7 @@
 // ============================================================================
 
 import type { Wave } from "./types.ts";
-import { WAVE_ORDER } from "./constants.ts";
+import { WAVE_ORDER, GDD_THRESHOLDS } from "./constants.ts";
 
 /**
  * Додати N днів до дати.
@@ -35,35 +35,54 @@ export function previousWave(w: Wave): Wave {
 }
 
 /**
- * Визначити хвилю за §11.3 плану v6.0:
+ * Визначити хвилю за §11.3 плану v6.0 (CT-11 — кумулятивний GDD):
  * 1. Latitude offset — північні області відстають
  * 2. Calendar wave — базова хвиля за місяцем
+ * 3. GDD correction — кумулятивний GDD з таблиці gdd_state порівнюється
+ *    з GDD_THRESHOLDS для уточнення хвилі.
  *
- * FIX 8.7 (2026-10-12): GDD-корекція тимчасово вимкнена.
- *
- * Причина: computeGDD (weather.ts) дає 37-денне КОВЗНЕ вікно
- * (past_days=30 + forecast_days=7). Воно НЕ монотонне по сезону:
- * у листопаді GDD менше, ніж у жовтні. GDD_THRESHOLDS має
- * КУМУЛЯТИВНУ шкалу з 1 січня. Порівняння некоректне —
- * autumn:1500 ніколи не досягається з ковзним вікном, тому
- * жовтень деградував у summer2.
- *
- * Кумулятивний GDD → ticket V2: docs/8.7_gdd_fix.md.
- * До впровадження — довіряємо calendar wave.
- * Сигнатура (date, lat, gdd) збережена для сумісності з ContextBuilder.
+ * Якщо cumulative_gdd == 0 (дані ще не обчислено) — повертаємо calendar wave
+ * (graceful degradation).
  */
 export function detectWave(
   date: Date,
   lat: number,
-  gdd: number | null
+  cumulativeGdd: number
 ): Wave {
-  // gdd on purpose unused until cumulative GDD (ticket V2)
-  void gdd;
-
   // Крок 1: latitude offset (50.45 — центральна Україна, південь — додатні дні)
   const latOffsetDays = Math.round((50.45 - lat) * 2.5);
   const adjustedDate = addDays(date, latOffsetDays);
 
-  // Крок 2: календарна хвиля — єдине джерело істини до V2
-  return calendarWave(adjustedDate);
+  // Крок 2: календарна хвиля — базова
+  let wave: Wave = calendarWave(adjustedDate);
+
+  // Крок 3: GDD correction — кумулятивний GDD порівнюємо з порогами
+  if (cumulativeGdd > 0) {
+    const gddWave = waveFromGdd(cumulativeGdd);
+    if (gddWave !== null) {
+      wave = gddWave;
+    }
+  }
+
+  return wave;
+}
+
+/**
+ * Визначити хвилю за кумулятивним GDD і порогами GDD_THRESHOLDS.
+ * Повертає null, якщо GDD не достатній для жодної хвилі (тоді залишаємо calendar).
+ */
+function waveFromGdd(cumulativeGdd: number): Wave | null {
+  const thresholds = GDD_THRESHOLDS;
+  const waves: Wave[] = ["spring", "summer1", "summer2", "autumn", "late"];
+
+  // Знаходимо найвищу хвилю, чей поріг <= cumulativeGdd
+  let result: Wave | null = null;
+  for (const w of waves) {
+    if (cumulativeGdd >= thresholds[w]) {
+      result = w;
+    } else {
+      break;
+    }
+  }
+  return result;
 }

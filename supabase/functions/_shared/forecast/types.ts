@@ -160,6 +160,9 @@ export interface ForecastContext {
   reliefType: ReliefType | null;
   lightType: string | null;
 
+  // Кумулятивний GDD (CT-11) — береться з таблиці gdd_state
+  cumulativeGdd: number;
+
   config: FeatureFlags;
   regionName: string | null;  // null у 8.2 (seed regions у 9.1)
 

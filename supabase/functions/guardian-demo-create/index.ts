@@ -29,12 +29,62 @@ import {
 } from "../_shared/guardian/token.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
+import { buildCorsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  DEMO_USER_ID,
+  DEMO_MAX_ACTIVE,
+  DEMO_TTL_HOURS,
+  buildDemoSessionInsert,
+  buildDemoGuardianInsert,
+  demoCutoffIso,
+  validateDemoLimit,
+} from "../_shared/forecast/demo-guardian.ts";
+import {
+  generateGuardianToken,
+  buildGuardianUrl,
+} from "../_shared/guardian/token.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
 function json(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
+
+// ─── CT-15: Turnstile bot protection ──────────────────────────────────────
+
+/** Перевірити токен Cloudflare Turnstile через 사이verify API */
+async function verifyTurnstileToken(token: string): Promise<boolean> {
+  const secretKey = Deno.env.get("TURNSTILE_SECRET_KEY");
+  if (!secretKey) {
+    console.warn("[turnstile] TURNSTILE_SECRET_KEY not set — skipping verification");
+    return true; // fail-open якщо не налаштовано
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("secret", secretKey);
+    formData.append("response", token);
+
+    const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = (await resp.json()) as { success?: boolean; "error-codes"?: string[] };
+    if (!result.success) {
+      console.warn("[turnstile] verification failed:", result["error-codes"]);
+    }
+    return !!result.success;
+  } catch (err) {
+    console.error("[turnstile] verification error:", err);
+    return false;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   // 1. CORS preflight
@@ -45,9 +95,11 @@ Deno.serve(async (req: Request) => {
     return json({ error: "method_not_allowed" }, 405, req);
   }
 
-  // Validate body is empty — this endpoint accepts no payload
+  // Validate body — тепер очікуємо turnstile_token
   const body = await req.json().catch(() => ({}));
-  const DemoBodySchema = z.object({}).strict();
+  const DemoBodySchema = z.object({
+    turnstile_token: z.string().min(1, "Turnstile token required"),
+  }).strict();
   const bodyParse = DemoBodySchema.safeParse(body);
   if (!bodyParse.success) {
     return json(
@@ -55,6 +107,12 @@ Deno.serve(async (req: Request) => {
       400,
       req,
     );
+  }
+
+  // CT-15: Turnstile bot protection
+  const turnstileOk = await verifyTurnstileToken(body.turnstile_token);
+  if (!turnstileOk) {
+    return json({ error: "bot_protection_failed", message: "Invalid Turnstile token" }, 403, req);
   }
 
   const url = Deno.env.get("SUPABASE_URL");

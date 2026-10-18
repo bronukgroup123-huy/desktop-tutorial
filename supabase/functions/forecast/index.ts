@@ -18,6 +18,7 @@ import { loadFeatureFlags } from "../_shared/forecast/flags.ts";
 import { validateInput } from "../_shared/forecast/validate.ts";
 import type { ForecastDbClient } from "../_shared/forecast/context.ts";
 import type { DbClient } from "../_shared/forecast/db.ts";
+import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 function json(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
@@ -30,6 +31,23 @@ Deno.serve(async (req: Request) => {
   // 1. CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
+  }
+
+  // 1b. CT-14: Rate limit per-IP (30 req/min for /forecast)
+  const ip = getClientIp(req);
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) {
+    console.error("forecast: missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
+    return json({ error: "internal_error", message: "server_misconfigured" }, 500, req);
+  }
+  const db = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  }) as unknown as ForecastDbClient & DbClient;
+
+  const rl = await checkAndIncrementIpRateLimit(db, ip, "forecast");
+  if (!rl.allowed) {
+    return rateLimitResponse(req, rl.retryAfter ?? 60);
   }
 
   // 2. Тільки POST
@@ -55,19 +73,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // 5. Клієнт — service_role для читання expert_rules / regions (RLS)
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !serviceKey) {
-    console.error("forecast: missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
-    return json({ error: "internal_error", message: "server_misconfigured" }, 500, req);
-  }
-  // SupabaseClient satisfies both at runtime; structural mismatch at type level only
-  const db = createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  }) as unknown as ForecastDbClient & DbClient;
-
-  // 6. Config + Engine
+  // 5. Config + Engine (db already created at step 1b for rate limit)
   try {
     const config = await loadFeatureFlags(db);
     const result = await ForecastEngine.forecast(validated.input, db, config);

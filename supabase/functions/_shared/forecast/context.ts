@@ -31,6 +31,8 @@ export interface ForecastDbClient {
     select(cols?: string, opts?: Record<string, unknown>): any;
     eq(column: string, value: unknown): any;
     gte(column: string, value: unknown): any;
+    maybeSingle?(): Promise<{ data: unknown; error: unknown }>;
+    single?(): Promise<{ data: unknown; error: unknown }>;
   };
   rpc(
     fn: string,
@@ -85,6 +87,29 @@ async function fetchCrowd(
   };
 }
 
+/**
+ * Отримати кумулятивний GDD для регіону на дату з таблиці gdd_state.
+ * Повертає 0, якщо дані ще не обчислено (graceful degradation).
+ */
+async function fetchCumulativeGdd(
+  db: ForecastDbClient,
+  regionId: number | null,
+  dateStr: string
+): Promise<number> {
+  if (!regionId) return 0;
+  try {
+    const { data, error } = await db.rpc("get_gdd_state", {
+      p_region_id: regionId,
+      p_date: dateStr,
+    });
+    if (error || data == null) return 0;
+    const v = Number(data);
+    return Number.isNaN(v) ? 0 : v;
+  } catch {
+    return 0;
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────
 // ContextBuilder
 // ────────────────────────────────────────────────────────────────────
@@ -115,8 +140,14 @@ export class ContextBuilder {
       fetchCrowd(db, input),
     ]);
 
-    // 3. Хвиля (GDD + latitude)
-    const wave = detectWave(input.date, input.lat, weather.gdd);
+    // 3. Кумулятивний GDD (CT-11) — з таблиці gdd_state, а не ковзне вікно
+    const dateStr = input.date.toISOString().slice(0, 10);
+    const cumulativeGdd = input.homeRegionId
+      ? await fetchCumulativeGdd(db, input.homeRegionId, dateStr)
+      : 0;
+
+    // 4. Хвиля (GDD + latitude) — використовує кумулятивний GDD
+    const wave = detectWave(input.date, input.lat, cumulativeGdd);
 
     // 4. FIX 2.6: розділені прапорці
     const forestTypeUnknown =
@@ -148,6 +179,7 @@ export class ContextBuilder {
       standAgeConfidence,
       reliefType,
       lightType,
+      cumulativeGdd,
       config,
       regionName,
       computedAt: new Date().toISOString(),

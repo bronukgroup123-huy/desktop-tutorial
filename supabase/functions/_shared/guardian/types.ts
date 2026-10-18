@@ -26,7 +26,9 @@ export type AlertType =
   | 'battery_low'
   | 'closing'
   | 'closed'
-  | 'recovered';
+  | 'recovered'
+  | 'config_missing'
+  | 'tick_errors_high';
 
 export type NotificationChannel = 'push' | 'sms';
 export type NotificationStatus =
