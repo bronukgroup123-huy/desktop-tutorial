@@ -7,8 +7,8 @@
 // IP береться з заголовка x-forwarded-for (Supabase Edge Functions передають реальний IP клієнта там).
 // ============================================================================
 
-import { buildCorsHeaders } from "../cors.ts";
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildCorsHeaders } from "./cors.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 /** Ліміти запитів на IP за хвилину за ендпоінтом */
 export const IP_RATE_LIMITS: Record<string, number> = {

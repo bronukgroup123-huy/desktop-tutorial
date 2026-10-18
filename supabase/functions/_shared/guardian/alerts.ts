@@ -1,5 +1,6 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { AlertType } from "./types.ts";
+import { sendTelegramAlert } from "../telegram.ts";
 
 /**
  * Cooldown-вікна для дедуплікації алертів (у хвилинах).
@@ -53,6 +54,22 @@ export async function createAlertOnce(
   if (error) {
     console.error(`[alerts] Failed to create alert ${alertType}:`, error);
     return false;
+  }
+
+  // Надсилаємо Telegram-алерт адміну (не блокуючи основний потік критично)
+  try {
+    const isCritical =
+      alertType === "config_missing" || alertType === "tick_errors_high";
+    const payloadText =
+      payload && typeof payload === "object" && Object.keys(payload).length > 0
+        ? `\n\nДеталі: ${JSON.stringify(payload)}`
+        : "";
+    await sendTelegramAlert(
+      `Алерт <b>${alertType}</b> для сесії <code>${sessionId}</code>${payloadText}`,
+      isCritical
+    );
+  } catch {
+    // sendTelegramAlert вже сам обробляє помилки і ніколи не кидає виключення
   }
 
   return true;
