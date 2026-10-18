@@ -3024,7 +3024,7 @@ body.modal-open { overflow: hidden; }
     const nameEl = document.getElementById('detail-name');
     const latinEl = document.getElementById('detail-latin');
     const inlineBadgeEl = document.getElementById('detail-badge-inline');
-    if (nameEl) nameEl.innerHTML = (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, 32) : '') + ' ' + esc(s.name || '—');
+    if (nameEl) nameEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div style="width:40px;height:40px;flex-shrink:0;">' + (typeof getMushroomIconHtml === 'function' ? getMushroomIconHtml(s.id, 40) : '') + '</div><span style="font-size:1.125rem;line-height:1.75rem;">' + esc(s.name || '—') + '</span></div>';
     if (latinEl) latinEl.textContent = s.latin || '';
     if (inlineBadgeEl) {
       const b = badgeFor(s);
