@@ -7,7 +7,7 @@
 // service_role обходить RLS (policy regions_read тільки для authenticated).
 // ============================================================================
 
-import { corsHeaders } from "../cors.ts";
+import { buildCorsHeaders } from "../cors.ts";
 
 /** Мінімальний структурний тип Supabase-клієнта (як DbClient у db.ts).
  *  Postgrest-білдер — thenable (PromiseLike), а не Promise. */
@@ -33,12 +33,10 @@ export interface RegionListItem {
 
 const SELECT_COLUMNS = "id, name, slug, koatuu, katottg";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
-function jsonResponse(data: unknown, status: number): Response {
+function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -53,10 +51,10 @@ export async function handleRegionsRequest(
   req: Request
 ): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
   if (req.method !== "GET") {
-    return jsonResponse({ error: "method_not_allowed" }, 405);
+    return jsonResponse({ error: "method_not_allowed" }, 405, req);
   }
 
   try {
@@ -67,12 +65,12 @@ export async function handleRegionsRequest(
 
     if (error) {
       console.error("regions query failed:", error);
-      return jsonResponse({ error: "db_error" }, 500);
+      return jsonResponse({ error: "db_error" }, 500, req);
     }
 
-    return jsonResponse({ data: (data as RegionListItem[]) ?? [] }, 200);
+    return jsonResponse({ data: (data as RegionListItem[]) ?? [] }, 200, req);
   } catch (err) {
     console.error("regions error:", err);
-    return jsonResponse({ error: "internal_error" }, 500);
+    return jsonResponse({ error: "internal_error" }, 500, req);
   }
 }

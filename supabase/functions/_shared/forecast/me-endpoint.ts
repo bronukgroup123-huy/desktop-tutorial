@@ -11,7 +11,7 @@
 // Логіка винесена сюди, щоб тестувати без supabase-js/esm.sh.
 // ============================================================================
 
-import { corsHeaders } from "../cors.ts";
+import { buildCorsHeaders } from "../cors.ts";
 
 /** Мінімальний структурний тип Supabase-клієнта (ланцюжок thenable, як у db.ts) */
 export interface MeDbClient {
@@ -56,12 +56,10 @@ export const ME_SLUG_REGEX = /^[a-z0-9][a-z0-9_-]{1,31}$/; // 2..32, lowercase
 const USER_SELECT =
   "id, name, rating, total_verified_picks, home_region_id, created_at";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
-function jsonResponse(data: unknown, status: number): Response {
+function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -170,17 +168,17 @@ export async function handleMeRequest(
   req: Request
 ): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
   if (req.method === "GET") {
     const res = await buildProfile(db, userId);
-    if (!res.ok) return jsonResponse({ error: res.error }, res.status);
-    return jsonResponse({ data: res.profile }, 200);
+    if (!res.ok) return jsonResponse({ error: res.error }, res.status, req);
+    return jsonResponse({ data: res.profile }, 200, req);
   }
   if (req.method === "PATCH") {
     return handlePatchMe(db, userId, req);
   }
-  return jsonResponse({ error: "method_not_allowed" }, 405);
+  return jsonResponse({ error: "method_not_allowed" }, 405, req);
 }
 
 /**
@@ -196,12 +194,12 @@ export async function handlePatchMe(
   try {
     body = await req.json();
   } catch {
-    return jsonResponse({ error: "invalid_json" }, 400);
+    return jsonResponse({ error: "invalid_json" }, 400, req);
   }
 
   const v = validateUpdateMe(body);
   if (!v.ok) {
-    return jsonResponse({ error: v.error }, v.status);
+    return jsonResponse({ error: v.error }, v.status, req);
   }
 
   // home_region_slug → region_id (RPC 00015)
@@ -212,14 +210,14 @@ export async function handlePatchMe(
     });
     if (error) {
       console.error("find_region_by_slug failed:", error);
-      return jsonResponse({ error: "db_error" }, 500);
+      return jsonResponse({ error: "db_error" }, 500, req);
     }
     const region = (Array.isArray(data) ? data[0] : data) as
       | { id: number }
       | undefined
       | null;
     if (!region) {
-      return jsonResponse({ error: "region_not_found" }, 404);
+      return jsonResponse({ error: "region_not_found" }, 404, req);
     }
     homeRegionId = region.id;
   }
@@ -237,11 +235,11 @@ export async function handlePatchMe(
     .maybeSingle();
   if (updErr) {
     console.error("me update failed:", updErr);
-    return jsonResponse({ error: "db_error" }, 500);
+    return jsonResponse({ error: "db_error" }, 500, req);
   }
 
   // Відповідь — той самий формат, що GET /me (свіжий SELECT)
   const res = await buildProfile(db, userId);
-  if (!res.ok) return jsonResponse({ error: res.error }, res.status);
-  return jsonResponse({ data: res.profile }, 200);
+  if (!res.ok) return jsonResponse({ error: res.error }, res.status, req);
+  return jsonResponse({ data: res.profile }, 200, req);
 }

@@ -14,7 +14,7 @@
 // Логіка винесена сюди, щоб тестувати без supabase-js/esm.sh.
 // ============================================================================
 
-import { corsHeaders } from "../cors.ts";
+import { buildCorsHeaders } from "../cors.ts";
 
 export const PICKS_SCOPES = ["mine", "friends", "public", "region"] as const;
 export type PicksScope = (typeof PICKS_SCOPES)[number];
@@ -83,12 +83,10 @@ const PICK_SELECT =
   "verification_status, weight, is_indicator, is_negative, " +
   "created_at, photo_url, geom";
 
-const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
-
-function jsonResponse(data: unknown, status: number): Response {
+function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -199,20 +197,20 @@ export async function handlePicksListRequest(
   now: Date = new Date()
 ): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
   }
   if (req.method !== "GET") {
-    return jsonResponse({ error: "method_not_allowed" }, 405);
+    return jsonResponse({ error: "method_not_allowed" }, 405, req);
   }
 
   const filters = parsePicksQuery(new URL(req.url));
   if ("error" in filters) {
-    return jsonResponse({ error: filters.error }, 400);
+    return jsonResponse({ error: filters.error }, 400, req);
   }
 
   // mine/friends потребують userId (RLS фільтрує, але явний .eq — defense in depth)
   if ((filters.scope === "mine" || filters.scope === "friends") && !userId) {
-    return jsonResponse({ error: "unauthorized" }, 401);
+    return jsonResponse({ error: "unauthorized" }, 401, req);
   }
 
   try {
@@ -227,14 +225,14 @@ export async function handlePicksListRequest(
       });
       if (error) {
         console.error("find_region_by_slug failed:", error);
-        return jsonResponse({ error: "db_error" }, 500);
+        return jsonResponse({ error: "db_error" }, 500, req);
       }
       const region = (Array.isArray(data) ? data[0] : data) as
         | { id: number; name: string }
         | undefined
         | null;
       if (!region) {
-        return jsonResponse({ error: "region_not_found" }, 404);
+        return jsonResponse({ error: "region_not_found" }, 404, req);
       }
       const { data: users, error: usersErr } = await adminDb
         .from("users")
@@ -242,14 +240,15 @@ export async function handlePicksListRequest(
         .eq("home_region_id", region.id);
       if (usersErr) {
         console.error("users-by-region failed:", usersErr);
-        return jsonResponse({ error: "db_error" }, 500);
+        return jsonResponse({ error: "db_error" }, 500, req);
       }
       regionUserIds = (users ?? []) as Array<{ id: string }>;
       if (regionUserIds.length === 0) {
         // порожній регіон — короткий шлях, без запиту picks
         return jsonResponse(
           { data: [], total: 0, limit: filters.limit, offset: filters.offset },
-          200
+          200,
+          req,
         );
       }
     }
@@ -283,7 +282,7 @@ export async function handlePicksListRequest(
 
     if (error) {
       console.error("picks query failed:", error);
-      return jsonResponse({ error: "db_error" }, 500);
+      return jsonResponse({ error: "db_error" }, 500, req);
     }
 
     const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
@@ -298,11 +297,12 @@ export async function handlePicksListRequest(
         limit: filters.limit,
         offset: filters.offset,
       },
-      200
+      200,
+      req
     );
   } catch (err) {
     console.error("picks feed error:", err);
-    return jsonResponse({ error: "internal_error" }, 500);
+    return jsonResponse({ error: "internal_error" }, 500, req);
   }
 }
 

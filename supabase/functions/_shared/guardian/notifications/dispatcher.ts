@@ -30,7 +30,7 @@ export async function dispatchAlert(
   const targets = await loadTargets(db, session.id, alert.alert_type);
   if (targets.length === 0) {
     console.warn(`[dispatcher] alert ${alert.id} has no targets, marking as delivered to avoid stuck state.`);
-    await markAlertDelivered(db, alert.id);
+    await markAlertDelivered(db, alert.id, "sent");
     return result;
   }
 
@@ -222,7 +222,7 @@ export async function dispatchAlert(
   }
 
   if (result.notifications_created > 0 && anyDelivered) {
-    await markAlertDelivered(db, alert.id);
+    await markAlertDelivered(db, alert.id, "sent");
   } else if (result.notifications_created > 0 && !anyDelivered) {
     console.warn(
       `[dispatcher] alert ${alert.id} had ${result.notifications_created} notification attempts, but NONE delivered/queued. Leaving alert undelivered.`
@@ -314,8 +314,15 @@ async function updateNotificationStatus(
 
 async function markAlertDelivered(
   db: SupabaseClient,
-  alertId: number
+  alertId: number,
+  status: "sent" | "failed" = "sent"
 ): Promise<void> {
+  // Не позначати алерт як доставлений, якщо відправка завершилася помилкою.
+  // Це запобігає спотворенню статистики та блокує логику ретраїв.
+  if (status === "failed") {
+    console.warn(`[dispatcher] alert ${alertId} delivery failed — skipping markAlertDelivered.`);
+    return;
+  }
   await db
     .from("guardian_alerts")
     .update({ delivered_at: new Date().toISOString() })

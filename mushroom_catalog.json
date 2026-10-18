@@ -4942,7 +4942,8 @@
         "raw": "Джерело: Червона книга України. Gomphus clavatus (Pers: Fr.) Gray [Cantharellus clavatus Fr., Craterellus clavatus (Pers.) Fr., Neurophyllum clavatum Pat.] — Гомф булавоподібний, свиняче вухо. URL: https://redbook-ua.org/item/gomphus-clavatusfr-neurophyllum-clavatum-pat/",
         "text": "Червона книга України. Gomphus clavatus (Pers: Fr.) Gray [Cantharellus clavatus Fr., Craterellus clavatus (Pers.) Fr., Neurophyllum clavatum Pat.] — Гомф булавоподібний, свиняче вухо.",
         "url": "https://redbook-ua.org/item/gomphus-clavatusfr-neurophyllum-clavatum-pat/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/gomphus_clavatus_large.webp"
     },
     {
       "id": "grifola_frondosa",
@@ -5123,7 +5124,8 @@
         "raw": "Джерело: Червона книга України. Anthurus archeri (Berk.) Fischer — Квітохвісник Арчера, антурус Арчера. URL: https://redbook-ua.org/item/anthurus-archerifischer/",
         "text": "Червона книга України. Anthurus archeri (Berk.) Fischer — Квітохвісник Арчера, антурус Арчера.",
         "url": "https://redbook-ua.org/item/anthurus-archerifischer/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/anthurus_archeri_large.webp"
     },
     {
       "id": "clavariadelphus_pistillaris",
@@ -5297,7 +5299,8 @@
         "raw": "Джерело: Червона книга України. Myriostoma coliforme (With.: Pers.) Corda — Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна). URL: https://redbook-ua.org/item/myriostoma-coliformecorda/",
         "text": "Червона книга України. Myriostoma coliforme (With.: Pers.) Corda — Міріостома шийкова (міріостома дірчаста, міріостома стрижневидна).",
         "url": "https://redbook-ua.org/item/myriostoma-coliformecorda/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/myriostoma_coliforme_large.webp"
     },
     {
       "id": "boletus_parasiticus",
@@ -5809,7 +5812,8 @@
         "raw": "Джерело: Червона книга України. Phellorinia herculeana (Pers.) Kreisel — Фелоринія геркулесова. URL: https://redbook-ua.org/item/phellorinia-herculeana/",
         "text": "Червона книга України. Phellorinia herculeana (Pers.) Kreisel — Фелоринія геркулесова.",
         "url": "https://redbook-ua.org/item/phellorinia-herculeana/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/phellorinia_herculeana_large_2.webp"
     },
     {
       "id": "phaeolepiota_aurea",
@@ -5915,7 +5919,8 @@
         "raw": "Джерело: Червона книга України. Lactarius lignyotus Fr. — Хрящ-молочник чорний. URL: https://redbook-ua.org/item/lactarius-lignyotus-fr/",
         "text": "Червона книга України. Lactarius lignyotus Fr. — Хрящ-молочник чорний.",
         "url": "https://redbook-ua.org/item/lactarius-lignyotus-fr/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/lactarius_lignyotus_large.webp"
     },
     {
       "id": "strobilomyces_strobilaceus",
@@ -5947,7 +5952,8 @@
         "raw": "Джерело: Червона книга України. Strobilomyces strobilaceus (Scop.) Berk. — Шишкогриб лускатий, лускач. URL: https://redbook-ua.org/item/strobilomyces-strobilaceusp-karst/",
         "text": "Червона книга України. Strobilomyces strobilaceus (Scop.) Berk. — Шишкогриб лускатий, лускач.",
         "url": "https://redbook-ua.org/item/strobilomyces-strobilaceusp-karst/"
-      }
+      },
+      "photo_url": "https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/mushroom-catalog-photos/strobilomyces_strobilaceus_large_1.webp"
     },
     {
       "id": "amanita_muscaria",
