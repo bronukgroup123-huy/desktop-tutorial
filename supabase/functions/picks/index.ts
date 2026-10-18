@@ -23,8 +23,8 @@ import {
 } from "../_shared/forecast/picks-validate.ts";
 import { handlePicksListRequest } from "../_shared/forecast/picks-list.ts";
 import type { PicksListDbClient } from "../_shared/forecast/picks-list.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import exifr from "https://esm.sh/exifr";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import exifr from "npm:exifr";
 import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const BUCKET = "mushroom-photos";

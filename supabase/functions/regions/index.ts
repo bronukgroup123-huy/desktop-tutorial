@@ -6,7 +6,7 @@
 // service_role-клієнт обходить RLS (regions_read — тільки authenticated).
 // ============================================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleRegionsRequest } from "../_shared/forecast/regions-endpoint.ts";
 import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
 

@@ -13,7 +13,7 @@
 // ============================================================================
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   DEMO_USER_ID,
   DEMO_MAX_ACTIVE,
@@ -30,7 +30,7 @@ import {
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   DEMO_USER_ID,
   DEMO_MAX_ACTIVE,

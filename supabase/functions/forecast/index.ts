@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { ForecastEngine } from "../_shared/forecast/engine.ts";
 import { loadFeatureFlags } from "../_shared/forecast/flags.ts";
 import { validateInput } from "../_shared/forecast/validate.ts";

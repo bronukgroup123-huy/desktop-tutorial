@@ -2,7 +2,7 @@
 // Geofence / Exit Detection (Audit G4 fix)
 // 3-state RPC + debounce + was_offline skip + unknown fallback
 // ============================================================================
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 export interface ExitDetectionResult {
   isOutsideForest: boolean;

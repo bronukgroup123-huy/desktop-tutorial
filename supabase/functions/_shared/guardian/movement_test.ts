@@ -1,6 +1,6 @@
 import { assertEquals, assert } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { analyzeMovement } from "./movement.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 Deno.test("analyzeMovement — no last_known_at → hasFreshData=false", async () => {
   const db = createClient("http://localhost:54321", "service-key");

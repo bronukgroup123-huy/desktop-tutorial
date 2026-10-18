@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { GuardianSession, GuardianAlert, Guardian } from "../types.ts";
 import { renderNotification, getTemplate } from "./templates.ts";
 import { sendPush, isTokenInvalidError } from "./firebase.ts";

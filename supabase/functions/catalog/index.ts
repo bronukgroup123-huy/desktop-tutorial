@@ -6,7 +6,7 @@
 // service_role-клієнт обходить RLS (catalog_read — тільки authenticated).
 // ============================================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCatalogRequest } from "../_shared/forecast/catalog-endpoint.ts";
 import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
 

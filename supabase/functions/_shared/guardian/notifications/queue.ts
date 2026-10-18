@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendSms } from "./sms.ts";
 import { sendPush, isTokenInvalidError } from "./firebase.ts";
 import type { SendResult } from "./types.ts";
