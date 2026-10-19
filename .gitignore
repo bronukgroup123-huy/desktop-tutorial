@@ -18,3 +18,4 @@ web-guardian/.vercel/
 *_secret.txt
 .env.local
 jwt_secret*
+*.geojson
