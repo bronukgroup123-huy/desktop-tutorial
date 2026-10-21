@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useGuardianStore } from "@/store/guardian-store";
@@ -19,6 +19,10 @@ export function MapView({ token }: { token: string }) {
 
   const session = useGuardianStore((s) => s.session);
   const track = useGuardianStore((s) => s.track);
+
+  // TEMPORARY DEBUG: Forest zones loading state
+  // REMOVE BEFORE RELEASE
+  const [forestsLoaded, setForestsLoaded] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -85,6 +89,66 @@ export function MapView({ token }: { token: string }) {
           "line-opacity": 0.8,
         },
       });
+
+      // TEMPORARY: Load forest zones for visual verification (Kyiv region)
+      // REMOVE BEFORE RELEASE
+      if (!forestsLoaded) {
+        fetch("/api/debug/forests")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              console.error("Forest data error:", data.error);
+              return;
+            }
+            const features = data?.features ?? data;
+            if (features && Array.isArray(features) && features.length > 0) {
+              map.addSource("forests", {
+                type: "geojson",
+                data: { type: "FeatureCollection", features },
+              });
+
+              map.addLayer({
+                id: "forests-fill",
+                type: "fill",
+                source: "forests",
+                paint: {
+                  "fill-color": "rgba(34, 139, 34, 0.4)",
+                  "fill-outline-color": "#006400",
+                },
+              });
+
+              map.addLayer({
+                id: "forests-outline",
+                type: "line",
+                source: "forests",
+                paint: {
+                  "line-color": "#006400",
+                  "line-width": 1,
+                },
+              });
+
+              map.on("click", "forests-fill", (e) => {
+                const feature = e.features?.[0];
+                const forestType = feature?.properties?.forest_type ?? "unknown";
+                new maplibregl.Popup()
+                  .setLngLat(e.lngLat)
+                  .setHTML(`<strong>Forest type:</strong> ${forestType}`)
+                  .addTo(map);
+              });
+
+              map.on("mouseenter", "forests-fill", () => {
+                map.getCanvas().style.cursor = "pointer";
+              });
+
+              map.on("mouseleave", "forests-fill", () => {
+                map.getCanvas().style.cursor = "";
+              });
+
+              setForestsLoaded(true);
+            }
+          })
+          .catch((err) => console.error("Failed to load forests:", err));
+      }
     });
 
     return () => {
