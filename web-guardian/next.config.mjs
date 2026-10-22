@@ -3,16 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
-  async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/", destination: "/landing.html" },
-      ],
-      afterFiles: [],
-      fallback: [],
-    };
-  },
-
   async headers() {
     return [
       {

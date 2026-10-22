@@ -4,12 +4,7 @@ import type {
   RescueView,
 } from "./types";
 import { useAuthStore } from "@/store/auth-store";
-
-const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL!;
-
-if (!FUNCTIONS_URL) {
-  throw new Error("NEXT_PUBLIC_FUNCTIONS_URL is not set");
-}
+import { FUNCTIONS_URL } from "./constants";
 
 interface ApiSuccess<T> {
   data: T;

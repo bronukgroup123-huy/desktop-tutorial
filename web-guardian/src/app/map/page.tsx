@@ -4,11 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { ForecastResponse, ForestZonesResponse } from "@/lib/types/forecast";
-
-const FUNCTIONS_URL = process.env.NEXT_PUBLIC_FUNCTIONS_URL!;
-if (!FUNCTIONS_URL) {
-  throw new Error("NEXT_PUBLIC_FUNCTIONS_URL is not set");
-}
+import { FUNCTIONS_URL } from "@/lib/constants";
 
 const KYIV_CENTER: [number, number] = [30.52, 50.45];
 const INITIAL_ZOOM = 10;
