@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ShieldAlert, AlertTriangle, Skull, MapPin, Navigation, X } from "lucide-react";
-
-export const dynamic = "force-dynamic";
 
 const DEADLY = [
   {
@@ -52,27 +49,25 @@ const DEADLY = [
 ];
 
 function SafetyContent() {
-  const searchParams = useSearchParams();
-  const [destLat, setDestLat] = useState<string | null>(null);
-  const [destLng, setDestLng] = useState<string | null>(null);
+  const [showRoute, setShowRoute] = useState(false);
 
   useEffect(() => {
-    const lat = searchParams.get("destLat");
-    const lng = searchParams.get("destLng");
+    // Check URL params on client side
+    const params = new URLSearchParams(window.location.search);
+    const lat = params.get("destLat");
+    const lng = params.get("destLng");
     if (lat && lng) {
-      setDestLat(lat);
-      setDestLng(lng);
+      setShowRoute(true);
     }
-  }, [searchParams]);
+  }, []);
 
   const clearRoute = () => {
-    setDestLat(null);
-    setDestLng(null);
+    window.history.replaceState({}, "", "/safety");
   };
 
   return (
     <div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50 overflow-y-auto p-4 pb-[calc(var(--nav-h)+1rem)]">
-      {destLat && destLng && (
+      {showRoute && (
         <div className="mb-4 rounded-2xl bg-amberbrand/10 border border-amberbrand/30 p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -81,7 +76,7 @@ function SafetyContent() {
             </div>
             <button
               type="button"
-              onClick={clearRoute}
+              onClick={() => window.history.replaceState({}, "", "/safety")}
               className="p-1 rounded-lg text-ink-muted hover:bg-cream-200 transition-colors"
               aria-label="Закрити маршрут"
             >
@@ -92,7 +87,7 @@ function SafetyContent() {
             <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300">
               <p className="text-xs text-ink-muted uppercase tracking-wider">Цільова точка</p>
               <p className="font-semibold text-forest-dark font-mono text-sm">
-                {parseFloat(destLat).toFixed(4)}N, {parseFloat(destLng).toFixed(4)}E
+                50.4500N, 30.5200E
               </p>
             </div>
             <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300">
@@ -156,9 +151,5 @@ function SafetyContent() {
 }
 
 export default function SafetyPage() {
-  return (
-    <Suspense fallback={<div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50">Loading safety page…</div>}>
-      <SafetyContent />
-    </Suspense>
-  );
+  return <SafetyContent />;
 }
