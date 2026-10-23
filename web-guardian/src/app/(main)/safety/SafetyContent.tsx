@@ -52,14 +52,11 @@ export function SafetyContent({ destLat, destLng }: { destLat: string | null; de
   const [showRoute, setShowRoute] = useState(false);
 
   useEffect(() => {
-    // Check URL params on client side
-    const params = new URLSearchParams(window.location.search);
-    const lat = params.get("destLat");
-    const lng = params.get("destLng");
-    if (lat && lng) {
+    // Use props directly (passed from server component)
+    if (destLat && destLng) {
       setShowRoute(true);
     }
-  }, []);
+  }, [destLat, destLng]);
 
   const clearRoute = () => {
     window.history.replaceState({}, "", "/safety");
