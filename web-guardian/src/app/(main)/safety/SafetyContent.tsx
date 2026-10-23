@@ -49,14 +49,7 @@ const DEADLY = [
 ];
 
 export function SafetyContent({ destLat, destLng }: { destLat: string | null; destLng: string | null }) {
-  const [showRoute, setShowRoute] = useState(false);
-
-  useEffect(() => {
-    // Use props directly (passed from server component)
-    if (destLat && destLng) {
-      setShowRoute(true);
-    }
-  }, [destLat, destLng]);
+  const [showRoute, setShowRoute] = useState(!!(destLat && destLng));
 
   const clearRoute = () => {
     window.history.replaceState({}, "", "/safety");
