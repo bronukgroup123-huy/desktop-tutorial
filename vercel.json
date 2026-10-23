@@ -26,5 +26,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/data/forests.geojson",
+      "destination": "/forests.geojson"
+    }
   ]
 }
