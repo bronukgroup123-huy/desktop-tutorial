@@ -19,7 +19,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function exportForests() {
   console.log('Connecting to Supabase...');
   
-  // Try direct query first (more reliable than RPC)
   console.log('Querying forest_zones...');
   const { data, error } = await supabase
     .from('forest_zones')
@@ -39,11 +38,7 @@ async function exportForests() {
   
   // Convert to GeoJSON FeatureCollection
   const features = data.map(row => {
-    // polygon might be a PostGIS geometry - need to convert to GeoJSON
     let geometry = row.polygon;
-    
-    // If polygon is a PostGIS geometry object, it might need ST_AsGeoJSON
-    // But if it's already stored as GeoJSON, use as-is
     let geometryData = geometry;
     if (typeof geometry === 'string') {
       try {
@@ -71,21 +66,38 @@ async function exportForests() {
     features
   };
   
-  writeGeoJSON(geojson);
-}
-
-function writeGeoJSON(geojson: any) {
-  const outputPath = path.resolve(process.cwd(), 'web-guardian/public/data/forests.geojson');
-  
-  // Ensure directory exists
-  const dir = path.dirname(outputPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  // Write to public/forests.geojson for static serving
+  const publicPath = path.resolve(process.cwd(), 'web-guardian/public/forests.geojson');
+  const publicDir = path.dirname(publicPath);
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
   }
+  fs.writeFileSync(publicPath, JSON.stringify(geojson, null, 2));
+  console.log(`GeoJSON written to web-guardian/public/forests.geojson`);
+  console.log(`Features count: ${geojson.features.length}`);
   
-  fs.writeFileSync(path.join(process.cwd(), 'web-guardian/public/data/forests.geojson'), JSON.stringify(geojson, null, 2));
-  console.log(`GeoJSON written to web-guardian/public/data/forests.geojson`);
-  console.log(`Features count: ${geojson.features?.length || 0}`);
+  // Generate the API route with embedded data
+  const routeContent = `import { NextResponse } from 'next/server';
+
+const GEOJSON_DATA = ${JSON.stringify(geojson, null, 2)};
+
+export async function GET() {
+  return Response.json(GEOJSON_DATA, {
+    headers: {
+      'Content-Type': 'application/geo+json',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  });
+}
+`;
+  
+  const routePath = path.resolve(process.cwd(), 'web-guardian/src/app/api/data/forests/route.ts');
+  const routeDir = path.dirname(routePath);
+  if (!fs.existsSync(routeDir)) {
+    fs.mkdirSync(routeDir, { recursive: true });
+  }
+  fs.writeFileSync(routePath, routeContent);
+  console.log(`API route generated at ${routePath}`);
 }
 
 exportForests().catch(console.error);
