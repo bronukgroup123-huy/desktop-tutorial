@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
-import { MapCanvas } from "@/components/map/MapCanvas";
+import dynamic from "next/dynamic";
 import { FUNCTIONS_URL } from "@/lib/constants";
 import type { ForecastResponse } from "@/lib/types/forecast";
 
+const MapCanvas = dynamic(() => import("@/components/map/MapCanvas").then(mod => ({ default: mod.MapCanvas })), { ssr: false });
+
 export default function MapPage() {
-  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+  const [forecast, setForecast] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [activeLayer, setActiveLayer] = useState<"forest" | "heat" | "my">("forest");
@@ -15,7 +17,7 @@ export default function MapPage() {
   const formatCoords = (lat: number, lng: number) => {
     const latDir = lat >= 0 ? "N" : "S";
     const lngDir = lng >= 0 ? "E" : "W";
-    return `${Math.abs(lat).toFixed(2)}${latDir} \u00b7 ${Math.abs(lng).toFixed(2)}${lngDir}`;
+    return Math.abs(lat).toFixed(2) + latDir + " \u00b7 " + Math.abs(lng).toFixed(2) + lngDir;
   };
 
   const handleLayerChange = (layer: "forest" | "heat" | "my") => {
@@ -27,13 +29,13 @@ export default function MapPage() {
     setLoading(true);
     setBottomSheetOpen(true);
     try {
-      const res = await fetch(`${FUNCTIONS_URL}/v1-forecast`, {
+      const res = await fetch(FUNCTIONS_URL + "/v1-forecast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lat, lng, date }),
       });
-      if (!res.ok) throw new Error(`Forecast error: ${res.status}`);
-      const data: ForecastResponse = await res.json();
+      if (!res.ok) throw new Error("Forecast error: " + res.status);
+      const data = await res.json();
       setForecast(data);
     } catch (err) {
       console.error("Forecast load failed:", err);
@@ -60,12 +62,12 @@ export default function MapPage() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-cream-50">
+    <div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50">
       <header className="p-4 flex flex-col gap-2 border-b border-cream-300 bg-white">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] text-ink-muted font-medium">
-              50.45N \u00b7 30.52E
+              {userLocation ? (userLocation.lat.toFixed(2) + (userLocation.lat >= 0 ? "N" : "S") + " \u00b7 " + userLocation.lng.toFixed(2) + (userLocation.lng >= 0 ? "E" : "W")) : "50.45N \u00b7 30.52E"}
             </div>
             <h1 className="font-serif font-semibold text-forest-dark text-[26px] leading-tight">Карта</h1>
           </div>
@@ -109,21 +111,14 @@ export default function MapPage() {
         </div>
       </header>
 
-      <div className="flex-1 relative mx-4 mb-4 rounded-3xl overflow-hidden border border-cream-300 shadow-soft">
-        <MapCanvas onPick={handlePick} activeLayer={activeLayer} />
+      <div className="flex-1 relative min-h-0 mx-4 mb-4 rounded-3xl overflow-hidden border border-cream-300 shadow-soft">
+        <div id="map-container" className="absolute inset-0"></div>
       </div>
 
-      <div
-        className={`fixed left-0 right-0 z-40 bg-white rounded-t-3xl shadow-xl p-4 transition-transform duration-300 ease-out translate-y-full`}
-        style={{ bottom: 0 }}
-      >
+      <div className="fixed left-0 right-0 z-40 bg-white rounded-t-3xl shadow-xl p-4 transition-transform duration-300 ease-out translate-y-full" style={{ bottom: "var(--nav-h)" }}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-semibold text-forest-dark">
-            Білий гриб
-          </h2>
-          <button className="text-2xl text-ink-muted hover:text-ink" aria-label="Закрити">
-            ×
-          </button>
+          <h2 className="text-xl font-semibold text-forest-dark">Білий гриб</h2>
+          <button className="text-2xl text-ink-muted hover:text-ink" aria-label="Закрити">×</button>
         </div>
 
         <div className="text-center py-12 text-ink-muted">

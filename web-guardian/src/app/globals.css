@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "maplibre-gl/dist/maplibre-gl.css";
+
 :root {
   /* Висота нижньої навігації (див. components/navigation/BottomNav.tsx). */
   --nav-h: 60px;
