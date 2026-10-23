@@ -80,6 +80,7 @@ function SafetyContent() {
               <h2 className="font-serif text-lg font-semibold text-amberbrand">Маршрут до лісу</h2>
             </div>
             <button
+              type="button"
               onClick={clearRoute}
               className="p-1 rounded-lg text-ink-muted hover:bg-cream-200 transition-colors"
               aria-label="Закрити маршрут"
@@ -102,10 +103,10 @@ function SafetyContent() {
           <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300 mb-3">
             <p className="text-xs text-ink-muted uppercase tracking-wider mb-2">Дії</p>
             <div className="flex gap-2">
-              <button className="flex-1 rounded-xl bg-forest-dark py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+              <button type="button" className="flex-1 rounded-xl bg-forest-dark py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
                 <Navigation className="inline w-4 h-4 mr-1" /> Навігація
               </button>
-              <button className="flex-1 rounded-xl border border-cream-300 bg-white py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-cream-100">
+              <button type="button" className="flex-1 rounded-xl border border-cream-300 bg-white py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-cream-100">
                 Зберегти
               </button>
             </div>
@@ -156,7 +157,7 @@ function SafetyContent() {
 
 export default function SafetyPage() {
   return (
-    <Suspense fallback={<div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50 items-center justify-center">Завантаження…</div>}>
+    <Suspense fallback={<div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50">Loading safety page…</div>}>
       <SafetyContent />
     </Suspense>
   );
