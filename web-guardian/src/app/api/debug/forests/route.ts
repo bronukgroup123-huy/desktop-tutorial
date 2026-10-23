@@ -4,7 +4,14 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabase = getSupabaseBrowser();
+  // Supabase не налаштовано (немає env у Vercel) → повертаємо порожній
+  // FeatureCollection, щоб debug-роут не падав з 500.
+  let supabase: ReturnType<typeof getSupabaseBrowser>;
+  try {
+    supabase = getSupabaseBrowser();
+  } catch {
+    return NextResponse.json({ type: "FeatureCollection", features: [] });
+  }
 
   // TEMPORARY DEBUG ENDPOINT - REMOVE BEFORE RELEASE
   // This requires a Postgres function to be created in Supabase:

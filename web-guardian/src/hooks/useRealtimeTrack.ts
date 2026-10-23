@@ -33,7 +33,15 @@ export function useRealtimeTrack(token: string, sessionId: string | null) {
   useEffect(() => {
     if (!token || !sessionId || !isVisible) return;
 
-    const supabase = getSupabaseBrowser();
+    // Клієнт Supabase може бути недоступний (не задано env у Vercel) —
+    // тоді realtime просто вимикається, а не ламає сторінку.
+    let supabase: ReturnType<typeof getSupabaseBrowser>;
+    try {
+      supabase = getSupabaseBrowser();
+    } catch {
+      return;
+    }
+
     const channel = supabase
       .channel(`guardian-track-${sessionId}`)
       .on(

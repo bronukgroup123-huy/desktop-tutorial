@@ -13,52 +13,79 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
+function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : "Помилка авторизації";
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   loading: true,
   error: null,
 
+  // Не кидаємо помилку назовні: інакше unhandled rejection в useEffect
+  // обриває рендер усієї сторінки (краш на мобільному).
   init: async () => {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    set({
-      user: session?.user ?? null,
-      accessToken: session?.access_token ?? null,
-      loading: false,
-    });
-    supabase.auth.onAuthStateChange((_event, session) => {
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       set({
         user: session?.user ?? null,
         accessToken: session?.access_token ?? null,
+        loading: false,
       });
-    });
+      supabase.auth.onAuthStateChange((_event, session) => {
+        set({
+          user: session?.user ?? null,
+          accessToken: session?.access_token ?? null,
+        });
+      });
+    } catch (err) {
+      set({
+        user: null,
+        accessToken: null,
+        loading: false,
+        error: messageOf(err),
+      });
+    }
   },
 
   signInWithGoogle: async () => {
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-    if (error) set({ error: error.message });
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) set({ error: error.message });
+    } catch (err) {
+      set({ error: messageOf(err) });
+    }
   },
 
   signInWithEmail: async (email: string) => {
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo },
-    });
-    if (error) set({ error: error.message });
-    else set({ error: null });
+    try {
+      const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo },
+      });
+      if (error) set({ error: error.message });
+      else set({ error: null });
+    } catch (err) {
+      set({ error: messageOf(err) });
+    }
   },
 
   signOut: async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      set({ error: messageOf(err) });
+    }
     set({ user: null, accessToken: null });
   },
 }));

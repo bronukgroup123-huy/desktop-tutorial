@@ -26,7 +26,7 @@ export default function LoginPage() {
           Вийти
         </button>
         <p style={{ marginTop: 24 }}>
-          <a href="/">← На головну</a>
+          <a href="/map">← На головну</a>
         </p>
       </div>
     );
@@ -67,7 +67,7 @@ export default function LoginPage() {
       {error && <p style={{ color: "red" }}>Помилка: {error}</p>}
 
       <p style={{ marginTop: 24 }}>
-        <a href="/">← На головну</a>
+        <a href="/map">← На головну</a>
       </p>
     </div>
   );

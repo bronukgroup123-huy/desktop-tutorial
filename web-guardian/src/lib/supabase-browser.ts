@@ -9,7 +9,9 @@ export function getSupabaseBrowser(): SupabaseClient {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    throw new Error("Supabase env variables missing");
+    throw new Error(
+      "Supabase env variables missing (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+    );
   }
 
   client = createClient(url, key, {

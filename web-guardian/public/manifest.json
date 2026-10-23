@@ -1,13 +1,13 @@
 {
-  "name": "MushroomRadar Guardian",
-  "short_name": "MR Guardian",
-  "description": "Слідкуйте за грибником у лісі в реальному часі",
+  "name": "Mushroom Radar",
+  "short_name": "Грибний Радар",
+  "description": "Прогноз плодоношення грибів, карта лісів і безпека в поході",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0a0a",
-  "theme_color": "#16a34a",
+  "background_color": "#FBF8F1",
+  "theme_color": "#2F4A3A",
   "lang": "uk",
   "icons": [
     {
