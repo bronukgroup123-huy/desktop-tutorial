@@ -111,8 +111,8 @@ export default function MapPage() {
         </div>
       </header>
 
-      <div className="flex-1 relative min-h-0 mx-4 mb-4 rounded-3xl overflow-hidden border border-cream-300 shadow-soft">
-        <div id="map-container" className="absolute inset-0"></div>
+      <div className="flex-1 relative min-h-0 mx-4 mb-4 rounded-3xl overflow-hidden border border-cream-300 shadow-lg">
+        <MapCanvas onPick={handlePick} activeLayer={activeLayer} />
       </div>
 
       <div className="fixed left-0 right-0 z-40 bg-white rounded-t-3xl shadow-xl p-4 transition-transform duration-300 ease-out translate-y-full" style={{ bottom: "var(--nav-h)" }}>
