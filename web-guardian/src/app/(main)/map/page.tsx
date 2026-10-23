@@ -111,7 +111,9 @@ export default function MapPage() {
             </div>
             <h1 className="font-serif font-semibold text-forest-dark text-[26px] leading-tight">Map</h1>
           </div>
-          <button className="p-2 rounded-xl bg-cream-200 text-ink-muted hover:bg-cream-300 transition-colors" aria-label="Refresh">
+          <button
+            type="button"
+            className="p-2 rounded-xl bg-cream-200 text-ink-muted hover:bg-cream-300 transition-colors" aria-label="Refresh">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
               <path d="M21 3v5h-5" />
@@ -121,6 +123,7 @@ export default function MapPage() {
 
         <div className="flex gap-2 overflow-x-auto scroll-hide px-4 pb-2">
           <button
+            type="button"
             onClick={() => setActiveLayer("forest")}
             className="layer-toggle flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border border-cream-300 bg-white text-ink-muted transition-all"
           >
@@ -130,6 +133,7 @@ export default function MapPage() {
             Forest
           </button>
           <button
+            type="button"
             onClick={() => setActiveLayer("heat")}
             className="layer-toggle flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border border-cream-300 bg-white text-ink-muted transition-all"
           >
@@ -139,6 +143,7 @@ export default function MapPage() {
             Heat
           </button>
           <button
+            type="button"
             onClick={() => setActiveLayer("my")}
             className="layer-toggle flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border border-cream-300 bg-white text-ink-muted transition-all"
           >
@@ -150,6 +155,7 @@ export default function MapPage() {
           </button>
           <div className="relative">
             <button
+              type="button"
               onClick={() => setShowForestTypeMenu(!showForestTypeMenu)}
               className="layer-toggle flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border border-cream-300 bg-white text-ink-muted transition-all"
             >
@@ -165,6 +171,7 @@ export default function MapPage() {
                 {FOREST_TYPES.map((type) => (
                   <button
                     key={type.value}
+                    type="button"
                     onClick={() => handleForestTypeChange(type.value)}
                     className="w-full px-3 py-2 text-sm text-left transition-colors"
                   >
@@ -194,18 +201,22 @@ export default function MapPage() {
         >
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-semibold text-forest-dark">Action</h2>
-            <button onClick={closeLongPressMenu} className="text-2xl text-ink-muted hover:text-ink">×</button>
+            <button
+            type="button"
+            onClick={closeLongPressMenu} className="text-2xl text-ink-muted hover:text-ink">×</button>
           </div>
           <p className="text-sm text-ink-muted mb-4">
             Forest: {longPressMenu.feature.properties?.name || "Unknown"} ({longPressMenu.feature.properties?.forest_type || "unknown"})
           </p>
           <button
+            type="button"
             onClick={handleAddRoute}
             className="w-full rounded-xl bg-amberbrand py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Add Route
           </button>
           <button
+            type="button"
             onClick={closeLongPressMenu}
             className="w-full mt-2 rounded-xl border border-cream-300 bg-white py-3 text-sm font-medium text-ink-muted transition-colors hover:bg-cream-100"
           >
@@ -222,7 +233,9 @@ export default function MapPage() {
           <h2 className="text-xl font-semibold text-forest-dark">
             Forest
           </h2>
-          <button className="text-2xl text-ink-muted hover:text-ink" aria-label="Close">×</button>
+          <button
+            type="button"
+            className="text-2xl text-ink-muted hover:text-ink" aria-label="Close">×</button>
         </div>
 
         <div className="text-center py-12 text-ink-muted">

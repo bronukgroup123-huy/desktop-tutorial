@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Map as MapLibreMap, MapMouseEvent, LngLatLike } from "maplibre-gl";
+import type { Map as MapLibreMap, LngLatLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { FUNCTIONS_URL } from "@/lib/constants";
 
 const KYIV_CENTER: [number, number] = [30.52, 50.45];
 const INITIAL_ZOOM = 10;
-const DEBOUNCE_MS = 300;
 const LONG_PRESS_MS = 500;
 const UKRAINE_BOUNDS: [number, number, number, number] = [28.0, 49.0, 33.0, 52.0];
 
@@ -110,39 +109,29 @@ export function MapCanvas({
       mapRef.current = map;
       map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
 
-      const loadForestZones = async () => {
-        const current = mapRef.current;
-        if (!current || !current.isStyleLoaded()) return;
-        const bounds = current.getBounds();
-        const bbox = [
-          bounds.getWest(),
-          bounds.getSouth(),
-          bounds.getEast(),
-          bounds.getNorth(),
-        ];
-        try {
-          const res = await fetch(
-            `${FUNCTIONS_URL}/v1-forest-zones?bbox=${bbox.join(",")}&limit=5000`
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          const source = current.getSource(
-            "forests"
-          ) as import("maplibre-gl").GeoJSONSource | undefined;
-          if (source) {
-            source.setData(data as unknown as GeoJSON.FeatureCollection);
-            setIsSourceLoaded(true);
+      // Load static GeoJSON once on map load
+      try {
+        const response = await fetch("/data/forests.geojson");
+        if (response.ok) {
+          const geojson = await response.json();
+          const currentMap = mapRef.current;
+          if (currentMap && currentMap.isStyleLoaded()) {
+            const source = currentMap.getSource("forests") as import("maplibre-gl").GeoJSONSource | undefined;
+            if (source) {
+              source.setData(geojson);
+            }
           }
-        } catch (err) {
-          console.error("Forest zones load failed:", err);
+        } else {
+          console.warn("Failed to load /data/forests.geojson");
         }
-      };
-
-      const debouncedLoad = debounce(loadForestZones, DEBOUNCE_MS);
+      } catch (err) {
+        console.error("Failed to load static forests.geojson:", err);
+      }
 
       map.on("load", () => {
         const currentMap = map;
         if (!currentMap) return;
+
         currentMap.addSource("forests", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
@@ -167,11 +156,7 @@ export function MapCanvas({
         });
 
         applyForestTypeFilter(currentMap);
-
-        void loadForestZones();
       });
-
-      map.on("moveend", debouncedLoad);
 
       map.on("click", "forest-fill-layer", (e: any) => {
         const feature = e.features?.[0];
