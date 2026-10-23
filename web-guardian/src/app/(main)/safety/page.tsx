@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ShieldAlert, AlertTriangle, Skull, MapPin, Navigation, X } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 const DEADLY = [
   {
     name: "Бліда поганка",
