@@ -10,12 +10,6 @@ const INITIAL_ZOOM = 10;
 const LONG_PRESS_MS = 500;
 const UKRAINE_BOUNDS: [number, number, number, number] = [28.0, 49.0, 33.0, 52.0];
 
-// Embedded GeoJSON data (placeholder - replace with actual data from SQL export)
-const FORESTS_GEOJSON = {
-  type: "FeatureCollection",
-  features: []
-} as any;
-
 interface MapCanvasProps {
   onPick: (point: { lat: number; lng: number }) => void;
   activeLayer: "forest" | "heat" | "my";
@@ -37,7 +31,6 @@ export function MapCanvas({
   const onForestClickRef = useRef(onForestClick);
   const onLongPressRef = useRef(onLongPress);
   const forestTypeFilterRef = useRef(forestTypeFilter);
-  const [isSourceLoaded, setIsSourceLoaded] = useState(false);
 
   useEffect(() => {
     onPickRef.current = onPick;
@@ -115,12 +108,32 @@ export function MapCanvas({
       mapRef.current = map;
       map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
 
-      // Load embedded GeoJSON once on map load
-      const currentMap = map;
-      if (currentMap) {
+      // Load static GeoJSON from local file once on map load
+      try {
+        const response = await fetch("/data/forests.geojson");
+        if (response.ok) {
+          const geojson = await response.json();
+          const currentMap = mapRef.current;
+          if (currentMap && currentMap.isStyleLoaded()) {
+            const source = currentMap.getSource("forests") as import("maplibre-gl").GeoJSONSource | undefined;
+            if (source) {
+              source.setData(geojson);
+            }
+          }
+        } else {
+          console.warn("Failed to load /data/forests.geojson");
+        }
+      } catch (err) {
+        console.error("Failed to load static forests.geojson:", err);
+      }
+
+      map.on("load", () => {
+        const currentMap = map;
+        if (!currentMap) return;
+
         currentMap.addSource("forests", {
           type: "geojson",
-          data: FORESTS_GEOJSON,
+          data: { type: "FeatureCollection", features: [] },
         });
 
         currentMap.addLayer({
@@ -142,7 +155,7 @@ export function MapCanvas({
         });
 
         applyForestTypeFilter(currentMap);
-      }
+      });
 
       map.on("click", "forest-fill-layer", (e: any) => {
         const feature = e.features?.[0];
