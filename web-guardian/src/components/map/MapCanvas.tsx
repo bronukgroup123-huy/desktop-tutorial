@@ -111,7 +111,7 @@ export function MapCanvas({
 
       // Load static GeoJSON once on map load
       try {
-        const response = await fetch("/data/forests.geojson");
+        const response = await fetch("/forests.geojson");
         if (response.ok) {
           const geojson = await response.json();
           const currentMap = mapRef.current;
