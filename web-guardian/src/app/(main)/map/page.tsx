@@ -178,7 +178,13 @@ export default function MapPage() {
       </header>
 
       <div className="flex-1 relative min-h-0 mx-4 mb-4 rounded-3xl overflow-hidden border border-cream-300 shadow-lg">
-        <div id="map-container" className="absolute inset-0"></div>
+        <MapCanvas
+          onPick={handlePick}
+          activeLayer={activeLayer}
+          onForestClick={handleForestClick}
+          onLongPress={handleLongPress}
+          forestTypeFilter={forestTypeFilter}
+        />
       </div>
 
       {longPressMenu && (
