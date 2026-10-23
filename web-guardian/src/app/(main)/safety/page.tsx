@@ -1,6 +1,8 @@
 "use client";
 
-import { ShieldAlert, AlertTriangle, Skull } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { ShieldAlert, AlertTriangle, Skull, MapPin, Navigation, X } from "lucide-react";
 
 const DEADLY = [
   {
@@ -47,9 +49,71 @@ const DEADLY = [
   },
 ];
 
-export default function SafetyPage() {
+function SafetyContent() {
+  const searchParams = useSearchParams();
+  const [destLat, setDestLat] = useState<string | null>(null);
+  const [destLng, setDestLng] = useState<string | null>(null);
+
+  useEffect(() => {
+    const lat = searchParams.get("destLat");
+    const lng = searchParams.get("destLng");
+    if (lat && lng) {
+      setDestLat(lat);
+      setDestLng(lng);
+    }
+  }, [searchParams]);
+
+  const clearRoute = () => {
+    setDestLat(null);
+    setDestLng(null);
+  };
+
   return (
     <div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50 overflow-y-auto p-4 pb-[calc(var(--nav-h)+1rem)]">
+      {destLat && destLng && (
+        <div className="mb-4 rounded-2xl bg-amberbrand/10 border border-amberbrand/30 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Navigation size={20} className="text-amberbrand" />
+              <h2 className="font-serif text-lg font-semibold text-amberbrand">Маршрут до лісу</h2>
+            </div>
+            <button
+              onClick={clearRoute}
+              className="p-1 rounded-lg text-ink-muted hover:bg-cream-200 transition-colors"
+              aria-label="Закрити маршрут"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300">
+              <p className="text-xs text-ink-muted uppercase tracking-wider">Цільова точка</p>
+              <p className="font-semibold text-forest-dark font-mono text-sm">
+                {parseFloat(destLat).toFixed(4)}N, {parseFloat(destLng).toFixed(4)}E
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300">
+              <p className="text-xs text-ink-muted uppercase tracking-wider">Статус</p>
+              <p className="font-semibold text-forest">Маршрут готовий</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-white p-3 shadow-soft border border-cream-300 mb-3">
+            <p className="text-xs text-ink-muted uppercase tracking-wider mb-2">Дії</p>
+            <div className="flex gap-2">
+              <button className="flex-1 rounded-xl bg-forest-dark py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                <Navigation className="inline w-4 h-4 mr-1" /> Навігація
+              </button>
+              <button className="flex-1 rounded-xl border border-cream-300 bg-white py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-cream-100">
+                Зберегти
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-ink-muted text-center">
+            Додайте моє місцезнаходження для побудови маршруту (функція в розробці)
+          </p>
+        </div>
+      )}
+
       <header className="mb-6">
         <h1 className="font-serif text-3xl font-semibold text-forest-dark">Безпека</h1>
         <p className="text-ink-muted text-sm mt-1">Отруйні та смертельно отруйні гриби України</p>
@@ -62,7 +126,7 @@ export default function SafetyPage() {
         </div>
         <p className="text-sm text-ink-muted">
           Їжте тільки ті гриби, які ви впевнено визначили. Сумнівний гриб —
-          не беріть. При отруєнні зверніться по телефону <strong>103</strong> або
+          не бери. При отруєнні зверніться по телефону <strong>103</strong> або
           <strong>112</strong>.
         </p>
       </section>
@@ -85,5 +149,13 @@ export default function SafetyPage() {
         </ul>
       </section>
     </div>
+  );
+}
+
+export default function SafetyPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col h-[var(--app-vh)] w-full bg-cream-50 items-center justify-center">Завантаження…</div>}>
+      <SafetyContent />
+    </Suspense>
   );
 }
