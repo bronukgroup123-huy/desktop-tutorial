@@ -1,6 +1,7 @@
--- SQL Query to generate GeoJSON FeatureCollection from forest_zones table
--- Run this in Supabase SQL Editor, or use as RPC function
--- Correct column names: polygon (not geom), forest_type, region_id, stand_age_years
+-- SQL Query to generate simplified GeoJSON FeatureCollection from forest_zones table
+-- Run this in Supabase SQL Editor
+-- Uses ST_Simplify to reduce vertex count while preserving topology
+-- ST_AsGeoJSON with 4 decimal places (approx 11m precision) instead of default 8-9
 
 SELECT jsonb_build_object(
   'type', 'FeatureCollection',
@@ -8,7 +9,7 @@ SELECT jsonb_build_object(
     jsonb_build_object(
       'type', 'Feature',
       'id', id,
-      'geometry', ST_AsGeoJSON(polygon)::jsonb,
+      'geometry', ST_AsGeoJSON(ST_SimplifyPreserveTopology(polygon, 0.0001), 4)::jsonb,
       'properties', jsonb_build_object(
         'id', id,
         'forest_type', forest_type,

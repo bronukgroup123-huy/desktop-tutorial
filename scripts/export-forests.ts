@@ -91,38 +91,19 @@ async function exportForests() {
     features
   };
   
-  // Write to public/forests.geojson for reference
-  const publicPath = path.resolve(process.cwd(), 'web-guardian/public/forests.geojson');
-  const publicDir = path.dirname(publicPath);
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
+  // Write to public/data/forests.geojson for static serving
+  const publicDataPath = path.resolve(process.cwd(), 'web-guardian/public/data/forests.geojson');
+  const publicDataDir = path.dirname(publicDataPath);
+  if (!fs.existsSync(publicDataDir)) {
+    fs.mkdirSync(publicDataDir, { recursive: true });
   }
-  fs.writeFileSync(path.join(process.cwd(), 'web-guardian/public/forests.geojson'), JSON.stringify(geojson, null, 2));
-  console.log(`GeoJSON written to web-guardian/public/forests.geojson`);
+  fs.writeFileSync(publicDataPath, JSON.stringify(geojson));
+  console.log(`GeoJSON written to web-guardian/public/data/forests.geojson`);
   console.log(`Features count: ${geojson.features.length}`);
   
-  // Generate the API route with EMBEDDED data
-  const routeContent = `import { NextResponse } from 'next/server';
-
-const GEOJSON_DATA = ${JSON.stringify(geojson, null, 2)};
-
-export async function GET() {
-  return Response.json(GEOJSON_DATA, {
-    headers: {
-      'Content-Type': 'application/geo+json',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
-}
-`;
-  
-  const routePath = path.resolve(process.cwd(), 'web-guardian/src/app/api/data/forests/route.ts');
-  const routeDir = path.dirname(routePath);
-  if (!fs.existsSync(routeDir)) {
-    fs.mkdirSync(routeDir, { recursive: true });
-  }
-  fs.writeFileSync(routePath, routeContent);
-  console.log(`API route generated at ${routePath} with ${geojson.features.length} features embedded`);
+  // Check file size
+  const stats = fs.statSync(publicDataPath);
+  console.log(`File size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
 }
 
 exportForests().catch(console.error);
