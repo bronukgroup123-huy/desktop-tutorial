@@ -154,11 +154,25 @@ export function MapCanvas({
             data: { type: "FeatureCollection", features: [] },
           });
 
+          // TODO: V2 - Інтеграція з Copernicus HRL Dominant Leaf Type для автоматичного визначення порід дерев (pine/oak) там, де OSM має null.
           currentMap.addLayer({
             id: "forest-fill-layer",
             type: "fill",
             source: "forests",
-            paint: { "fill-color": "#22c55e", "fill-opacity": 0.4 },
+            paint: {
+              "fill-color": [
+                "match",
+                ["get", "forest_type"],
+                "pine", "#1e5631",
+                "oak", "#8ab17d",
+                "birch", "#a8d08d",
+                "mixed", "#6b8c6b",
+                "coniferous", "#2d5a3d",
+                "deciduous", "#5c8c5c",
+                "#4caf5e",
+              ],
+              "fill-opacity": 0.4,
+            },
           });
 
           currentMap.addLayer({

@@ -17,6 +17,15 @@ const FOREST_TYPES = [
   { value: "mixed", label: "Mixed", icon: null },
 ] as const;
 
+const FOREST_TYPE_LABELS: Record<string, string> = {
+  pine: "Сосновий ліс",
+  oak: "Дубовий ліс (діброва)",
+  birch: "Березовий ліс",
+  mixed: "Змішаний ліс",
+  coniferous: "Хвойний ліс",
+  deciduous: "Листяний ліс",
+};
+
 export default function MapPage() {
   const router = useRouter();
   const [forecast, setForecast] = useState<any | null>(null);
@@ -238,9 +247,23 @@ export default function MapPage() {
             className="text-2xl text-ink-muted hover:text-ink" aria-label="Close">×</button>
         </div>
 
-        <div className="text-center py-12 text-ink-muted">
-          <p className="text-sm">Click on map for mushroom forecast</p>
-        </div>
+        {selectedForest ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-cream-50 rounded-xl border border-cream-200">
+              <p className="text-sm text-ink-muted">Тип лісу:</p>
+            <p className="text-lg font-medium text-forest-dark">
+              {selectedForest.properties?.forest_type
+                ? FOREST_TYPE_LABELS[selectedForest.properties.forest_type] ||
+                  selectedForest.properties.forest_type
+                : "Невідомо (базова карта OSM)"}
+            </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-ink-muted">
+            <p className="text-sm">Click on map for mushroom forecast</p>
+          </div>
+        )}
 
         <div className="mt-4 flex items-center gap-4 text-[10px] text-ink-muted">
           <div className="flex items-center gap-1.5">
