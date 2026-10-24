@@ -4217,7 +4217,7 @@ body.modal-open { overflow: hidden; }
       var FORESTS_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/forest-data/forests.geojson';
       var KYIV_CENTER = [30.52, 50.45];
       var INITIAL_ZOOM = 10;
-      var UKRAINE_BOUNDS = [28.0, 49.0, 33.0, 52.0];
+      var UKRAINE_BOUNDS = [20.0, 44.0, 40.0, 55.0];
 
       var map = new maplibregl.Map({
         container: 'map',
@@ -4275,25 +4275,6 @@ body.modal-open { overflow: hidden; }
         });
 
         map.addLayer({
-          id: 'forest-pattern-layer',
-          type: 'fill',
-          source: 'forests',
-          paint: {
-            'fill-pattern': [
-              'match',
-              ['get', 'forest_type'],
-              'pine', 'pattern-pine',
-              'oak', 'pattern-leaf',
-              'birch', 'pattern-leaf',
-              'coniferous', 'pattern-pine',
-              'deciduous', 'pattern-leaf',
-              '',
-            ],
-            'fill-opacity': 0.4,
-          },
-        });
-
-        map.addLayer({
           id: 'forest-outline-layer',
           type: 'line',
           source: 'forests',
@@ -4304,19 +4285,6 @@ body.modal-open { overflow: hidden; }
           },
         });
 
-        // Load seamless textures as inline SVG Data URIs (no external CDN dependency)
-        var PATTERN_PINE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%231e5631"/><polygon points="32,4 36,20 28,20" fill="%232e7d32"/><polygon points="32,16 36,32 28,32" fill="%232e7d32"/><polygon points="32,28 36,44 28,44" fill="%232e7d32"/></svg>';
-        var PATTERN_LEAF = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%234caf50"/><circle cx="16" cy="16" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="48" cy="16" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="16" cy="48" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="48" cy="48" r="4" fill="%232e7d32" opacity="0.6"/></svg>';
-        map.addImage('pattern-pine', new Image(), false);
-        map.addImage('pattern-leaf', new Image(), false);
-        // Decode and assign images asynchronously
-        var imgPine = new Image();
-        imgPine.onload = function() { map.addImage('pattern-pine', imgPine); };
-        imgPine.src = PATTERN_PINE;
-        var imgLeaf = new Image();
-        imgLeaf.onload = function() { map.addImage('pattern-leaf', imgLeaf); };
-        imgLeaf.src = PATTERN_LEAF;
-
         var geoJsonLogged = false;
         var allForestTypesMissing = true;
 
@@ -4324,7 +4292,13 @@ body.modal-open { overflow: hidden; }
           try {
             var response = await fetch(FORESTS_URL);
             if (!response.ok) {
-              alert('Помилка завантаження лісів: ' + response.status);
+              var diagPanel = document.getElementById('diag-panel');
+              var diagError = document.getElementById('diag-error');
+              if (diagPanel) diagPanel.classList.remove('hidden');
+              if (diagError) {
+                diagError.classList.remove('hidden');
+                diagError.textContent = 'Файл лісів не знайдено або він порожній';
+              }
               return;
             }
             var data = await response.json();
@@ -4354,6 +4328,17 @@ body.modal-open { overflow: hidden; }
               source.setData(data);
             }
 
+            // If we have features but they may not render
+            if (totalFeatures > 0) {
+              var diagPanel = document.getElementById('diag-panel');
+              var diagCount = document.getElementById('diag-count');
+              if (diagPanel) diagPanel.classList.remove('hidden');
+              if (diagCount) {
+                diagCount.textContent = 'Дані є, але вони не рендеряться';
+                diagCount.className = 'text-red-400 font-mono';
+              }
+            }
+
             if (!geoJsonLogged && data.features && data.features.length > 0) {
               for (var i = 0; i < Math.min(3, data.features.length); i++) {
                 console.log('Forest feature #' + i + ' properties:', data.features[i].properties);
@@ -4373,7 +4358,6 @@ body.modal-open { overflow: hidden; }
               }
             }
           } catch (err) {
-            alert('Помилка завантаження лісів: ' + (err.message || err));
             console.error('MapCanvas: load forests error:', err);
 
             var diagPanel = document.getElementById('diag-panel');
@@ -4381,7 +4365,7 @@ body.modal-open { overflow: hidden; }
             if (diagPanel) diagPanel.classList.remove('hidden');
             if (diagError) {
               diagError.classList.remove('hidden');
-              diagError.textContent = 'Помилка: ' + (err.message || err);
+              diagError.textContent = 'Файл лісів не знайдено або він порожній';
             }
           }
         })();
@@ -4405,9 +4389,6 @@ body.modal-open { overflow: hidden; }
               }
               if (map.getLayer('forest-outline-layer')) {
                 map.setLayoutProperty('forest-outline-layer', 'visibility', layersVisible ? 'visible' : 'none');
-              }
-              if (map.getLayer('forest-pattern-layer')) {
-                map.setLayoutProperty('forest-pattern-layer', 'visibility', layersVisible ? 'visible' : 'none');
               }
             } catch (e) {
               console.error('Map layer toggle error:', e);
