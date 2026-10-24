@@ -158,7 +158,7 @@ export function MapCanvas({
             id: "forest-fill-layer",
             type: "fill",
             source: "forests",
-            paint: { "fill-color": "#22c55e", "fill-opacity": 0.5 },
+            paint: { "fill-color": "#22c55e", "fill-opacity": 0.4 },
           });
 
           currentMap.addLayer({
