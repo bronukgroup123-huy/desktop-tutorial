@@ -108,9 +108,9 @@ export function MapCanvas({
       mapRef.current = map;
       map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
 
-      // Load static GeoJSON from /forests.geojson once on map load
+      // Load static GeoJSON from API route once on map load
       try {
-        const response = await fetch("/forests.geojson");
+        const response = await fetch("/api/data/forests");
         if (response.ok) {
           const geojson = await response.json();
           const currentMap = mapRef.current;
@@ -121,7 +121,7 @@ export function MapCanvas({
             }
           }
         } else {
-          console.warn("Failed to load /forests.geojson");
+          console.warn("Failed to load /api/data/forests");
         }
       } catch (err) {
         console.error("Failed to load forests.geojson:", err);
