@@ -19,25 +19,50 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function exportForests() {
   console.log('Connecting to Supabase...');
   
-  console.log('Querying forest_zones...');
-  const { data, error } = await supabase
-    .from('forest_zones')
-    .select('id, polygon, forest_type, region_id, stand_age_years');
+  console.log('Querying forest_zones (fetching ALL records)...');
   
-  if (error) {
-    console.error('Query error:', error.message);
-    process.exit(1);
+  const PAGE_SIZE = 1000;
+  let allData: any[] = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    console.log(`Fetching records ${from} to ${from + PAGE_SIZE - 1}...`);
+    
+    const { data, error } = await supabase
+      .from('forest_zones')
+      .select('id, polygon, forest_type, region_id, stand_age_years')
+      .range(from, from + PAGE_SIZE - 1);
+    
+    if (error) {
+      console.error('Query error:', error.message);
+      process.exit(1);
+    }
+    
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+    
+    allData = allData.concat(data);
+    console.log(`Fetched ${data.length} records (total: ${allData.length})`);
+    
+    if (data.length < PAGE_SIZE) {
+      hasMore = false;
+    } else {
+      from += PAGE_SIZE;
+    }
   }
   
-  if (!data || data.length === 0) {
+  if (allData.length === 0) {
     console.log('No data found in forest_zones');
     process.exit(1);
   }
   
-  console.log(`Found ${data.length} forest zones`);
+  console.log(`Total records fetched: ${allData.length}`);
   
   // Convert to GeoJSON FeatureCollection
-  const features = data.map(row => {
+  const features = allData.map(row => {
     let geometry = row.polygon;
     let geometryData = geometry;
     if (typeof geometry === 'string') {
@@ -76,18 +101,30 @@ async function exportForests() {
   console.log(`GeoJSON written to web-guardian/public/forests.geojson`);
   console.log(`Features count: ${geojson.features.length}`);
   
-  // Generate the API route with embedded data
+  // Generate the API route that reads from file
   const routeContent = `import { NextResponse } from 'next/server';
-
-const GEOJSON_DATA = ${JSON.stringify(geojson, null, 2)};
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function GET() {
-  return Response.json(GEOJSON_DATA, {
-    headers: {
-      'Content-Type': 'application/geo+json',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'forests.geojson');
+    const fileContents = fs.readFileSync(filePath, 'utf-8');
+    const geojson = JSON.parse(fileContents);
+    
+    return Response.json(geojson, {
+      headers: {
+        'Content-Type': 'application/geo+json',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+  } catch (error) {
+    console.error('Error loading forests.geojson:', error);
+    return Response.json(
+      { type: 'FeatureCollection', features: [] },
+      { status: 500 }
+    );
+  }
 }
 `;
   
