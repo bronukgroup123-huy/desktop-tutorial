@@ -3,15 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
-  async rewrites() {
-    return [
-      {
-        source: '/data/forests.geojson',
-        destination: '/forests.geojson',
-      },
-    ];
-  },
-
   async headers() {
     return [
       {
