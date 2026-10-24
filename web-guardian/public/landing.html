@@ -1229,6 +1229,12 @@ body.modal-open { overflow: hidden; }
           <div class="relative rounded-3xl overflow-hidden border border-cream-300 shadow-soft" style="height: calc(100vh - 60px); width: 100%;">
             <div id="map" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
 
+            <!-- Diagnostics overlay (temporary, for mobile debugging) -->
+            <div id="diag-panel" class="absolute bottom-2 left-2 z-50 bg-black/80 text-white text-xs px-2 py-1.5 rounded border border-white/20 pointer-events-none hidden">
+              <div id="diag-count" class="text-green-400 font-mono"></div>
+              <div id="diag-error" class="text-red-400 font-mono mt-1 hidden"></div>
+            </div>
+
             <!-- FAB add -->
             <button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-amberbrand text-white shadow-lift flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-10" aria-label="Додати знахідку">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14 M5 12h14"/></svg>
@@ -4321,8 +4327,6 @@ body.modal-open { overflow: hidden; }
           })
           .then(function(geojson) {
             var totalBefore = geojson.features ? geojson.features.length : 0;
-            console.log('Всього полігонів до фільтрації:', totalBefore);
-
             var filteredFeatures = [];
 
             if (geojson.features && geojson.features.length > 0) {
@@ -4341,15 +4345,24 @@ body.modal-open { overflow: hidden; }
                   coords = maxRing;
                 }
 
-                if (coords.length >= 15) {
+                if (coords.length >= 5) {
                   filteredFeatures.push(feature);
                 }
               });
             }
 
+            console.log('Всього полігонів до фільтрації:', totalBefore);
             console.log('Полігонів після фільтрації:', filteredFeatures.length);
             if (filteredFeatures.length > 0) {
               console.log('Приклад першого відфільтрованого полігону:', filteredFeatures[0]);
+            }
+
+            // On-screen diagnostics
+            var diagPanel = document.getElementById('diag-panel');
+            var diagCount = document.getElementById('diag-count');
+            if (diagPanel && diagCount) {
+              diagPanel.classList.remove('hidden');
+              diagCount.textContent = 'До: ' + totalBefore + ' | Після: ' + filteredFeatures.length;
             }
 
             var filteredGeojson = {
@@ -4380,6 +4393,15 @@ body.modal-open { overflow: hidden; }
           })
           .catch(function(err) {
             console.error('MapCanvas: load forests error:', err);
+
+            // On-screen error diagnostics
+            var diagPanel = document.getElementById('diag-panel');
+            var diagError = document.getElementById('diag-error');
+            if (diagPanel && diagError) {
+              diagPanel.classList.remove('hidden');
+              diagError.classList.remove('hidden');
+              diagError.textContent = 'Помилка: ' + (err.message || err);
+            }
           });
 
         var btnForest = document.getElementById('btn-layer-forest');
