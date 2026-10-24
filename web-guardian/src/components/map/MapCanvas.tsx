@@ -31,6 +31,8 @@ export function MapCanvas({
   const onForestClickRef = useRef(onForestClick);
   const onLongPressRef = useRef(onLongPress);
   const forestTypeFilterRef = useRef(forestTypeFilter);
+  const [isLoading, setIsLoading] = useState(true);
+  const forestsFetchedRef = useRef(false);
 
   useEffect(() => {
     onPickRef.current = onPick;
@@ -108,24 +110,33 @@ export function MapCanvas({
       mapRef.current = map;
       map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
 
-      // Load static GeoJSON from API route once on map load
-      try {
-        const response = await fetch("/api/data/forests");
-        if (response.ok) {
-          const geojson = await response.json();
-          const currentMap = mapRef.current;
-          if (currentMap && currentMap.isStyleLoaded()) {
-            const source = currentMap.getSource("forests") as import("maplibre-gl").GeoJSONSource | undefined;
-            if (source) {
-              source.setData(geojson);
-            }
+      const geojsonUrl = process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL;
+      let geojsonData: any = null;
+      if (geojsonUrl) {
+        try {
+          const response = await fetch(geojsonUrl);
+          if (response.ok) {
+            geojsonData = await response.json();
+          } else {
+            console.warn("Failed to load forests.geojson from", geojsonUrl);
           }
-        } else {
-          console.warn("Failed to load /api/data/forests");
+        } catch (err) {
+          console.error("Failed to load forests.geojson:", err);
         }
-      } catch (err) {
-        console.error("Failed to load forests.geojson:", err);
       }
+      const applyForestsData = () => {
+        const currentMap = mapRef.current;
+        if (currentMap && currentMap.isStyleLoaded() && forestsFetchedRef.current) {
+          const source = currentMap.getSource("forests") as import("maplibre-gl").GeoJSONSource | undefined;
+          if (source && geojsonData) {
+            source.setData(geojsonData);
+          }
+          setIsLoading(false);
+        }
+      };
+
+      forestsFetchedRef.current = true;
+      applyForestsData();
 
       map.on("load", () => {
         const currentMap = map;
@@ -135,6 +146,8 @@ export function MapCanvas({
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
         });
+
+        applyForestsData();
 
         currentMap.addLayer({
           id: "forest-fill-layer",
@@ -235,7 +248,16 @@ export function MapCanvas({
     };
   }, [activeLayer]);
 
-  return <div ref={containerRef} className="absolute inset-0 z-0" />;
+  return (
+    <div ref={containerRef} className="absolute inset-0 z-0 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" />
+          <p className="mt-2 text-sm font-medium text-gray-700">Завантаження лісів...</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function debounce<Args extends unknown[]>(

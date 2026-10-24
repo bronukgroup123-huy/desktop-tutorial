@@ -19,91 +19,58 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function exportForests() {
   console.log('Connecting to Supabase...');
   
-  console.log('Querying forest_zones (fetching ALL records)...');
+  console.log('Querying forest_zones with server-side simplification...');
   
-  const PAGE_SIZE = 1000;
-  let allData: any[] = [];
-  let from = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    console.log(`Fetching records ${from} to ${from + PAGE_SIZE - 1}...`);
-    
-    const { data, error } = await supabase
-      .from('forest_zones')
-      .select('id, polygon, forest_type, region_id, stand_age_years')
-      .range(from, from + PAGE_SIZE - 1);
-    
-    if (error) {
-      console.error('Query error:', error.message);
-      process.exit(1);
-    }
-    
-    if (!data || data.length === 0) {
-      hasMore = false;
-      break;
-    }
-    
-    allData = allData.concat(data);
-    console.log(`Fetched ${data.length} records (total: ${allData.length})`);
-    
-    if (data.length < PAGE_SIZE) {
-      hasMore = false;
-    } else {
-      from += PAGE_SIZE;
-    }
+  // Single query with server-side simplification using PostGIS
+  const { data, error } = await supabase
+    .from('forest_zones')
+    .select('id, forest_type, region_id, stand_age_years, ST_AsGeoJSON(ST_SimplifyPreserveTopology(polygon, 0.0005), 4) as geometry');
+  
+  if (error) {
+    console.error('Query error:', error.message);
+    process.exit(1);
   }
   
-  if (allData.length === 0) {
+  if (!data || data.length === 0) {
     console.log('No data found in forest_zones');
     process.exit(1);
   }
   
-  console.log(`Total records fetched: ${allData.length}`);
+  console.log('Total records fetched: ' + data.length);
   
   // Convert to GeoJSON FeatureCollection
-  const features = allData.map(row => {
-    let geometry = row.polygon;
-    let geometryData = geometry;
-    if (typeof geometry === 'string') {
-      try {
-        geometryData = JSON.parse(geometry);
-      } catch {
-        // Keep as-is if not valid JSON
-      }
-    }
-    
+  var features = data.map(function(row) {
     return {
       type: 'Feature',
       id: row.id,
-      geometry: geometryData,
+      geometry: typeof row.geometry === 'string' ? JSON.parse(row.geometry) : row.geometry,
       properties: {
         id: row.id,
         forest_type: row.forest_type,
         region_id: row.region_id,
         stand_age_years: row.stand_age_years
       }
-    };
+    });
   });
   
-  const geojson = {
+  var geojson = {
     type: 'FeatureCollection',
-    features
+    features: features
   };
   
   // Write to public/data/forests.geojson for static serving
-  const publicDataPath = path.resolve(process.cwd(), 'web-guardian/public/data/forests.geojson');
-  const publicDataDir = path.dirname(publicDataPath);
+  var publicDataPath = path.resolve(process.cwd(), 'web-guardian/public/data/forests.geojson');
+  var publicDataDir = path.dirname(publicDataPath);
   if (!fs.existsSync(publicDataDir)) {
     fs.mkdirSync(publicDataDir, { recursive: true });
   }
   fs.writeFileSync(publicDataPath, JSON.stringify(geojson));
-  console.log(`GeoJSON written to web-guardian/public/data/forests.geojson`);
-  console.log(`Features count: ${geojson.features.length}`);
+  console.log('GeoJSON written to web-guardian/public/data/forests.geojson');
+  console.log('Features count: ' + geojson.features.length);
   
   // Check file size
-  const stats = fs.statSync(publicDataPath);
-  console.log(`File size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+  var stats = fs.statSync(publicDataPath);
+  console.log('File size: ' + (stats.size / 1024 / 1024).toFixed(2) + ' MB');
 }
 
 exportForests().catch(console.error);
