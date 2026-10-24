@@ -32,7 +32,10 @@ export function MapCanvas({
   const forestTypeFilterRef = useRef(forestTypeFilter);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [debugMsg, setDebugMsg] = useState<string>('Init...');
+
+  const FORESTS_URL =
+    process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL ||
+    'https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/forest-data/forests.geojson';
 
   useEffect(() => {
     onPickRef.current = onPick;
@@ -67,7 +70,6 @@ export function MapCanvas({
   }, []);
 
   useEffect(() => {
-    setDebugMsg('URL: ' + (process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL ? 'OK' : 'MISSING'));
     let cancelled = false;
     let map: MapLibreMap | null = null;
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -79,13 +81,7 @@ export function MapCanvas({
 
     async function loadForests(currentMap: MapLibreMap) {
       try {
-        const geojsonUrl = process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL;
-
-        if (!geojsonUrl) {
-          setDebugMsg('URL: MISSING');
-          setIsLoading(false);
-          return;
-        }
+        const geojsonUrl = FORESTS_URL;
 
         const response = await fetch(geojsonUrl);
         if (!response.ok) {
@@ -94,7 +90,6 @@ export function MapCanvas({
 
         const geojson = await response.json();
         const featureCount = geojson?.features?.length ?? 0;
-        setDebugMsg('Fetched: ' + (geojson.features ? geojson.features.length : 0) + ' features');
 
         if (cancelled) return;
 
@@ -110,7 +105,6 @@ export function MapCanvas({
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
         setIsLoading(false);
-        setDebugMsg('Error: ' + msg);
         console.error("MapCanvas: load forests error:", err);
       }
     }
@@ -177,8 +171,6 @@ export function MapCanvas({
               "line-opacity": 0.6,
             },
           });
-
-          setDebugMsg('Layer added to map');
 
           applyForestTypeFilter(currentMap);
 
@@ -291,12 +283,6 @@ export function MapCanvas({
           <p className="mt-2 text-sm font-medium text-gray-700">Завантаження лісів...</p>
         </div>
       )}
-      <div
-        className="absolute top-2 left-2 z-30 bg-black/90 text-white text-xs px-2 py-1 rounded break-all pointer-events-none"
-        style={{ maxWidth: '60%' }}
-      >
-        {debugMsg}
-      </div>
     </div>
   );
 }
