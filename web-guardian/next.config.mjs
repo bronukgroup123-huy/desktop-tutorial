@@ -3,6 +3,16 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/landing.html',
+        permanent: false,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {
@@ -32,8 +42,8 @@ const nextConfig = {
             key: "Content-Security-Policy-Report-Only",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
+              "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com https://unpkg.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https:",
               "worker-src 'self' blob:",
