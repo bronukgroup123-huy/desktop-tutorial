@@ -91,40 +91,28 @@ async function exportForests() {
     features
   };
   
-  // Write to public/forests.geojson for static serving
+  // Write to public/forests.geojson for reference
   const publicPath = path.resolve(process.cwd(), 'web-guardian/public/forests.geojson');
   const publicDir = path.dirname(publicPath);
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
-  fs.writeFileSync(publicPath, JSON.stringify(geojson, null, 2));
+  fs.writeFileSync(path.join(process.cwd(), 'web-guardian/public/forests.geojson'), JSON.stringify(geojson, null, 2));
   console.log(`GeoJSON written to web-guardian/public/forests.geojson`);
   console.log(`Features count: ${geojson.features.length}`);
   
-  // Generate the API route that reads from file
+  // Generate the API route with EMBEDDED data
   const routeContent = `import { NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
+
+const GEOJSON_DATA = ${JSON.stringify(geojson, null, 2)};
 
 export async function GET() {
-  try {
-    const filePath = path.join(process.cwd(), 'public', 'forests.geojson');
-    const fileContents = fs.readFileSync(filePath, 'utf-8');
-    const geojson = JSON.parse(fileContents);
-    
-    return Response.json(geojson, {
-      headers: {
-        'Content-Type': 'application/geo+json',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    });
-  } catch (error) {
-    console.error('Error loading forests.geojson:', error);
-    return Response.json(
-      { type: 'FeatureCollection', features: [] },
-      { status: 500 }
-    );
-  }
+  return Response.json(GEOJSON_DATA, {
+    headers: {
+      'Content-Type': 'application/geo+json',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  });
 }
 `;
   
@@ -134,7 +122,7 @@ export async function GET() {
     fs.mkdirSync(routeDir, { recursive: true });
   }
   fs.writeFileSync(routePath, routeContent);
-  console.log(`API route generated at ${routePath}`);
+  console.log(`API route generated at ${routePath} with ${geojson.features.length} features embedded`);
 }
 
 exportForests().catch(console.error);
