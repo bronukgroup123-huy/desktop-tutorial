@@ -1218,7 +1218,7 @@ body.modal-open { overflow: hidden; }
         </div>
 
         <!-- Layer toggles -->
-        <div class="px-5 pb-3 flex gap-2 overflow-x-auto scroll-hide">
+        <div class="px-5 pb-3 flex gap-2 overflow-x-auto scroll-hide" style="padding-top: env(safe-area-inset-top); margin-top: 8px; z-index: 10; position: relative;">
           <button id="btn-layer-forest" class="layer-toggle on" data-layer="forest"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 7v10l8 5 8-5V7z"/></svg>Тип лісу</button>
           <button id="btn-layer-heat" class="layer-toggle on" data-layer="heat"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>Теплова</button>
           <button id="btn-layer-my" class="layer-toggle on" data-layer="my"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Мої точки</button>
@@ -4256,13 +4256,32 @@ body.modal-open { overflow: hidden; }
             'fill-color': [
               'match',
               ['get', 'forest_type'],
-              'pine', '#1e5631',
-              'oak', '#8ab17d',
-              'birch', '#a8d08d',
-              'mixed', '#6b8c6b',
-              'coniferous', '#2d5a3d',
-              'deciduous', '#5c8c5c',
-              '#4caf5e',
+              'pine', '#81c784',
+              'oak', '#4caf50',
+              'birch', '#aed581',
+              'mixed', '#9e9e9e',
+              'coniferous', '#66bb6a',
+              'deciduous', '#a5d6a7',
+              '#bdbdbd',
+            ],
+            'fill-opacity': 0.5,
+          },
+        });
+
+        map.addLayer({
+          id: 'forest-pattern-layer',
+          type: 'fill',
+          source: 'forests',
+          paint: {
+            'fill-pattern': [
+              'match',
+              ['get', 'forest_type'],
+              'pine', 'pattern-pine',
+              'oak', 'pattern-leaf',
+              'birch', 'pattern-leaf',
+              'coniferous', 'pattern-pine',
+              'deciduous', 'pattern-leaf',
+              '',
             ],
             'fill-opacity': 0.4,
           },
@@ -4273,11 +4292,27 @@ body.modal-open { overflow: hidden; }
           type: 'line',
           source: 'forests',
           paint: {
-            'line-color': '#2F4A3A',
-            'line-width': 0.6,
-            'line-opacity': 0.6,
+            'line-color': '#2e7d32',
+            'line-width': 1,
+            'line-opacity': 0.5,
           },
         });
+
+        // Load seamless textures as inline SVG Data URIs (no external CDN dependency)
+        var PATTERN_PINE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%231e5631"/><polygon points="32,4 36,20 28,20" fill="%232e7d32"/><polygon points="32,16 36,32 28,32" fill="%232e7d32"/><polygon points="32,28 36,44 28,44" fill="%232e7d32"/></svg>';
+        var PATTERN_LEAF = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%234caf50"/><circle cx="16" cy="16" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="48" cy="16" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="16" cy="48" r="4" fill="%232e7d32" opacity="0.6"/><circle cx="48" cy="48" r="4" fill="%232e7d32" opacity="0.6"/></svg>';
+        map.addImage('pattern-pine', new Image(), false);
+        map.addImage('pattern-leaf', new Image(), false);
+        // Decode and assign images asynchronously
+        var imgPine = new Image();
+        imgPine.onload = function() { map.addImage('pattern-pine', imgPine); };
+        imgPine.src = PATTERN_PINE;
+        var imgLeaf = new Image();
+        imgLeaf.onload = function() { map.addImage('pattern-leaf', imgLeaf); };
+        imgLeaf.src = PATTERN_LEAF;
+
+        var geoJsonLogged = false;
+        var allForestTypesMissing = true;
 
         fetch(FORESTS_URL)
           .then(function(response) {
@@ -4287,6 +4322,22 @@ body.modal-open { overflow: hidden; }
           .then(function(geojson) {
             var source = map.getSource('forests');
             if (source) source.setData(geojson);
+            if (!geoJsonLogged && geojson.features && geojson.features.length > 0) {
+              for (var i = 0; i < Math.min(3, geojson.features.length); i++) {
+                console.log('Forest feature #' + i + ' properties:', geojson.features[i].properties);
+              }
+              geoJsonLogged = true;
+            }
+            // Check if all features have missing/null forest_type
+            if (geojson.features && geojson.features.length > 0) {
+              for (var i = 0; i < geojson.features.length; i++) {
+                var ft = geojson.features[i].properties && geojson.features[i].properties.forest_type;
+                if (ft && ft !== '' && ft !== null) {
+                  allForestTypesMissing = false;
+                  break;
+                }
+              }
+            }
           })
           .catch(function(err) {
             console.error('MapCanvas: load forests error:', err);
@@ -4296,20 +4347,46 @@ body.modal-open { overflow: hidden; }
         var btnHeat = document.getElementById('btn-layer-heat');
         var btnMy = document.getElementById('btn-layer-my');
 
+        var legendModal = document.getElementById('forest-legend-modal');
+        var closeLegendBtn = document.getElementById('close-legend-modal');
+
         if (btnForest) {
           btnForest.addEventListener('click', function() {
-            var active = this.classList.contains('on');
-            if (active) {
-              this.classList.remove('on');
-              map.setLayoutProperty('forest-fill-layer', 'visibility', 'none');
-              map.setLayoutProperty('forest-outline-layer', 'visibility', 'none');
-            } else {
-              this.classList.add('on');
-              map.setLayoutProperty('forest-fill-layer', 'visibility', 'visible');
-              map.setLayoutProperty('forest-outline-layer', 'visibility', 'visible');
+            if (legendModal) {
+              var hidden = legendModal.classList.contains('hidden');
+              if (hidden) {
+                legendModal.classList.remove('hidden');
+                this.classList.add('on');
+                // Show/hide forest type missing warning
+                var warningEl = document.getElementById('legend-warning');
+                if (warningEl) {
+                  if (allForestTypesMissing) {
+                    warningEl.classList.remove('hidden');
+                  } else {
+                    warningEl.classList.add('hidden');
+                  }
+                }
+              } else {
+                legendModal.classList.add('hidden');
+                this.classList.remove('on');
+              }
             }
           });
         }
+
+        if (closeLegendBtn && legendModal) {
+          closeLegendBtn.addEventListener('click', function() {
+            legendModal.classList.add('hidden');
+            btnForest.classList.remove('on');
+          });
+        }
+
+        legendModal.addEventListener('click', function(e) {
+          if (e.target === legendModal) {
+            legendModal.classList.add('hidden');
+            btnForest.classList.remove('on');
+          }
+        });
 
         if (btnHeat) {
           btnHeat.addEventListener('click', function() {
@@ -4343,5 +4420,45 @@ body.modal-open { overflow: hidden; }
       });
     })();
   </script>
+
+        <!-- Forest type legend modal -->
+        <div id="forest-legend-modal" class="fixed inset-0 z-50 bg-black/50 hidden flex items-center justify-center">
+          <div class="bg-white rounded-3xl p-6 w-full max-w-md mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-forest-dark">Типи лісів</h2>
+              <button id="close-legend-modal" class="text-2xl text-ink-muted">&times;</button>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#81c784;"></span>
+                <span class="text-sm font-medium">Сосновий (pine)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#4caf50;"></span>
+                <span class="text-sm font-medium">Дубовий (oak)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#aed581;"></span>
+                <span class="text-sm font-medium">Березовий (birch)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#9e9e9e;"></span>
+                <span class="text-sm font-medium">Змішаний (mixed)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#66bb6a;"></span>
+                <span class="text-sm font-medium">Хвойний (coniferous)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded-full" style="background:#a5d6a7;"></span>
+                <span class="text-sm font-medium">Листяний (deciduous)</span>
+              </div>
+            </div>
+            <p class="mt-4 text-xs text-ink-muted">Якщо колір сірий — тип лісу уточнюється</p>
+            <p id="legend-warning" class="mt-2 text-sm text-red-600 font-medium hidden">
+              ⚠️ У базі відсутні дані про типи лісів. Всі ліси відображаються сірим кольором
+            </p>
+          </div>
+        </div>
  </body>
 </html>
