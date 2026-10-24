@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Map as MapLibreMap, LngLatLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { FUNCTIONS_URL } from "@/lib/constants";
 
 const KYIV_CENTER: [number, number] = [30.52, 50.45];
 const INITIAL_ZOOM = 10;
@@ -32,7 +31,7 @@ export function MapCanvas({
   const onLongPressRef = useRef(onLongPress);
   const forestTypeFilterRef = useRef(forestTypeFilter);
   const [isLoading, setIsLoading] = useState(true);
-  const forestsFetchedRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     onPickRef.current = onPick;
@@ -76,158 +75,177 @@ export function MapCanvas({
     let handleTouchStart: ((e: any) => void) | null = null;
     let handleTouchEnd: (() => void) | null = null;
 
-    async function init() {
-      const maplibregl = (await import("maplibre-gl")).default;
-      if (cancelled || !containerRef.current) return;
+    async function loadForests(currentMap: MapLibreMap) {
+      try {
+        const geojsonUrl = process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL;
+        console.log("MapCanvas: geojsonUrl set?", !!geojsonUrl);
 
-      map = new maplibregl.Map({
-        container: containerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            osm: {
-              type: "raster",
-              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-              tileSize: 256,
-              attribution: "© OpenStreetMap",
-            },
-          },
-          layers: [
-            {
-              id: "osm",
-              type: "raster",
-              source: "osm",
-              minzoom: 0,
-              maxzoom: 19,
-            },
-          ],
-        },
-        center: KYIV_CENTER,
-        zoom: INITIAL_ZOOM,
-        maxBounds: UKRAINE_BOUNDS,
-      });
-
-      mapRef.current = map;
-      map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
-
-      const geojsonUrl = process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL;
-      let geojsonData: any = null;
-      if (geojsonUrl) {
-        try {
-          const response = await fetch(geojsonUrl);
-          if (response.ok) {
-            geojsonData = await response.json();
-          } else {
-            console.warn("Failed to load forests.geojson from", geojsonUrl);
-          }
-        } catch (err) {
-          console.error("Failed to load forests.geojson:", err);
-        }
-      }
-      const applyForestsData = () => {
-        const currentMap = mapRef.current;
-        if (currentMap && currentMap.isStyleLoaded() && forestsFetchedRef.current) {
-          const source = currentMap.getSource("forests") as import("maplibre-gl").GeoJSONSource | undefined;
-          if (source && geojsonData) {
-            source.setData(geojsonData);
-          }
+        if (!geojsonUrl) {
+          console.warn("MapCanvas: NEXT_PUBLIC_FORESTS_GEOJSON_URL is not set");
           setIsLoading(false);
+          return;
         }
-      };
 
-      forestsFetchedRef.current = true;
-      applyForestsData();
+        const response = await fetch(geojsonUrl);
+        if (!response.ok) {
+          throw new Error("Помилка завантаження лісів: " + response.status);
+        }
 
-      map.on("load", () => {
-        const currentMap = map;
-        if (!currentMap) return;
+        const geojson = await response.json();
+        const featureCount = geojson?.features?.length ?? 0;
+        console.log("MapCanvas: forests GeoJSON loaded, features:", featureCount);
 
-        currentMap.addSource("forests", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
+        if (cancelled) return;
 
-        applyForestsData();
+        const source = currentMap.getSource("forests") as
+          | import("maplibre-gl").GeoJSONSource
+          | undefined;
+        if (source) {
+          source.setData(geojson);
+        }
 
-        currentMap.addLayer({
-          id: "forest-fill-layer",
-          type: "fill",
-          source: "forests",
-          paint: { "fill-color": "#4A6B54", "fill-opacity": 0.3 },
-        });
+        setIsLoading(false);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg);
+        setIsLoading(false);
+        console.error("MapCanvas: load forests error:", err);
+      }
+    }
 
-        currentMap.addLayer({
-          id: "forest-outline-layer",
-          type: "line",
-          source: "forests",
-          paint: {
-            "line-color": "#2F4A3A",
-            "line-width": 0.6,
-            "line-opacity": 0.6,
+    async function init() {
+      try {
+        const maplibregl = (await import("maplibre-gl")).default;
+        if (cancelled || !containerRef.current) return;
+
+        map = new maplibregl.Map({
+          container: containerRef.current,
+          style: {
+            version: 8,
+            sources: {
+              osm: {
+                type: "raster",
+                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                tileSize: 256,
+                attribution: "© OpenStreetMap",
+              },
+            },
+            layers: [
+              {
+                id: "osm",
+                type: "raster",
+                source: "osm",
+                minzoom: 0,
+                maxzoom: 19,
+              },
+            ],
           },
+          center: KYIV_CENTER,
+          zoom: INITIAL_ZOOM,
+          maxBounds: UKRAINE_BOUNDS,
         });
 
-        applyForestTypeFilter(currentMap);
-      });
+        mapRef.current = map;
+        map.addControl(new (await import("maplibre-gl")).default.NavigationControl(), "top-right");
 
-      map.on("click", "forest-fill-layer", (e: any) => {
-        const feature = e.features?.[0];
-        if (feature && onForestClickRef.current) {
-          onForestClickRef.current(feature);
-        }
-      });
+        map.on("load", () => {
+          if (cancelled) return;
+          const currentMap = map;
+          if (!currentMap) return;
 
-      map.on("click", (e: any) => {
-        if (!e.features?.find((f: any) => f.layer?.id === "forest-fill-layer")) {
-          onPickRef.current({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-        }
-      });
+          currentMap.addSource("forests", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
 
-      map.on("mousemove", (e) => {
-        const currentMap = map;
-        if (!currentMap) return;
-        const features = currentMap.queryRenderedFeatures(e.point, {
-          layers: ["forest-fill-layer"],
+          currentMap.addLayer({
+            id: "forest-fill-layer",
+            type: "fill",
+            source: "forests",
+            paint: { "fill-color": "#4A6B54", "fill-opacity": 0.3 },
+          });
+
+          currentMap.addLayer({
+            id: "forest-outline-layer",
+            type: "line",
+            source: "forests",
+            paint: {
+              "line-color": "#2F4A3A",
+              "line-width": 0.6,
+              "line-opacity": 0.6,
+            },
+          });
+
+          applyForestTypeFilter(currentMap);
+
+          // OSM тайли вже ініціалізовані, тепер завантажуємо полігони лісів.
+          void loadForests(currentMap);
         });
-        currentMap.getCanvas().style.cursor = features && features.length > 0 ? "pointer" : "";
-      });
 
-      const handleTouchStart = (e: any) => {
-        const currentMap = map;
-        if (!currentMap) return;
-        const point = e.point || e.lngLat;
-        touchStartTime = Date.now();
-        touchStartPoint = { x: point.x, y: point.y };
-        longPressTimer = setTimeout(() => {
-          if (!touchStartPoint) return;
-          const features = currentMap.queryRenderedFeatures(
-            [touchStartPoint.x, touchStartPoint.y],
-            { layers: ["forest-fill-layer"] }
-          );
-          const feature = features?.[0];
-          if (feature && onLongPressRef.current) {
-            const lngLat = currentMap.unproject([touchStartPoint.x, touchStartPoint.y]);
-            if (lngLat) {
-              onLongPressRef.current(feature, { lng: lngLat.lng, lat: lngLat.lat });
-            }
+        map.on("click", "forest-fill-layer", (e: any) => {
+          const feature = e.features?.[0];
+          if (feature && onForestClickRef.current) {
+            onForestClickRef.current(feature);
           }
-        }, LONG_PRESS_MS);
-      };
+        });
 
-      const handleTouchEnd = () => {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
-        }
-        touchStartPoint = null;
-      };
+        map.on("click", (e: any) => {
+          if (!e.features?.find((f: any) => f.layer?.id === "forest-fill-layer")) {
+            onPickRef.current({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+          }
+        });
 
-      map.getCanvas().addEventListener("mousedown", handleTouchStart);
-      map.getCanvas().addEventListener("touchstart", handleTouchStart);
-      map.getCanvas().addEventListener("mouseup", handleTouchEnd);
-      map.getCanvas().addEventListener("touchend", handleTouchEnd);
-      map.getCanvas().addEventListener("mouseleave", handleTouchEnd);
-      map.getCanvas().addEventListener("touchcancel", handleTouchEnd);
+        map.on("mousemove", (e) => {
+          const currentMap = map;
+          if (!currentMap) return;
+          const features = currentMap.queryRenderedFeatures(e.point, {
+            layers: ["forest-fill-layer"],
+          });
+          currentMap.getCanvas().style.cursor = features && features.length > 0 ? "pointer" : "";
+        });
+
+        const handleTouchStart = (e: any) => {
+          const currentMap = map;
+          if (!currentMap) return;
+          const point = e.point || e.lngLat;
+          touchStartTime = Date.now();
+          touchStartPoint = { x: point.x, y: point.y };
+          longPressTimer = setTimeout(() => {
+            if (!touchStartPoint) return;
+            const features = currentMap.queryRenderedFeatures(
+              [touchStartPoint.x, touchStartPoint.y],
+              { layers: ["forest-fill-layer"] }
+            );
+            const feature = features?.[0];
+            if (feature && onLongPressRef.current) {
+              const lngLat = currentMap.unproject([touchStartPoint.x, touchStartPoint.y]);
+              if (lngLat) {
+                onLongPressRef.current(feature, { lng: lngLat.lng, lat: lngLat.lat });
+              }
+            }
+          }, LONG_PRESS_MS);
+        };
+
+        const handleTouchEnd = () => {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+          touchStartPoint = null;
+        };
+
+        map.getCanvas().addEventListener("mousedown", handleTouchStart);
+        map.getCanvas().addEventListener("touchstart", handleTouchStart);
+        map.getCanvas().addEventListener("mouseup", handleTouchEnd);
+        map.getCanvas().addEventListener("touchend", handleTouchEnd);
+        map.getCanvas().addEventListener("mouseleave", handleTouchEnd);
+        map.getCanvas().addEventListener("touchcancel", handleTouchEnd);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg);
+        setIsLoading(false);
+        console.error("MapCanvas: init error:", err);
+      }
     }
 
     void init();
@@ -249,8 +267,21 @@ export function MapCanvas({
   }, [activeLayer]);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-0 relative">
-      {isLoading && (
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height: "100%", minHeight: "400px", position: "absolute", top: 0, left: 0 }}
+      className="z-0 relative"
+    >
+      {error && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-red-50 border border-red-200 p-4 text-red-700 text-sm"
+          role="alert"
+        >
+          <p className="font-bold mb-1">Помилка карти</p>
+          <p className="break-words">{error}</p>
+        </div>
+      )}
+      {!error && isLoading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" />
           <p className="mt-2 text-sm font-medium text-gray-700">Завантаження лісів...</p>
