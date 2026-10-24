@@ -4320,23 +4320,20 @@ body.modal-open { overflow: hidden; }
             return response.json();
           })
           .then(function(geojson) {
-            // --- Фільтрація дрібних полігонів (залишаємо лише середні та великі масиви) ---
-            var MIN_POLYGON_AREA_DEG2 = 0.00005; // мінімальна площа в квадратних градусах
+            var totalBefore = geojson.features ? geojson.features.length : 0;
+            console.log('Всього полігонів до фільтрації:', totalBefore);
+
             var filteredFeatures = [];
-            var totalBefore = 0;
 
             if (geojson.features && geojson.features.length > 0) {
-              totalBefore = geojson.features.length;
-
               geojson.features.forEach(function(feature) {
                 var geom = feature.geometry;
                 if (!geom || !geom.coordinates) return;
 
                 var coords = [];
                 if (geom.type === 'Polygon') {
-                  coords = geom.coordinates[0] || []; // الخارجية ring
+                  coords = geom.coordinates[0] || [];
                 } else if (geom.type === 'MultiPolygon') {
-                  // Беремо найбільший полігон з мульті
                   var maxRing = [];
                   geom.coordinates.forEach(function(poly) {
                     if ((poly[0] || []).length > maxRing.length) maxRing = poly[0] || [];
@@ -4344,27 +4341,21 @@ body.modal-open { overflow: hidden; }
                   coords = maxRing;
                 }
 
-                if (coords.length >= 4) {
-                  // Обчислюємо приbliжenu площу bounding box
-                  var lons = coords.map(function(c) { return c[0]; });
-                  var lats = coords.map(function(c) { return c[1]; });
-                  var width = Math.max.apply(null, lons) - Math.min.apply(null, lons);
-                  var height = Math.max.apply(null, lats) - Math.min.apply(null, lats);
-                  var areaDeg2 = width * height;
-
-                  if (areaDeg2 >= MIN_POLYGON_AREA_DEG2) {
-                    filteredFeatures.push(feature);
-                  }
+                if (coords.length >= 15) {
+                  filteredFeatures.push(feature);
                 }
               });
+            }
+
+            console.log('Полігонів після фільтрації:', filteredFeatures.length);
+            if (filteredFeatures.length > 0) {
+              console.log('Приклад першого відфільтрованого полігону:', filteredFeatures[0]);
             }
 
             var filteredGeojson = {
               type: 'FeatureCollection',
               features: filteredFeatures,
             };
-
-            console.log('Forest polygons: ' + totalBefore + ' до фільтрації, ' + filteredFeatures.length + ' після');
 
             var source = map.getSource('forests');
             if (source) source.setData(filteredGeojson);
