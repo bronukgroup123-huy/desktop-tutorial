@@ -1,6 +1,5 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
-
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
@@ -9,23 +8,40 @@ const supabase = createClient(
 );
 
 async function main() {
-  console.log('Connecting to Supabase...');
+  console.log('Починаємо порційне завантаження...');
+  
+  let allFeatures = [];
+  let pageSize = 2000;
+  let offset = 0;
+  let hasMore = true;
 
-  const { data: geojson, error: rpcError } = await supabase
-    .rpc('export_all_forests_geojson');
+  while (hasMore) {
+    console.log(`Завантаження порції: ${offset} - ${offset + pageSize}...`);
+    
+    const { data: pageData, error } = await supabase
+      .rpc('get_forests_page', { page_offset: offset, page_limit: pageSize });
 
-  if (rpcError) {
-    console.error('RPC error:', rpcError);
-    process.exit(1);
+    if (error) {
+      console.error('Помилка отримання даних:', error);
+      process.exit(1);
+    }
+
+    if (pageData && pageData.length > 0) {
+      allFeatures = allFeatures.concat(pageData);
+      offset += pageSize;
+    } else {
+      hasMore = false;
+    }
   }
 
-  if (!geojson) {
-    console.error('RPC returned no data');
-    process.exit(1);
-  }
+  console.log(`Всього завантажено полігонів: ${allFeatures.length}`);
 
-  console.log('RPC returned GeoJSON data');
+  const geojson = {
+    type: 'FeatureCollection',
+    features: allFeatures
+  };
 
+  console.log('Завантажуємо в Supabase Storage...');
   const body = Buffer.from(JSON.stringify(geojson), 'utf8');
 
   const { error: uploadError } = await supabase.storage
@@ -36,16 +52,15 @@ async function main() {
     });
 
   if (uploadError) {
-    console.error('Upload error:', uploadError);
+    console.error('Помилка завантаження в Storage:', uploadError);
     process.exit(1);
   }
-
-  console.log('Uploaded forests.geojson to bucket forest-data');
 
   const { data: urlData } = supabase.storage
     .from('forest-data')
     .getPublicUrl('forests.geojson');
 
+  console.log('\n✅ ГОТОВО! Файл успішно оновлено:');
   console.log(urlData.publicUrl);
 }
 
