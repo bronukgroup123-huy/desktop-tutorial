@@ -4320,18 +4320,66 @@ body.modal-open { overflow: hidden; }
             return response.json();
           })
           .then(function(geojson) {
+            // --- Фільтрація дрібних полігонів (залишаємо лише середні та великі масиви) ---
+            var MIN_POLYGON_AREA_DEG2 = 0.00005; // мінімальна площа в квадратних градусах
+            var filteredFeatures = [];
+            var totalBefore = 0;
+
+            if (geojson.features && geojson.features.length > 0) {
+              totalBefore = geojson.features.length;
+
+              geojson.features.forEach(function(feature) {
+                var geom = feature.geometry;
+                if (!geom || !geom.coordinates) return;
+
+                var coords = [];
+                if (geom.type === 'Polygon') {
+                  coords = geom.coordinates[0] || []; // الخارجية ring
+                } else if (geom.type === 'MultiPolygon') {
+                  // Беремо найбільший полігон з мульті
+                  var maxRing = [];
+                  geom.coordinates.forEach(function(poly) {
+                    if ((poly[0] || []).length > maxRing.length) maxRing = poly[0] || [];
+                  });
+                  coords = maxRing;
+                }
+
+                if (coords.length >= 4) {
+                  // Обчислюємо приbliжenu площу bounding box
+                  var lons = coords.map(function(c) { return c[0]; });
+                  var lats = coords.map(function(c) { return c[1]; });
+                  var width = Math.max.apply(null, lons) - Math.min.apply(null, lons);
+                  var height = Math.max.apply(null, lats) - Math.min.apply(null, lats);
+                  var areaDeg2 = width * height;
+
+                  if (areaDeg2 >= MIN_POLYGON_AREA_DEG2) {
+                    filteredFeatures.push(feature);
+                  }
+                }
+              });
+            }
+
+            var filteredGeojson = {
+              type: 'FeatureCollection',
+              features: filteredFeatures,
+            };
+
+            console.log('Forest polygons: ' + totalBefore + ' до фільтрації, ' + filteredFeatures.length + ' після');
+
             var source = map.getSource('forests');
-            if (source) source.setData(geojson);
-            if (!geoJsonLogged && geojson.features && geojson.features.length > 0) {
-              for (var i = 0; i < Math.min(3, geojson.features.length); i++) {
-                console.log('Forest feature #' + i + ' properties:', geojson.features[i].properties);
+            if (source) source.setData(filteredGeojson);
+
+            if (!geoJsonLogged && filteredFeatures.length > 0) {
+              for (var i = 0; i < Math.min(3, filteredFeatures.length); i++) {
+                console.log('Forest feature #' + i + ' properties:', filteredFeatures[i].properties);
               }
               geoJsonLogged = true;
             }
+
             // Check if all features have missing/null forest_type
-            if (geojson.features && geojson.features.length > 0) {
-              for (var i = 0; i < geojson.features.length; i++) {
-                var ft = geojson.features[i].properties && geojson.features[i].properties.forest_type;
+            if (filteredFeatures.length > 0) {
+              for (var i = 0; i < filteredFeatures.length; i++) {
+                var ft = filteredFeatures[i].properties && filteredFeatures[i].properties.forest_type;
                 if (ft && ft !== '' && ft !== null) {
                   allForestTypesMissing = false;
                   break;
@@ -4350,26 +4398,41 @@ body.modal-open { overflow: hidden; }
         var legendModal = document.getElementById('forest-legend-modal');
         var closeLegendBtn = document.getElementById('close-legend-modal');
 
+        var layersVisible = true;
+
         if (btnForest) {
           btnForest.addEventListener('click', function() {
-            if (legendModal) {
-              var hidden = legendModal.classList.contains('hidden');
-              if (hidden) {
-                legendModal.classList.remove('hidden');
-                this.classList.add('on');
-                // Show/hide forest type missing warning
-                var warningEl = document.getElementById('legend-warning');
-                if (warningEl) {
-                  if (allForestTypesMissing) {
-                    warningEl.classList.remove('hidden');
-                  } else {
-                    warningEl.classList.add('hidden');
-                  }
-                }
-              } else {
-                legendModal.classList.add('hidden');
-                this.classList.remove('on');
+            // Перший клік: показує/ховає шари лісів на карті
+            layersVisible = !layersVisible;
+            try {
+              if (map.getLayer('forest-fill-layer')) {
+                map.setLayoutProperty('forest-fill-layer', 'visibility', layersVisible ? 'visible' : 'none');
               }
+              if (map.getLayer('forest-outline-layer')) {
+                map.setLayoutProperty('forest-outline-layer', 'visibility', layersVisible ? 'visible' : 'none');
+              }
+              if (map.getLayer('forest-pattern-layer')) {
+                map.setLayoutProperty('forest-pattern-layer', 'visibility', layersVisible ? 'visible' : 'none');
+              }
+            } catch (e) {
+              console.error('Map layer toggle error:', e);
+            }
+
+            // Другий клік (коли шари приховані): відкриває легенду
+            if (!layersVisible && legendModal) {
+              legendModal.classList.remove('hidden');
+              this.classList.add('on');
+              var warningEl = document.getElementById('legend-warning');
+              if (warningEl) {
+                if (allForestTypesMissing) {
+                  warningEl.classList.remove('hidden');
+                } else {
+                  warningEl.classList.add('hidden');
+                }
+              }
+            } else if (layersVisible && legendModal) {
+              legendModal.classList.add('hidden');
+              this.classList.remove('on');
             }
           });
         }
