@@ -66,6 +66,7 @@ export function MapCanvas({
   }, []);
 
   useEffect(() => {
+    console.log('FORESTS_URL:', process.env.NEXT_PUBLIC_FORESTS_GEOJSON_URL);
     let cancelled = false;
     let map: MapLibreMap | null = null;
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -93,6 +94,7 @@ export function MapCanvas({
 
         const geojson = await response.json();
         const featureCount = geojson?.features?.length ?? 0;
+        console.log('Fetched features:', featureCount);
         console.log("MapCanvas: forests GeoJSON loaded, features:", featureCount);
 
         if (cancelled) return;
@@ -162,7 +164,7 @@ export function MapCanvas({
             id: "forest-fill-layer",
             type: "fill",
             source: "forests",
-            paint: { "fill-color": "#4A6B54", "fill-opacity": 0.3 },
+            paint: { "fill-color": "#22c55e", "fill-opacity": 0.5 },
           });
 
           currentMap.addLayer({
@@ -175,6 +177,8 @@ export function MapCanvas({
               "line-opacity": 0.6,
             },
           });
+
+          console.log('Layer added to map');
 
           applyForestTypeFilter(currentMap);
 
