@@ -1003,6 +1003,18 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 .ghost-layer svg { display: none; }
 .breathing-bg { animation: breathe 10s ease-in-out infinite; transform-origin: center; }
 .top-forest { animation: top-forest-breathe 15s ease-in-out infinite; transform-origin: center top; }
+.tree-sway { animation: wind-sway 7s ease-in-out infinite alternate; }
+.tree-sway.t1 { animation-delay: 0s; }
+.tree-sway.t2 { animation-delay: 1.2s; }
+.tree-sway.t3 { animation-delay: 2.4s; }
+.tree-sway.t4 { animation-delay: 0.6s; }
+.tree-sway.t5 { animation-delay: 1.8s; }
+.tree-sway.t6 { animation-delay: 3.0s; }
+@keyframes wind-sway {
+  0%   { transform: skewX(-1.5deg) rotate(-0.5deg); }
+  50%  { transform: skewX(0.5deg) rotate(0.2deg); }
+  100% { transform: skewX(1.5deg) rotate(0.5deg); }
+}
 @keyframes top-forest-breathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.02); }
@@ -1054,7 +1066,42 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   <!-- Top forest silhouette (misty) -->
   <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" style="z-index: 0;">
     <svg class="top-forest" viewBox="0 0 100 30" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 250px; filter: blur(3px); opacity: 0.12; pointer-events: none;">
-      <path d="M0 30 L0 18 L2 12 L4 20 L6 8 L9 18 L12 10 L15 22 L18 6 L21 16 L24 12 L27 20 L30 8 L33 18 L36 10 L39 22 L42 5 L45 15 L48 11 L51 19 L54 7 L57 17 L60 10 L63 21 L66 6 L69 16 L72 12 L75 20 L78 8 L81 18 L84 10 L87 22 L90 5 L93 15 L96 11 L99 19 L100 18 L100 30 Z" fill="#14532d"/>
+      <g class="tree-sway t1" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 7 30 L 6.5 20 C 5 18, 3 16, 3 13 C 2 10, 4 8, 6 6 C 5 4, 7 2, 7 1 C 7 2, 9 4, 8 6 C 10 8, 12 10, 11 13 C 11 16, 9 18, 7.5 20 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t2" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 14 30 L 13.5 21 C 12 19, 10 17, 10 14 C 9 11, 11 9, 13 7 C 12 5, 14 3, 14 1.5 C 14 3, 16 5, 15 7 C 17 9, 19 11, 18 14 C 18 17, 16 19, 14.5 21 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t3" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 22 30 L 21 24 C 17 24, 15 20, 15 16 C 15 12, 18 9, 22 9 C 26 9, 29 12, 29 16 C 29 20, 27 24, 23 24 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t4" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 30 30 L 29.5 19 C 28 17, 26 15, 26 12 C 25 9, 27 7, 29 5 C 28 3, 30 1, 30 0 C 30 1, 32 3, 31 5 C 33 7, 35 9, 34 12 C 34 15, 32 17, 30.5 19 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t5" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 38 30 L 37 23 C 33 23, 31 19, 31 15 C 31 11, 34 8, 38 8 C 42 8, 45 11, 45 15 C 45 19, 43 23, 39 23 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t6" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 46 30 L 45.5 20 C 44 18, 42 16, 42 13 C 41 10, 43 8, 45 6 C 44 4, 46 2, 46 1 C 46 2, 48 4, 47 6 C 49 8, 51 10, 50 13 C 50 16, 48 18, 46.5 20 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t1" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 54 30 L 53 24 C 49 24, 47 20, 47 16 C 47 12, 50 9, 54 9 C 58 9, 61 12, 61 16 C 61 20, 59 24, 55 24 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t2" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 62 30 L 61.5 19 C 60 17, 58 15, 58 12 C 57 9, 59 7, 61 5 C 60 3, 62 1, 62 0 C 62 1, 64 3, 63 5 C 65 7, 67 9, 66 12 C 66 15, 64 17, 62.5 19 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t3" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 70 30 L 69 23 C 65 23, 63 19, 63 15 C 63 11, 66 8, 70 8 C 74 8, 77 11, 77 15 C 77 19, 75 23, 71 23 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t4" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 78 30 L 77.5 21 C 76 19, 74 17, 74 14 C 73 11, 75 9, 77 7 C 76 5, 78 3, 78 1.5 C 78 3, 80 5, 79 7 C 81 9, 83 11, 82 14 C 82 17, 80 19, 78.5 21 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t5" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 86 30 L 85 24 C 81 24, 79 20, 79 16 C 79 12, 82 9, 86 9 C 90 9, 93 12, 93 16 C 93 20, 91 24, 87 24 Z" fill="#14532d"/>
+      </g>
+      <g class="tree-sway t6" style="transform-box: fill-box; transform-origin: bottom center;">
+        <path d="M 94 30 L 93.5 20 C 92 18, 90 16, 90 13 C 89 10, 91 8, 93 6 C 92 4, 94 2, 94 1 C 94 2, 96 4, 95 6 C 97 8, 99 10, 98 13 C 98 16, 96 18, 94.5 20 Z" fill="#14532d"/>
+      </g>
     </svg>
   </div>
 
