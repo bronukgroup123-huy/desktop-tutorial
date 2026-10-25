@@ -320,7 +320,12 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 
 .map-patch { filter: drop-shadow(0 2px 4px rgba(47,74,58,0.08)); }
 
-.leaf-svg { opacity: 0.35; pointer-events: none; }
+.leaf-svg { opacity: 0.1; pointer-events: none; }
+.atmo-breathe { animation: atmo-breathe 10s ease-in-out infinite; transform-origin: center; }
+@keyframes atmo-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
 
 .divider-dot { display: inline-block; width: 3px; height: 3px; border-radius: 999px; background: #C8BFA6; }
 
@@ -1015,17 +1020,33 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 <section id="screen-welcome" class="screen active bg-cream-100 overflow-hidden">
   <!-- Background leaves -->
   <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-    <svg class="leaf-svg absolute -top-4 -left-6 w-32 h-32 text-bark" viewBox="0 0 100 100" fill="currentColor"><path d="M50 8 C 30 14, 18 34, 20 60 C 22 78, 34 90, 50 92 C 66 90, 78 78, 80 60 C 82 34, 70 14, 50 8 Z" opacity="0.55"/><path d="M50 12 L 50 88" stroke="#F7F4EC" stroke-width="1.5" opacity="0.5"/><path d="M50 30 L 34 40 M50 46 L 32 56 M50 62 L 34 70 M50 30 L 66 40 M50 46 L 68 56 M50 62 L 66 70" stroke="#F7F4EC" stroke-width="1" opacity="0.5"/></svg>
-    <svg class="leaf-svg absolute top-40 -right-10 w-40 h-40 text-forest" viewBox="0 0 100 100" fill="currentColor"><path d="M20 30 C 30 20, 50 20, 66 32 C 82 44, 86 62, 80 76 C 74 90, 54 92, 38 82 C 22 72, 14 58, 20 30 Z" opacity="0.4"/><path d="M26 36 C 46 50, 66 66, 80 78" stroke="#F7F4EC" stroke-width="1.2" fill="none" opacity="0.5"/></svg>
-    <svg class="leaf-svg absolute bottom-24 -left-4 w-28 h-28 text-amberbrand" viewBox="0 0 100 100" fill="currentColor"><path d="M50 10 C 66 18, 82 42, 78 62 C 74 78, 58 90, 46 84 C 32 78, 22 60, 24 42 C 26 28, 38 14, 50 10 Z" opacity="0.4"/></svg>
+    <svg class="leaf-svg atmo-breathe absolute -top-4 -left-6 w-32 h-32 text-bark" viewBox="0 0 100 100" fill="currentColor"><path d="M50 8 C 30 14, 18 34, 20 60 C 22 78, 34 90, 50 92 C 66 90, 78 78, 80 60 C 82 34, 70 14, 50 8 Z" opacity="0.55"/><path d="M50 12 L 50 88" stroke="#F7F4EC" stroke-width="1.5" opacity="0.5"/><path d="M50 30 L 34 40 M50 46 L 32 56 M50 62 L 34 70 M50 30 L 66 40 M50 46 L 68 56 M50 62 L 66 70" stroke="#F7F4EC" stroke-width="1" opacity="0.5"/></svg>
+    <svg class="leaf-svg atmo-breathe absolute top-40 -right-10 w-40 h-40 text-forest" viewBox="0 0 100 100" fill="currentColor"><path d="M20 30 C 30 20, 50 20, 66 32 C 82 44, 86 62, 80 76 C 74 90, 54 92, 38 82 C 22 72, 14 58, 20 30 Z" opacity="0.4"/><path d="M26 36 C 46 50, 66 66, 80 78" stroke="#F7F4EC" stroke-width="1.2" fill="none" opacity="0.5"/></svg>
+    <svg class="leaf-svg atmo-breathe absolute bottom-24 -left-4 w-28 h-28 text-amberbrand" viewBox="0 0 100 100" fill="currentColor"><path d="M50 10 C 66 18, 82 42, 78 62 C 74 78, 58 90, 46 84 C 32 78, 22 60, 24 42 C 26 28, 38 14, 50 10 Z" opacity="0.4"/></svg>
     <div class="absolute inset-0 breathing-bg" style="background: radial-gradient(ellipse at 30% 20%, rgba(245, 230, 208, 0.55) 0%, transparent 55%), radial-gradient(ellipse at 70% 80%, rgba(220, 230, 220, 0.45) 0%, transparent 55%);"></div>
   </div>
 
-  <!-- Radar rings only -->
-  <div class="ghost-layer" aria-hidden="true">
-    <div class="scan-ring"></div>
-    <div class="scan-ring" style="animation-delay: 4s;"></div>
+  <!-- Topographic texture + forest silhouette -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" style="z-index: 0;">
+    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <g fill="none" stroke="#2F4A3A" stroke-width="0.3" opacity="0.05">
+        <path d="M0 20 Q 25 15, 50 22 T 100 18" />
+        <path d="M0 28 Q 30 22, 55 30 T 100 26" />
+        <path d="M0 36 Q 20 30, 45 38 T 100 34" />
+        <path d="M0 44 Q 35 38, 60 46 T 100 42" />
+        <path d="M0 52 Q 25 46, 50 54 T 100 50" />
+        <path d="M0 60 Q 30 54, 55 62 T 100 58" />
+        <path d="M0 68 Q 20 62, 45 70 T 100 66" />
+        <path d="M0 76 Q 35 70, 60 78 T 100 74" />
+        <path d="M0 84 Q 25 78, 50 86 T 100 82" />
+      </g>
+    </svg>
+    <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none" style="height: 18vh; filter: blur(4px); opacity: 0.15;">
+      <path d="M0 20 L0 12 L3 8 L5 14 L8 6 L11 13 L14 7 L17 15 L20 5 L23 12 L26 8 L29 14 L32 6 L35 13 L38 7 L41 15 L44 4 L47 11 L50 8 L53 14 L56 6 L59 13 L62 7 L65 15 L68 5 L71 12 L74 8 L77 14 L80 6 L83 13 L86 7 L89 15 L92 4 L95 11 L98 8 L100 12 L100 20 Z" fill="#2F4A3A"/>
+    </svg>
   </div>
+
+  <!-- Radar rings only (attached to button via wrapper) -->
 
   <div class="relative flex-1 flex flex-col justify-between px-6 py-4 overflow-hidden" style="height: 100dvh;">
     <!-- Logo -->
@@ -1087,10 +1108,14 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     </div>
 
     <!-- Find button (replaces mini forecast) -->
-    <button id="btn-start" class="btn-primary w-full mt-4 flex items-center justify-center gap-2 flex-shrink-0" style="font-size: 16px; border-radius: 18px; padding: 12px 24px;" data-welcome-cta>
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-      Знайти гриб
-    </button>
+    <div class="relative w-full mt-4 flex-shrink-0">
+      <div class="scan-ring" style="animation-delay: 0s;"></div>
+      <div class="scan-ring" style="animation-delay: 4s;"></div>
+      <button id="btn-start" class="btn-primary relative w-full flex items-center justify-center gap-2" style="font-size: 16px; border-radius: 18px; padding: 12px 24px; z-index: 1;" data-welcome-cta>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        Знайти гриб
+      </button>
+    </div>
 
     <!-- What's inside -->
     <div class="mt-2">
