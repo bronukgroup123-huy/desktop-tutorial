@@ -320,12 +320,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 
 .map-patch { filter: drop-shadow(0 2px 4px rgba(47,74,58,0.08)); }
 
-.leaf-svg { opacity: 0.1; pointer-events: none; }
-.atmo-breathe { animation: atmo-breathe 10s ease-in-out infinite; transform-origin: center; }
-@keyframes atmo-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
+
+
 
 .divider-dot { display: inline-block; width: 3px; height: 3px; border-radius: 999px; background: #C8BFA6; }
 
@@ -986,10 +982,10 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 
 
 /* ---------- Radar rings only ---------- */
-.ghost-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
 .scan-ring {
   position: absolute; border: 1.5px solid rgba(201,122,43,0.35);
-  border-radius: 999px; pointer-events: none;
+  border-radius: 999px; pointer-events: none; z-index: -1;
   top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.1);
   width: 40vmin; height: 40vmin;
   animation: scan-expand 8s ease-out infinite;
@@ -1000,31 +996,47 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   70%  { transform: translate(-50%,-50%) scale(2.8); opacity: 0.15; }
   100% { transform: translate(-50%,-50%) scale(3.6); opacity: 0; }
 }
-.ghost-layer svg { display: none; }
-.breathing-bg { animation: breathe 10s ease-in-out infinite; transform-origin: center; }
-.top-forest { animation: top-forest-breathe 15s ease-in-out infinite; transform-origin: center top; }
-.tree-sway { animation: wind-sway 7s ease-in-out infinite alternate; }
-.tree-sway.t1 { animation-delay: 0s; }
-.tree-sway.t2 { animation-delay: 1.2s; }
-.tree-sway.t3 { animation-delay: 2.4s; }
-.tree-sway.t4 { animation-delay: 0.6s; }
-.tree-sway.t5 { animation-delay: 1.8s; }
-.tree-sway.t6 { animation-delay: 3.0s; }
-@keyframes wind-sway {
-  0%   { transform: skewX(-1.5deg) rotate(-0.5deg); }
+
+
+
+
+
+
+
+
+
+
+
   50%  { transform: skewX(0.5deg) rotate(0.2deg); }
   100% { transform: skewX(1.5deg) rotate(0.5deg); }
 }
-@keyframes top-forest-breathe {
-  0%, 100% { transform: scale(1); }
+
   50% { transform: scale(1.02); }
 }
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
+
   50% { transform: scale(1.06); }
 }
 
+
+/* ---------- Generative forest background (provided) ---------- */
+#s { width: 100%; height: 100%; display: block; opacity: 0; animation: in 1.4s ease-out forwards; }
+.sway { animation: sway 6s ease-in-out infinite alternate; }
+.blade { animation: sway 3s ease-in-out infinite alternate; }
+.mist { animation: drift 22s ease-in-out infinite alternate; }
+.ray { animation: ray 7s ease-in-out infinite alternate; }
+.fall { animation: fall 11s linear infinite; }
+@keyframes in { to { opacity: 1; } }
+@keyframes sway { from { transform: rotate(-.7deg); } to { transform: rotate(.9deg); } }
+@keyframes drift { from { transform: translateX(-40px); } to { transform: translateX(40px); } }
+@keyframes ray { from { opacity: .25; } to { opacity: .7; } }
+@keyframes fall { 0% { transform: translate(0,-30px) rotate(0); } 100% { transform: translate(var(--dx),860px) rotate(600deg); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } #s { opacity: 1; } }
+
+/* Welcome screen content above forest */
+#screen-welcome .card { position: relative; z-index: 1; }
+#screen-welcome h1, #screen-welcome p { position: relative; z-index: 1; }
 </style>
+</head>
 <body class="bg-cream-100 font-sans">
 <div id="video-splash" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background: #f4f1e1; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
     <video id="splash-video" src="/Splash.mp4" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
@@ -1035,79 +1047,45 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 
 <!-- ============ WELCOME SCREEN ============ -->
 <section id="screen-welcome" class="screen active bg-cream-100 overflow-hidden">
-  <!-- Background leaves -->
-  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-    <svg class="leaf-svg atmo-breathe absolute -top-4 -left-6 w-32 h-32 text-bark" viewBox="0 0 100 100" fill="currentColor"><path d="M50 8 C 30 14, 18 34, 20 60 C 22 78, 34 90, 50 92 C 66 90, 78 78, 80 60 C 82 34, 70 14, 50 8 Z" opacity="0.55"/><path d="M50 12 L 50 88" stroke="#F7F4EC" stroke-width="1.5" opacity="0.5"/><path d="M50 30 L 34 40 M50 46 L 32 56 M50 62 L 34 70 M50 30 L 66 40 M50 46 L 68 56 M50 62 L 66 70" stroke="#F7F4EC" stroke-width="1" opacity="0.5"/></svg>
-    <svg class="leaf-svg atmo-breathe absolute top-40 -right-10 w-40 h-40 text-forest" viewBox="0 0 100 100" fill="currentColor"><path d="M20 30 C 30 20, 50 20, 66 32 C 82 44, 86 62, 80 76 C 74 90, 54 92, 38 82 C 22 72, 14 58, 20 30 Z" opacity="0.4"/><path d="M26 36 C 46 50, 66 66, 80 78" stroke="#F7F4EC" stroke-width="1.2" fill="none" opacity="0.5"/></svg>
-    <svg class="leaf-svg atmo-breathe absolute bottom-24 -left-4 w-28 h-28 text-amberbrand" viewBox="0 0 100 100" fill="currentColor"><path d="M50 10 C 66 18, 82 42, 78 62 C 74 78, 58 90, 46 84 C 32 78, 22 60, 24 42 C 26 28, 38 14, 50 10 Z" opacity="0.4"/></svg>
-    <div class="absolute inset-0 breathing-bg" style="background: radial-gradient(ellipse at 30% 20%, rgba(245, 230, 208, 0.55) 0%, transparent 55%), radial-gradient(ellipse at 70% 80%, rgba(220, 230, 220, 0.45) 0%, transparent 55%);"></div>
-  </div>
-
-  <!-- Topographic texture + forest silhouette -->
-  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" style="z-index: 0;">
-    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <g fill="none" stroke="#2F4A3A" stroke-width="0.3" opacity="0.05">
-        <path d="M0 20 Q 25 15, 50 22 T 100 18" />
-        <path d="M0 28 Q 30 22, 55 30 T 100 26" />
-        <path d="M0 36 Q 20 30, 45 38 T 100 34" />
-        <path d="M0 44 Q 35 38, 60 46 T 100 42" />
-        <path d="M0 52 Q 25 46, 50 54 T 100 50" />
-        <path d="M0 60 Q 30 54, 55 62 T 100 58" />
-        <path d="M0 68 Q 20 62, 45 70 T 100 66" />
-        <path d="M0 76 Q 35 70, 60 78 T 100 74" />
-        <path d="M0 84 Q 25 78, 50 86 T 100 82" />
-      </g>
-    </svg>
-    <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 100 20" preserveAspectRatio="none" style="height: 18vh; filter: blur(4px); opacity: 0.15;">
-      <path d="M0 20 L0 12 L3 8 L5 14 L8 6 L11 13 L14 7 L17 15 L20 5 L23 12 L26 8 L29 14 L32 6 L35 13 L38 7 L41 15 L44 4 L47 11 L50 8 L53 14 L56 6 L59 13 L62 7 L65 15 L68 5 L71 12 L74 8 L77 14 L80 6 L83 13 L86 7 L89 15 L92 4 L95 11 L98 8 L100 12 L100 20 Z" fill="#2F4A3A"/>
-    </svg>
-  </div>
-
-  <!-- Top forest silhouette (misty) -->
-  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" style="z-index: 0;">
-    <svg class="top-forest" viewBox="0 0 100 30" preserveAspectRatio="none" style="position: absolute; top: 0; left: 0; width: 100%; height: 250px; filter: blur(3px); opacity: 0.12; pointer-events: none;">
-      <g class="tree-sway t1" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 7 30 L 6.5 20 C 5 18, 3 16, 3 13 C 2 10, 4 8, 6 6 C 5 4, 7 2, 7 1 C 7 2, 9 4, 8 6 C 10 8, 12 10, 11 13 C 11 16, 9 18, 7.5 20 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t2" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 14 30 L 13.5 21 C 12 19, 10 17, 10 14 C 9 11, 11 9, 13 7 C 12 5, 14 3, 14 1.5 C 14 3, 16 5, 15 7 C 17 9, 19 11, 18 14 C 18 17, 16 19, 14.5 21 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t3" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 22 30 L 21 24 C 17 24, 15 20, 15 16 C 15 12, 18 9, 22 9 C 26 9, 29 12, 29 16 C 29 20, 27 24, 23 24 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t4" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 30 30 L 29.5 19 C 28 17, 26 15, 26 12 C 25 9, 27 7, 29 5 C 28 3, 30 1, 30 0 C 30 1, 32 3, 31 5 C 33 7, 35 9, 34 12 C 34 15, 32 17, 30.5 19 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t5" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 38 30 L 37 23 C 33 23, 31 19, 31 15 C 31 11, 34 8, 38 8 C 42 8, 45 11, 45 15 C 45 19, 43 23, 39 23 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t6" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 46 30 L 45.5 20 C 44 18, 42 16, 42 13 C 41 10, 43 8, 45 6 C 44 4, 46 2, 46 1 C 46 2, 48 4, 47 6 C 49 8, 51 10, 50 13 C 50 16, 48 18, 46.5 20 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t1" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 54 30 L 53 24 C 49 24, 47 20, 47 16 C 47 12, 50 9, 54 9 C 58 9, 61 12, 61 16 C 61 20, 59 24, 55 24 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t2" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 62 30 L 61.5 19 C 60 17, 58 15, 58 12 C 57 9, 59 7, 61 5 C 60 3, 62 1, 62 0 C 62 1, 64 3, 63 5 C 65 7, 67 9, 66 12 C 66 15, 64 17, 62.5 19 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t3" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 70 30 L 69 23 C 65 23, 63 19, 63 15 C 63 11, 66 8, 70 8 C 74 8, 77 11, 77 15 C 77 19, 75 23, 71 23 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t4" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 78 30 L 77.5 21 C 76 19, 74 17, 74 14 C 73 11, 75 9, 77 7 C 76 5, 78 3, 78 1.5 C 78 3, 80 5, 79 7 C 81 9, 83 11, 82 14 C 82 17, 80 19, 78.5 21 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t5" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 86 30 L 85 24 C 81 24, 79 20, 79 16 C 79 12, 82 9, 86 9 C 90 9, 93 12, 93 16 C 93 20, 91 24, 87 24 Z" fill="#14532d"/>
-      </g>
-      <g class="tree-sway t6" style="transform-box: fill-box; transform-origin: bottom center;">
-        <path d="M 94 30 L 93.5 20 C 92 18, 90 16, 90 13 C 89 10, 91 8, 93 6 C 92 4, 94 2, 94 1 C 94 2, 96 4, 95 6 C 97 8, 99 10, 98 13 C 98 16, 96 18, 94.5 20 Z" fill="#14532d"/>
-      </g>
-    </svg>
-  </div>
+  <!-- New generative forest background -->
+  <svg id="s" viewBox="0 0 450 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none;">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f6f1cf"/><stop offset=".55" stop-color="#d7e5bd"/><stop offset="1" stop-color="#a9c79b"/>
+      </linearGradient>
+      <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fff8dc" stop-opacity=".75"/><stop offset="1" stop-color="#fff8dc" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2f5d36"/><stop offset="1" stop-color="#0e2a1a"/>
+      </linearGradient>
+      <filter id="leaf" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency=".07" numOctaves="3" seed="4" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="16"/>
+      </filter>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency=".12" numOctaves="2" seed="9" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+      </filter>
+      <filter id="b14"><feGaussianBlur stdDeviation="14"/></filter>
+      <filter id="b4"><feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="b1"><feGaussianBlur stdDeviation="1.3"/></filter>
+    </defs>
+    <rect width="450" height="800" fill="url(#sky)"/>
+    <g id="rays" style="mix-blend-mode:screen" filter="url(#b4)"></g>
+    <g id="far" filter="url(#b1)" opacity=".7"></g>
+    <g class="mist" opacity=".5"><ellipse cx="225" cy="560" rx="300" ry="40" fill="#fffbe8" filter="url(#b14)"/></g>
+    <g id="mid"></g>
+    <g class="mist" opacity=".45" style="animation-duration:28s;animation-direction:alternate-reverse"><ellipse cx="225" cy="660" rx="320" ry="38" fill="#fffbe8" filter="url(#b14)"/></g>
+    <path d="M0 735 Q110 690 225 722 T450 706 L450 800 L0 800Z" fill="url(#gnd)"/>
+    <g id="near"></g>
+    <g id="grass"></g>
+    <g id="leaves"></g>
+  </svg>
 
   <!-- Radar rings only (attached to button via wrapper) -->
 
-  <div class="relative flex-1 flex flex-col justify-between px-6 py-4 overflow-hidden" style="height: 100dvh;">
+  <div class="relative flex-1 flex flex-col justify-between px-6 py-4 overflow-hidden" style="height: 100dvh; position: relative; z-index: 1;">
     <!-- Logo -->
     <div class="flex flex-col items-center text-center flex-shrink-0">
       <div class="relative mb-4">
@@ -4785,5 +4763,102 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     }
   })();
 </script>
- </body>
+ 
+<script>
+(function () {
+  var seed = 11;
+  function R(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  function U(a,b){ return a + (b-a)*R(); }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(p,t,a){ var e = document.createElementNS(NS,t); for (var k in a) e.setAttribute(k,a[k]); p.appendChild(e); return e; }
+  function sway(L,x,y,dur){
+    var g = el(L,'g',{class:'sway'});
+    g.style.transformOrigin = x + 'px ' + y + 'px';
+    g.style.animationDuration = dur + 's';
+    g.style.animationDelay = '-' + U(0,6).toFixed(1) + 's';
+    return g;
+  }
+  var gi = 0;
+  function grad(c0,c1){
+    var id = 'cg' + (gi++);
+    var defs = document.querySelector('#s defs');
+    var lg = el(defs,'linearGradient',{id:id, x1:0, y1:0, x2:1, y2:0});
+    el(lg,'stop',{offset:0,'stop-color':c0});
+    el(lg,'stop',{offset:1,'stop-color':c1});
+    return 'url(#'+id+')';
+  }
+  function edge(x,ww,yT,yB,t){
+    return (x + ww*t*U(.9,1.1)) + ' ' + (yT + (yB-yT)*Math.pow(Math.abs(t),1.4) + U(-1.5,1.5));
+  }
+  function conifer(L,x,base,h,w,p,dur){
+    var g = sway(L,x,base,dur), f = el(g,'g',{filter:'url(#rough)'});
+    el(f,'rect',{x:x-w*.03, y:base-h*.55, width:w*.06, height:h*.55, fill:p.t});
+    var fill = grad(p.c[0],p.c[1]), n = Math.round(h/22)+4;
+    for (var i=0;i<n;i++){
+      var yT = base - h + h*.85*i/n, yB = yT + h*1.9/n, ww = w/2*(.2 + .8*(i+1)/n);
+      var d = 'M'+x+' '+yT, k, j, t;
+      for (k=1;k<=4;k++) d += ' L'+edge(x,ww,yT,yB,k/4);
+      for (j=1;j<=8;j++){ t = 1 - j/4; d += ' L'+(x+ww*t)+' '+(yB+Math.abs(t)*4-(j%2?U(4,8):0)); }
+      for (k=3;k>=0;k--) d += ' L'+edge(x,ww,yT,yB,-k/4);
+      el(f,'path',{d:d+'Z', fill:fill});
+    }
+  }
+  function oak(L,x,base,h,p,dur,depth){
+    var g = sway(L,x,base,dur);
+    var tr = el(g,'g',{stroke:p.t,'stroke-linecap':'round',fill:'none'});
+    var fo = el(g,'g',{filter:'url(#leaf)'});
+    function leaves(px,py){
+      var m = R()<.5 ? 2 : 3;
+      for (var i=0;i<m;i++){
+        var hi = py < base - h*.72;
+        el(fo,'circle',{cx:px+U(-h*.05,h*.05), cy:py+U(-h*.05,h*.04), r:h*U(.05,.09), fill:p.l[hi?(R()<.6?1:0):(R()<.6?2:0)], opacity:.92});
+      }
+    }
+    function br(x0,y0,a,len,wd,d){
+      var x1 = x0 + Math.sin(a)*len, y1 = y0 - Math.cos(a)*len;
+      el(tr,'path',{d:'M'+x0+' '+y0+' Q'+((x0+x1)/2+U(-3,3))+' '+((y0+y1)/2)+' '+x1+' '+y1, 'stroke-width':wd});
+      if (d>0){
+        br(x1,y1,a+U(.3,.7),len*.74,wd*.68,d-1);
+        br(x1,y1,a-U(.3,.7),len*.74,wd*.68,d-1);
+        if (R()<.45) br(x1,y1,a+U(-.2,.2),len*.66,wd*.6,d-1);
+      } else leaves(x1,y1);
+    }
+    br(x,base,U(-.08,.08),h*.3,h*.07,depth);
+  }
+  var far = {t:'#7f927f', c:['#a9c7a8','#7ea585'], l:['#8fb593','#b4d2a8','#7aa383']};
+  var mid = {t:'#4a3628', c:['#5f9a63','#2f6b44'], l:['#2c6140','#5c9a58','#3f7d4a']};
+  var nr = {t:'#2a1d16', c:['#2b6a3f','#0f3a24'], l:['#123f27','#3a7a45','#1f5a35']};
+  var F = document.getElementById('far'), M = document.getElementById('mid'), N = document.getElementById('near');
+  [[30,540,170,55,0],[95,545,110,0,1],[160,540,190,60,0],[250,545,120,0,1],[320,540,200,62,0],[395,545,140,0,1],[450,540,170,50,0]]
+    .forEach(function(a){ a[4] ? oak(F,a[0],a[1],a[2],far,U(7,9),3) : conifer(F,a[0],a[1],a[2],a[3],far,U(7,9)); });
+  [[-5,650,300,95,0],[70,655,200,0,1],[385,650,320,100,0],[455,655,230,0,1]]
+    .forEach(function(a){ a[4] ? oak(M,a[0],a[1],a[2],mid,U(6,8),4) : conifer(M,a[0],a[1],a[2],a[3],mid,U(6,8)); });
+  oak(N,12,790,520,nr,8,4);
+  conifer(N,432,800,640,170,nr,9);
+  conifer(N,330,800,300,90,nr,7);
+  var G = document.getElementById('grass');
+  for (var i=0;i<70;i++){
+    var x = U(0,450), hh = U(18,48), b = el(G,'g',{class:'blade'});
+    b.style.transformOrigin = x + 'px 800px';
+    b.style.animationDelay = '-' + U(0,3).toFixed(1) + 's';
+    el(b,'path',{d:'M'+x+' 800 Q'+(x+U(-5,5))+' '+(800-hh*.6)+' '+(x+U(-9,9))+' '+(800-hh), stroke: R()<.5?'#3f7d3a':'#1f5a35', 'stroke-width': U(1.2,2.2), fill:'none', 'stroke-linecap':'round'});
+  }
+  var RY = document.getElementById('rays');
+  [[40,0],[130,.4],[220,.8],[310,1.2]].forEach(function(r){
+    var p = el(RY,'polygon',{points: r[0]+',0 '+(r[0]+45)+',0 '+(r[0]+230)+',800 '+(r[0]+90)+',800', fill:'url(#ray)', class:'ray'});
+    p.style.animationDelay = '-'+r[1]+'s';
+    p.style.animationDuration = (6 + r[1]*2) + 's';
+  });
+  var LV = document.getElementById('leaves');
+  for (var j=0;j<12;j++){
+    var o = el(LV,'g',{transform:'translate('+U(20,430)+',0)'});
+    var l = el(o,'path',{d:'M0 0 Q5 -7 10 0 Q5 7 0 0Z', fill:['#8bbf5a','#c9b04a','#6fa34a'][j%3], opacity:.85, class:'fall'});
+    l.style.setProperty('--dx', U(-80,80).toFixed(0)+'px');
+    l.style.animationDuration = U(9,15).toFixed(1)+'s';
+    l.style.animationDelay = '-'+U(0,14).toFixed(1)+'s';
+  }
+})();
+</script>
+
+</body>
 </html>
