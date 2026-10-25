@@ -4319,6 +4319,10 @@ body.modal-open { overflow: hidden; }
             var kyivGeom = kyivData.features[0].geometry;
             var kyivCoords = kyivGeom.coordinates;
 
+            // Debug: turn button magenta to confirm Kyiv fetch succeeded
+            var btn = document.getElementById('btn-layer-forest');
+            if (btn) btn.style.backgroundColor = 'magenta';
+
             // World exterior ring: counterclockwise (RFC 7946)
             // Kyiv interior ring (hole): clockwise — Natural Earth provides correct winding
             var worldMask = {
