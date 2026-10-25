@@ -4263,13 +4263,16 @@ body.modal-open { overflow: hidden; }
         },
         center: KYIV_CENTER,
         zoom: INITIAL_ZOOM,
-        maxBounds: KYIV_BOUNDS,
+        maxBounds: [[28.9705, 48.8706], [32.4392, 51.7931]],
       });
 
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
       map.on('load', function() {
-        map.fitBounds(KYIV_BOUNDS, { padding: 20 });
+        map.resize();
+        map.fitBounds(KYIV_BOUNDS, { 
+            padding: { top: 160, bottom: 120, left: 20, right: 20 } 
+        });
         map.addSource('forests', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
