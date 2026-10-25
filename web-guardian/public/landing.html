@@ -966,120 +966,12 @@ body.modal-open { overflow: hidden; }
   100% { transform: rotate(0deg); }
 }
 
-/* === Splash screen: Griffinyi Radar grow animation === */
-#splash-screen {
-  position: fixed;
-  inset: 0;
-  background: #FBF8F1;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', system-ui, sans-serif;
-  transition: opacity 0.6s ease, visibility 0.6s ease;
-}
-#splash-screen.splash-hidden {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-.splash-wrap {
-  position: relative;
-  width: 200px;
-  height: 240px;
-}
-.splash-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-/* Фаза 1: земляна купина (0-0.5с) */
-.splash-ground {
-  animation: splash-ground 0.5s ease forwards;
-}
-@keyframes splash-ground {
-  from { opacity: 0; transform: scaleY(0.35); }
-  to { opacity: 1; transform: scaleY(1); }
-}
-/* Фаза 2: ніжка витягується вгору (0.5-1.5с) */
-.splash-stem {
-  animation: splash-stem 1s ease 0.5s forwards;
-}
-@keyframes splash-stem {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
-/* Фаза 3: капелюшок з'являється й осідає (1.5-2с) */
-.splash-cap,
-.splash-cap-outline {
-  animation: splash-cap 0.5s ease 1.5s forwards;
-}
-@keyframes splash-cap {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-/* Фаза 4: радарна хвиля (2-2.5с, потім у циклі) */
-.splash-radar {
-  animation: splash-radar 1s ease 2s infinite;
-}
-@keyframes splash-radar {
-  0% { transform: scale(0); opacity: 1; }
-  70% { opacity: 1; }
-  100% { transform: scale(2.6); opacity: 0; }
-}
-/* Фаза 5: текст (2.5-3с) */
-.splash-text {
-  margin-top: 28px;
-  text-align: center;
-  opacity: 0;
-  animation: splash-text 0.6s ease 2.5s forwards;
-}
-.splash-title {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 700;
-  color: #2F4A3A;
-  font-size: 30px;
-  line-height: 1.1;
-  margin: 0;
-  letter-spacing: 0.02em;
-}
-.splash-subtitle {
-  color: #6B6659;
-  font-size: 14px;
-  margin: 7px 0 0;
-}
-@keyframes splash-text {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+
 </style>
 </head>
 <body class="bg-cream-100 font-sans">
-<!-- Splash screen: анімований градиент росту гриба, зникає через 3 с -->
-<div id="splash-screen">
-  <div class="splash-wrap">
-    <svg class="splash-svg" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <style>
-          .splash-ground { fill: #8B5E34; opacity: 0; }
-          .splash-stem { fill: #5D4037; transform-origin: bottom center; transform: scaleY(0); }
-          .splash-cap { fill: #A52A2A; transform-origin: center bottom; transform: scale(0); opacity: 0; }
-          .splash-cap-outline { fill: none; stroke: #5D4037; stroke-width: 2; stroke-linejoin: round; transform-origin: center bottom; transform: scale(0); opacity: 0; }
-          .splash-radar { fill: none; stroke: #C97A2B; stroke-width: 3; opacity: 0; }
-        </style>
-      </defs>
-      <ellipse class="splash-ground" cx="100" cy="200" rx="56" ry="12" />
-      <rect class="splash-stem" x="93" y="130" width="14" height="70" />
-      <ellipse class="splash-cap" cx="100" cy="130" rx="38" ry="20" />
-      <path class="splash-cap-outline" d="M62 130 Q 100 110 138 130" />
-      <circle class="splash-radar" cx="100" cy="148" r="0" />
-    </svg>
-  </div>
-  <div class="splash-text">
-    <h1 class="splash-title">Грибний Радар</h1>
-    <p class="splash-subtitle">Безпечний цифровий компаньйон</p>
-  </div>
+<div id="video-splash" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background: #f4f1e1; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
+    <video id="splash-video" src="/splash.mp4" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
 </div>
 <a href="/profile" style="position: fixed; top: 8px; right: 12px; z-index: 9999; padding: 6px 12px; background: rgba(0,0,0,0.6); color: white; border-radius: 12px; font-size: 12px; text-decoration: none;">Профіль</a>
 <div class="desktop-bg">
@@ -4751,10 +4643,10 @@ body.modal-open { overflow: hidden; }
         </div>
 <script>
   (function () {
-    var splash = document.getElementById('splash-screen');
+    var splash = document.getElementById('video-splash');
     if (!splash) return;
     setTimeout(function () {
-      splash.classList.add('splash-hidden');
+      splash.style.opacity = '0';
     }, 3000);
     setTimeout(function () {
       if (splash.parentNode) splash.parentNode.removeChild(splash);
