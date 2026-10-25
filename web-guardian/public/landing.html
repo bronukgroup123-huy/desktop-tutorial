@@ -4644,13 +4644,22 @@ body.modal-open { overflow: hidden; }
 <script>
   (function () {
     var splash = document.getElementById('video-splash');
+    var video = document.getElementById('splash-video');
     if (!splash) return;
-    setTimeout(function () {
+
+    function hideSplash() {
       splash.style.opacity = '0';
-    }, 3000);
-    setTimeout(function () {
-      if (splash.parentNode) splash.parentNode.removeChild(splash);
-    }, 3500);
+      setTimeout(function () {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 500);
+    }
+
+    if (video) {
+      video.addEventListener('ended', hideSplash);
+      setTimeout(hideSplash, 12000);
+    } else {
+      setTimeout(hideSplash, 3000);
+    }
   })();
 </script>
  </body>
