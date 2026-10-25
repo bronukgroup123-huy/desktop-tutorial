@@ -4269,6 +4269,7 @@ body.modal-open { overflow: hidden; }
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
       map.on('load', function() {
+        map.fitBounds(KYIV_BOUNDS, { padding: 20 });
         map.addSource('forests', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
@@ -4322,10 +4323,6 @@ body.modal-open { overflow: hidden; }
           .then(function(kyivData) {
             var kyivGeom = kyivData.features[0].geometry;
             var kyivCoords = kyivGeom.coordinates;
-
-            // Debug: turn button magenta to confirm Kyiv fetch succeeded
-            var btn = document.getElementById('btn-layer-forest');
-            if (btn) btn.style.backgroundColor = 'magenta';
 
             // World exterior ring: counterclockwise (RFC 7946)
             // Kyiv interior ring (hole): clockwise — Natural Earth provides correct winding
@@ -4575,7 +4572,7 @@ body.modal-open { overflow: hidden; }
               deciduous: '\u041b\u0438\u0441\u0442\u044f\u043d\u0438\u0439 \u043b\u0456\u0441',
             };
             var label = labels[forestType] || (forestType ? forestType : '\u041d\u0435\u0432\u0456\u0434\u043e\u043c\u043e (\u0431\u0430\u0437\u043e\u0432\u0430 \u043a\u0430\u0440\u0442\u0430 OSM)');
-            showMapToast('\u0422\u0438\u043f \u043b\u0456\u0441\u0443: ' + label);
+            showMapToast('🌲 Лісовий масив');
           }
         });
       });
@@ -4588,13 +4585,6 @@ body.modal-open { overflow: hidden; }
       el.textContent = message;
       el.style.opacity = '1';
       document.body.appendChild(el);
-      // Debug: blink the "Тип лісу" button to confirm function was called
-      var btn = document.getElementById('btn-layer-forest');
-      if (btn) {
-        btn.style.borderColor = '#ff0000';
-        btn.style.outline = '2px solid #ff0000';
-        setTimeout(function() { btn.style.borderColor = ''; btn.style.outline = ''; }, 1000);
-      }
       setTimeout(function() {
         el.style.opacity = '0';
         setTimeout(function() { el.remove(); }, 300);
