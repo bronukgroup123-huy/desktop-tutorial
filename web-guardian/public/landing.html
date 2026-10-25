@@ -4484,6 +4484,7 @@ body.modal-open { overflow: hidden; }
         }
 
         map.on('click', 'forest-fill-layer', function(e) {
+          console.log('Forest click handler fired, features:', e.features ? e.features.length : 0);
           var feature = e.features && e.features[0];
           if (feature) {
             var props = feature.properties || {};
@@ -4504,10 +4505,18 @@ body.modal-open { overflow: hidden; }
     })();
 
     function showMapToast(message) {
+      console.log('showMapToast called:', message);
       var el = document.createElement('div');
       el.className = 'map-toast';
       el.textContent = message;
       document.body.appendChild(el);
+      // Debug: blink the "Тип лісу" button to confirm function was called
+      var btn = document.getElementById('btn-layer-forest');
+      if (btn) {
+        btn.style.borderColor = '#ff0000';
+        btn.style.outline = '2px solid #ff0000';
+        setTimeout(function() { btn.style.borderColor = ''; btn.style.outline = ''; }, 1000);
+      }
       setTimeout(function() { el.style.opacity = '1'; }, 10);
       setTimeout(function() {
         el.style.opacity = '0';
