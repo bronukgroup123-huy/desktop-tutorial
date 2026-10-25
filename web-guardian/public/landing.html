@@ -1036,6 +1036,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 #screen-welcome .card { position: relative; z-index: 1; }
 #screen-welcome h1, #screen-welcome p { position: relative; z-index: 1; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-cream-100 font-sans">
 <div id="video-splash" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background: #f4f1e1; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
@@ -1334,6 +1335,10 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     <p class="text-[11px] text-ink-muted leading-relaxed">Прогноз ймовірнісний. Не гарантує знахідку. Перевіряйте гриби в довіднику.</p>
   </div>
 
+           <div class="card p-3 mt-3">
+             <div class="text-[12px] font-semibold text-forest-dark" id="forecast-point-info">Зона 5×5 км</div>
+             <div class="text-[11px] text-ink-muted mt-1" id="forecast-status">Очікування даних від сервера</div>
+           </div>
            <button id="btn-change-point" class="btn-ghost w-full py-2 mt-3" style="font-size:13px;">Змінити точку</button>
          </div>
        </section>
@@ -4886,6 +4891,14 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 <script>
   let selectedForecastPoint = null;
 
+  // Supabase client (if available)
+  var SUPABASE_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co';
+  var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || null;
+  var supabaseClient = null;
+  if (window.supabase && SUPABASE_ANON_KEY) {
+    try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (e) { supabaseClient = null; }
+  }
+
   function showForecastEmpty() {
     var empty = document.getElementById('forecast-empty-state');
     var active = document.getElementById('forecast-active-state');
@@ -4899,20 +4912,63 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     if (active) active.style.display = '';
   }
 
-  function loadForecastData(lat, lng) {
-    // Update point card / coords if present
-    var coordsEl = document.getElementById('forecast-sheet-coords');
-    // Mock data load: fill weather block text if element exists
-    var active = document.getElementById('forecast-active-state');
-    if (active) {
-      // Update a simple coords display inside active state if available
-      var info = active.querySelector('[data-point-info]');
-      if (info) info.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+  async function saveForecastPoint(lat, lng) {
+    // Real Supabase insert (if client available). Otherwise console.log with comment.
+    if (supabaseClient) {
+      try {
+        var res = await supabaseClient.from('forecast_sessions').insert([{ lat: lat, lng: lng }]).select();
+        console.log('forecast_sessions insert:', res);
+      } catch (e) {
+        console.warn('Supabase insert failed, fallback:', e);
+      }
+    } else {
+      // Тут має бути запит до Supabase: supabase.from('forecast_sessions').insert([{lat,lng}])
+      console.log('Supabase client not configured; saving point locally only', lat, lng);
     }
-    // Center mini-map placeholder (no-op if absent)
+    // Persist locally for restore after reload
+    try { localStorage.setItem('selectedForecastPoint', JSON.stringify({ lat: lat, lng: lng })); } catch (e) {}
+  }
+
+  function loadForecastData(lat, lng) {
+    var active = document.getElementById('forecast-active-state');
+    // Show real coords
+    var info = document.getElementById('forecast-point-info');
+    if (info) info.textContent = 'Зона 5×5 км: ' + lat.toFixed(4) + '°, ' + lng.toFixed(4) + '°';
+    // Fetch from backend
+    var status = document.getElementById('forecast-status');
+    if (status) status.textContent = 'Очікування даних від сервера';
+    var FUNCTIONS_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co/functions/v1';
+    fetch(FUNCTIONS_URL + '/v1-forecast?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (status) status.textContent = 'Дані отримано';
+        // Optionally render data
+      })
+      .catch(function () {
+        if (status) status.textContent = 'Очікування даних від сервера';
+      });
+  }
+
+  function restorePoint() {
+    try {
+      var raw = localStorage.getItem('selectedForecastPoint');
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && typeof p.lat === 'number') {
+          selectedForecastPoint = p;
+          return true;
+        }
+      }
+    } catch (e) {}
+    return false;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Restore from localStorage
+    if (restorePoint()) {
+      // will be applied when forecast tab opened; ensure active state ready
+    }
+
     var btnChoose = document.getElementById('btn-choose-point');
     if (btnChoose) {
       btnChoose.addEventListener('click', function () {
@@ -4927,6 +4983,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     if (btnChange) {
       btnChange.addEventListener('click', function () {
         selectedForecastPoint = null;
+        try { localStorage.removeItem('selectedForecastPoint'); } catch (e) {}
         showForecastEmpty();
       });
     }
@@ -4936,6 +4993,11 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
       btnShow.addEventListener('click', function () {
         var sheet = document.getElementById('forecast-sheet');
         if (sheet) sheet.style.display = 'none';
+        var pending = window._pendingForecast;
+        if (pending) {
+          selectedForecastPoint = pending;
+          saveForecastPoint(pending.lat, pending.lng);
+        }
         if (selectedForecastPoint) {
           switchTab('forecast');
           showForecastActive();
@@ -4943,48 +5005,22 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
         }
       });
     }
+
+    // If restored point exists, show active state on forecast tab
+    var tabForecast = document.getElementById('tab-forecast');
+    // default remains empty unless restored
   });
 
-  // Hook into map click on forest layer (deferred)
-  (function hookMap() {
-    var attempts = 0;
-    var timer = setInterval(function () {
-      attempts++;
-      if (typeof map !== 'undefined' && map && map.on) {
-        clearInterval(timer);
-        map.on('click', 'forest-fill-layer', function (e) {
-          var lngLat = e.lngLat || (e.features && e.features[0] && e.features[0].geometry && e.features[0].geometry.coordinates);
-          var lat = lngLat ? lngLat.lat : (lngLat ? lngLat[1] : 0);
-          var lng = lngLat ? lngLat.lng : (lngLat ? lngLat[0] : 0);
-          if (!lat && !lng && e.lngLat) { lat = e.lngLat.lat; lng = e.lngLat.lng; }
-          var sheet = document.getElementById('forecast-sheet');
-          var coords = document.getElementById('forecast-sheet-coords');
-          if (coords) coords.textContent = (lat ? lat.toFixed(4) : '') + ', ' + (lng ? lng.toFixed(4) : '');
-          if (sheet) sheet.style.display = 'block';
-          // store pending
-          window._pendingForecast = { lat: lat, lng: lng };
-        });
-      }
-      if (attempts > 50) clearInterval(timer);
-    }, 200);
-  })();
+  // When forecast tab becomes active, ensure correct state
+  var _origSwitchTab = window.switchTab;
+  // switchTab is function declaration in another script; wrap via DOM? Instead, poll not needed.
+  // We'll rely on initial empty state and loadForecastData calls.
 
-  // Override btn-show-forecast to use pending coords
+  // Apply restored state on load
   document.addEventListener('DOMContentLoaded', function () {
-    var btnShow = document.getElementById('btn-show-forecast');
-    if (btnShow) {
-      btnShow.addEventListener('click', function () {
-        if (window._pendingForecast) {
-          selectedForecastPoint = window._pendingForecast;
-        }
-        var sheet = document.getElementById('forecast-sheet');
-        if (sheet) sheet.style.display = 'none';
-        if (selectedForecastPoint) {
-          switchTab('forecast');
-          showForecastActive();
-          loadForecastData(selectedForecastPoint.lat, selectedForecastPoint.lng);
-        }
-      }, true);
+    if (selectedForecastPoint) {
+      showForecastActive();
+      loadForecastData(selectedForecastPoint.lat, selectedForecastPoint.lng);
     }
   });
 </script>
