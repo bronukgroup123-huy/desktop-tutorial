@@ -4289,6 +4289,14 @@ body.modal-open { overflow: hidden; }
           },
         });
 
+        // Курсор вказівник на наведення на ліс
+        map.on('mouseenter', 'forest-fill-layer', function() {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'forest-fill-layer', function() {
+          map.getCanvas().style.cursor = '';
+        });
+
         map.addLayer({
           id: 'forest-outline-layer',
           type: 'line',
@@ -4394,25 +4402,47 @@ body.modal-open { overflow: hidden; }
 
         var layersVisible = true;
 
+        // Синхронізувати стан кнопки з поточною видимістю шарів при завантаженні
+        try {
+          var fillVis = map.getLayoutProperty('forest-fill-layer', 'visibility');
+          layersVisible = fillVis !== 'none';
+          if (layersVisible) {
+            btnForest.classList.add('on');
+          } else {
+            btnForest.classList.remove('on');
+          }
+        } catch (e) {}
+
         if (btnForest) {
           btnForest.addEventListener('click', function() {
-            // Перший клік: показує/ховає шари лісів на карті
-            layersVisible = !layersVisible;
+            // Читаємо поточний стан з мапи (не змінну)
+            var currentVis = 'visible';
+            try {
+              currentVis = map.getLayoutProperty('forest-fill-layer', 'visibility');
+            } catch (e) {}
+            var newVisible = currentVis !== 'visible';
+
             try {
               if (map.getLayer('forest-fill-layer')) {
-                map.setLayoutProperty('forest-fill-layer', 'visibility', layersVisible ? 'visible' : 'none');
+                map.setLayoutProperty('forest-fill-layer', 'visibility', newVisible ? 'visible' : 'none');
               }
               if (map.getLayer('forest-outline-layer')) {
-                map.setLayoutProperty('forest-outline-layer', 'visibility', layersVisible ? 'visible' : 'none');
+                map.setLayoutProperty('forest-outline-layer', 'visibility', newVisible ? 'visible' : 'none');
               }
             } catch (e) {
               console.error('Map layer toggle error:', e);
             }
 
-            // Другий клік (коли шари приховані): відкриває легенду
-            if (!layersVisible && legendModal) {
-              legendModal.classList.remove('hidden');
+            // Оновлюємо клас кнопки відповідно до нового стану
+            if (newVisible) {
               this.classList.add('on');
+            } else {
+              this.classList.remove('on');
+            }
+
+            // Другий клік (коли шари приховані): відкриває легенду
+            if (!newVisible && legendModal) {
+              legendModal.classList.remove('hidden');
               var warningEl = document.getElementById('legend-warning');
               if (warningEl) {
                 if (allForestTypesMissing) {
@@ -4421,9 +4451,8 @@ body.modal-open { overflow: hidden; }
                   warningEl.classList.add('hidden');
                 }
               }
-            } else if (layersVisible && legendModal) {
+            } else if (newVisible && legendModal) {
               legendModal.classList.add('hidden');
-              this.classList.remove('on');
             }
           });
         }
