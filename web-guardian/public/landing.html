@@ -60,7 +60,7 @@ tailwind.config = {
   pointer-events: none !important;
 }
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
+html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .font-serif { font-family: 'Fraunces', Georgia, serif; }
 
 .desktop-bg {
@@ -72,16 +72,17 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 @media (min-width: 601px) and (max-width: 1023px) {
   body { background-color: #f4f1e8; }
   .desktop-bg { display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
-  .app-shell {
-    width: 100%;
-    max-width: 720px;
-    height: 95vh;
-    margin: 2.5vh auto;
-    border-radius: 24px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    overflow: hidden;
-    position: relative;
-  }
+.app-shell {
+     width: 100%;
+     max-width: 720px;
+     height: 95vh;
+     margin: 2.5vh auto;
+     border-radius: 24px;
+     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+     overflow: hidden;
+     position: relative;
+   }
+   #screen-welcome > div { height: auto !important; overflow-y: auto !important; }
 }
 
 /* Desktop (1024px - 1439px) — app window, dark bg, natural height */
@@ -121,8 +122,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     overflow-y: auto;
     flex-grow: 1;
   }
-  #screen-welcome { overflow-y: auto; }
-}
+#screen-welcome { overflow-y: auto; }
+   #screen-welcome > div { height: auto !important; overflow-y: auto !important; }
+ }
 
 /* Large Desktop (1440px+) */
 @media (min-width: 1440px) {
@@ -161,8 +163,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
     overflow-y: auto;
     flex-grow: 1;
   }
-  #screen-welcome { overflow-y: auto; }
-}
+#screen-welcome { overflow-y: auto; }
+   #screen-welcome > div { height: auto !important; overflow-y: auto !important; }
+ }
 
 @media (max-width: 600px) {
   .app-shell { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
@@ -987,14 +990,14 @@ body.modal-open { overflow: hidden; }
     <div class="absolute inset-0" style="background: radial-gradient(ellipse at 30% 20%, rgba(245, 230, 208, 0.55) 0%, transparent 55%), radial-gradient(ellipse at 70% 80%, rgba(220, 230, 220, 0.45) 0%, transparent 55%);"></div>
   </div>
 
-  <div class="relative flex-1 flex flex-col px-6 py-8 overflow-y-auto scroll-hide">
+  <div class="relative flex-1 flex flex-col justify-between px-6 py-4 overflow-hidden" style="height: 100dvh;">
     <!-- Logo -->
-    <div class="flex flex-col items-center text-center">
-      <div class="relative mb-6">
+    <div class="flex flex-col items-center text-center flex-shrink-0">
+      <div class="relative mb-4">
         <div class="absolute -inset-3 rounded-full" style="background: radial-gradient(circle at 50% 40%, rgba(201,122,43,0.20), transparent 65%);"></div>
-        <div class="relative w-20 h-20 rounded-[26px] bg-white flex items-center justify-center shadow-lift border border-cream-300">
+        <div class="relative w-16 h-16 rounded-[22px] bg-white flex items-center justify-center shadow-lift border border-cream-300">
           <!-- Mushroom icon -->
-          <svg viewBox="0 0 48 48" class="w-12 h-12" fill="none">
+          <svg viewBox="0 0 48 48" class="w-10 h-10" fill="none">
             <path d="M24 6 C 12 6, 5 14, 5 22 C 5 24, 6 25.5, 8 26 L 40 26 C 42 25.5, 43 24, 43 22 C 43 14, 36 6, 24 6 Z" fill="#8B5E34"/>
             <path d="M24 6 C 12 6, 5 14, 5 22 C 5 23, 5.5 24, 6.2 24.5 C 8 20, 14 17, 24 17 C 34 17, 40 20, 41.8 24.5 C 42.5 24, 43 23, 43 22 C 43 14, 36 6, 24 6 Z" fill="#A97046" opacity="0.5"/>
             <rect x="17" y="26" width="14" height="14" rx="3" fill="#F5E6D0"/>
@@ -1007,7 +1010,7 @@ body.modal-open { overflow: hidden; }
           </svg>
         </div>
       </div>
-      <h1 class="font-serif font-semibold text-forest-dark tracking-tight" style="font-size: 40px; line-height: 1.05;">
+      <h1 class="font-serif font-semibold text-forest-dark tracking-tight" style="font-size: 32px; line-height: 1.05;">
         Грибний <em class="font-serif italic text-amberbrand font-medium">Радар</em>
       </h1>
       <p class="mt-3 text-ink-muted max-w-xs" style="font-size: 15px; line-height: 1.5;">
@@ -1016,77 +1019,83 @@ body.modal-open { overflow: hidden; }
     </div>
 
     <!-- Benefits -->
-    <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-      <div class="card p-3 flex flex-col items-center text-center" data-modal="offline">
-        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+    <div class="mt-6 flex flex-col gap-[10px]">
+      <div class="card flex flex-row items-center gap-[10px]" data-modal="offline" style="padding: 12px 16px; text-align: left;">
+        <div class="w-8 h-8 rounded-full bg-cream-200 flex items-center justify-center text-bark flex-shrink-0" style="width:32px;height:32px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 12 22"/><path d="M5 9 L 12 2 L 19 9"/><path d="M5 9 L 12 16 L 19 9"/></svg>
         </div>
-        <div class="text-[12px] font-semibold text-forest-dark">Офлайн</div>
-        <div class="text-[10px] text-ink-muted mt-0.5">Картка та ШІ без інтернету</div>
+        <div>
+          <div class="text-[12px] font-semibold text-forest-dark">Офлайн</div>
+          <div class="text-[10px] text-ink-muted mt-0.5">Картка та ШІ без інтернету</div>
+        </div>
       </div>
-      <div class="card p-3 flex flex-col items-center text-center" data-modal="privacy">
-        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+      <div class="card flex flex-row items-center gap-[10px]" data-modal="privacy" style="padding: 12px 16px; text-align: left;">
+        <div class="w-8 h-8 rounded-full bg-cream-200 flex items-center justify-center text-bark flex-shrink-0" style="width:32px;height:32px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         </div>
-        <div class="text-[12px] font-semibold text-forest-dark">Приватно</div>
-        <div class="text-[10px] text-ink-muted mt-0.5">Твої точки — тільки ти</div>
+        <div>
+          <div class="text-[12px] font-semibold text-forest-dark">Приватно</div>
+          <div class="text-[10px] text-ink-muted mt-0.5">Твої точки — тільки ти</div>
+        </div>
       </div>
-      <div class="card p-3 flex flex-col items-center text-center" data-modal="safety">
-        <div class="w-9 h-9 rounded-full bg-cream-200 flex items-center justify-center text-bark mb-2">
+      <div class="card flex flex-row items-center gap-[10px]" data-modal="safety" style="padding: 12px 16px; text-align: left;">
+        <div class="w-8 h-8 rounded-full bg-cream-200 flex items-center justify-center text-bark flex-shrink-0" style="width:32px;height:32px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L 4 6 L 4 12 C 4 17, 8 21, 12 22 C 16 21, 20 17, 20 12 L 20 6 Z"/><path d="M9 12 L 11 14 L 15 10"/></svg>
         </div>
-        <div class="text-[12px] font-semibold text-forest-dark">Безпека</div>
-        <div class="text-[10px] text-ink-muted mt-0.5">Наглядач та SOS</div>
+        <div>
+          <div class="text-[12px] font-semibold text-forest-dark">Безпека</div>
+          <div class="text-[10px] text-ink-muted mt-0.5">Наглядач та SOS</div>
+        </div>
       </div>
     </div>
 
     <!-- Find button (replaces mini forecast) -->
-    <button id="btn-start" class="btn-primary w-full mt-6 py-4 px-6 flex items-center justify-center gap-2" style="font-size: 16px; border-radius: 18px;" data-welcome-cta>
+    <button id="btn-start" class="btn-primary w-full mt-4 flex items-center justify-center gap-2 flex-shrink-0" style="font-size: 16px; border-radius: 18px; padding: 12px 24px;" data-welcome-cta>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
       Знайти гриб
     </button>
 
     <!-- What's inside -->
-    <div class="mt-4">
-      <div class="text-[11px] text-ink-muted font-medium uppercase tracking-wide mb-2">Що всередині</div>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="forecast">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+    <div class="mt-2">
+      <div class="text-[10px] text-ink-muted font-medium uppercase tracking-wide mb-1">Що всередині</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="forecast">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83 M2 12h4 M18 12h4 M4.93 19.07l2.83-2.83 M16.24 7.76l2.83-2.83"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Прогноз</div>
           <div class="text-[9px] text-ink-muted mt-0.5">ймовірність появи</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="guide">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="guide">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Довідник</div>
           <div class="text-[9px] text-ink-muted mt-0.5"><span id="welcome-guide-n">—</span> види з фото</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="ai">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="ai">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">ШІ-розпізнавання</div>
           <div class="text-[9px] text-ink-muted mt-0.5">3 фото · від 15 с</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="guardian">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="guardian">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Наглядач</div>
           <div class="text-[9px] text-ink-muted mt-0.5">SOS та маршрути</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="groups">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="groups">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Групи</div>
           <div class="text-[9px] text-ink-muted mt-0.5">пошукові відряди</div>
         </div>
-        <div class="card p-2.5 flex flex-col items-center text-center" data-modal="community">
-          <div class="w-8 h-8 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1.5">
+        <div class="card p-2 flex flex-col items-center text-center" data-modal="community">
+          <div class="w-7 h-7 rounded-full bg-cream-200 text-bark flex items-center justify-center mb-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
           </div>
           <div class="text-[11px] font-semibold text-forest-dark">Спільнота</div>
@@ -1096,7 +1105,7 @@ body.modal-open { overflow: hidden; }
     </div>
 
     <!-- Disclaimer -->
-    <div class="pt-6 pb-2 flex flex-col items-center gap-2">
+    <div class="pt-2 pb-1 flex flex-col items-center gap-2">
       <p class="text-center text-[11px] text-ink-muted leading-relaxed max-w-xs px-4" style="line-height: 1.45;">
         Прогноз ймовірнісний. Визначення гриба — твоя відповідальність.
       </p>
