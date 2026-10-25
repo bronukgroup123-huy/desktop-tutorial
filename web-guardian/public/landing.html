@@ -4011,8 +4011,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   function openMapPicker() {
     const modal = document.getElementById('map-picker');
     if (!modal) return;
-    pickerLat = 0;
-    pickerLng = 0;
+    pickerLat = 50.4501;
+    pickerLng = 30.5234;
     pickerForest = 'Ліс';
     updatePickerUI();
     modal.classList.add('active');
@@ -4045,7 +4045,6 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
 
     if (warningEl) warningEl.classList.toggle('hidden', !validation.warning);
     if (outsideEl) outsideEl.classList.toggle('hidden', inside);
-    if (selectBtn) selectBtn.disabled = !inside;
   }
 
   function initMapPicker() {
