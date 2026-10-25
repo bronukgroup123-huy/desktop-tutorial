@@ -44,6 +44,21 @@ tailwind.config = {
 }
 </script>
 <style>
+.map-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; }
 .font-serif { font-family: 'Fraunces', Georgia, serif; }
@@ -4268,7 +4283,7 @@ body.modal-open { overflow: hidden; }
               'mixed', '#9e9e9e',
               'coniferous', '#66bb6a',
               'deciduous', '#a5d6a7',
-              '#bdbdbd',
+              '#86efac',
             ],
             'fill-opacity': 0.5,
           },
@@ -4453,11 +4468,23 @@ body.modal-open { overflow: hidden; }
               deciduous: '\u041b\u0438\u0441\u0442\u044f\u043d\u0438\u0439 \u043b\u0456\u0441',
             };
             var label = labels[forestType] || (forestType ? forestType : '\u041d\u0435\u0432\u0456\u0434\u043e\u043c\u043e (\u0431\u0430\u0437\u043e\u0432\u0430 \u043a\u0430\u0440\u0442\u0430 OSM)');
-            alert('\u0422\u0438\u043f \u043b\u0456\u0441\u0443: ' + label);
+            showMapToast('\u0422\u0438\u043f \u043b\u0456\u0441\u0443: ' + label);
           }
         });
       });
     })();
+
+    function showMapToast(message) {
+      var el = document.createElement('div');
+      el.className = 'map-toast';
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(function() { el.style.opacity = '1'; }, 10);
+      setTimeout(function() {
+        el.style.opacity = '0';
+        setTimeout(function() { el.remove(); }, 300);
+      }, 3000);
+    }
   </script>
 
         <!-- Forest type legend modal -->
