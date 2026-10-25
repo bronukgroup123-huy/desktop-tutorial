@@ -4011,10 +4011,9 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   function openMapPicker() {
     const modal = document.getElementById('map-picker');
     if (!modal) return;
-    pickerLat = 50.45;
-    pickerLng = 30.52;
-    pickerForest = 'pine';
-    pickerAge = 25;
+    pickerLat = 0;
+    pickerLng = 0;
+    pickerForest = 'Ліс';
     updatePickerUI();
     modal.classList.add('active');
     modal.classList.add('modal-open');
@@ -4030,16 +4029,16 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   }
 
   function updatePickerUI() {
-    const coordsEl = document.getElementById('picker-coords');
-    const forestEl = document.getElementById('picker-forest');
-    const ageEl = document.getElementById('picker-age');
+    const latEl = document.getElementById('sheet-lat');
+    const lngEl = document.getElementById('sheet-lng');
+    const forestEl = document.getElementById('sheet-forest-type');
     const warningEl = document.getElementById('picker-warning');
     const outsideEl = document.getElementById('picker-outside');
-    const selectBtn = document.getElementById('map-picker-select');
+    const selectBtn = document.getElementById('btn-confirm-point');
 
-    if (coordsEl) coordsEl.textContent = pickerLat.toFixed(2) + 'N · ' + pickerLng.toFixed(2) + 'E';
+    if (latEl) latEl.textContent = pickerLat.toFixed(2);
+    if (lngEl) lngEl.textContent = pickerLng.toFixed(2);
     if (forestEl) forestEl.textContent = pickerForest + ' (визначено)';
-    if (ageEl) ageEl.textContent = pickerAge + ' років';
 
     const validation = validatePoint(pickerLat, pickerLng);
     const inside = isInsideHomeRegion(pickerLat, pickerLng);
@@ -4060,8 +4059,11 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     if (cancelBtn) cancelBtn.addEventListener('click', closeMapPicker);
     if (selectBtn) {
       selectBtn.addEventListener('click', () => {
-        addPoint(pickerLat, pickerLng, pickerForest, pickerAge);
+        if (pickerLat != null && pickerLng != null) {
+          window.tempSelectedPoint = { lat: pickerLat, lng: pickerLng };
+        }
         closeMapPicker();
+        console.log("Обрано точку:", pickerLat, pickerLng);
       });
     }
     if (modal) {
@@ -4340,16 +4342,15 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
       <div class="p-4 space-y-3 border-t border-cream-300">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-[13px] font-semibold text-forest-dark">📍 <span id="picker-coords">50.45N · 30.52E</span></div>
-            <div class="text-[12px] text-ink-muted">🌲 <span id="picker-forest">pine (визначено)</span></div>
-            <div class="text-[12px] text-ink-muted">Вік: <span id="picker-age">25 років</span></div>
+            <div class="text-[13px] font-semibold text-forest-dark">📍 <span id="sheet-lat">0.00</span>N · <span id="sheet-lng">0.00</span>E</div>
+            <div class="text-[12px] text-ink-muted">🌲 <span id="sheet-forest-type">Ліс</span></div>
           </div>
           <div id="picker-warning" class="hidden text-[11px] text-sos font-medium bg-sos/10 px-2.5 py-1 rounded-lg">Занадто близько до існуючої точки</div>
         </div>
         <div id="picker-outside" class="hidden text-[11px] text-sos font-medium bg-sos/10 px-2.5 py-1 rounded-lg">Поза вашою областю</div>
         <div class="flex gap-3">
           <button id="map-picker-cancel" class="btn-ghost flex-1 py-2.5 text-[13px]">Скасувати</button>
-          <button id="map-picker-select" class="btn-primary flex-1 py-2.5 text-[13px]">Обрати точку</button>
+          <button id="btn-confirm-point" class="btn-primary flex-1 py-2.5 text-[13px]">Обрати точку</button>
         </div>
       </div>
     </div>
