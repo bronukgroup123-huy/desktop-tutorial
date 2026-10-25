@@ -18,4 +18,6 @@ web-guardian/.vercel/
 *_secret.txt
 .env.local
 jwt_secret*
+# *.geojson is ignored except kyiv_oblast.geojson (map mask)
 *.geojson
+!web-guardian/public/kyiv_oblast.geojson
