@@ -4232,7 +4232,8 @@ body.modal-open { overflow: hidden; }
       var FORESTS_URL = 'https://wrukmuxdbkbmkygfasai.supabase.co/storage/v1/object/public/forest-data/forests.geojson';
       var KYIV_CENTER = [30.52, 50.45];
       var INITIAL_ZOOM = 10;
-      var UKRAINE_BOUNDS = [[28.0, 49.0], [33.0, 52.0]];
+      var KYIV_GEOJSON_URL = '/kyiv_oblast.geojson';
+      var KYIV_BOUNDS = [[29.2705, 49.1706], [32.1392, 51.4931]];
 
       var map = new maplibregl.Map({
         container: 'map',
@@ -4258,7 +4259,7 @@ body.modal-open { overflow: hidden; }
         },
         center: KYIV_CENTER,
         zoom: INITIAL_ZOOM,
-        maxBounds: UKRAINE_BOUNDS,
+        maxBounds: KYIV_BOUNDS,
       });
 
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -4308,38 +4309,84 @@ body.modal-open { overflow: hidden; }
           },
         });
 
-        // Clip mask: все світик за межами Київської області замальований кольором фону сторінки
-        map.addSource('world-mask', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: [{
-              type: 'Feature',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  [
-                    [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
-                  ],
-                  [
-                    [28.0, 49.0], [28.0, 52.0], [33.0, 52.0], [33.0, 49.0], [28.0, 49.0]
-                  ]
-                ]
-              }
-            }]
-          }
-        });
+        // Clip mask: весь світ за межами Київської області замальований кольором фону сторінки
+        fetch(KYIV_GEOJSON_URL)
+          .then(function(response) {
+            if (!response.ok) throw new Error('Failed to load Kyiv Oblast: ' + response.status);
+            return response.json();
+          })
+          .then(function(kyivData) {
+            var kyivGeom = kyivData.features[0].geometry;
+            var kyivCoords = kyivGeom.coordinates;
 
-        map.addLayer({
-          id: 'clip-mask-layer',
-          type: 'fill',
-          source: 'world-mask',
-          paint: {
-            'fill-color': '#f4f1e8',
-            'fill-opacity': 1,
-          },
-          interactive: false,
-        });
+            // World exterior ring: counterclockwise (RFC 7946)
+            // Kyiv interior ring (hole): clockwise — Natural Earth provides correct winding
+            var worldMask = {
+              type: 'FeatureCollection',
+              features: [{
+                type: 'Feature',
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
+                    ],
+                    kyivCoords[0]
+                  ]
+                }
+              }]
+            };
+
+            map.addSource('world-mask', {
+              type: 'geojson',
+              data: worldMask,
+            });
+
+            map.addLayer({
+              id: 'clip-mask-layer',
+              type: 'fill',
+              source: 'world-mask',
+              paint: {
+                'fill-color': '#f4f1e8',
+                'fill-opacity': 1,
+              },
+              interactive: false,
+            });
+          })
+          .catch(function(err) {
+            console.error('Failed to load Kyiv Oblast mask:', err);
+            // Fallback: rectangle mask
+            map.addSource('world-mask', {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: [{
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
+                      ],
+                      [
+                        [29.2705, 49.1706], [32.1392, 49.1706], [32.1392, 51.4931], [29.2705, 51.4931], [29.2705, 49.1706]
+                      ]
+                    ]
+                  }
+                }]
+              }
+            });
+            map.addLayer({
+              id: 'clip-mask-layer',
+              type: 'fill',
+              source: 'world-mask',
+              paint: {
+                'fill-color': '#f4f1e8',
+                'fill-opacity': 1,
+              },
+              interactive: false,
+            });
+          });
 
         var geoJsonLogged = false;
         var allForestTypesMissing = true;
