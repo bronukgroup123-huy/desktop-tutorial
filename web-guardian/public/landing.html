@@ -4349,7 +4349,7 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
         <div id="picker-outside" class="hidden text-[11px] text-sos font-medium bg-sos/10 px-2.5 py-1 rounded-lg">Поза вашою областю</div>
         <div class="flex gap-3">
           <button id="map-picker-cancel" class="btn-ghost flex-1 py-2.5 text-[13px]">Скасувати</button>
-          <button id="btn-confirm-point" class="btn-primary flex-1 py-2.5 text-[13px]">Обрати точку</button>
+          <button type="button" id="btn-confirm-point" onclick="handleConfirmPoint()" class="btn-primary flex-1 py-2.5 text-[13px]">Обрати точку</button>
         </div>
       </div>
     </div>
@@ -5062,5 +5062,13 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
       });
     }
   });
+
+  window.handleConfirmPoint = function() {
+      var sheet = document.getElementById('map-picker');
+      if (sheet) {
+          sheet.classList.remove('active');
+          sheet.style.display = 'none';
+      }
+  };
 </script>
 </html>
