@@ -5064,11 +5064,19 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   });
 
   window.handleConfirmPoint = function() {
-      var sheet = document.getElementById('map-picker');
-      if (sheet) {
-          sheet.classList.remove('active');
-          sheet.style.display = 'none';
+      // Спроба викликати існуючу функцію
+      if (typeof closeMapPicker === 'function') {
+          closeMapPicker();
+      } else {
+          // Якщо вона недоступна, робимо очищення вручну
+          var sheet = document.getElementById('map-picker');
+          if (sheet) {
+              sheet.classList.remove('active');
+              sheet.classList.remove('modal-open');
+          }
+          document.body.classList.remove('modal-open');
       }
+      console.log("Модалку закрито, оверлей знято!");
   };
 </script>
 </html>
