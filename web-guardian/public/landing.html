@@ -5064,19 +5064,33 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
   });
 
   window.handleConfirmPoint = function() {
-      // Спроба викликати існуючу функцію
-      if (typeof closeMapPicker === 'function') {
-          closeMapPicker();
-      } else {
-          // Якщо вона недоступна, робимо очищення вручну
-          var sheet = document.getElementById('map-picker');
-          if (sheet) {
-              sheet.classList.remove('active');
-              sheet.classList.remove('modal-open');
-          }
-          document.body.classList.remove('modal-open');
+      // 1. Отримуємо координати (з глобальних змінних або локальних, якщо доступні)
+      var lat = (typeof pickerLat !== 'undefined') ? pickerLat : 50.4501;
+      var lng = (typeof pickerLng !== 'undefined') ? pickerLng : 30.5234;
+
+      // 2. Зберігаємо координати (як ти і радив у своєму аналізі)
+      window.tempSelectedPoint = { lat: lat, lng: lng };
+      window._pendingForecast = { lat: lat, lng: lng };
+
+      // 3. Закриваємо модалку вручну (щоб оминути проблему з областю видимості closeMapPicker)
+      var sheet = document.getElementById('map-picker');
+      if (sheet) {
+          sheet.classList.remove('active');
+          sheet.classList.remove('modal-open');
       }
-      console.log("Модалку закрито, оверлей знято!");
+      document.body.classList.remove('modal-open'); // Знімаємо блокування фону
+      setTimeout(function() { if (sheet) sheet.style.display = 'none'; }, 250); // Ховаємо повністю
+
+      // 4. Перемикаємо вкладку на Прогноз і показуємо активний стан
+      if (typeof switchTab === 'function') switchTab('forecast');
+      if (typeof showForecastActive === 'function') showForecastActive();
+
+      // 5. Завантажуємо дані для обраної точки
+      if (typeof loadForecastData === 'function') {
+          loadForecastData(lat, lng);
+      }
+      
+      console.log("Повний ланцюжок виконано! Координати:", lat, lng);
   };
 </script>
 </html>
