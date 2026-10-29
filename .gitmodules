@@ -1,0 +1,3 @@
+[submodule "docs/devops-exercises"]
+	path = docs/devops-exercises
+	url = https://github.com/bronukgroup123-huy/devops-exercises.git
