@@ -1,0 +1,77 @@
+# ============================================================================
+# Docker Compose — Mushroom Radar (web + api + db)
+# ============================================================================
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: mushroom-radar-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mushroom_radar}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mushroom_radar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mushroom-network
+    restart: unless-stopped
+
+  # Python API (FastAPI)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: mushroom-radar-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-mushroom_radar}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      GUARDIAN_BASE_URL: ${GUARDIAN_BASE_URL:-http://web:3000}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mushroom-network
+    restart: unless-stopped
+    # Healthcheck for API
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Next.js Web (Frontend)
+  web:
+    build:
+      context: ./web-guardian
+      dockerfile: ../web/Dockerfile
+    container_name: mushroom-radar-web
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - mushroom-network
+    restart: unless-stopped
+
+networks:
+  mushroom-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
