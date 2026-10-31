@@ -31,3 +31,4 @@ flutter:
     - assets/i18n/uk.json
     - assets/i18n/en.json
     - assets/images/onboarding/
+    - assets/images/loading/
