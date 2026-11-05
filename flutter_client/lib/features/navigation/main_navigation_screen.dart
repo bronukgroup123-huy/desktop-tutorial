@@ -1,0 +1,116 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_client/core/app_theme.dart';
+
+class MainNavigationScreen extends ConsumerWidget {
+  final StatefulNavigationShell navigationShell;
+
+  const MainNavigationScreen({super.key, required this.navigationShell});
+
+  static const List<_TabItem> _tabs = [
+    _TabItem(id: 'forecast', label: 'Прогноз', iconAsset: 'assets/icons/forecast.svg'),
+    _TabItem(id: 'map', label: 'Карта', iconAsset: 'assets/icons/map.svg'),
+    _TabItem(id: 'recognize', label: 'Розпізнати', iconAsset: 'assets/icons/recognize.svg'),
+    _TabItem(id: 'safety', label: 'Безпека', iconAsset: 'assets/icons/safety.svg'),
+    _TabItem(id: 'community', label: 'Спільнота', iconAsset: 'assets/icons/community.svg'),
+    _TabItem(id: 'profile', label: 'Профіль', iconAsset: 'assets/icons/profile.svg'),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: Container(
+        height: 60 + MediaQuery.of(context).padding.bottom,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppTheme.backgroundColor, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.darkGreen.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: _tabs.asMap().entries.map((entry) {
+              final index = entry.key;
+              final tab = entry.value;
+              final isActive = navigationShell.currentIndex == index;
+              return Expanded(
+                child: _TabButton(
+                  tab: tab,
+                  isActive: isActive,
+                  onTap: () => navigationShell.goBranch(
+                    index,
+                    initialLocation: index == navigationShell.currentIndex,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabItem {
+  final String id;
+  final String label;
+  final String iconAsset;
+
+  const _TabItem({required this.id, required this.label, required this.iconAsset});
+}
+
+class _TabButton extends StatelessWidget {
+  final _TabItem tab;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _TabButton({required this.tab, required this.isActive, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SvgPicture.asset(
+                tab.iconAsset,
+                width: 22,
+                height: 22,
+                colorFilter: ColorFilter.mode(
+                  isActive ? AppTheme.orange : AppTheme.darkGreen.withValues(alpha: 0.6),
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                tab.label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: isActive ? AppTheme.orange : AppTheme.darkGreen.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
