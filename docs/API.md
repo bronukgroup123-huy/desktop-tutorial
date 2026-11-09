@@ -97,6 +97,8 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
   `terms_version_outdated` (409), `bbox_too_large` (400), `rate_limited` (429 + `Retry-After`).
 - Усі v1-* мають rate limit за IP.
 - `POST /guardian-session-create` і `POST /guardian-sos` для гостя → `403 registration_required`.
+- Legacy `/me` (не плутати з `v1-me`): лише `GET` — експорт власних даних (GDPR). `DELETE` та
+  інші методи → `405 method_not_allowed`. Видалення акаунта — B6.2.
 
 ---
 
