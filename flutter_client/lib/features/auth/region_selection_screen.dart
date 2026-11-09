@@ -72,6 +72,14 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                 'Карта, ліси та прогноз доступні в межах вашої області.',
                 style: GoogleFonts.inter(color: AppTheme.darkGreen.withValues(alpha: 0.7)),
               ),
+              if (lockedSlug != null && me != null) ...[
+                const SizedBox(height: 8),
+                // Чому область не можна змінити — текст із сервера (ADR-016).
+                Text(
+                  me.regionChange.reasonLabel,
+                  style: GoogleFonts.inter(fontSize: 13, color: AppTheme.accentOrange),
+                ),
+              ],
               const SizedBox(height: 16),
               if (lockedSlug == null)
                 TextField(

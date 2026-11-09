@@ -15,6 +15,27 @@ import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
 
+/// Перетин видимої частини карти з межами області (bbox запиту лісів ніколи не
+/// виходить за область). `null` — перетину немає.
+GeoBounds? clipToRegion(LatLngBounds visible, GeoBounds region) {
+  final south = visible.south > region.southWest.latitude ? visible.south : region.southWest.latitude;
+  final west = visible.west > region.southWest.longitude ? visible.west : region.southWest.longitude;
+  final north = visible.north < region.northEast.latitude ? visible.north : region.northEast.latitude;
+  final east = visible.east < region.northEast.longitude ? visible.east : region.northEast.longitude;
+  if (south >= north || west >= east) return null;
+  return GeoBounds(southWest: LatLng(south, west), northEast: LatLng(north, east));
+}
+
+/// Межі області з відступом 10% — щоб кордон не впирався в край екрана.
+LatLngBounds _paddedBounds(LatLngBounds b) {
+  final dLat = (b.north - b.south) * 0.1;
+  final dLng = (b.east - b.west) * 0.1;
+  return LatLngBounds(
+    LatLng(b.south - dLat, b.west - dLng),
+    LatLng(b.north + dLat, b.east + dLng),
+  );
+}
+
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
 /// Усе, що стосується області, приходить із сервера:
@@ -82,10 +103,11 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   void _scheduleForestQuery(MapCamera camera) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      final b = camera.visibleBounds;
+      final visible = clipToRegion(camera.visibleBounds, _g.bounds);
+      if (visible == null) return; // видима частина поза областю — запитувати нічого
       final q = ForestZonesQuery(
         regionSlug: _g.slug,
-        bounds: GeoBounds(southWest: b.southWest, northEast: b.northEast),
+        bounds: visible,
         zoom: camera.zoom.round(),
       );
       if (mounted && q != _query) setState(() => _query = q);
@@ -170,10 +192,12 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
             options: MapOptions(
               initialCenter: _g.center,
               initialZoom: _g.zoom,
-              minZoom: _g.zoom - 1,
+              minZoom: _g.zoom,
               maxZoom: 18,
-              // Ефект «острова»: камера не виходить за межі області.
-              cameraConstraint: CameraConstraint.containCenter(bounds: bounds),
+              // Ефект «острова»: видима частина карти не може вийти за межі області
+              // (кордон із v1-regions + невеликий відступ). Віддалитися далі, ніж
+              // уміщується область, неможливо.
+              cameraConstraint: CameraConstraint.contain(bounds: _paddedBounds(bounds)),
               onMapReady: () => _scheduleForestQuery(_mapController.camera),
               onPositionChanged: (camera, hasGesture) => _scheduleForestQuery(camera),
             ),
