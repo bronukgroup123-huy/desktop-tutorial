@@ -20,15 +20,21 @@ class AuthRepository {
   Future<void> signInAsGuest() => _auth.signInAnonymously();
 
   /// Google OAuth. [redirectTo] — deep link застосунку (мобільний) або origin (web).
-  Future<void> signInWithGoogle({String? redirectTo}) => _auth.signInWithOAuth(
+  /// Сторінка входу відкривається у зовнішньому браузері: Google блокує вхід у
+  /// вбудованих WebView, а повернення в застосунок іде через deep link.
+  Future<void> signInWithGoogle({required String redirectTo}) => _auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectTo,
+        authScreenLaunchMode: LaunchMode.externalApplication,
         queryParams: const {'prompt': 'select_account'},
       );
 
   /// Гість → зареєстрований Google-акаунт зі збереженням UUID і даних (ADR-001).
-  Future<void> linkGoogle({String? redirectTo}) =>
-      _auth.linkIdentity(OAuthProvider.google, redirectTo: redirectTo);
+  Future<void> linkGoogle({required String redirectTo}) => _auth.linkIdentity(
+        OAuthProvider.google,
+        redirectTo: redirectTo,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
 
   Future<void> signOut() => _auth.signOut();
 }

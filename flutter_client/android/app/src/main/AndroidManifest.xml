@@ -29,12 +29,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- Повернення після входу через Google (Supabase OAuth):
-                 io.supabase.flutter://login-callback/ — те саме значення в AuthScreen. -->
+                 ua.mushroomradar.app://login-callback/ — SupabaseConfig.authRedirectUrl.
+                 Ця адреса має бути в Supabase → Authentication → URL Configuration → Redirect URLs. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="io.supabase.flutter" android:host="login-callback"/>
+                <data android:scheme="ua.mushroomradar.app" android:host="login-callback"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

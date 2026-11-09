@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/core/auth_errors.dart';
+import 'package:flutter_client/core/supabase_config.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/auth_repository.dart';
@@ -10,19 +12,17 @@ import 'package:flutter_client/data/repositories/auth_repository.dart';
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
 
-  /// Deep link для повернення після OAuth (див. intent-filter в AndroidManifest).
-  static const String _mobileRedirect = 'io.supabase.flutter://login-callback/';
-
   AuthRepository _auth(BuildContext context) =>
       ProviderScope.containerOf(context, listen: false).read(authRepositoryProvider);
 
   Future<void> _signInWithGoogle(BuildContext context) async {
     try {
       await _auth(context).signInWithGoogle(
-        redirectTo: kIsWeb ? Uri.base.origin : _mobileRedirect,
+        redirectTo: kIsWeb ? Uri.base.origin : SupabaseConfig.authRedirectUrl,
       );
     } catch (e) {
-      if (context.mounted) showToast(context, 'Не вдалося увійти через Google. Спробуйте ще раз.', isError: true);
+      debugPrint('Google sign-in failed: $e');
+      if (context.mounted) showToast(context, authErrorMessage(e, action: 'увійти через Google'), isError: true);
     }
   }
 
@@ -36,7 +36,10 @@ class AuthScreen extends StatelessWidget {
     try {
       await _auth(context).signInAsGuest();
     } catch (e) {
-      if (context.mounted) showToast(context, 'Не вдалося продовжити без реєстрації. Перевірте інтернет.', isError: true);
+      debugPrint('Anonymous sign-in failed: $e');
+      if (context.mounted) {
+        showToast(context, authErrorMessage(e, action: 'продовжити без реєстрації'), isError: true);
+      }
     }
   }
 
