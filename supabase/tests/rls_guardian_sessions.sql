@@ -1,103 +1,71 @@
 -- ============================================================================
--- RLS Tests for Guardian Module
+-- RLS: сесії Наглядача — користувач бачить і змінює тільки свої
+-- Самодостатній тест: створює дані в транзакції і відкочує їх (ROLLBACK).
+-- Запуск: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_guardian_sessions.sql
 -- ============================================================================
 
--- Припускаємо, що в тестовій базі є користувачі:
--- user_a_id та user_b_id
+BEGIN;
 
--- ============================================================================
--- 1. Користувач A не бачить сесію користувача B
--- ============================================================================
-SELECT 'Test 1: User A cannot see User B session' AS test_name;
+-- Фікстури (роль міграцій — власник таблиць, RLS не застосовується)
+INSERT INTO auth.users (id, email) VALUES
+  ('aaaaaaaa-0000-4000-8000-00000000000a', 'rls-a@test.local'),
+  ('bbbbbbbb-0000-4000-8000-00000000000b', 'rls-b@test.local');
 
-SET request.jwt.claim.sub = 'user_a_id';
+INSERT INTO public.guardian_sessions (id, user_id, expected_return, original_return) VALUES
+  ('5e550000-0000-4000-8000-00000000000b', 'bbbbbbbb-0000-4000-8000-00000000000b',
+   now() + interval '3 hours', now() + interval '3 hours');
 
-SELECT count(*) AS visible_sessions
-FROM guardian_sessions
-WHERE user_id = 'user_b_id';
+-- Далі — від імені користувача A
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-4000-8000-00000000000a', true);
+SELECT set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-0000-4000-8000-00000000000a","role":"authenticated","is_anonymous":false}', true);
 
--- Очікується: 0
+DO $$
+DECLARE
+  n INT;
+BEGIN
+  -- 1. A не бачить сесію B
+  SELECT count(*) INTO n FROM public.guardian_sessions
+  WHERE user_id = 'bbbbbbbb-0000-4000-8000-00000000000b';
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 1 failed: A sees % sessions of B', n; END IF;
 
--- ============================================================================
--- 2. Користувач A не може вставити guardian_session з user_id = B
--- ============================================================================
-SELECT 'Test 2: User A cannot insert session for User B' AS test_name;
+  -- 2. A не може створити сесію від імені B
+  BEGIN
+    INSERT INTO public.guardian_sessions (user_id, expected_return, original_return)
+    VALUES ('bbbbbbbb-0000-4000-8000-00000000000b', now() + interval '1 hour', now() + interval '1 hour');
+    RAISE EXCEPTION 'Test 2 failed: A inserted a session for B';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; -- 42501: RLS заблокувала
+  END;
 
-SET request.jwt.claim.sub = 'user_a_id';
+  -- 3. A не може змінити сесію B (RLS приховує рядок → 0 оновлень)
+  UPDATE public.guardian_sessions SET status = 'active'
+  WHERE user_id = 'bbbbbbbb-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 3 failed: A updated % sessions of B', n; END IF;
 
-INSERT INTO guardian_sessions (user_id, expected_return, original_return)
-VALUES ('user_b_id', now() + interval '1 hour', now() + interval '1 hour');
+  -- 4. A може створити власну сесію і бачить тільки її
+  INSERT INTO public.guardian_sessions (user_id, expected_return, original_return)
+  VALUES ('aaaaaaaa-0000-4000-8000-00000000000a', now() + interval '1 hour', now() + interval '1 hour');
+  SELECT count(*) INTO n FROM public.guardian_sessions
+  WHERE user_id <> 'aaaaaaaa-0000-4000-8000-00000000000a';
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 4 failed: A sees % foreign sessions', n; END IF;
 
--- Очікується: ERROR (permission denied)
+  -- 5–7. Пов'язані таблиці B недоступні
+  SELECT count(*) INTO n FROM public.guardians g
+  JOIN public.guardian_sessions s ON s.id = g.session_id
+  WHERE s.user_id = 'bbbbbbbb-0000-4000-8000-00000000000b';
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 5 failed'; END IF;
 
--- ============================================================================
--- 3. Користувач A не може оновити сесію користувача B
--- ============================================================================
-SELECT 'Test 3: User A cannot update User B session' AS test_name;
+  SELECT count(*) INTO n FROM public.guardian_track t
+  WHERE t.session_id = '5e550000-0000-4000-8000-00000000000b';
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 6 failed'; END IF;
 
-SET request.jwt.claim.sub = 'user_a_id';
+  SELECT count(*) INTO n FROM public.guardian_alerts a
+  WHERE a.session_id = '5e550000-0000-4000-8000-00000000000b';
+  IF n <> 0 THEN RAISE EXCEPTION 'Test 7 failed'; END IF;
 
-UPDATE guardian_sessions
-SET status = 'active'
-WHERE user_id = 'user_b_id';
+  RAISE NOTICE '✅ rls_guardian_sessions: all checks passed';
+END $$;
 
--- Очікується: 0 rows affected (RLS блокує)
-
--- ============================================================================
--- 4. Користувач A бачить тільки свої сесії
--- ============================================================================
-SELECT 'Test 4: User A sees only own sessions' AS test_name;
-
-SET request.jwt.claim.sub = 'user_a_id';
-
-SELECT id, user_id, status
-FROM guardian_sessions;
-
--- Всі рядки мають user_id = user_a_id
-
--- ============================================================================
--- 5. Перевірка RLS на guardians
--- ============================================================================
-SELECT 'Test 5: User A cannot see guardians of User B' AS test_name;
-
-SET request.jwt.claim.sub = 'user_a_id';
-
-SELECT count(*) AS visible_guardians
-FROM guardians g
-JOIN guardian_sessions s ON s.id = g.session_id
-WHERE s.user_id = 'user_b_id';
-
--- Очікується: 0
-
--- ============================================================================
--- 6. Перевірка RLS на guardian_track
--- ============================================================================
-SELECT 'Test 6: User A cannot see track of User B' AS test_name;
-
-SET request.jwt.claim.sub = 'user_a_id';
-
-SELECT count(*) AS visible_track_points
-FROM guardian_track t
-JOIN guardian_sessions s ON s.id = t.session_id
-WHERE s.user_id = 'user_b_id';
-
--- Очікується: 0
-
--- ============================================================================
--- 7. Перевірка RLS на guardian_alerts
--- ============================================================================
-SELECT 'Test 7: User A cannot see alerts of User B' AS test_name;
-
-SET request.jwt.claim.sub = 'user_a_id';
-
-SELECT count(*) AS visible_alerts
-FROM guardian_alerts a
-JOIN guardian_sessions s ON s.id = a.session_id
-WHERE s.user_id = 'user_b_id';
-
--- Очікується: 0
-
--- ============================================================================
--- 8. Скидаємо JWT claim
--- ============================================================================
-RESET request.jwt.claim.sub;
+ROLLBACK;
