@@ -72,8 +72,31 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 
 ### Rate limiting
 
-Наразі **не реалізовано** на рівні Edge Functions (`TODO/V2` — див.
-[docs/README.md](./README.md#todo--v2)). Базовий захист — Supabase платформи.
+Реалізовано за IP (`_shared/rate-limit.ts`, міграція `..._ip_rate_limit`): `forecast`, `picks`,
+`regions`, `catalog` і всі `v1-*`. Перевищення → `429 rate_limited` + `Retry-After`.
+
+---
+
+## 0. Клієнтський API v1 (Flutter) — ВИКОРИСТОВУВАТИ ЦЕЙ
+
+Повна специфіка — **[openapi/v1.yaml](../openapi/v1.yaml)** (OpenAPI 3.1, з неї генерується
+Dart-клієнт). Розділи 1–8 нижче описують legacy-ендпоінти веб-прототипу.
+
+| Ендпоінт | Auth | Що робить |
+|---|---|---|
+| `GET /v1-me` | JWT | Профіль, `is_guest`, `onboarding.next_step` (`select_region` → `accept_terms` → `done`), `region_change.allowed` |
+| `PATCH /v1-me` | JWT | `{ name?, home_region_slug?, accept_terms_version? }`; зміна області — ADR-016 (`403 region_change_not_allowed`) |
+| `GET /v1-regions/{slug}/geometry?detail=` | публічний | Кордон області (маска «острова»): `bbox`, `center`, `zoom`, `geometry`; кеш + ETag |
+| `GET /v1-forest-zones?bbox=&z=&limit=` | JWT | Ліси **тільки Home Region**: `{ data: FeatureCollection }` з `type_label`/`type_color` |
+| `POST /v1-forecast` | JWT | Прогноз у межах Home Region; рівні з підписами, **без** `score`/`probability` |
+
+Спільні правила v1:
+- Гість входить через `supabase.auth.signInAnonymously()` і має звичайний JWT (ADR-001).
+- Помилки: `{ "error": "code", "message"?: "текст UA" }`. Нові коди: `home_region_required` (409),
+  `outside_home_region` (403), `registration_required` (403), `region_change_not_allowed` (403),
+  `terms_version_outdated` (409), `bbox_too_large` (400), `rate_limited` (429 + `Retry-After`).
+- Усі v1-* мають rate limit за IP.
+- `POST /guardian-session-create` і `POST /guardian-sos` для гостя → `403 registration_required`.
 
 ---
 

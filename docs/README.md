@@ -8,9 +8,12 @@
 
 | Документ | Що всередині |
 |---|---|
-| [API.md](./API.md) | 7 операцій Edge Functions + приклади request/response, коди помилок, curl |
+| [API.md](./API.md) | **v1-* для Flutter** + legacy-ендпоінти, приклади, коди помилок, curl |
+| [../openapi/v1.yaml](../openapi/v1.yaml) | OpenAPI 3.1 для v1-* — генерація Dart-клієнта |
 | [DB_SCHEMA.md](./DB_SCHEMA.md) | 19 таблиць, колонки, RLS-політики, ER-діаграма, RPC-функції |
 | [AUTH_FLOW.md](./AUTH_FLOW.md) | Supabase Auth → JWT, онбординг, Home Region (slug-only), дозволи |
+| [DECISIONS.md](./DECISIONS.md) | Архітектурні рішення Product Owner (ADR-001…017) — обов'язкові для всіх команд |
+| [BACKEND_PLAN.md](./BACKEND_PLAN.md) | План реалізації бекенду під Flutter: аудит, фази B0–B7, нові таблиці |
 
 Службові звіти (історія виправлень): `8.7_gdd_fix.md`,
 `8.7b_peak_bonus_fix.md`, `catalog_canonicalization_report.md`.
@@ -29,7 +32,7 @@ ForecastEngine прогнозує плодоношення грибів за т�
 
 ```
 supabase/
-  migrations/     SQL-міграції (24 файли — джерело істини схеми БД)
+  migrations/     SQL-міграції (43 файли — джерело істини схеми БД)
   functions/      Edge Functions (Deno)
     _shared/      спільні модулі: forecast engine, guardian, auth, errors
     forecast/     POST /forecast — основний прогноз
@@ -178,6 +181,5 @@ deno test supabase/tests/forecast/regression.test.ts --allow-net --allow-read
 |---|---|
 | [API.md](./API.md#rate-limiting) | Rate limiting Edge Functions (план §15) |
 | [AUTH_FLOW.md](./AUTH_FLOW.md#home-region) | Anti-abuse: 1 зміна Home Region / 30 днів (`region_change_log` готовий) |
-| [AUTH_FLOW.md](./AUTH_FLOW.md#4-дозволи-пристрою-flutter) | EXIF-верифікація фото `/picks` |
 | [API.md](./API.md#guardian-endpoints-інтерфейс-наглядача) | `docs/GUARDIAN_API.md` — повна документація контуру Наглядача |
 | Golden Dataset | Наповнення реальними даними бета-тесту (ціль 100+ записів) |

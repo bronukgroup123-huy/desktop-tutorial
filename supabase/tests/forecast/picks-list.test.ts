@@ -159,7 +159,7 @@ Deno.test('picks handler: OPTIONS → 204', async () => {
   const { readDb, adminDb } = makeClients();
   const res = await handlePicksListRequest(readDb, adminDb, null, new Request('http://localhost/picks', { method: 'OPTIONS' }), NOW);
   assertEquals(res.status, 204);
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), '*');
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://desktop-tutorial-eta-tan.vercel.app') // CORS allowlist (audit G7): без Origin → default;
 });
 
 Deno.test('picks handler: POST → 405', async () => {

@@ -66,8 +66,17 @@ REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated
 GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO service_role;
 
 -- ─── 4. Event trigger ────────────────────────────────────────────────────────
--- 4a. Дроп ВСІ event triggers, прив'язані до цієї функції (захист від дублів,
+-- CREATE/DROP EVENT TRIGGER потребує суперкористувача. На хостингу Supabase тригер
+-- уже існує (створений у Dashboard 2026-09-11), а на чистій локальній БД / у CI
+-- роль міграцій не має цих прав. Тому блок виконується лише за наявності прав:
+-- при insufficient_privilege міграція не падає, а пише NOTICE (B0.9).
+-- Ловимо ТІЛЬКИ insufficient_privilege — будь-яка інша помилка, як і раніше, валить
+-- міграцію. Функція rls_auto_enable() (крок 1–3) створюється в будь-якому разі.
+--
+-- 4a. Дроп усіх event triggers, прив'язаних до цієї функції (захист від дублів,
 --     якщо оригінальний тригер мав інше ім'я, ніж ensure_rls).
+-- 4b. Канонічний event trigger ensure_rls ON ddl_command_end (без WHEN TAG — як
+--     в оригіналі: функція фільтрує команди сама).
 
 DO $$
 DECLARE
@@ -81,17 +90,15 @@ BEGIN
     EXECUTE format('DROP EVENT TRIGGER %I', ev.evtname);
     RAISE LOG 'rls_auto_enable: dropped old event trigger %', ev.evtname;
   END LOOP;
+
+  EXECUTE 'DROP EVENT TRIGGER IF EXISTS ensure_rls';
+  EXECUTE 'CREATE EVENT TRIGGER ensure_rls ON ddl_command_end '
+       || 'EXECUTE FUNCTION public.rls_auto_enable()';
+  EXECUTE 'ALTER EVENT TRIGGER ensure_rls OWNER TO postgres';
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'rls_auto_enable: no privilege to manage event trigger ensure_rls (local/CI database) — skipped';
 END $$;
-
--- 4b. Канонічний event trigger (ім'я з живої БД: ensure_rls).
---     WHEN TAG відсутній — як в оригіналі: функція фільтрує команди сама.
-
-DROP EVENT TRIGGER IF EXISTS ensure_rls;
-CREATE EVENT TRIGGER ensure_rls
-  ON ddl_command_end
-  EXECUTE FUNCTION public.rls_auto_enable();
-
-ALTER EVENT TRIGGER ensure_rls OWNER TO postgres;
 
 -- ─── 5. Коментар (прозорість для наступних аудитів) ──────────────────────────
 

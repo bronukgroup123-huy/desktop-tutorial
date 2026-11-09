@@ -1,5 +1,5 @@
 import {
-  requireMushroomPicker,
+  requireRegisteredPicker,
   parseBody,
   CreateSessionSchema,
   Errors,
@@ -19,7 +19,7 @@ import {
 Deno.serve(withErrorHandling(async (req) => {
   if (req.method !== "POST") throw Errors.notFound("Method not allowed");
 
-  const { userId, db } = await requireMushroomPicker(req);
+  const { userId, db } = await requireRegisteredPicker(req);
   const input = await parseBody(req, CreateSessionSchema);
 
   const existing = await getActiveSessionByUser(db, userId);

@@ -1,0 +1,66 @@
+name: Tests
+
+# Запускається на кожен push і PR, а також викликається з deploy.yml (workflow_call),
+# щоб деплой ішов лише після зелених тестів (BACKEND_PLAN B0.1).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Кореневий package.json вмикає для Deno режим node_modules — для Edge Functions він не потрібен.
+  DENO_FLAGS: --node-modules-dir=none
+
+jobs:
+  unit:
+    name: Unit tests (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Блокує: строга перевірка типів для нового коду (v1-* та спільний HTTP-шар).
+      - name: Type check (strict, new code)
+        run: |
+          deno check $DENO_FLAGS \
+            supabase/functions/_shared/http.ts \
+            supabase/functions/v1-*/index.ts \
+            supabase/functions/guardian-session-create/index.ts \
+            supabase/functions/guardian-sos/index.ts
+
+      # Блокує: юніт-тести (без живого Supabase).
+      - name: Unit tests
+        run: deno test $DENO_FLAGS --no-check --allow-net --allow-read --allow-env supabase/tests/ supabase/functions/_shared/
+
+      # Не блокує: у старому коді є відомі помилки типів (технічний борг, BACKEND_PLAN B0.7).
+      - name: Type check (legacy code, report only)
+        continue-on-error: true
+        run: deno check $DENO_FLAGS supabase/functions/*/index.ts supabase/tests/ supabase/functions/_shared/
+
+  migrations:
+    name: Migrations apply on a fresh database
+    runs-on: ubuntu-latest
+    # Блокує: усі міграції мають застосовуватись на чистій БД, а RLS SQL-тести — проходити.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.1.4
+
+      - name: Start local Postgres and apply all migrations
+        run: supabase db start
+
+      - name: SQL tests (RLS, security)
+        run: |
+          for f in supabase/tests/*.sql; do
+            echo "▶ $f"
+            psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
+          done

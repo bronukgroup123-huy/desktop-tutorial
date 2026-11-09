@@ -10,11 +10,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -24,6 +29,43 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.1.4
+
+      # Міграції — перед функціями: нові функції можуть залежати від нових RPC/таблиць.
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+
+      # Захист від розсинхрону історії міграцій: раніше міграції накочувались вручну,
+      # тож supabase_migrations.schema_migrations на продакшні може бути неповною.
+      # Деплой зупиняється ДО будь-яких змін у БД, якщо:
+      #   - історія на сервері порожня (db push спробував би виконати ВСІ міграції заново);
+      #   - є локальна міграція, старіша за останню застосовану (розрив в історії).
+      # Як виправити: supabase migration repair --status applied <version> (docs/BACKEND_PLAN.md, B0.10).
+      - name: Migrations — history guard
+        run: |
+          supabase migration list --password "$SUPABASE_DB_PASSWORD" | tee migrations.txt
+          awk -F'|' 'NF>=2 {
+              l=$1; r=$2; gsub(/[[:space:]]/,"",l); gsub(/[[:space:]]/,"",r);
+              if (l ~ /^[0-9]+$/ && length(l) == 14) { if (r=="") print "PENDING " l; else print "APPLIED " l }
+            }' migrations.txt > status.txt
+          applied=$(grep -c '^APPLIED' status.txt || true)
+          last_applied=$(grep '^APPLIED' status.txt | awk '{print $2}' | sort | tail -1)
+          echo "applied=$applied last_applied=${last_applied:-none}"
+          grep '^PENDING' status.txt || echo "no pending migrations"
+          if [ "$applied" -eq 0 ]; then
+            echo "::error::Remote migration history is empty — refusing to re-run all migrations. Repair history first."
+            exit 1
+          fi
+          stale=$(grep '^PENDING' status.txt | awk -v last="$last_applied" '$2 < last {print $2}')
+          if [ -n "$stale" ]; then
+            echo "::error::Pending migrations older than the last applied one ($last_applied): $stale"
+            exit 1
+          fi
+
+      - name: Migrations — preview (dry run)
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Migrations — apply
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
 
       - name: Deploy all Edge Functions (directories only)
         run: |

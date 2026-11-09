@@ -1,0 +1,324 @@
+openapi: 3.1.0
+info:
+  title: Грибний Радар — клієнтський API v1
+  version: 1.0.0
+  description: |
+    Ендпоінти `v1-*` для Flutter-клієнта (BACKEND_PLAN, робочий блок 1).
+
+    * Базовий URL: `https://<PROJECT_REF>.supabase.co/functions/v1`
+    * Кожен запит: заголовок `apikey: <SUPABASE_ANON_KEY>`.
+    * Гість (ADR-001) входить через Anonymous Sign-In і має звичайний JWT.
+    * Успіх: `{ "data": ... }`. Помилка: `{ "error": "snake_case", "message"?: "текст UA" }`.
+    * Числових ймовірностей у відповідях немає (маніфест, Заборона №1).
+servers:
+  - url: https://{projectRef}.supabase.co/functions/v1
+    variables:
+      projectRef:
+        default: PROJECT_REF
+
+security:
+  - apikey: []
+    bearerAuth: []
+
+paths:
+  /v1-me:
+    get:
+      operationId: getMe
+      summary: Профіль, стан онбордингу і право змінити область
+      responses:
+        '200':
+          description: Профіль
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    patch:
+      operationId: updateMe
+      summary: Онбординг і профіль (ім'я, Home Region, згода з умовами)
+      description: |
+        * Перший вибір області — вільний.
+        * Повторна зміна (ADR-016): одне безкоштовне виправлення протягом 24 год після першого
+          вибору; далі — тільки Pro (один раз) або підтримка → `403 region_change_not_allowed`.
+        * `accept_terms_version` має дорівнювати `onboarding.terms_version` з `GET /v1-me`,
+          інакше `409 terms_version_outdated`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMeRequest' }
+      responses:
+        '200':
+          description: Оновлений профіль
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-regions/{slug}/geometry:
+    get:
+      operationId: getRegionGeometry
+      summary: Кордон області для маски «острова»
+      security:
+        - apikey: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
+        - name: detail
+          in: query
+          schema: { type: string, enum: [low, medium, high], default: medium }
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        '200':
+          description: Кордон області (кешується 24 год, ETag)
+          headers:
+            ETag: { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/RegionGeometry' }
+        '304': { description: Не змінилось }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-forest-zones:
+    get:
+      operationId: getForestZones
+      summary: Полігони лісів — тільки в межах Home Region користувача
+      parameters:
+        - name: bbox
+          in: query
+          description: 'minLng,minLat,maxLng,maxLat — видима частина карти; без bbox — уся область'
+          schema: { type: string, example: '30.2,50.2,30.9,50.7' }
+        - name: z
+          in: query
+          description: Масштаб карти (0..22) — для спрощення геометрії
+          schema: { type: integer, minimum: 0, maximum: 22 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 5000 }
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ForestFeatureCollection' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-forecast:
+    post:
+      operationId: getForecast
+      summary: Прогноз для точки в межах Home Region
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ForecastRequest' }
+      responses:
+        '200':
+          description: Прогноз
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Forecast' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    apikey:
+      type: apiKey
+      in: header
+      name: apikey
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Error:
+      description: |
+        Коди: invalid_json, invalid_body, invalid_bbox, bbox_too_large, invalid_zoom, invalid_limit,
+        invalid_region_slug, invalid_detail, invalid_name, invalid_terms_version, unauthorized,
+        registration_required, outside_home_region, region_change_not_allowed, not_found,
+        me_not_found, region_not_found, method_not_allowed, home_region_required,
+        terms_version_outdated, rate_limited (+ Retry-After), db_error, internal_error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: Машинний код }
+        message: { type: string, description: Текст для людини (UA) }
+
+    HomeRegion:
+      type: object
+      required: [id, slug, name]
+      properties:
+        id: { type: integer, description: Лише для локального кешу — на сервер відправляти slug }
+        slug: { type: string }
+        name: { type: string }
+
+    Me:
+      type: object
+      required: [id, rating, total_verified_picks, created_at, is_guest, onboarding, region_change]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: [string, 'null'] }
+        rating: { type: integer }
+        total_verified_picks: { type: integer }
+        home_region:
+          oneOf:
+            - $ref: '#/components/schemas/HomeRegion'
+            - type: 'null'
+        created_at: { type: string, format: date-time }
+        is_guest: { type: boolean, description: Анонімний вхід (ADR-001) }
+        onboarding:
+          type: object
+          required: [region_done, terms_done, terms_version, next_step, next_step_label]
+          properties:
+            region_done: { type: boolean }
+            terms_done: { type: boolean }
+            terms_version: { type: string }
+            next_step: { type: string, enum: [select_region, accept_terms, done] }
+            next_step_label: { type: string }
+        region_change:
+          type: object
+          required: [allowed, reason_label]
+          properties:
+            allowed: { type: boolean }
+            reason_label: { type: string }
+
+    MeResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Me' }
+
+    UpdateMeRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
+        accept_terms_version: { type: string }
+
+    RegionGeometry:
+      type: object
+      required: [id, slug, name, bbox, center, zoom, geometry]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        bbox:
+          type: array
+          items: { type: number }
+          minItems: 4
+          maxItems: 4
+          description: '[minLng, minLat, maxLng, maxLat]'
+        center:
+          type: array
+          items: { type: number }
+          minItems: 2
+          maxItems: 2
+          description: '[lng, lat]'
+        zoom: { type: integer, minimum: 5, maximum: 12 }
+        geometry: { type: object, description: GeoJSON MultiPolygon }
+
+    ForestFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type: { type: string, const: FeatureCollection }
+        features:
+          type: array
+          items:
+            type: object
+            required: [type, geometry, properties]
+            properties:
+              type: { type: string, const: Feature }
+              id: { type: string }
+              geometry: { type: object }
+              properties:
+                type: object
+                required: [id, type_label, type_color]
+                properties:
+                  id: { type: string }
+                  forest_type: { type: [string, 'null'] }
+                  stand_age_years: { type: [integer, 'null'] }
+                  type_label: { type: string }
+                  type_color: { type: string, pattern: '^#[0-9a-f]{6}$' }
+
+    ForecastRequest:
+      type: object
+      required: [lat, lng, date]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+        date: { type: string, format: date }
+        forestType: { type: string, maxLength: 32 }
+
+    ForecastSpecies:
+      type: object
+      required: [mushroom_type, name_ua, level, level_label, level_color, when_label, where_label, why_labels]
+      properties:
+        mushroom_type: { type: string }
+        name_ua: { type: string }
+        level: { type: string, enum: [peak, high, medium, low, no_data] }
+        level_label: { type: string }
+        level_color: { type: string }
+        when_label: { type: string }
+        where_label: { type: string }
+        why_labels: { type: array, items: { type: string } }
+
+    Forecast:
+      type: object
+      required: [date, forest, warnings]
+      properties:
+        regionName: { type: [string, 'null'] }
+        date: { type: string, format: date }
+        forest: { type: string }
+        top1:
+          oneOf:
+            - $ref: '#/components/schemas/ForecastSpecies'
+            - type: 'null'
+        alternative:
+          oneOf:
+            - $ref: '#/components/schemas/ForecastSpecies'
+            - type: 'null'
+        warnings: { type: array, items: { type: string } }
+        noDataReason: { type: string }

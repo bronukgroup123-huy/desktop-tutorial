@@ -3,7 +3,8 @@
 Схема бази даних Supabase (PostgreSQL + PostGIS). Всі таблиці — у схемі `public`,
 геометрія — `extensions.GEOMETRY(MultiPolygon, 4326)` / `GEOGRAPHY`.
 
-Джерело істини — міграції `supabase/migrations/` (24 файли). API-контракти —
+Джерело істини — міграції `supabase/migrations/` (43 файли).
+Зміни робочого блоку 1 (2026-11-09) — розділ [«Оновлення 2026-11-09»](#оновлення-2026-11-09-робочий-блок-1). API-контракти —
 [API.md](./API.md).
 
 ---
@@ -351,3 +352,17 @@ service_role клієнт, який обходить RLS).
 - `notify_guardian_alert()` — `SECURITY DEFINER`, `SET search_path = public, vault`.
 
 Деталі — міграція `20260912000017_security_hardening.sql`.
+
+---
+
+## Оновлення 2026-11-09 (робочий блок 1)
+
+| Міграція | Що змінено |
+|---|---|
+| `20261109120000` | `forest_zones_geojson`: `security_invoker = on` (формалізація зміни з Dashboard) |
+| `20261109120100` | RPC `get_region_geometry(slug, tolerance)` → спрощений кордон, bbox, центр (тільки service_role) |
+| `20261109120200` | RPC `get_forest_zones_geojson_region(region_id, bbox?, max, tolerance)` — ліси лише однієї області; індекс `forest_zones(region_id)` |
+| `20261109120300` | `is_registered()`; RESTRICTIVE-політики: гість вставляє/оновлює лише `private` точки і не створює `guardian_sessions` (ADR-001); `region_change_log.source` (`onboarding` / `onboarding_fix` / `pro` / `support` / `legacy`, ADR-016) |
+| `20261109120400` | Таблиця `user_consents` (user_id, doc `eula`/`privacy`, version, accepted_at); RLS: читання — свої, запис — тільки service_role |
+| `20261109120500` | **Виправлення приватності:** `mushroom_picks_read` більше не показує `private`/`friends` точки користувачам тієї ж області. Тепер: автор, `shared_with`, `public` |
+
