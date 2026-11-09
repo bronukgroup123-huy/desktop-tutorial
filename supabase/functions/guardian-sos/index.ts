@@ -1,5 +1,5 @@
 import {
-  requireMushroomPicker,
+  requireRegisteredPicker,
   successResponse,
   withErrorHandling,
   Errors,
@@ -10,7 +10,7 @@ import { activateSos } from "../_shared/guardian/sos.ts";
 Deno.serve(withErrorHandling(async (req) => {
   if (req.method !== "POST") throw Errors.notFound("Method not allowed");
 
-  const { userId, db } = await requireMushroomPicker(req);
+  const { userId, db } = await requireRegisteredPicker(req);
   const session = await getActiveSessionByUser(db, userId);
   if (!session) throw Errors.notFound("No active session");
 

@@ -30,6 +30,8 @@ site_url = "https://desktop-tutorial-eta-tan.vercel.app"
 additional_redirect_urls = ["http://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
+# ADR-001: гостьовий режим через Anonymous Sign-In (на продакшні увімкнено в Dashboard)
+enable_anonymous_sign_ins = true
 
 [auth.email]
 enable_signup = true
