@@ -45,6 +45,30 @@ jobs:
         continue-on-error: true
         run: deno check $DENO_FLAGS supabase/functions/*/index.ts supabase/tests/ supabase/functions/_shared/
 
+  flutter:
+    name: Flutter client (analyze + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
   migrations:
     name: Migrations apply on a fresh database
     runs-on: ubuntu-latest

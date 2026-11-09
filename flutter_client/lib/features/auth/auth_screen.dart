@@ -1,74 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/core/toast.dart';
+import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/data/repositories/auth_repository.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
 
+  /// Deep link для повернення після OAuth (див. intent-filter в AndroidManifest).
+  static const String _mobileRedirect = 'io.supabase.flutter://login-callback/';
+
+  AuthRepository _auth(BuildContext context) =>
+      ProviderScope.containerOf(context, listen: false).read(authRepositoryProvider);
+
   Future<void> _signInWithGoogle(BuildContext context) async {
     try {
-      final redirectUrl = Uri.base.origin.isNotEmpty ? Uri.base.origin : 'http://localhost:53480';
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirectUrl,
-        queryParams: {'prompt': 'select_account'},
+      await _auth(context).signInWithGoogle(
+        redirectTo: kIsWeb ? Uri.base.origin : _mobileRedirect,
       );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Помилка входу через Google: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+      if (context.mounted) showToast(context, 'Не вдалося увійти через Google. Спробуйте ще раз.', isError: true);
     }
   }
 
   void _showPhoneLoginDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'В розробці',
-          style: GoogleFonts.merriweather(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.darkGreen,
-          ),
-        ),
-        content: Text(
-          'Екран входу за номером телефону в розробці',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: AppTheme.darkGreen.withValues(alpha: 0.8),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Зрозуміло',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.darkGreen,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    showToast(context, 'Вхід за номером телефону — скоро');
   }
 
-  void _continueAsGuest(BuildContext context) {
-    context.go('/region-selection');
+  /// Гість — Anonymous Sign-In (ADR-001). Далі роутер сам відкриє онбординг
+  /// за `onboarding.next_step` з сервера.
+  Future<void> _continueAsGuest(BuildContext context) async {
+    try {
+      await _auth(context).signInAsGuest();
+    } catch (e) {
+      if (context.mounted) showToast(context, 'Не вдалося продовжити без реєстрації. Перевірте інтернет.', isError: true);
+    }
   }
 
   @override
@@ -162,7 +131,8 @@ class AuthScreen extends StatelessWidget {
         _buildSocialButton(
           icon: Icons.apple_rounded,
           label: 'Увійти через Apple',
-          onPressed: () {},
+          // Провайдер Apple ще не налаштований у Supabase (BACKEND_PLAN B1.5).
+          onPressed: () => showToast(context, 'Вхід через Apple — скоро'),
         ),
       ],
     );

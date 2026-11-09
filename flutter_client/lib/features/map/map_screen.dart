@@ -1,486 +1,343 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_client/core/app_theme.dart';
-import 'package:flutter_client/core/region_data.dart';
-import 'package:flutter_client/presentation/providers/forest_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
-class MapScreen extends ConsumerStatefulWidget {
+import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/core/toast.dart';
+import 'package:flutter_client/data/api/api_exception.dart';
+import 'package:flutter_client/data/models/forest_zone.dart';
+import 'package:flutter_client/data/models/geo.dart';
+import 'package:flutter_client/data/models/region.dart';
+import 'package:flutter_client/data/providers.dart';
+
+/// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
+///
+/// Усе, що стосується області, приходить із сервера:
+///   * кордон і маска «острова», центр, масштаб — `GET /v1-regions/{slug}/geometry`;
+///   * полігони лісів (тільки своєї області) з підписами й кольорами — `GET /v1-forest-zones`.
+/// Клік по пустому місцю точку не створює — тільки FAB «Тук-тук».
+class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
 
   @override
-  ConsumerState<MapScreen> createState() => _MapScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final region = ref.watch(meProvider).valueOrNull?.homeRegion;
+    if (region == null) {
+      // Роутер не пускає сюди без області; це лише захист від гонки станів.
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final geometry = ref.watch(regionGeometryProvider(region.slug));
+    return geometry.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(e is ApiException ? e.userMessage : 'Не вдалося завантажити карту області.'),
+              TextButton(
+                onPressed: () => ref.invalidate(regionGeometryProvider(region.slug)),
+                child: const Text('Повторити'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (g) => _RegionMap(key: ValueKey(g.slug), geometry: g),
+    );
+  }
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
-  final MapController _mapController = MapController();
-  String _currentRegionName = 'Київська область';
-  bool _isLoadingLocation = false;
-  int _currentRegionId = 10;
-  List<LatLng> _kyivOblastOuterRing = [];
-  bool _maskLoaded = false;
+class _RegionMap extends ConsumerStatefulWidget {
+  const _RegionMap({super.key, required this.geometry});
 
-  static const LatLng _kyivCenter = LatLng(50.4501, 30.5234);
+  final RegionGeometry geometry;
 
   @override
-  void initState() {
-    super.initState();
-    _loadRegionInfo();
-    _loadKyivOblastMask();
+  ConsumerState<_RegionMap> createState() => _RegionMapState();
+}
+
+class _RegionMapState extends ConsumerState<_RegionMap> {
+  final MapController _mapController = MapController();
+  final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
+  Timer? _debounce;
+  ForestZonesQuery? _query;
+  bool _locating = false;
+
+  RegionGeometry get _g => widget.geometry;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _forestHits.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadRegionInfo() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final regionIdString = prefs.getString(regionKey);
-      debugPrint('--- РЕГІОН: Зчитано ID: $regionIdString');
+  /// Після зупинки карти — запит лісів лише для видимої частини (з урахуванням масштабу).
+  void _scheduleForestQuery(MapCamera camera) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      final b = camera.visibleBounds;
+      final q = ForestZonesQuery(
+        regionSlug: _g.slug,
+        bounds: GeoBounds(southWest: b.southWest, northEast: b.northEast),
+        zoom: camera.zoom.round(),
+      );
+      if (mounted && q != _query) setState(() => _query = q);
+    });
+  }
 
-      // ukraineRegions uses string IDs like 'kyiv', 'zhytomyr', etc.
-      final region = ukraineRegions.firstWhere(
-        (r) => r.id == regionIdString,
-        orElse: () => const Region(id: 'kyiv', name: 'Київська область'),
+  /// Світ із «дірками» на місці області — усе поза областю затемнене.
+  Polygon _mask() => Polygon(
+        points: const [
+          LatLng(-85, -180),
+          LatLng(-85, 180),
+          LatLng(85, 180),
+          LatLng(85, -180),
+        ],
+        holePointsList: [for (final p in _g.polygons) p.outer],
+        color: AppTheme.backgroundColor.withValues(alpha: 0.85),
+        borderColor: AppTheme.darkGreen,
+        borderStrokeWidth: 2,
       );
 
-      // For test: if regionIdString is empty, force Kyiv
-      final effectiveRegionName = (regionIdString == null || regionIdString.isEmpty)
-          ? 'Київська область'
-          : region.name;
+  List<Polygon<ForestZone>> _forestPolygons(List<ForestZone> zones) => [
+        for (final z in zones)
+          for (final p in z.polygons)
+            Polygon<ForestZone>(
+              points: p.outer,
+              holePointsList: p.holes,
+              color: z.typeColor.withValues(alpha: 0.45),
+              borderColor: z.typeColor,
+              borderStrokeWidth: 1,
+              hitValue: z,
+            ),
+      ];
 
-      // Extract numeric ID for API calls (index in list + 1, or use a mapping)
-      final regionIndex = ukraineRegions.indexWhere((r) => r.id == regionIdString);
-      final effectiveRegionId = regionIndex >= 0 ? regionIndex + 1 : 10; // 10 = Kyiv (index 9 + 1)
-
-      if (mounted) {
-        setState(() {
-          _currentRegionName = effectiveRegionName;
-          _currentRegionId = effectiveRegionId;
-        });
-      }
-      debugPrint('--- РЕГІОН: Встановлено: $_currentRegionName (ID: $_currentRegionId)');
-    } catch (e) {
-      debugPrint('--- РЕГІОН: Помилка: $e');
-    }
-  }
-
-  Future<void> _loadKyivOblastMask() async {
-    try {
-      final String geojsonString = await rootBundle.loadString('assets/data/kyiv_oblast.geojson');
-      final Map<String, dynamic> geojson = json.decode(geojsonString);
-
-      // Parse MultiPolygon/Polygon coordinates
-      final features = geojson['features'] as List<dynamic>?;
-      if (features == null || features.isEmpty) {
-        debugPrint('--- МАСКА: Файл порожній або не знайдено (features пусті)');
-        return;
-      }
-
-      for (final feature in features) {
-        final geometry = feature['geometry'] as Map<String, dynamic>?;
-        if (geometry == null) continue;
-
-        final type = geometry['type'] as String?;
-        final coordinates = geometry['coordinates'] as List<dynamic>?;
-
-        if (coordinates == null || coordinates.isEmpty) continue;
-
-        if (type == 'Polygon') {
-          // Polygon: coordinates[0] = outer ring, coordinates[1+] = holes
-          final outerRing = coordinates[0] as List<dynamic>;
-          _kyivOblastOuterRing = outerRing.map((coord) {
-            final c = coord as List<dynamic>;
-            return LatLng(c[1] as double, c[0] as double); // GeoJSON is [lon, lat]
-          }).toList();
-        } else if (type == 'MultiPolygon') {
-          // MultiPolygon: coordinates[0] = first polygon, coordinates[0][0] = outer ring
-          final firstPolygon = coordinates[0] as List<dynamic>;
-          final outerRing = firstPolygon[0] as List<dynamic>;
-          _kyivOblastOuterRing = outerRing.map((coord) {
-            final c = coord as List<dynamic>;
-            return LatLng(c[1] as double, c[0] as double);
-          }).toList();
-        }
-      }
-
-      debugPrint('--- МАСКА: Завантажено точок: ${_kyivOblastOuterRing.length}');
-
-      if (_kyivOblastOuterRing.isEmpty) {
-        debugPrint('--- МАСКА: Файл порожній або не знайдено');
-        return;
-      }
-
-      // IMPORTANT: For flutter_map Polygon with holePointsList, the outer ring (world)
-      // should be clockwise, and the hole (Kyiv oblast) should be counter-clockwise
-      // or vice versa. We'll reverse to ensure correct winding order.
-      _kyivOblastOuterRing = _kyivOblastOuterRing.reversed.toList();
-
-      if (mounted) {
-        setState(() {
-          _maskLoaded = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('--- МАСКА: Помилка завантаження: $e');
-    }
-  }
-
-  // Helper to create world polygon with hole for the region mask
-  Polygon _buildRegionMaskPolygon() {
-    // World bounds (clockwise)
-    final worldOuterRing = [
-      const LatLng(-85, -180),
-      const LatLng(-85, 180),
-      const LatLng(85, 180),
-      const LatLng(85, -180),
-      const LatLng(-85, -180),
-    ];
-
-    return Polygon(
-      points: worldOuterRing,
-      holePointsList: [_kyivOblastOuterRing],
-      color: Colors.black.withValues(alpha: 0.5),
-      borderColor: Colors.transparent,
-      borderStrokeWidth: 0,
-      isDotted: false,
+  void _onForestTap() {
+    final hit = _forestHits.value;
+    if (hit == null || hit.hitValues.isEmpty) return;
+    final zone = hit.hitValues.first;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _ForestSheet(zone: zone),
     );
   }
 
   Future<void> _onMyLocationPressed() async {
-    setState(() => _isLoadingLocation = true);
-
+    setState(() => _locating = true);
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _showSnackBar('Дозвіл на геолокацію відхилено');
-          return;
-        }
       }
-      if (permission == LocationPermission.deniedForever) {
-        _showSnackBar('Геолокація вимкнена в налаштуваннях');
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (mounted) showToast(context, 'Дозвольте доступ до геолокації в налаштуваннях', isError: true);
         return;
       }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      if (mounted) {
-        _mapController.move(LatLng(position.latitude, position.longitude), 14.0);
-        _showSnackBar('Місцезнаходження знайдено');
-      }
-    } catch (e) {
-      debugPrint('Error getting location: $e');
-      if (mounted) {
-        _showSnackBar('Помилка отримання місцезнаходження');
-      }
+      final pos = await Geolocator.getCurrentPosition();
+      _mapController.move(LatLng(pos.latitude, pos.longitude), 14);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
     } finally {
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
-      }
+      if (mounted) setState(() => _locating = false);
     }
   }
 
-  void _onAddMarkerPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Створення нової знахідки в розробці',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppTheme.darkGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppTheme.darkGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _onAddPickPressed() {
+    // Майстер створення тук-тука — Фаза 3 (B3.0/B3.1, Signed Upload URL).
+    showToast(context, 'Створення знахідки — скоро');
   }
 
   @override
   Widget build(BuildContext context) {
-    final polygonsAsync = ref.watch(forestPolygonsProviderProvider(_currentRegionId));
-    final zonesAsync = ref.watch(forestZonesNotifierProvider(_currentRegionId));
+    final query = _query;
+    final forests = query == null ? null : ref.watch(forestZonesProvider(query));
+    final zones = forests?.valueOrNull ?? const <ForestZone>[];
+    final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
       body: Stack(
         children: [
-          _buildMap(polygonsAsync),
-          _buildTopHeader(),
-          _buildActionButtons(),
-          zonesAsync.when(
-            loading: () => _buildLoadingIndicator(),
-            error: (e, st) => _buildErrorIndicator(e.toString()),
-            data: (_) => const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMap(AsyncValue<List<Polygon>> polygonsAsync) {
-    final maskPolygon = _maskLoaded ? _buildRegionMaskPolygon() : null;
-    final maskLayer = maskPolygon != null ? PolygonLayer(polygons: [maskPolygon]) : null;
-
-    return polygonsAsync.when(
-      data: (polygons) => FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _kyivCenter,
-          initialZoom: 10.0,
-          minZoom: 3.0,
-          maxZoom: 18.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.mushroomradar.mushroom_radar_client',
-            maxZoom: 19,
-          ),
-          if (polygons.isNotEmpty) PolygonLayer(polygons: polygons),
-          if (maskLayer != null) maskLayer,
-        ],
-      ),
-      loading: () => FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _kyivCenter,
-          initialZoom: 10.0,
-          minZoom: 3.0,
-          maxZoom: 18.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.mushroomradar.mushroom_radar_client',
-            maxZoom: 19,
-          ),
-          if (maskLayer != null) maskLayer,
-        ],
-      ),
-      error: (e, st) => FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _kyivCenter,
-          initialZoom: 10.0,
-          minZoom: 3.0,
-          maxZoom: 18.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.mushroomradar.mushroom_radar_client',
-            maxZoom: 19,
-          ),
-          if (maskLayer != null) maskLayer,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 60,
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundColor.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.darkGreen.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _g.center,
+              initialZoom: _g.zoom,
+              minZoom: _g.zoom - 1,
+              maxZoom: 18,
+              // Ефект «острова»: камера не виходить за межі області.
+              cameraConstraint: CameraConstraint.containCenter(bounds: bounds),
+              onMapReady: () => _scheduleForestQuery(_mapController.camera),
+              onPositionChanged: (camera, hasGesture) => _scheduleForestQuery(camera),
             ),
-          ],
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'ua.mushroomradar.app',
+                maxZoom: 19,
+              ),
+              GestureDetector(
+                onTap: _onForestTap,
+                child: PolygonLayer<ForestZone>(
+                  polygons: _forestPolygons(zones),
+                  hitNotifier: _forestHits,
+                ),
+              ),
+              PolygonLayer(polygons: [_mask()]),
+              const RichAttributionWidget(
+                attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
+              ),
+            ],
+          ),
+          _Header(title: _g.name, loading: forests?.isLoading ?? true),
+          if (forests?.hasError ?? false)
+            _ErrorBanner(
+              message: forests!.error is ApiException
+                  ? (forests.error as ApiException).userMessage
+                  : 'Не вдалося завантажити ліси',
+              onRetry: () => ref.invalidate(forestZonesProvider(query!)),
+            ),
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'add_pick',
+                  onPressed: _onAddPickPressed,
+                  backgroundColor: AppTheme.darkGreen,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Тук-тук'),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'my_location',
+                  onPressed: _locating ? null : _onMyLocationPressed,
+                  backgroundColor: AppTheme.darkGreen,
+                  foregroundColor: Colors.white,
+                  child: _locating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.my_location_rounded),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.loading});
+
+  final String title;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 12,
+        left: 16,
+        right: 16,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundColor.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: AppTheme.darkGreen.withValues(alpha: 0.1), blurRadius: 8),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.forest_rounded, size: 20, color: AppTheme.darkGreen),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: GoogleFonts.merriweather(fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                ),
+                if (loading) ...[
+                  const SizedBox(width: 10),
+                  const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                ],
+              ],
+            ),
+          ),
         ),
-        child: Row(
+      );
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 64,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: AppTheme.errorRed,
+          borderRadius: BorderRadius.circular(12),
+          child: ListTile(
+            dense: true,
+            textColor: Colors.white,
+            title: Text(message),
+            trailing: TextButton(
+              onPressed: onRetry,
+              child: const Text('Повторити', style: TextStyle(color: Colors.white)),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Bottom Sheet лісу. Повний аналіз 5×5 км — після B2.5 (`v1-area-summary`).
+class _ForestSheet extends StatelessWidget {
+  const _ForestSheet({required this.zone});
+
+  final ForestZone zone;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(color: zone.typeColor, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 10),
+                Text(zone.typeLabel, style: Theme.of(context).textTheme.titleLarge),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Завантаження лісів...',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppTheme.darkGreen,
-              ),
-            ),
+            if (zone.standAgeYears != null) ...[
+              const SizedBox(height: 8),
+              Text('Вік деревостану: ${zone.standAgeYears} р.'),
+            ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorIndicator(String error) {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 60,
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.red.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'Помилка завантаження: $error',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopHeader() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 12,
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundColor.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.darkGreen.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.forest_rounded,
-              size: 20,
-              color: AppTheme.darkGreen,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _currentRegionName,
-              style: GoogleFonts.merriweather(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.darkGreen,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Positioned(
-      bottom: 24,
-      right: 16,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            onPressed: _onAddMarkerPressed,
-            backgroundColor: AppTheme.darkGreen,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_rounded, size: 24),
-            label: Text(
-              'Тук-тук',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            heroTag: 'add_marker',
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.small(
-            onPressed: _isLoadingLocation ? null : _onMyLocationPressed,
-            backgroundColor: AppTheme.darkGreen,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            heroTag: 'my_location',
-            child: _isLoadingLocation
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.my_location_rounded, size: 22),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 }

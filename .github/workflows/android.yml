@@ -1,0 +1,115 @@
+name: Android APK
+
+# Збірка APK для встановлення на телефон.
+#  * push у main      → APK у Artifacts + оновлений реліз «android-latest» (завантаження одним тапом);
+#  * PR / інші гілки  → APK у Artifacts (перевірка, що збірка не зламалась);
+#  * вручну           → Actions → Android APK → Run workflow.
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'flutter_client/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'flutter_client/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+          channel: stable
+          cache: true
+
+      # Публічні значення (URL проєкту і publishable key) — із секретів репозиторію.
+      - name: Build config (.env)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::warning::Secrets SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY are not set — the APK will show a configuration screen."
+          fi
+          printf 'SUPABASE_URL=%s\nSUPABASE_PUBLISHABLE_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_PUBLISHABLE_KEY" > .env
+
+      # Постійний ключ підпису (необов'язково). Без нього — debug-ключ: кожна нова збірка
+      # може мати інший підпис, і для оновлення доведеться видалити попередню версію.
+      - name: Release signing key (optional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+            printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+            echo "Signing with the release key"
+          else
+            echo "::notice::ANDROID_KEYSTORE_BASE64 not set — signing with a debug key"
+          fi
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --dart-define-from-file=.env \
+            --build-number=${{ github.run_number }}
+          mv build/app/outputs/flutter-apk/app-release.apk build/mushroom-radar.apk
+
+      - name: Upload APK (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mushroom-radar-apk
+          path: flutter_client/build/mushroom-radar.apk
+          retention-days: 14
+
+  # Лише для main: постійне посилання на останній APK у розділі Releases.
+  publish:
+    name: Publish to release «android-latest»
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mushroom-radar-apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Грибний Радар — остання збірка Android
+          prerelease: true
+          make_latest: false
+          body: |
+            Автоматична збірка з `main` (${{ github.sha }}).
+            Встановлення: завантажте `mushroom-radar.apk` і відкрийте файл на телефоні.
+          files: mushroom-radar.apk

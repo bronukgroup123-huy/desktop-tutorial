@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Фон заставки — як AppTheme.backgroundColor -->
+    <color name="splash_background">#F4F1E1</color>
+</resources>

@@ -11,12 +11,12 @@ class MainNavigationScreen extends ConsumerWidget {
   const MainNavigationScreen({super.key, required this.navigationShell});
 
   static const List<_TabItem> _tabs = [
-    _TabItem(id: 'forecast', label: 'Прогноз', iconAsset: 'assets/icons/forecast.svg'),
-    _TabItem(id: 'map', label: 'Карта', iconAsset: 'assets/icons/map.svg'),
-    _TabItem(id: 'recognize', label: 'Розпізнати', iconAsset: 'assets/icons/recognize.svg'),
-    _TabItem(id: 'safety', label: 'Безпека', iconAsset: 'assets/icons/safety.svg'),
-    _TabItem(id: 'community', label: 'Спільнота', iconAsset: 'assets/icons/community.svg'),
-    _TabItem(id: 'profile', label: 'Профіль', iconAsset: 'assets/icons/profile.svg'),
+    _TabItem(id: 'forecast', label: 'Прогноз', iconAsset: 'assets/icons/ic_forecast.svg'),
+    _TabItem(id: 'map', label: 'Карта', iconAsset: 'assets/icons/ic_map.svg'),
+    _TabItem(id: 'recognize', label: 'Розпізнати', iconAsset: 'assets/icons/ic_recognize.svg'),
+    _TabItem(id: 'safety', label: 'Безпека', iconAsset: 'assets/icons/ic_safety.svg'),
+    _TabItem(id: 'community', label: 'Спільнота', iconAsset: 'assets/icons/ic_community.svg'),
+    _TabItem(id: 'profile', label: 'Профіль', iconAsset: 'assets/icons/ic_profile.svg'),
   ];
 
   @override
@@ -69,6 +69,14 @@ class _TabItem {
   const _TabItem({required this.id, required this.label, required this.iconAsset});
 }
 
+/// Матриця відтінків сірого (luminance) для неактивних іконок.
+const List<double> _grayscale = [
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0.2126, 0.7152, 0.0722, 0, 0,
+  0, 0, 0, 1, 0,
+];
+
 class _TabButton extends StatelessWidget {
   final _TabItem tab;
   final bool isActive;
@@ -89,13 +97,14 @@ class _TabButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SvgPicture.asset(
-                tab.iconAsset,
-                width: 22,
-                height: 22,
-                colorFilter: ColorFilter.mode(
-                  isActive ? AppTheme.orange : AppTheme.darkGreen.withValues(alpha: 0.6),
-                  BlendMode.srcIn,
+              // Flat-іконки кольорові: активна — у повному кольорі, неактивні — приглушені.
+              Opacity(
+                opacity: isActive ? 1 : 0.55,
+                child: SvgPicture.asset(
+                  tab.iconAsset,
+                  width: 26,
+                  height: 26,
+                  colorFilter: isActive ? null : const ColorFilter.matrix(_grayscale),
                 ),
               ),
               const SizedBox(height: 3),
