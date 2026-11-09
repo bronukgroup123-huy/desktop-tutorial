@@ -1,11 +1,11 @@
-# Грибний Радар — План реалізації бекенду (v1.1)
+# Грибний Радар — План реалізації бекенду (v1.2)
 
 **Статус:** робочий план бекенду під Flutter-клієнт.
 **Основа:** Канонічний план v8.2, аудит репозиторію (листопад 2026), рекомендації щодо MVP,
-**рішення Product Owner від 2026-11-09 — [DECISIONS.md](./DECISIONS.md) (ADR-001…006)**.
+**рішення Product Owner від 2026-11-09 — [DECISIONS.md](./DECISIONS.md) (ADR-001…009)**.
 **Принцип:** бекенд — джерело істини (No-Rewrite Contract). Клієнт лише рендерить.
 
-### Що змінилось у v1.1
+### Що змінилось у v1.1–v1.2
 
 | ADR | Рішення | Вплив на план |
 |---|---|---|
@@ -14,7 +14,10 @@
 | 003 | Мінна небезпека — тільки статичний банер ДСНС | B4.3 спрощено; `hazard_zones` видалено |
 | 004 | Без custom domain Supabase; Cloudflare лише для Vercel | B7.4 уточнено |
 | 005 | Оплата — RevenueCat | B6.3 — вебхук RevenueCat |
-| 006 | ШІ тільки локально (ONNX ~300 МБ), без сервера | B5.0, B5.3–B5.5 переписано; `recognition_usage` під питанням |
+| 006 | ШІ тільки локально (ONNX ~300 МБ), без сервера | B5.0, B5.3–B5.5 переписано |
+| 007 | Розпізнавання без лімітів | B5.4 скасовано; `recognition_usage` не створюється |
+| 008 | Одна модель, Pro без AI-переваг | B5.5 — один manifest для всіх; склад Pro у B6.3 |
+| 009 | Фото для навчання — тільки opt-in | Нова задача B5.6, таблиця `training_samples`, bucket `training_data` |
 
 ---
 
@@ -179,8 +182,9 @@
 | B5.1 🔴 | `GET v1-catalog/sync?since=` | Дельта-синхронізація для офлайн-SQLite: описи (з `mushroom_descriptions.js`, ключі нормалізовано до snake_case), атрибути, фільтри, публічні CDN-URL фото, **`danger_level`, `danger_banner_label`, `twins[]`**, глобальні тексти дисклеймера | Перший sync < 3 МБ (без фото); повторний — тільки змінене; довідник 326 видів працює повністю офлайн |
 | B5.2 🔴 | Двійники | Таблиця `species_twins` з `twins_200.csv` (вид, двійник, ознаки відмінності, небезпека) → у `v1-catalog/sync` | Для кожного отруйного двійника є картка відмінностей |
 | B5.3 🔴 | Правила безпечної подачі (дані, не логіка) | Свідомий виняток Thin Client (ADR-006): клієнт показує червоний банер, якщо серед top-3 є вид з `danger_level ≥ poisonous`. Сервер постачає лише поля і тексти. Специфікація правила — у `docs/API.md` | Тест бекенду: кожен `poisonous`/`deadly_poisonous` вид має `danger_banner_label`; жоден текст не містить «їстівний» як висновок ШІ |
-| B5.4 🟡 | Ліміт розпізнавань (**відкрите питання 6.1**) | Без сервера ліміт контролюється тільки на пристрої. Варіанти: (а) прибрати ліміт з базової версії; (б) локальний лічильник без серверної перевірки | Рішення PO зафіксовано новим ADR |
-| B5.5 🟡 | Дистрибуція моделі | Основний шлях — Play Asset Delivery (поза бекендом). Запасний — Storage bucket `models/` + `GET v1-models/manifest` (`version`, `sha256`, `size_bytes`, `url`, `min_app_version`) для завантаження через `dio`/`flutter_downloader` з докачуванням | Модель оновлюється без релізу; контрольна сума перевіряється перед використанням. Оцінено вартість egress Supabase (~300 МБ × кількість завантажень) |
+| ~~B5.4~~ | ~~Ліміт розпізнавань~~ | **Скасовано ADR-007:** розпізнавання безлімітне і безкоштовне | — |
+| B5.5 🟡 | Дистрибуція моделі | Основний шлях — Play Asset Delivery (поза бекендом). Запасний — Storage bucket `models/` + `GET v1-models/manifest` (**одна модель для всіх, ADR-008**) (`version`, `sha256`, `size_bytes`, `url`, `min_app_version`) для завантаження через `dio`/`flutter_downloader` з докачуванням | Модель оновлюється без релізу; контрольна сума перевіряється перед використанням. Оцінено вартість egress Supabase (~300 МБ × кількість завантажень) |
+| B5.6 🟡 | Фото для навчання ШІ, opt-in (**ADR-009**) | Приватний bucket `training_data` (читання тільки service_role). `POST v1-training/upload-url` → PUT у Storage (`<model_version>/<uuid>.jpg`, ≤ 2 МБ, ≤ 1024 px) → `POST v1-training/submit { path, model_version, predictions[], user_label?, month }`: сервер перевіряє magic bytes, вирізає EXIF, пише `training_samples`. Rate limit (напр. 30/день) у таблиці лімітів, не пов'язаній із записами датасету. Cron: видалення непідтверджених файлів > 24 год. **Ніяких ML-пайплайнів** | У `training_samples` і шляхах Storage немає `user_id`, координат і точного часу (SQL-тест); файл без EXIF (тест); без натискання кнопки клієнт не робить жодного запиту (вимога до Flutter, перевіряється в рев'ю) |
 
 ### Фаза 6 — Профіль, GDPR, Pro (бекенд до кінця тижня 6)
 
@@ -188,7 +192,7 @@
 |---|---|---|---|
 | B6.1 🔴 | `GET v1-me/export` | JSON усіх даних користувача (профіль, точки, сесії, треки) | GDPR-експорт за ≤ 30 с |
 | B6.2 🔴 | `DELETE v1-me` | Ghost User: public verified точки переписуються на системного `ghost`, решта видаляється; `auth.users` видаляється | SQL-тест: після видалення немає PII |
-| B6.3 🟡 | Підписки через RevenueCat (**ADR-005**) | `app_user_id` = Supabase UUID. Edge Function `v1-revenuecat-webhook`: секрет у Vault, перевірка заголовка `Authorization`, ідемпотентність за `event.id` (`billing_events`), оновлення `entitlements` (plan: `pro_season`/`pro_year`/`family`, `valid_until`, `source=revenuecat`). `GET /me` → `is_pro`, `features[]`, `ads_enabled` | Тестові події RevenueCat (INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION) коректно змінюють доступ; повтор події не дублює запис; клієнт перевіряє тільки `features[]` |
+| B6.3 🟡 | Підписки через RevenueCat (**ADR-005**) | Склад Pro (**ADR-008**): теплова карта всієї України, історія 3/7/30 днів, прогноз 7–10 днів, розширені ліміти точок, офлайн-регіони понад Home Region, 3 Наглядачі, GPX 30 днів, золотий значок, експертні чати, без реклами — **без AI-переваг**. `app_user_id` = Supabase UUID. Edge Function `v1-revenuecat-webhook`: секрет у Vault, перевірка заголовка `Authorization`, ідемпотентність за `event.id` (`billing_events`), оновлення `entitlements` (plan: `pro_season`/`pro_year`/`family`, `valid_until`, `source=revenuecat`). `GET /me` → `is_pro`, `features[]`, `ads_enabled` | Тестові події RevenueCat (INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION) коректно змінюють доступ; повтор події не дублює запис; клієнт перевіряє тільки `features[]` |
 | B6.4 🟡 | Сімейний Pro | Грибник + до 3 Наглядачів | |
 | B6.5 ⚪ | Щоденник | `GET v1-diary` — походи (сесії) + точки по днях | |
 
@@ -217,12 +221,12 @@
 | `pick_confirmations` | 3 | pick_id, confirmer_id, distance_m | учасники |
 | `species_twins` | 5 | species_id, twin_id, difference_label, danger | читання всім |
 | `model_labels` | 5 | model_version, class_index, species_id | читання всім |
+| `training_samples` | 5 | id, storage_path, model_version, predictions JSONB, user_label, month, created_at — **без user_id/координат** | service_role (запис через Edge Function) |
 | `entitlements` | 6 | user_id, plan, valid_until, source (`revenuecat`) | свої (читання) |
 | `billing_events` | 6 | event_id PK, type, user_id, payload, received_at | service_role |
 | `mushroom_picks` (+колонки) | 3 | client_id UNIQUE(user_id, client_id), captured_at, deleted_at | існуючі політики + тести |
 
-Скасовано рішеннями PO: `hazard_zones` (ADR-003), `recognition_usage` (ADR-006, до рішення
-щодо ліміту).
+Скасовано рішеннями PO: `hazard_zones` (ADR-003), `recognition_usage` (ADR-007).
 
 ---
 
@@ -240,17 +244,8 @@
 
 ## 6. Відкриті питання до власника продукту
 
-Питання першого раунду закрито — див. [DECISIONS.md](./DECISIONS.md) (ADR-001…006).
-
-Нові питання, що випливають з ADR-006 (локальний ШІ):
-
-1. **Ліміт «10 розпізнавань/день» у базовій версії.** Без сервера його можна обійти
-   (перевстановлення, зміна часу). Варіанти: прибрати ліміт (ШІ безкоштовний — сильний
-   маркетинговий аргумент) або лишити локальний лічильник «на чесність».
-2. **«Точніша модель для Pro».** Чи буде друга (важча) модель? Якщо так — окремий asset pack
-   і перевірка `features[]` перед завантаженням; якщо ні — прибрати пункт з опису Pro.
-3. **Збір фото для покращення моделі.** Фото не залишають пристрій. Чи потрібна
-   опціональна згода «поділитися фото для навчання» (окремий потік, не розпізнавання)?
+Усі питання закрито — див. [DECISIONS.md](./DECISIONS.md) (ADR-001…009).
+Нові питання з'являтимуться тут у міру реалізації.
 
 ---
 
