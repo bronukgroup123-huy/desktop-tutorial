@@ -139,6 +139,7 @@ export class ForecastEngine {
       top1,
       alternative,
       warnings,
+      weather: ctx.weather,
     };
   }
 }

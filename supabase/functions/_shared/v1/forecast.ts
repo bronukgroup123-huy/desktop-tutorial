@@ -12,7 +12,8 @@
 // ============================================================================
 
 import { z } from "npm:zod@3";
-import type { ScoredSpecies } from "../forecast/types.ts";
+import type { ScoredSpecies, WeatherData } from "../forecast/types.ts";
+import { whenLabel, whyLabels } from "./forecast-labels.ts";
 import { HttpError } from "../http.ts";
 
 export const ForecastInputSchema = z.object({
@@ -47,8 +48,11 @@ export function normalizeLevel(p: string): ProbabilityLevel {
     : "no_data";
 }
 
-/** Вид у відповіді: тільки рівень і підписи — без score / probability. */
-export function shapeSpecies(s: ScoredSpecies | null): Record<string, unknown> | null {
+/** Вид у відповіді: тільки рівень і готові підписи — без score / probability. */
+export function shapeSpecies(
+  s: ScoredSpecies | null,
+  weather: WeatherData | null | undefined = null,
+): Record<string, unknown> | null {
   if (!s) return null;
   const level = normalizeLevel(s.probability);
   return {
@@ -57,9 +61,9 @@ export function shapeSpecies(s: ScoredSpecies | null): Record<string, unknown> |
     level,
     level_label: LEVEL_LABEL[level],
     level_color: LEVEL_COLOR[level],
-    when_label: s.wave ? `Хвиля: ${s.wave}` : "Весь сезон", // людські підписи — B2.2
-    where_label: s.where ?? "Ліс",
-    why_labels: s.matched,
+    when_label: whenLabel(s.wave, weather),
+    where_label: s.where ?? "У лісі, де ростуть дерева-симбіонти цього виду",
+    why_labels: whyLabels(s.matched, weather),
   };
 }
 

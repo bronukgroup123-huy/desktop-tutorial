@@ -27,6 +27,7 @@ import {
   parseForecastBody,
   shapeSpecies,
 } from "../_shared/v1/forecast.ts";
+import { forestLabel, weatherBlock } from "../_shared/v1/forecast-labels.ts";
 
 Deno.serve(handle(async (req) => {
   assertMethod(req, ["POST"]);
@@ -61,8 +62,10 @@ Deno.serve(handle(async (req) => {
     regionName: result.regionName,
     date: result.date,
     forest: result.forest,
-    top1: shapeSpecies(result.top1),
-    alternative: shapeSpecies(result.alternative),
+    forest_label: forestLabel(input.forestType, null),
+    top1: shapeSpecies(result.top1, result.weather),
+    alternative: shapeSpecies(result.alternative, result.weather),
+    weather: weatherBlock(result.weather),
     warnings: result.warnings,
   };
   if (result.noDataReason) data.noDataReason = result.noDataReason;

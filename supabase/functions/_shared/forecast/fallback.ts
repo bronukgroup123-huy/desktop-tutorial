@@ -46,6 +46,7 @@ export function buildFallback(
       alternative: null,
       warnings: ["Поза сезоном активного плодоношення."],
       noDataReason: "Немає даних для поточного сезону.",
+      weather: ctx.weather,
     };
   }
 
@@ -61,5 +62,6 @@ export function buildFallback(
     alternative: scored[1] ?? null,
     warnings: ["Уточніть тип лісу на місці — це покращить прогноз."],
     noDataReason: "Жоден вид не пройшов фільтр. Показано базовий прогноз.",
+    weather: ctx.weather,
   };
 }
