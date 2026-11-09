@@ -23,7 +23,7 @@
 | 012 | Бали за тести знань | Нова задача B3.10; таблиці `quiz_*` |
 | 013 | 6 рівнів + сертифікат знань (Грибознавець, «Досвідчений…», Хранитель лісу) | B3.2, B3.7 |
 | 014 | Чесний відгук «Знайшли?» | Нова задача B3.11 |
-| 015 | Машинний прогноз: 1 ділянка 5×5 (free) / до 3 ділянок 5×5 або 10×10 (Pro), ліміти 5 / 10 на ділянку | B1.8, B2.9–B2.11; B2.7 замінено |
+| 015 | Машинний прогноз: 1 ділянка 5×5 (free) / до 3 ділянок 5×5 або 10×10 (Pro), ліміти 5 / 10 на ділянку; **полігони й ділянки — тільки Home Region**, «Вся Україна» в Pro — лише перегляд | B1.2, B1.8, B2.9–B2.11; B2.7 замінено |
 
 ---
 
@@ -134,7 +134,7 @@
 | B1.4 🔴 | Вхід по телефону | Supabase Phone Auth + **Send SMS Hook** → TurboSMS (вже є токен для Guardian). Rate limit OTP | OTP приходить на український номер; ≤ 5 спроб/год на номер |
 | B1.5 🟡 | Apple Sign In | Налаштування провайдера в Supabase + bundle id | Вхід працює на TestFlight-збірці |
 | B1.6 🔴 | Гостьовий режим (**ADR-001**) | Увімкнути Anonymous Sign-Ins + CAPTCHA (Turnstile). Гість має JWT з `is_anonymous=true` і реальний UUID; RLS-хелпер `is_registered()` забороняє `public`/`friends` точки, сесії Наглядача, SOS, друзів. Реєстрація — `linkIdentity`, UUID не змінюється. `GET /me` → `is_guest`. Cron: видалення анонімних акаунтів без активності > 90 днів | Гість бачить карту, прогноз, створює private-точки; SOS/public → `403 registration_required`; після linkIdentity усі точки гостя на місці (тест) |
-| B1.8 🟡 | Режими карти «Моя область» / «Вся Україна» (**ADR-015**) | `GET v1-regions/geometry?all=true&level=low` — сильно спрощені кордони всіх областей одним файлом (≤ 300 КБ, кеш) для режиму «Вся Україна» (тільки `features.map_all_ukraine`). `v1-forest-zones` відмовляє для bbox більшого за одну область → `400 bbox_too_large`; для Pro дозволено bbox в будь-якій області | На всій карті України жодного запиту полігонів лісів; ліси іншої області вантажаться тільки при її відкритті |
+| B1.8 🟡 | Режим перегляду «Вся Україна», Pro (**ADR-015 §15.2**) | `GET v1-regions/geometry?all=true&level=low` — сильно спрощені кордони всіх областей одним файлом (≤ 300 КБ, кеш), тільки `features.map_all_ukraine`. У цьому режимі немає полігонів лісів і вибору точок. `v1-forest-zones` віддає полігони **тільки в межах Home Region** для всіх (`403 outside_home_region`, `400 bbox_too_large`) | Жодного запиту полігонів поза Home Region (тест); зміна Home Region → полігони нової області тим самим запитом |
 
 ### Фаза 2 — Прогноз (бекенд до кінця тижня 2)
 
@@ -148,7 +148,7 @@
 | B2.6 🟡 | Кеш погоди | Таблиця `weather_cache` (grid 0.1°, TTL 1 год) — менше викликів Open-Meteo | Повторний прогноз у тій самій клітинці не ходить в Open-Meteo |
 | B2.8 🟡 | Горизонт прогнозу (**ADR-010**) | `v1-forecast` приймає `date` до +3 днів безкоштовно, до +16 (межа Open-Meteo) з `features.forecast_extended`; понад +7 днів — `reliability_label: "Орієнтовний прогноз"` | Free з датою +5 → `403 pro_required`; Pro з +12 → 200 |
 | ~~B2.7~~ | ~~`POST v1-forecast/batch`~~ | **Замінено B2.10** (порівняння ділянок, ADR-015) | — |
-| B2.9 🔴 | Машинний прогноз — аналіз ділянки (**ADR-015**) | `POST v1-analysis { lat, lng, size_km, date, area_id? }` → Top-1/Top-2 з рівнями (без відсотків), тип і вік лісу в квадраті, базова погода (free) / розширена (Pro). Таблиці `analysis_areas` (слоти 1 free / 3 Pro, `size_km` 5 free / 5–10 Pro), `analysis_usage`. Ліміти: free 5/добу, Pro 10/добу на ділянку → `429 analysis_limit_reached`. RegionGuard: free — Home Region, Pro — будь-яка область | Free 6-й аналіз → 429; free 10×10 → `403 pro_required`; Pro ділянка в іншій області → 200; у відповіді немає числових ймовірностей |
+| B2.9 🔴 | Машинний прогноз — аналіз ділянки (**ADR-015**) | `POST v1-analysis { lat, lng, size_km, date, area_id? }` → Top-1/Top-2 з рівнями (без відсотків), тип і вік лісу в квадраті, базова погода (free) / розширена (Pro). Таблиці `analysis_areas` (слоти 1 free / 3 Pro, `size_km` 5 free / 5–10 Pro), `analysis_usage`. Ліміти: free 5/добу, Pro 10/добу на ділянку → `429 analysis_limit_reached`. RegionGuard: **тільки Home Region для всіх** | Free 6-й аналіз → 429; free 10×10 → `403 pro_required`; Pro ділянка в іншій області → `403 outside_home_region`; у відповіді немає числових ймовірностей |
 | B2.10 🟡 | Порівняння ділянок, Pro (**ADR-015**) | `POST v1-analysis/compare { area_ids[2..3], date }` → ранжування на сервері + `summary_label` («Ділянка Б найкраща на вихідні: …»); списує по 1 аналізу з кожної ділянки | Ранжування тільки на сервері; ліміт рахується по кожній ділянці (тест) |
 | B2.11 🟡 | Розширена погода і карти аналізу, Pro (**ADR-015**) | Сітка Open-Meteo 3×3 (5×5 км) / 5×5 (10×10 км) через `weather_cache`: опади 30 днів, вологість і температура ґрунту, GDD, тренд тиску → готові `*_label` + дані для графіків; шари «опади», «вологість ґрунту», «тип/вік лісу» як GeoJSON-сітка з `color` | Один аналіз = не більше одного запиту до Open-Meteo (тест на кеш) |
 
@@ -266,10 +266,33 @@
 
 ---
 
-## 7. Порядок старту (наступні 5 робочих днів)
+## 7. Робочий блок 1 (≈ 5 робочих днів)
 
-1. B0.1, B0.2, B0.4 — CI з тестами, Gitleaks, єдиний формат помилок.
-2. B1.1, B1.2 — геометрія області та ліси під Home Region (розблоковує карту Flutter).
-3. B1.3, B1.6 — онбординг через `next_step` і гостьовий режим на Anonymous Sign-In (ADR-001).
-4. B2.1, B2.2 — виправлення `v1-forecast` (без `score`, RegionGuard, людські підписи).
-5. B0.5 — OpenAPI для всього, що вище, і генерація Dart-клієнта.
+**Мета блоку:** розблокувати Flutter-тиждень 1 (онбординг + карта) і поставити захисну
+сітку (CI, тести, секрети), щоб усі наступні зміни бекенду йшли безпечно.
+Кожна задача — окремий коміт у гілці `claude/project-rb2fo8`, з тестами.
+
+| # | Задача | Що саме робимо | Результат для Flutter / проєкту |
+|---|---|---|---|
+| 1 | **B0.1 CI з тестами** | `.github/workflows/test.yml`: `deno lint`, `deno check`, `deno test` для `supabase/tests/**` і `supabase/functions/*_test.ts` на кожен push/PR. `deploy.yml`: деплой лише після зелених тестів + крок `supabase db push` | Регресії ловляться до деплою; міграції накочуються автоматично |
+| 2 | **B0.2 Безпека репозиторію** | `.github/dependabot.yml` (npm, `web-guardian`, pub `flutter_client`, github-actions); `security.yml` з Gitleaks; пароль зі `smoke-test.yml` → секрет `SMOKE_TEST_PASSWORD` | Етап 1 Security Roadmap виконано |
+| 3 | **B0.4 Єдиний HTTP-шар** | `_shared/http.ts`: `ok()`, `fail(code, status, message)`, `withRateLimit()`, `requireUser()` (JWT → user + `home_region_id` + `is_anonymous`). Перевести `v1-forecast`, `v1-forest-zones`; ліміти в `IP_RATE_LIMITS` | Один формат помилок `{error, message}`; rate limit на всіх `v1-*` |
+| 4 | **B1.1 Кордон області** | Міграція: RPC `get_region_geometry(slug, tolerance)` → спрощений GeoJSON + bbox + центр + zoom. Edge Function `v1-regions` (`/geometry`), `Cache-Control` + `ETag` | Маска «острова» без локального geojson у застосунку |
+| 5 | **B1.2 Ліси тільки Home Region** | `v1-forest-zones` вимагає JWT (гість теж має JWT — ADR-001); полігони лише для `home_region_id` користувача; `403 outside_home_region`, `400 bbox_too_large`; поле `type_label` / `type_color` | Карта отримує ліси лише своєї області з кольорами з сервера |
+| 6 | **B1.6 Гостьовий режим** | `config.toml`: `enable_anonymous_sign_ins = true`; міграція: SQL-хелпер `is_registered()`; RLS — анонім не створює `public`/`friends` точки; `guardian-session-create` / `guardian-sos` → `403 registration_required`; `GET /me` → `is_guest` | Кнопка «Гість» працює з реальним UUID; реєстрація без втрати даних |
+| 7 | **B1.3 Онбординг з сервера** | Міграція `user_consents`; `PATCH /me` приймає `accept_terms_version`; `GET /me` → `onboarding: { region_done, terms_done, next_step }` | Застосунок не вирішує сам, який екран онбордингу показати |
+| 8 | **B2.1 Швидкий фікс прогнозу** | `v1-forecast`: прибрати `score` і `probability` з відповіді; RegionGuard за `home_region_id` з JWT | Виконано заборону «ніяких відсотків»; прогноз тільки у своїй області |
+| 9 | **B0.5 Документація контракту** | `openapi/v1.yaml` для ендпоінтів блоку; оновити `docs/API.md` (v1-*, EXIF і rate limit реалізовано, 37 міграцій) | Dart-клієнт генерується з OpenAPI |
+
+**Не входить у блок:** людські підписи прогнозу (B2.2), тук-туки, рейтинг, тести знань —
+наступні блоки. Перенесення легасі (B0.3) — лише після підтвердження PO.
+
+**Потрібно від PO (Supabase / GitHub, Claude цього зробити не може):**
+1. GitHub Secrets: `SUPABASE_DB_PASSWORD` (для `db push`), `SMOKE_TEST_PASSWORD`.
+2. Supabase Dashboard → Authentication → увімкнути **Anonymous Sign-Ins**
+   (`config.toml` діє тільки для локального стека).
+3. Рішення: переносимо `db/`, `api/`, `web/`, `compose.yaml`, `init-scripts/` у `legacy/`?
+
+**Обмеження перевірки:** Deno-тести і лінт запускаються локально та в CI. Міграції
+перевіряються на локальному Supabase (Docker), якщо він підніметься в середовищі; інакше —
+SQL-тестами в CI після `db push` на staging.
