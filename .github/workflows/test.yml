@@ -47,8 +47,7 @@ jobs:
   migrations:
     name: Migrations apply on a fresh database
     runs-on: ubuntu-latest
-    # Не блокує, поки не підтверджено, що всі історичні міграції проходять на чистій БД.
-    continue-on-error: true
+    # Блокує: усі міграції мають застосовуватись на чистій БД, а RLS SQL-тести — проходити.
     steps:
       - uses: actions/checkout@v4
 
