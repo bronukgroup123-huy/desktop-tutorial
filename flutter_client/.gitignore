@@ -1,0 +1,18 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+
+# Конфіг збірки з ключами (див. .env.example)
+.env
+
+# Android — локальні та згенеровані файли
+android/local.properties
+android/.gradle/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/**/GeneratedPluginRegistrant.*
+*.iml
+.idea/
