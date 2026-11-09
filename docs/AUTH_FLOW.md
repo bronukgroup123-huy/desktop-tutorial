@@ -140,8 +140,8 @@ changed_at) — див. [DB_SCHEMA.md](./DB_SCHEMA.md#region_change_log).
 | Контакти | (лист Наглядача) — заплановано, **TODO/V2** | не запитувати зараз |
 
 Фото клієнт **ре-компресить** перед відправкою: ліміт Edge Function —
-5 MiB після декодування base64. EXIF-верифікація та rate-limit для
-`/picks` — **TODO/V2** (див. коментарі в `supabase/functions/picks/index.ts`).
+5 MiB після декодування base64. EXIF-верифікація (GPS ≤ 1 км, час ≤ 24 год) і rate-limit
+для `/picks` **реалізовані**; base64 буде замінено Signed Upload URL (ADR-002, B3.0).
 
 ---
 
@@ -190,5 +190,4 @@ final forecast = await http.post(
 
 - Rate limiting на Edge Functions (план §15) — поки захист лише на рівні платформи.
 - Зміна Home Region: тільки Pro, один раз (ADR-016, B1.9) — інфраструктура `region_change_log` готова, логіка обмеження — ні.
-- EXIF-верифікація фото в `POST /picks`.
 - Контакт Наглядача (SMS) — Web Push частково покрито через `guardian_notify` + `guardian-webhook-sms`.
