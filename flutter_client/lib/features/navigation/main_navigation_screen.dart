@@ -24,7 +24,7 @@ class MainNavigationScreen extends ConsumerWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        height: 60 + MediaQuery.of(context).padding.bottom,
+        height: 72 + MediaQuery.of(context).padding.bottom,
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: AppTheme.backgroundColor, width: 1)),
@@ -102,8 +102,8 @@ class _TabButton extends StatelessWidget {
                 opacity: isActive ? 1 : 0.55,
                 child: SvgPicture.asset(
                   tab.iconAsset,
-                  width: 26,
-                  height: 26,
+                  width: 36,
+                  height: 36,
                   colorFilter: isActive ? null : const ColorFilter.matrix(_grayscale),
                 ),
               ),
@@ -111,7 +111,7 @@ class _TabButton extends StatelessWidget {
               Text(
                 tab.label,
                 style: GoogleFonts.inter(
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: isActive ? AppTheme.orange : AppTheme.darkGreen.withValues(alpha: 0.6),
                 ),
