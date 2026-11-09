@@ -11,7 +11,7 @@
 | [API.md](./API.md) | 7 операцій Edge Functions + приклади request/response, коди помилок, curl |
 | [DB_SCHEMA.md](./DB_SCHEMA.md) | 19 таблиць, колонки, RLS-політики, ER-діаграма, RPC-функції |
 | [AUTH_FLOW.md](./AUTH_FLOW.md) | Supabase Auth → JWT, онбординг, Home Region (slug-only), дозволи |
-| [DECISIONS.md](./DECISIONS.md) | Архітектурні рішення Product Owner (ADR-001…009) — обов'язкові для всіх команд |
+| [DECISIONS.md](./DECISIONS.md) | Архітектурні рішення Product Owner (ADR-001…010) — обов'язкові для всіх команд |
 | [BACKEND_PLAN.md](./BACKEND_PLAN.md) | План реалізації бекенду під Flutter: аудит, фази B0–B7, нові таблиці |
 
 Службові звіти (історія виправлень): `8.7_gdd_fix.md`,
