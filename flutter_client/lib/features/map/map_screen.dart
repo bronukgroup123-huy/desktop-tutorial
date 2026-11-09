@@ -14,6 +14,7 @@ import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/forecast/forecast_view.dart';
 
 /// Перетин видимої частини карти з межами області (bbox запиту лісів ніколи не
 /// виходить за область). `null` — перетину немає.
@@ -141,14 +142,30 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
             ),
       ];
 
+  /// Тап по лісу → обрана точка (для вкладки «Прогноз») + прогноз у Bottom Sheet.
   void _onForestTap() {
     final hit = _forestHits.value;
     if (hit == null || hit.hitValues.isEmpty) return;
     final zone = hit.hitValues.first;
+    final point = ForecastPoint(
+      lat: hit.coordinate.latitude,
+      lng: hit.coordinate.longitude,
+      forestType: zone.forestType,
+      title: zone.typeLabel,
+    );
+    ref.read(selectedPointProvider.notifier).state = point;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _ForestSheet(zone: zone),
+      backgroundColor: AppTheme.backgroundColor,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.92,
+        builder: (context, controller) => ForecastView(point: point, scrollController: controller),
+      ),
     );
   }
 
@@ -329,39 +346,6 @@ class _ErrorBanner extends StatelessWidget {
               child: const Text('Повторити', style: TextStyle(color: Colors.white)),
             ),
           ),
-        ),
-      );
-}
-
-/// Bottom Sheet лісу. Повний аналіз 5×5 км — після B2.5 (`v1-area-summary`).
-class _ForestSheet extends StatelessWidget {
-  const _ForestSheet({required this.zone});
-
-  final ForestZone zone;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(color: zone.typeColor, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 10),
-                Text(zone.typeLabel, style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            if (zone.standAgeYears != null) ...[
-              const SizedBox(height: 8),
-              Text('Вік деревостану: ${zone.standAgeYears} р.'),
-            ],
-          ],
         ),
       );
 }

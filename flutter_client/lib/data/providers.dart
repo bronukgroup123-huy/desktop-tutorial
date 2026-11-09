@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_config.dart';
 import 'api/api_client.dart';
+import 'models/forecast.dart';
 import 'models/forest_zone.dart';
 import 'models/geo.dart';
 import 'models/me.dart';
@@ -121,3 +122,48 @@ final forestZonesProvider = FutureProvider.family<List<ForestZone>, ForestZonesQ
 
 GeoBounds _boundsFromQuery(String bbox) =>
     GeoBounds.fromBbox(bbox.split(',').map(double.parse).toList());
+
+// ─── Прогноз ────────────────────────────────────────────────────────────────
+
+/// Точка, обрана на карті (тап по лісу). Прогноз з'являється ТІЛЬКИ після вибору
+/// точки (план v8.2 §3.1).
+class ForecastPoint {
+  const ForecastPoint({
+    required this.lat,
+    required this.lng,
+    this.forestType,
+    this.title,
+  });
+
+  final double lat;
+  final double lng;
+
+  /// Тип лісу полігону, по якому тапнули (сервер уточнює прогноз).
+  final String? forestType;
+
+  /// Підпис місця для заголовка (наприклад, «Сосновий ліс»).
+  final String? title;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ForecastPoint &&
+      other.lat == lat &&
+      other.lng == lng &&
+      other.forestType == forestType;
+
+  @override
+  int get hashCode => Object.hash(lat, lng, forestType);
+}
+
+/// Остання обрана точка — її показує вкладка «Прогноз».
+final selectedPointProvider = StateProvider<ForecastPoint?>((ref) => null);
+
+/// Прогноз для точки на сьогодні.
+final forecastProvider = FutureProvider.autoDispose.family<Forecast, ForecastPoint>(
+  (ref, p) => ref.watch(forecastRepositoryProvider).fetchForecast(
+        lat: p.lat,
+        lng: p.lng,
+        date: DateTime.now(),
+        forestType: p.forestType,
+      ),
+);
