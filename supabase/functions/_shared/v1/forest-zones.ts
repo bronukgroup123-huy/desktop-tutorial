@@ -18,6 +18,8 @@ import {
   type TokenVerifier,
   type UsersReadDb,
 } from "../http.ts";
+import { buildCorsHeaders } from "../cors.ts";
+import { etagFor } from "./regions.ts";
 
 /** Максимальний розмір bbox у градусах (найбільша область України ≈ 4.5° × 3°). */
 export const MAX_BBOX_LNG_SPAN = 8;
@@ -161,5 +163,13 @@ export async function handleForestZones(
 
   const fc = shapeForestZones(data);
   console.log(`[v1-forest-zones] region=${regionId} features=${fc.features.length} z=${q.zoom ?? "-"}`);
-  return ok(fc, req);
+
+  // Застосунок зберігає ліси області на телефоні й перевіряє, чи вони змінились,
+  // через If-None-Match: без змін → 304 без тіла (офлайн-карта, B1.2/ADR-010).
+  const etag = await etagFor(JSON.stringify(fc));
+  const cacheHeaders = { "ETag": etag, "Cache-Control": "private, no-cache" };
+  if (req.headers.get("If-None-Match") === etag) {
+    return new Response(null, { status: 304, headers: { ...buildCorsHeaders(req), ...cacheHeaders } });
+  }
+  return ok(fc, req, 200, cacheHeaders);
 }

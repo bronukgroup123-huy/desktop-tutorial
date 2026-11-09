@@ -96,3 +96,14 @@ Deno.test("forest-zones: parse — z і limit", () => {
   assertEquals(toleranceForZoom(5), 0.002);
   assertEquals(forestTypeStyle("oak").label, "Дубовий ліс");
 });
+
+Deno.test("forest-zones: ETag → 304 без тіла, якщо ліси не змінились", async () => {
+  const results = { ...RL_OK, "users.select": { data: { home_region_id: 3 }, error: null }, "rpc.get_forest_zones_geojson_region": { data: FC, error: null } };
+  const first = await run(mockDb(results), URL_BASE);
+  const etag = first.headers.get("ETag")!;
+  assertEquals(typeof etag, "string");
+  const second = await handle((r) => handleForestZones(r, { db: mockDb(results), verify: verifyAs("u1") }))(
+    req("GET", URL_BASE, undefined, { "If-None-Match": etag }),
+  );
+  assertEquals(second.status, 304);
+});
