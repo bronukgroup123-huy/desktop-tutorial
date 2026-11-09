@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,21 +9,9 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
-import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
-
-/// Перетин видимої частини карти з межами області (bbox запиту лісів ніколи не
-/// виходить за область). `null` — перетину немає.
-GeoBounds? clipToRegion(LatLngBounds visible, GeoBounds region) {
-  final south = visible.south > region.southWest.latitude ? visible.south : region.southWest.latitude;
-  final west = visible.west > region.southWest.longitude ? visible.west : region.southWest.longitude;
-  final north = visible.north < region.northEast.latitude ? visible.north : region.northEast.latitude;
-  final east = visible.east < region.northEast.longitude ? visible.east : region.northEast.longitude;
-  if (south >= north || west >= east) return null;
-  return GeoBounds(southWest: LatLng(south, west), northEast: LatLng(north, east));
-}
 
 /// Межі області з відступом 10% — щоб кордон не впирався в край екрана.
 LatLngBounds _paddedBounds(LatLngBounds b) {
@@ -87,32 +73,18 @@ class _RegionMap extends ConsumerStatefulWidget {
 class _RegionMapState extends ConsumerState<_RegionMap> {
   final MapController _mapController = MapController();
   final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
-  Timer? _debounce;
-  ForestZonesQuery? _query;
   bool _locating = false;
+
+  // Полігони будуються один раз на набір даних, а не на кожен кадр.
+  List<ForestZone>? _zonesBuiltFor;
+  List<Polygon<ForestZone>> _polygons = const [];
 
   RegionGeometry get _g => widget.geometry;
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _forestHits.dispose();
     super.dispose();
-  }
-
-  /// Після зупинки карти — запит лісів лише для видимої частини (з урахуванням масштабу).
-  void _scheduleForestQuery(MapCamera camera) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      final visible = clipToRegion(camera.visibleBounds, _g.bounds);
-      if (visible == null) return; // видима частина поза областю — запитувати нічого
-      final q = ForestZonesQuery(
-        regionSlug: _g.slug,
-        bounds: visible,
-        zoom: camera.zoom.round(),
-      );
-      if (mounted && q != _query) setState(() => _query = q);
-    });
   }
 
   /// Світ із «дірками» на місці області — усе поза областю затемнене.
@@ -129,7 +101,13 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         borderStrokeWidth: 2,
       );
 
-  List<Polygon<ForestZone>> _forestPolygons(List<ForestZone> zones) => [
+  List<Polygon<ForestZone>> _forestPolygons(List<ForestZone> zones) {
+    if (identical(zones, _zonesBuiltFor)) return _polygons;
+    _zonesBuiltFor = zones;
+    return _polygons = _buildPolygons(zones);
+  }
+
+  List<Polygon<ForestZone>> _buildPolygons(List<ForestZone> zones) => [
         for (final z in zones)
           for (final p in z.polygons)
             Polygon<ForestZone>(
@@ -196,9 +174,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 
   @override
   Widget build(BuildContext context) {
-    final query = _query;
-    final forests = query == null ? null : ref.watch(forestZonesProvider(query));
-    final zones = forests?.valueOrNull ?? const <ForestZone>[];
+    // Ліси всієї області — з телефону; мережа лише раз на добу (офлайн-карта).
+    final forests = ref.watch(regionForestsProvider(_g.slug));
+    final zones = forests.valueOrNull?.value ?? const <ForestZone>[];
+    final offline = forests.valueOrNull?.offline ?? false;
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
 
     return Scaffold(
@@ -215,8 +194,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               // (кордон із v1-regions + невеликий відступ). Віддалитися далі, ніж
               // уміщується область, неможливо.
               cameraConstraint: CameraConstraint.contain(bounds: _paddedBounds(bounds)),
-              onMapReady: () => _scheduleForestQuery(_mapController.camera),
-              onPositionChanged: (camera, hasGesture) => _scheduleForestQuery(camera),
             ),
             children: [
               TileLayer(
@@ -237,13 +214,13 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               ),
             ],
           ),
-          _Header(title: _g.name, loading: forests?.isLoading ?? true),
-          if (forests?.hasError ?? false)
+          _Header(title: _g.name, loading: forests.isLoading, offline: offline),
+          if (forests.hasError && !forests.isLoading)
             _ErrorBanner(
-              message: forests!.error is ApiException
+              message: forests.error is ApiException
                   ? (forests.error as ApiException).userMessage
                   : 'Не вдалося завантажити ліси',
-              onRetry: () => ref.invalidate(forestZonesProvider(query!)),
+              onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
             ),
           Positioned(
             right: 16,
@@ -283,10 +260,13 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.loading});
+  const _Header({required this.title, required this.loading, this.offline = false});
 
   final String title;
   final bool loading;
+
+  /// Немає інтернету — ліси показано зі збереженої копії.
+  final bool offline;
 
   @override
   Widget build(BuildContext context) => Positioned(
@@ -315,6 +295,12 @@ class _Header extends StatelessWidget {
                 if (loading) ...[
                   const SizedBox(width: 10),
                   const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                ],
+                if (offline) ...[
+                  const SizedBox(width: 10),
+                  const Icon(Icons.cloud_off_rounded, size: 18, color: AppTheme.accentOrange),
+                  const SizedBox(width: 4),
+                  const Text('офлайн', style: TextStyle(color: AppTheme.accentOrange, fontSize: 12)),
                 ],
               ],
             ),

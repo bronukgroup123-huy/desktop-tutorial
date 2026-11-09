@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_client/data/local/offline_result.dart';
 import 'package:flutter_client/data/models/forecast.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/forecast/forecast_screen.dart';
@@ -51,7 +52,11 @@ void main() {
 
   testWidgets('ForecastView показує тексти з сервера', (tester) async {
     await tester.pumpWidget(ProviderScope(
-      overrides: [forecastProvider(point).overrideWith((ref) async => Forecast.fromJson(forecastJson()))],
+      overrides: [
+        forecastProvider(point).overrideWith(
+          (ref) async => OfflineResult(value: Forecast.fromJson(forecastJson()), savedAt: DateTime(2026, 11, 9), offline: false),
+        ),
+      ],
       child: const MaterialApp(home: Scaffold(body: ForecastView(point: point))),
     ));
     await tester.pumpAndSettle();
@@ -69,5 +74,19 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: ForecastScreen())));
     expect(find.text('Оберіть ліс на карті'), findsOneWidget);
     expect(find.text('Відкрити карту'), findsOneWidget);
+  });
+
+  testWidgets('Без інтернету — збережений прогноз з датою', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        forecastProvider(point).overrideWith(
+          (ref) async => OfflineResult(value: Forecast.fromJson(forecastJson()), savedAt: DateTime(2026, 11, 9, 14, 20), offline: true),
+        ),
+      ],
+      child: const MaterialApp(home: Scaffold(body: ForecastView(point: point))),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Немає інтернету. Показано прогноз від 09.11, 14:20.'), findsOneWidget);
+    expect(find.text('Білий гриб'), findsOneWidget);
   });
 }

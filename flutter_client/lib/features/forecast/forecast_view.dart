@@ -28,17 +28,30 @@ class ForecastView extends ConsumerWidget {
         message: e is ApiException ? e.userMessage : 'Не вдалося отримати прогноз.',
         onRetry: () => ref.invalidate(forecastProvider(point)),
       ),
-      data: (f) => _ForecastContent(forecast: f, point: point, scrollController: scrollController),
+      data: (r) => _ForecastContent(
+        forecast: r.value,
+        point: point,
+        scrollController: scrollController,
+        offlineSince: r.offline ? r.savedAt : null,
+      ),
     );
   }
 }
 
 class _ForecastContent extends StatelessWidget {
-  const _ForecastContent({required this.forecast, required this.point, this.scrollController});
+  const _ForecastContent({
+    required this.forecast,
+    required this.point,
+    this.scrollController,
+    this.offlineSince,
+  });
 
   final Forecast forecast;
   final ForecastPoint point;
   final ScrollController? scrollController;
+
+  /// Немає інтернету — показано збережений прогноз від цього часу.
+  final DateTime? offlineSince;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +67,14 @@ class _ForecastContent extends StatelessWidget {
         ),
         if (f.regionName != null)
           Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+        if (offlineSince != null) ...[
+          const SizedBox(height: 12),
+          _InfoCard(
+            icon: Icons.cloud_off_rounded,
+            color: AppTheme.accentOrange,
+            text: 'Немає інтернету. Показано прогноз від ${_formatTime(offlineSince!)}.',
+          ),
+        ],
         const SizedBox(height: 16),
         if (f.weather != null) ...[_WeatherCard(weather: f.weather!), const SizedBox(height: 16)],
         if (f.top1 == null)
@@ -81,6 +102,12 @@ class _ForecastContent extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatTime(DateTime t) {
+  final l = t.toLocal();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(l.day)}.${two(l.month)}, ${two(l.hour)}:${two(l.minute)}';
 }
 
 class _WeatherCard extends StatelessWidget {
