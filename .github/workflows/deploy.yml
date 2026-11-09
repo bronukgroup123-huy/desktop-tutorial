@@ -10,11 +10,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -24,6 +29,16 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.1.4
+
+      # Міграції — перед функціями: нові функції можуть залежати від нових RPC/таблиць.
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Migrations — preview (dry run)
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Migrations — apply
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
 
       - name: Deploy all Edge Functions (directories only)
         run: |

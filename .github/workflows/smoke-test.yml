@@ -10,7 +10,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
       TEST_EMAIL: smoke-test@mushroomradar.dev
-      TEST_PASSWORD: SmokeTest2026xYz
+      TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -43,6 +43,13 @@ jobs:
               "https://$PROJECT_ID.supabase.co/auth/v1/admin/users" \
               | jq -r ".users[] | select(.email==\"$TEST_EMAIL\") | .id")
           fi
+          # Пароль тестового користувача тепер у секреті (раніше був у репозиторії) —
+          # синхронізуємо його для вже існуючого користувача.
+          curl -s -X PUT "https://$PROJECT_ID.supabase.co/auth/v1/admin/users/$USER_ID" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
+            -H "apikey: $SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"password\":\"$TEST_PASSWORD\"}" > /dev/null
           echo "USER_ID=$USER_ID" >> $GITHUB_ENV
           echo "User: $USER_ID"
 
