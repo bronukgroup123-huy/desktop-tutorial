@@ -122,8 +122,9 @@ regions.slug — стабільний публічний ідентифікат�
 
 ### Зміна області
 
-Наразі зміна можлива будь-коли через `PATCH /me` — **TODO/V2**: обмеження
-1 зміна / 30 днів (anti-abuse). Підготовлена інфраструктура: таблиця
+Наразі (код) зміна можлива будь-коли через `PATCH /me`. **Рішення PO — [ADR-016](./DECISIONS.md#adr-016-зміна-home-region--тільки-pro-і-один-раз):**
+після онбордингу область змінюється **тільки в Pro і лише один раз** (задача B1.9).
+Перше призначення під час онбордингу — вільне. Підготовлена інфраструктура: таблиця
 `region_change_log` (user_id, old/new_region_id, device_fingerprint,
 changed_at) — див. [DB_SCHEMA.md](./DB_SCHEMA.md#region_change_log).
 
@@ -188,6 +189,6 @@ final forecast = await http.post(
 ## TODO / V2
 
 - Rate limiting на Edge Functions (план §15) — поки захист лише на рівні платформи.
-- Anti-abuse Home Region (1 зміна / 30 днів) — інфраструктура `region_change_log` готова, логіка обмеження — ні.
+- Зміна Home Region: тільки Pro, один раз (ADR-016, B1.9) — інфраструктура `region_change_log` готова, логіка обмеження — ні.
 - EXIF-верифікація фото в `POST /picks`.
 - Контакт Наглядача (SMS) — Web Push частково покрито через `guardian_notify` + `guardian-webhook-sms`.
