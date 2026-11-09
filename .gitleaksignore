@@ -1,0 +1,10 @@
+# Перевірені історичні знахідки Gitleaks (2026-11-09). Нові знахідки, як і раніше, валять CI.
+#
+# 1) deno.lock — хеш цілісності npm-пакета, не секрет (хибне спрацювання generic-api-key).
+a996f5b799eab6c80996927a7bb30e377223295e:deno.lock:generic-api-key:56
+# 2) Старий пароль тестового користувача smoke-тесту. Перенесено в секрет SMOKE_TEST_PASSWORD;
+#    smoke-test.yml при запуску перезаписує пароль користувача новим значенням (ротація).
+43a47668ba7aef6763e1eb276088c8c069dabb3f:.github/workflows/smoke-test.yml:generic-api-key:13
+# 3) Supabase publishable (anon) key у старому прототипі — публічний за призначенням
+#    (захист даних забезпечує RLS). Не service_role.
+96a2904f98e6d84700944a96047d01f1fbb1e615:mushroom-radar.html:generic-api-key:1127
