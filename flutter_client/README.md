@@ -30,6 +30,13 @@ Workflow `.github/workflows/android.yml` збирає release-APK:
 | `SUPABASE_PUBLISHABLE_KEY` | publishable (anon) key з Supabase → Settings → API |
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | *необов'язково*: постійний ключ підпису. Без нього APK підписується debug-ключем, і для встановлення нової збірки може знадобитися видалити попередню |
 
+## Вхід через Google на телефоні
+
+Застосунок відкриває вхід у зовнішньому браузері й повертається за deep link
+`ua.mushroomradar.app://login-callback/` (`SupabaseConfig.authRedirectUrl`, intent-filter у
+`AndroidManifest.xml`). Ця адреса **має бути** в Supabase → Authentication → URL Configuration →
+**Redirect URLs** — інакше Supabase перекидає на **Site URL** (наприклад, `localhost`).
+
 ## Перевірки
 
 ```bash
