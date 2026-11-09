@@ -11,6 +11,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: AuthScreen())));
     expect(find.text('Грибний Радар'), findsOneWidget);
     expect(find.text('Увійти через Google'), findsOneWidget);
+    expect(find.text('Увійти через Apple'), findsOneWidget);
     expect(find.text('Увійти за номером телефону'), findsOneWidget);
     expect(find.text('Продовжити без реєстрації'), findsOneWidget);
   });

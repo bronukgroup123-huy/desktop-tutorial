@@ -131,7 +131,8 @@ class AuthScreen extends StatelessWidget {
         _buildSocialButton(
           icon: Icons.apple_rounded,
           label: 'Увійти через Apple',
-          onPressed: () {},
+          // Провайдер Apple ще не налаштований у Supabase (BACKEND_PLAN B1.5).
+          onPressed: () => showToast(context, 'Вхід через Apple — скоро'),
         ),
       ],
     );
