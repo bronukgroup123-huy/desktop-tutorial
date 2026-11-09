@@ -33,7 +33,8 @@ jobs:
             supabase/functions/_shared/http.ts \
             supabase/functions/v1-*/index.ts \
             supabase/functions/guardian-session-create/index.ts \
-            supabase/functions/guardian-sos/index.ts
+            supabase/functions/guardian-sos/index.ts \
+            supabase/functions/me/index.ts
 
       # Блокує: юніт-тести (без живого Supabase).
       - name: Unit tests

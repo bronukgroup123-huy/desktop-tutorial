@@ -43,10 +43,12 @@ jobs:
       - name: Migrations — history guard
         run: |
           supabase migration list --password "$SUPABASE_DB_PASSWORD" | tee migrations.txt
+          # CLI малює таблицю символом «│» і додає ANSI-кольори — нормалізуємо перед розбором.
+          sed -e 's/\x1b\[[0-9;]*m//g' -e 's/│/|/g' migrations.txt > migrations.clean.txt
           awk -F'|' 'NF>=2 {
               l=$1; r=$2; gsub(/[[:space:]]/,"",l); gsub(/[[:space:]]/,"",r);
               if (l ~ /^[0-9]+$/ && length(l) == 14) { if (r=="") print "PENDING " l; else print "APPLIED " l }
-            }' migrations.txt > status.txt
+            }' migrations.clean.txt > status.txt
           applied=$(grep -c '^APPLIED' status.txt || true)
           last_applied=$(grep '^APPLIED' status.txt | awk '{print $2}' | sort | tail -1)
           echo "applied=$applied last_applied=${last_applied:-none}"
