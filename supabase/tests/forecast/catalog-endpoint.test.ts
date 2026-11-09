@@ -103,7 +103,7 @@ Deno.test('catalog handler: OPTIONS → 204 + CORS', async () => {
   const { db } = makeDbMock({ data: [], error: null });
   const res = await handleCatalogRequest(db, new Request('http://localhost/catalog', { method: 'OPTIONS' }));
   assertEquals(res.status, 204);
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), '*');
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://desktop-tutorial-eta-tan.vercel.app') // CORS allowlist (audit G7): без Origin → default;
 });
 
 Deno.test('catalog handler: non-GET (POST) → 405', async () => {

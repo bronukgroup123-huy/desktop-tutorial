@@ -212,7 +212,7 @@ Deno.test('me dispatch: OPTIONS → 204', async () => {
   const { db } = makeDbMock({ user: USER_ROW });
   const res = await handleMeRequest(db, 'u-1', new Request('http://localhost/me', { method: 'OPTIONS' }));
   assertEquals(res.status, 204);
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), '*');
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://desktop-tutorial-eta-tan.vercel.app') // CORS allowlist (audit G7): без Origin → default;
 });
 
 Deno.test('me dispatch: DELETE → 405', async () => {

@@ -218,7 +218,7 @@ export async function handlePicksListRequest(
     let regionUserIds: Array<{ id: string }> | null = null;
     if (filters.scope === "region") {
       if (!filters.regionSlug) {
-        return jsonResponse({ error: "missing_region_slug" }, 400);
+        return jsonResponse({ error: "missing_region_slug" }, 400, req);
       }
       const { data, error } = await adminDb.rpc("find_region_by_slug", {
         slug_input: filters.regionSlug,

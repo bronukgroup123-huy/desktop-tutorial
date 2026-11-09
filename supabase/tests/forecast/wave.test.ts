@@ -26,17 +26,16 @@ Deno.test("previousWave: spring → spring (кордон)", () => {
 });
 
 Deno.test("detectWave: без GDD → календарна", () => {
-  const w = detectWave(new Date("2026-09-11T12:00:00Z"), 50.45, null);
+  const w = detectWave(new Date("2026-09-11T12:00:00Z"), 50.45, 0);
   assertEquals(w, "autumn");
 });
 
-Deno.test("detectWave: GDD більше не впливає — завжди calendar wave (8.7a)", () => {
-  // FIX 8.7: ковзне вікно computeGDD не сумісне з кумулятивною шкалою
-  // порогів → detectWave довіряє calendarWave за будь-якого GDD.
+Deno.test("detectWave: кумулятивний GDD (CT-11) — нижче порогу spring → calendar, вище — хвиля за GDD", () => {
+  // CT-11 (міграція 20260912000026) замінив ковзне вікно 8.7a на кумулятивний GDD з 1 січня.
   const d = new Date("2026-09-11T12:00:00Z");
-  assertEquals(detectWave(d, 50.45, null), "autumn");
-  assertEquals(detectWave(d, 50.45, 100), "autumn");
-  assertEquals(detectWave(d, 50.45, 9999), "autumn");
+  assertEquals(detectWave(d, 50.45, 0), "autumn");
+  assertEquals(detectWave(d, 50.45, 100), "autumn"); // < spring:150 → calendar
+  assertEquals(detectWave(d, 50.45, 9999), "late"); // ≥ late:2100
 });
 
 Deno.test("detectWave: GDD=100 (раніше → previousWave) теж autumn (8.7a)", () => {
