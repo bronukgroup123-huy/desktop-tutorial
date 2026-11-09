@@ -15,6 +15,21 @@ flutter run --dart-define-from-file=.env
 
 Генерація коду (`build_runner`) **не потрібна**: моделі й провайдери написані вручну.
 
+## APK для телефону
+
+Workflow `.github/workflows/android.yml` збирає release-APK:
+- на кожен push / PR, що змінює `flutter_client/` → **Actions → Android APK → Artifacts → `mushroom-radar-apk`** (zip, зберігається 14 днів);
+- на push у `main` → також **Releases → «android-latest»** → файл `mushroom-radar.apk` (завантаження одним тапом);
+- вручну: **Actions → Android APK → Run workflow**.
+
+Потрібні **GitHub Secrets** (Settings → Secrets and variables → Actions):
+
+| Секрет | Значення |
+|---|---|
+| `SUPABASE_URL` | `https://<PROJECT_REF>.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | publishable (anon) key з Supabase → Settings → API |
+| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | *необов'язково*: постійний ключ підпису. Без нього APK підписується debug-ключем, і для встановлення нової збірки може знадобитися видалити попередню |
+
 ## Перевірки
 
 ```bash
