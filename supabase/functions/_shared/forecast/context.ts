@@ -10,7 +10,7 @@ import type {
   ForestZoneData,
   CrowdData,
 } from "./types.ts";
-import { fetchWeather } from "./weather.ts";
+import { fetchWeatherCached } from "./weather-cache.ts";
 import { detectWave } from "./wave.ts";
 
 // Реекспорт для зручності
@@ -136,7 +136,8 @@ export class ContextBuilder {
 
     // 2. Weather (паралельно з crowd)
     const [weather, crowd] = await Promise.all([
-      fetchWeather(input.lat, input.lng),
+      // B2.6: погода з кешу по сітці (≤ 1 запит до Open-Meteo на клітинку за 3 год)
+      fetchWeatherCached(db, input.lat, input.lng),
       fetchCrowd(db, input),
     ]);
 

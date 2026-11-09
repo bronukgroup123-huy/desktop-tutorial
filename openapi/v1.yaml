@@ -301,17 +301,38 @@ components:
         level: { type: string, enum: [peak, high, medium, low, no_data] }
         level_label: { type: string }
         level_color: { type: string }
-        when_label: { type: string }
+        when_label: { type: string, example: 'Зараз — 3 дні після дощу · Осіння хвиля' }
         where_label: { type: string }
-        why_labels: { type: array, items: { type: string } }
+        why_labels:
+          type: array
+          maxItems: 4
+          items: { type: string }
+          example: ['Температура 13° — підходить для плодоношення', 'Дощ 16 мм за останні 3 дні']
+
+    ForecastWeather:
+      type: object
+      description: Блок погоди з готовими рядками (B2.3). null, якщо погода недоступна.
+      required: [icon, temp_label, humidity_label, rain_label, rain_recent_label, pressure_label]
+      properties:
+        icon: { type: string, enum: [sun, cloud, rain, unknown] }
+        temp_label: { type: string, example: '9°…17°, у середньому 13° за тиждень' }
+        humidity_label: { type: string, example: 'Вологість 78%' }
+        rain_label: { type: string, example: 'Опади: 16 мм за 3 дні, 21 мм за тиждень' }
+        rain_recent_label: { type: string, example: 'Сильний дощ 3 дні тому' }
+        pressure_label: { type: string, example: 'Тиск 1013 гПа, стабільний' }
 
     Forecast:
       type: object
-      required: [date, forest, warnings]
+      required: [date, forest, forest_label, warnings]
       properties:
         regionName: { type: [string, 'null'] }
         date: { type: string, format: date }
-        forest: { type: string }
+        forest: { type: string, description: Технічний рядок рушія (застаріле — використовуйте forest_label) }
+        forest_label: { type: string, example: 'Сосновий ліс' }
+        weather:
+          oneOf:
+            - $ref: '#/components/schemas/ForecastWeather'
+            - type: 'null'
         top1:
           oneOf:
             - $ref: '#/components/schemas/ForecastSpecies'

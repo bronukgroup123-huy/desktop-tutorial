@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter_client/data/local/local_store.dart';
 import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/repositories/forecast_repository.dart';
 import 'package:flutter_client/data/repositories/forest_zones_repository.dart';
@@ -8,6 +11,8 @@ import 'package:latlong2/latlong.dart';
 
 import 'fake_adapter.dart';
 import 'models_test.dart' show meJson;
+
+LocalStore tempStore() => LocalStore(Directory.systemTemp.createTempSync('mr_test_'));
 
 void main() {
   test('MeRepository.completeOnboarding: PATCH /v1-me зі slug і версією умов', () async {
@@ -43,7 +48,7 @@ void main() {
         },
       });
     });
-    final repo = RegionsRepository(api);
+    final repo = RegionsRepository(api, tempStore());
     expect((await repo.fetchRegions()).single.slug, 'kyivska');
 
     await repo.fetchGeometry('kyivska');
@@ -58,7 +63,7 @@ void main() {
     final (api, adapter) = makeClient((_) => const FakeResponse(200, {
           'data': {'type': 'FeatureCollection', 'features': []},
         }));
-    await ForestZonesRepository(api).fetchForestZones(
+    await ForestZonesRepository(api, tempStore()).fetchForestZones(
       bounds: const GeoBounds(southWest: LatLng(50.2, 30.2), northEast: LatLng(50.7, 30.9)),
       zoom: 11,
     );
@@ -71,7 +76,7 @@ void main() {
     final (api, adapter) = makeClient((_) => const FakeResponse(200, {
           'data': {'regionName': null, 'date': '2026-01-05', 'forest': '', 'top1': null, 'alternative': null, 'warnings': []},
         }));
-    await ForecastRepository(api).fetchForecast(lat: 50.4, lng: 30.5, date: DateTime(2026, 1, 5));
+    await ForecastRepository(api, tempStore()).fetchForecast(lat: 50.4, lng: 30.5, date: DateTime(2026, 1, 5));
     expect(adapter.requests.single.data, {'lat': 50.4, 'lng': 30.5, 'date': '2026-01-05'});
   });
 }

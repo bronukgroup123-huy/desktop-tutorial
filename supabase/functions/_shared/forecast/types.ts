@@ -255,6 +255,8 @@ export interface ForecastResult {
   alternative: ScoredSpecies | null;
   warnings: string[];
   noDataReason?: string;
+  /** Погода, на якій побудовано прогноз (для блоку погоди і підписів у v1-forecast). */
+  weather?: WeatherData | null;
 }
 
 // ============================================================================

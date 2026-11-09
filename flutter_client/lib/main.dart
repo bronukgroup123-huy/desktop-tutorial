@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/supabase_config.dart';
+import 'package:flutter_client/data/local/local_store.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/auth/auth_screen.dart';
@@ -112,7 +116,12 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  runApp(const ProviderScope(child: MyApp()));
+  final cacheDir = Directory('${(await getApplicationSupportDirectory()).path}/offline_cache');
+
+  runApp(ProviderScope(
+    overrides: [localStoreProvider.overrideWithValue(LocalStore(cacheDir))],
+    child: const MyApp(),
+  ));
 }
 
 class MyApp extends ConsumerWidget {

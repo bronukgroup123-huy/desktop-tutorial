@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_config.dart';
 import 'api/api_client.dart';
+import 'local/local_store.dart';
+import 'local/offline_result.dart';
+import 'models/forecast.dart';
 import 'models/forest_zone.dart';
-import 'models/geo.dart';
 import 'models/me.dart';
 import 'models/region.dart';
 import 'repositories/auth_repository.dart';
@@ -35,13 +37,21 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   );
 });
 
+/// Сховище на телефоні (офлайн-режим). Створюється в main() і перевизначається.
+final localStoreProvider = Provider<LocalStore>(
+  (ref) => throw UnimplementedError('localStoreProvider must be overridden in main()'),
+);
+
 final meRepositoryProvider = Provider((ref) => MeRepository(ref.watch(apiClientProvider)));
-final regionsRepositoryProvider =
-    Provider((ref) => RegionsRepository(ref.watch(apiClientProvider)));
-final forestZonesRepositoryProvider =
-    Provider((ref) => ForestZonesRepository(ref.watch(apiClientProvider)));
-final forecastRepositoryProvider =
-    Provider((ref) => ForecastRepository(ref.watch(apiClientProvider)));
+final regionsRepositoryProvider = Provider(
+  (ref) => RegionsRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
+);
+final forestZonesRepositoryProvider = Provider(
+  (ref) => ForestZonesRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
+);
+final forecastRepositoryProvider = Provider(
+  (ref) => ForecastRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
+);
 
 // ─── Стан ───────────────────────────────────────────────────────────────────
 
@@ -89,35 +99,52 @@ final regionGeometryProvider = FutureProvider.family<RegionGeometry, String>(
   (ref, slug) => ref.watch(regionsRepositoryProvider).fetchGeometry(slug),
 );
 
-/// Запит лісів для видимої частини карти. Межі округлюються, щоб дрібні зсуви
-/// карти не створювали нових запитів.
-class ForestZonesQuery {
-  ForestZonesQuery({required this.regionSlug, GeoBounds? bounds, this.zoom})
-      : bbox = bounds?.toQuery();
+/// Ліси всієї Home Region — з телефону (офлайн), мережа лише раз на добу.
+final regionForestsProvider = FutureProvider.family<OfflineResult<List<ForestZone>>, String>(
+  (ref, slug) => ref.watch(forestZonesRepositoryProvider).regionForests(slug),
+);
 
-  /// Область входить у ключ: зміна Home Region → нові полігони (ADR-016).
-  final String regionSlug;
-  final String? bbox;
-  final int? zoom;
+// ─── Прогноз ────────────────────────────────────────────────────────────────
+
+/// Точка, обрана на карті (тап по лісу). Прогноз з'являється ТІЛЬКИ після вибору
+/// точки (план v8.2 §3.1).
+class ForecastPoint {
+  const ForecastPoint({
+    required this.lat,
+    required this.lng,
+    this.forestType,
+    this.title,
+  });
+
+  final double lat;
+  final double lng;
+
+  /// Тип лісу полігону, по якому тапнули (сервер уточнює прогноз).
+  final String? forestType;
+
+  /// Підпис місця для заголовка (наприклад, «Сосновий ліс»).
+  final String? title;
 
   @override
   bool operator ==(Object other) =>
-      other is ForestZonesQuery &&
-      other.regionSlug == regionSlug &&
-      other.bbox == bbox &&
-      other.zoom == zoom;
+      other is ForecastPoint &&
+      other.lat == lat &&
+      other.lng == lng &&
+      other.forestType == forestType;
 
   @override
-  int get hashCode => Object.hash(regionSlug, bbox, zoom);
+  int get hashCode => Object.hash(lat, lng, forestType);
 }
 
-final forestZonesProvider = FutureProvider.family<List<ForestZone>, ForestZonesQuery>(
-  (ref, q) => ref.watch(forestZonesRepositoryProvider).fetchForestZones(
-        // bbox уже у форматі API — передаємо як GeoBounds через парсинг рядка
-        bounds: q.bbox == null ? null : _boundsFromQuery(q.bbox!),
-        zoom: q.zoom,
+/// Остання обрана точка — її показує вкладка «Прогноз».
+final selectedPointProvider = StateProvider<ForecastPoint?>((ref) => null);
+
+/// Прогноз для точки на сьогодні; без інтернету — останній збережений.
+final forecastProvider = FutureProvider.autoDispose.family<OfflineResult<Forecast>, ForecastPoint>(
+  (ref, p) => ref.watch(forecastRepositoryProvider).fetchForecast(
+        lat: p.lat,
+        lng: p.lng,
+        date: DateTime.now(),
+        forestType: p.forestType,
       ),
 );
-
-GeoBounds _boundsFromQuery(String bbox) =>
-    GeoBounds.fromBbox(bbox.split(',').map(double.parse).toList());

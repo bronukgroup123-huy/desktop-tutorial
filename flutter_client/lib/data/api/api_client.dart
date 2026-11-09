@@ -47,14 +47,35 @@ class ApiClient {
   Future<dynamic> patch(String path, {Object? body}) =>
       _send(() => _dio.patch<dynamic>(path, data: body));
 
-  Future<dynamic> _send(Future<Response<dynamic>> Function() request) async {
-    final Response<dynamic> res;
-    try {
-      res = await request();
-    } on DioException catch (e) {
-      throw ApiException(code: ApiException.networkError, serverMessage: null, statusCode: e.response?.statusCode);
-    }
+  /// GET з перевіркою змін (`If-None-Match`). Якщо дані на сервері не змінились —
+  /// `notModified: true` без тіла (економія трафіку для офлайн-кешу).
+  Future<ConditionalResult> getConditional(
+    String path, {
+    Map<String, dynamic>? query,
+    String? etag,
+  }) async {
+    final res = await _request(() => _dio.get<dynamic>(
+          path,
+          queryParameters: query,
+          options: Options(headers: {if (etag != null) 'If-None-Match': etag}),
+        ));
+    final newEtag = res.headers.value('etag');
+    if (res.statusCode == 304) return ConditionalResult(data: null, etag: etag, notModified: true);
+    return ConditionalResult(data: _unwrap(res), etag: newEtag, notModified: false);
+  }
 
+  Future<Response<dynamic>> _request(Future<Response<dynamic>> Function() request) async {
+    try {
+      return await request();
+    } on DioException catch (e) {
+      throw ApiException(code: ApiException.networkError, statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<dynamic> _send(Future<Response<dynamic>> Function() request) async =>
+      _unwrap(await _request(request));
+
+  dynamic _unwrap(Response<dynamic> res) {
     final status = res.statusCode ?? 0;
     final body = res.data;
 
@@ -75,4 +96,13 @@ class ApiClient {
     }
     throw ApiException(code: 'http_$status', statusCode: status);
   }
+}
+
+/// Результат [ApiClient.getConditional].
+class ConditionalResult {
+  const ConditionalResult({required this.data, required this.etag, required this.notModified});
+
+  final dynamic data;
+  final String? etag;
+  final bool notModified;
 }

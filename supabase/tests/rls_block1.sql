@@ -151,6 +151,14 @@ BEGIN
   END;
 END $$;
 
+-- ─── 5c. Кеш погоди — лише service_role ──────────────────────────────────────
+DO $$
+BEGIN
+  PERFORM 1 FROM public.weather_cache LIMIT 1;
+  RAISE EXCEPTION 'Test 5c failed: authenticated can read weather_cache';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END $$;
+
 RESET ROLE;
 
 -- ─── 6. RPC працюють для service_role ──────────────────────────────────────
