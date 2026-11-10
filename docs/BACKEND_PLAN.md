@@ -1,11 +1,11 @@
-# Грибний Радар — План реалізації бекенду (v1.9)
+# Грибний Радар — План реалізації бекенду (v1.10)
 
 **Статус:** робочий план бекенду під Flutter-клієнт.
 **Основа:** Канонічний план v8.2, аудит репозиторію (листопад 2026), рекомендації щодо MVP,
-**рішення Product Owner від 2026-11-09 — [DECISIONS.md](./DECISIONS.md) (ADR-001…017)**.
+**рішення Product Owner від 2026-11-09 — [DECISIONS.md](./DECISIONS.md) (ADR-001…018)**.
 **Принцип:** бекенд — джерело істини (No-Rewrite Contract). Клієнт лише рендерить.
 
-### Що змінилось у v1.1–v1.9
+### Що змінилось у v1.1–v1.10
 
 | ADR | Рішення | Вплив на план |
 |---|---|---|
@@ -26,6 +26,7 @@
 | 015 | Машинний прогноз: 1 ділянка 5×5 (free) / до 3 ділянок 5×5 або 10×10 (Pro), ліміти 5 / 10 на ділянку; **полігони й ділянки — тільки Home Region**, «Вся Україна» в Pro — лише перегляд | B1.2, B1.8, B2.9–B2.11; B2.7 замінено |
 | 016 | Зміна Home Region — тільки Pro, один раз | Нова задача B1.9 |
 | 017 | Групові поїздки: офлайн-карта України, маршрут, спільні нотатки — **у MVP**, до 10 учасників, учасники без Pro — редактори | Фаза 8 (B8.1–B8.6), вбудована у Фази 3–4 |
+| 018 | Тук-тук: лише `private` / `public`, без друзів (поширення — у поїздці); тільки камера, одне фото, назва зі списку; перевірка виду: ШІ на телефоні (підказка) + спільнота + скарги; публічні точки з похибкою 300–500 м | B3.1–B3.4, B3.8, B3.9 переписано; B3.6 видалено; нова B3.12; B8.1 — `shared_pick` |
 
 ---
 
@@ -62,7 +63,7 @@
 
 | # | Проблема | Наслідок | Задача |
 |---|---|---|---|
-| G1 🔴 | `POST /picks` завжди пише `pick_type: "private"` — немає вибору приватності | Тук-тук не може стати friends/public | B3.1 |
+| G1 🔴 | `POST /picks` завжди пише `pick_type: "private"` — немає вибору приватності | Тук-тук не може стати public | B3.1 |
 | G2 🔴 | `v1-forecast` віддає числовий `score` (0.83) | Порушує заборону «ніяких відсотків» | B2.1 |
 | G3 🔴 | `v1-forecast` має `homeRegionId: null` — RegionGuard вимкнено | Прогноз для будь-якої точки України | B2.1 |
 | G4 🟡 | `v1-forecast`: `when_label = "Хвиля: autumn"` (англ. код у тексті), `why_labels` = технічні рядки (`"temp 13 within fruiting range"`) | Не відповідає Response Shaping | B2.2 |
@@ -75,7 +76,7 @@
 | G11 🟡 | `smoke-test.yml` містить пароль тестового користувача відкритим текстом | Секрет у репо | B0.2 |
 | G12 ⚪ | Легасі-стек: `db/migrations/`, `compose.yaml`, `api/` (FastAPI), `web/`, `init-scripts/` — паралельна схема без зв'язку з Supabase | Плутанина «яка схема справжня» | B0.3 |
 | G13 🟡 | Документація відстає: 24 vs 37 міграцій, немає `v1-*`, EXIF/rate-limit позначені як TODO | Flutter-команда працює з неактуальним контрактом | B0.5 |
-| G14 🔴 | Немає таблиць: друзі, бали рейтингу, згоди (EULA), підписки | Блокує Тук-тук friends, рейтинг, онбординг, Pro | Фази 1–6 |
+| G14 🔴 | Немає таблиць: бали рейтингу, перевірка точок, згоди (EULA), підписки | Блокує рейтинг, верифікацію, онбординг, Pro | Фази 1–6 |
 | G15 🟡 | Немає OpenAPI-специфікації (план v8.2 вважає її готовою) | Немає генерації Dart-клієнта | B0.5 |
 
 ---
@@ -135,7 +136,7 @@
 | B1.3 🔴 | Згода EULA/Privacy | Таблиця `user_consents`; `PATCH /me` приймає `accept_terms_version`; `GET /me` віддає `onboarding: { region_done, terms_done, next_step }` | Клієнт не вирішує, який екран онбордингу показати — читає `next_step` |
 | B1.4 🔴 | Вхід по телефону | Supabase Phone Auth + **Send SMS Hook** → TurboSMS (вже є токен для Guardian). Rate limit OTP | OTP приходить на український номер; ≤ 5 спроб/год на номер |
 | B1.5 🟡 | Apple Sign In | Налаштування провайдера в Supabase + bundle id | Вхід працює на TestFlight-збірці |
-| B1.6 🔴 | Гостьовий режим (**ADR-001**) | Увімкнути Anonymous Sign-Ins + CAPTCHA (Turnstile). Гість має JWT з `is_anonymous=true` і реальний UUID; RLS-хелпер `is_registered()` забороняє `public`/`friends` точки, сесії Наглядача, SOS, друзів. Реєстрація — `linkIdentity`, UUID не змінюється. `GET /me` → `is_guest`. Cron: видалення анонімних акаунтів без активності > 90 днів | Гість бачить карту, прогноз, створює private-точки; SOS/public → `403 registration_required`; після linkIdentity усі точки гостя на місці (тест) |
+| B1.6 🔴 | Гостьовий режим (**ADR-001**) | Увімкнути Anonymous Sign-Ins + CAPTCHA (Turnstile). Гість має JWT з `is_anonymous=true` і реальний UUID; RLS-хелпер `is_registered()` забороняє `public` точки, сесії Наглядача, SOS. Реєстрація — `linkIdentity`, UUID не змінюється. `GET /me` → `is_guest`. Cron: видалення анонімних акаунтів без активності > 90 днів | Гість бачить карту, прогноз, створює private-точки; SOS/public → `403 registration_required`; після linkIdentity усі точки гостя на місці (тест) |
 | B1.8 🟡 | Режим перегляду «Вся Україна», Pro (**ADR-015 §15.2**) | `GET v1-regions/geometry?all=true&level=low` — сильно спрощені кордони всіх областей одним файлом (≤ 300 КБ, кеш), тільки `features.map_all_ukraine`. У цьому режимі немає полігонів лісів і вибору точок. `v1-forest-zones` віддає полігони **тільки в межах Home Region** для всіх (`403 outside_home_region`, `400 bbox_too_large`) | Жодного запиту полігонів поза Home Region (тест); зміна Home Region → полігони нової області тим самим запитом |
 | B1.9 🟡 | Зміна Home Region (**ADR-016**) | `PATCH /me { home_region_slug }`: протягом 24 год після першого вибору — одна безкоштовна виправна зміна; далі — тільки з `features.region_change_once` і якщо в `region_change_log` немає змін → інакше `403 region_change_not_allowed`. Запис у `region_change_log` (`source`: `onboarding_fix` / `pro` / `support`; зміна через підтримку — service_role); деактивація `analysis_areas` старої області. `GET /me` → `region_change: { allowed, reason_label }` | Free у перші 24 год → 200 (раз); free пізніше → 403; Pro перша зміна → 200, друга → 403; після закінчення Pro область не відкочується |
 
@@ -160,16 +161,17 @@
 | ID | Задача | Деталі | DoD |
 |---|---|---|---|
 | B3.0 🔴 | `POST v1-picks/upload-url` (**ADR-002**) | `{ client_id, content_type, size_bytes }` → `{ upload_url, path, expires_at }` через `createSignedUploadUrl`; шлях `<user_id>/<client_id>.<ext>`; ліміт 5 МБ, JPEG/PNG/WebP. Політика Storage: INSERT тільки у власну папку. Cron: видалення «сиріт» (файл без pick > 24 год) | Клієнт завантажує файл PUT-запитом зі стрімінгом з диска; повторний виклик з тим самим `client_id` повертає валідний URL на той самий шлях |
-| B3.1 🔴 | `POST v1-picks` (**ADR-002**) | `{ client_id, path, lat, lng, captured_at, visibility, mushroom_type, ... }` — **без base64**. Сервер читає файл зі Storage, перевіряє magic bytes / розмір / EXIF (GPS ≤ 1 км, час ≤ 24 год від `captured_at`), вирізає EXIF перезаписом об'єкта. Перенести EXIF-логіку з `picks/index.ts` у `_shared/picks/exif.ts` | Повтор із тим самим `client_id` → `200` без дубля; запит без файлу у Storage → `422 photo_not_uploaded`; старий `POST /picks` (base64) працює для веб-прототипу |
-| B3.2 🔴 | Ліміти публічних точок (**ADR-010**) | Безкоштовно: Мандрівник/Слідопит — `public` заборонено (`403 level_required`), Лісовик — 5/добу. Pro: за рівнями ADR-013 (Мандрівник 5 / Слідопит 20 / Грибознавець 20 / Лісовик 50 / Хранитель 100 / Майстер ∞); free Хранитель — 10/добу. Private (**ADR-011**): безкоштовно — 5/добу з будь-якого рівня (і для гостя), Pro — без ліміту. `friends` — без ліміту. Перевірка в БД-функції `can_publish_pick(user_id)` | Free-Слідопит → 403; free-Лісовик 6-та точка → `429 daily_limit_reached`; Pro-Мандрівник 5 точок → ок |
-| B3.3 🔴 | `GET v1-picks/map?bbox=` | Точки для карти: свої (усі), друзів (`friends`), чужі `public`. Готові `marker_color` (сірий pending / зелений verified), `status_label` | Чужі private ніколи не віддаються (RLS-тест) |
-| B3.4 🟡 | `PATCH / DELETE v1-picks/{id}` | Зміна видимості тільки автором; видалення = soft delete | RLS-тест: чужий pick не змінюється |
+| B3.1 🔴 | `POST v1-picks` (**ADR-002, ADR-018**) | `{ client_id, path, lat, lng, captured_at, visibility: private\|public, species_id \| null, description?, ai_check? }` — **без base64**. `species_id = null` («Не знаю») → лише `private` (`422 species_required`). Опис: ліміт довжини, фільтр телефонів/посилань. `ai_check` (підказка з телефону) зберігається як є; `twin_alert` → без автопідтвердження. Сервер читає файл зі Storage, перевіряє magic bytes / розмір / EXIF (якщо є: GPS ≤ 1 км, час ≤ 24 год від `captured_at`), вирізає EXIF перезаписом об'єкта. Точка поза Home Region → `403 outside_home_region`. Для `public` рахує стабільну `display_point` (зсув 300–500 м від id). Перенести EXIF-логіку з `picks/index.ts` у `_shared/picks/exif.ts`. Міграція: `pick_type` лише `private`/`public` (`friends` → `private`) | Повтор із тим самим `client_id` → `200` без дубля; запит без файлу у Storage → `422 photo_not_uploaded`; «Не знаю» + public → 422; старий `POST /picks` (base64) працює для веб-прототипу |
+| B3.2 🔴 | Ліміти публічних точок (**ADR-010**) | Безкоштовно: Мандрівник/Слідопит — `public` заборонено (`403 level_required`), Лісовик — 5/добу. Pro: за рівнями ADR-013 (Мандрівник 5 / Слідопит 20 / Грибознавець 20 / Лісовик 50 / Хранитель 100 / Майстер ∞); free Хранитель — 10/добу. Private (**ADR-011**): безкоштовно — 5/добу з будь-якого рівня (і для гостя), Pro — без ліміту. Перевірка в БД-функції `can_publish_pick(user_id)`; `GET /me` віддає `picks: { public_allowed, public_hint_label }` для кнопки «Тук-тук» / «Приватний тук-тук» | Free-Слідопит → 403; free-Лісовик 6-та точка → `429 daily_limit_reached`; Pro-Мандрівник 5 точок → ок |
+| B3.3 🔴 | `GET v1-picks/map?bbox=&mine=` (**ADR-018**) | За замовчуванням — публічні точки (крім `rejected`) у Home Region; `mine=true` — ще й власні приватні. Для чужих точок — **тільки `display_point`** (похибка 300–500 м), точні координати — лише автору. Готові `marker_color` (сірий pending / зелений verified), `status_label`. `GET v1-picks/{id}` — фото (signed URL), назва, опис, дата, статус | Чужі private ніколи не віддаються (RLS-тест); точні координати чужої точки не потрапляють у відповідь (тест) |
+| B3.4 🟡 | `PATCH / DELETE v1-picks/{id}` | Зміна видимості (private ↔ public, з тими ж правилами B3.2) і опису тільки автором; фото й вид після публікації не змінюються; видалення = soft delete | RLS-тест: чужий pick не змінюється |
 | B3.5 🟡 | Теплова карта `GET v1-heatmap?bbox=` | Агрегація verified public у сітку (H3 або квадрати 1 км); клітинка показується тільки при ≥ 5 точках (k-анонімність). Доступ (**ADR-010**): безкоштовно — **тільки з рівня Лісовик**: Home Region, останні 3 дні (нижче Лісовика → `403 level_required`); Pro / Майстер — вся Україна + `?period=` 3d / 7d / 30d. Без доступу → `403 pro_required` | Жодна клітинка не розкриває одну точку; тест на 403 для period/bbox поза правами |
-| B3.6 🔴 | Друзі | Таблиця `friendships` (запит → прийнято), `POST v1-friends/invite` (код/посилання), `GET v1-friends` | `friends`-точки бачать тільки прийняті друзі |
+| ~~B3.6~~ | ~~Друзі~~ | **Скасовано ADR-018.** Поширення точок — у груповій поїздці (B8.1, `shared_pick`) | — |
 | B3.7 🔴 | Рейтинг і рівні (**ADR-012, ADR-013**) | `rating_events` (ledger: +бали за verified, 8 джерел активності з добовими лімітами, тести; −20 rejected, −50 скарга); тригер оновлює `users.rating`. `users.knowledge_certified_at`, `curriculum_version`. Конфіг `rating_levels` (6 рівнів, `certified_label`). `compute_level()`; `GET /me` → `level_code`, `level_label`, `is_certified`, `next_level_label`, `next_level_hint` | Рейтинг = сума ledger (SQL-тест); 120 балів без тестів → Слідопит, з усіма тестами → Грибознавець; Лісовик + тести → «Досвідчений лісовик»; 1001 бал без тестів → не Майстер |
 | B3.11 🟡 | Відгук «Знайшли?» (**ADR-014**) | `POST v1-trips/{id}/outcome` (або за `forecast_view_id`): `found` / `not_found` / `other`; таблиця `forecast_views`; перевірка контексту походу і відстані ≤ 5 км; відкладене нарахування +2 через 24 год (cron); `users.feedback_trust`; запис у `calibration_log`. `GET v1-diary/forecast-accuracy` → «Прогноз для вас збувся N з M» | Відгук без походу → `422 no_trip_context`; другий відгук за добу — без балів; суперечливий відгук знижує довіру (тест) |
-| B3.8 🟡 | Верифікація | `pending → verified/rejected`; автоверифікація Слідопита (3 підтверджені → наступні verified); `POST v1-picks/{id}/confirm` (інший користувач поруч ≤ 500 м) | State machine у БД-функції, тести переходів |
-| B3.9 🟡 | Вплив на прогноз | Вже є `crowd.ts`: перевірити, що private-точки впливають анонімно, friends — ні, public verified — максимально | Тести `crowd.test.ts` розширено під 3 рівні |
+| B3.8 🔴 | Перевірка виду спільнотою (**ADR-018 §18.4**) | `pending → verified/rejected`. `GET v1-picks/review-queue` (лише сертифіковані, від «Грибознавець», без власних точок), `POST v1-picks/{id}/review { verdict: yes\|no\|other_species, other_species_id? }`. 3 «Так» з вагами ADR-013 → verified; переважання «Ні» → rejected (−20 автору). Бали перевіряльнику при збігу з підсумком (добовий ліміт). Довірені автори — швидша перевірка, але **небезпечні види і `twin_alert` — тільки люди**. `POST v1-picks/{id}/confirm` (інший користувач поруч ≤ 500 м) — додатковий голос | State machine у БД-функції, тести переходів; точка з `twin_alert` не стає verified без 3 людських «Так» (тест); автор не перевіряє свою точку (тест) |
+| B3.9 🟡 | Вплив на прогноз | Вже є `crowd.ts`: private-точки впливають анонімно, public `verified` — максимально, `pending` — слабко, `rejected` — ніяк; точні координати — тільки на сервері | Тести `crowd.test.ts` розширено під статуси |
+| B3.12 🟡 | Скарги (**ADR-018 §18.4**) | `pick_reports`; `POST v1-picks/{id}/report { reason }` → повторна перевірка; підтверджена скарга −50 автору (B3.7); ліміт скарг на користувача | Одна скарга від користувача на точку (тест); підтверджена скарга списує бали (SQL-тест) |
 | B3.10 🟡 | Тести знань (**ADR-012**) | Таблиці `quiz_modules`, `quiz_questions` (текст, варіанти, правильна відповідь, фото з довідника, пояснення), `quiz_attempts`. `GET v1-quizzes` (модулі, прогрес, `points_label`), `POST v1-quizzes/{id}/start` → питання **без відповідей** + `attempt_id`, `POST v1-quizzes/attempts/{id}/submit` → результат, пояснення, бали (через `rating_events`, один раз на модуль, поріг 80%). `GET v1-quizzes/{id}/practice` — офлайн-набір для тренування без балів. Скрипт генерації чернеток питань з `mushroom_catalog` + `species_twins` → рев'ю міколога | Відповіді не потрапляють у клієнт до submit (тест); повторне проходження не дає балів (тест); сума балів за тести ≤ 120 (тест); фото-питання — тільки для 132 видів з фото; проходження всіх модулів виставляє `knowledge_certified_at` |
 
 ### Фаза 4 — Безпека (бекенд до кінця тижня 4)
@@ -229,7 +231,7 @@
 ### Фаза 8 — Групові поїздки (**ADR-017**, **MVP**)
 
 > Рішення PO: робимо в MVP. Щоб уникнути конфліктів з іншими фазами:
-> **модель даних (B8.1) закладаємо в Фазі 3** разом із тук-туками і друзями (спільні RLS-підходи,
+> **модель даних (B8.1) закладаємо в Фазі 3** разом із тук-туками (спільні RLS-підходи,
 > `client_id`, офлайн-черга); **B8.2–B8.3 — у Фазі 4** разом із груповим режимом безпеки і
 > сесіями Наглядача (спільний Realtime); **B8.4 (офлайн-тайли) — спайк уже в Блоці 2**, бо
 > вибір джерела карт впливає і на офлайн-карту Home Region. До 10 учасників; учасники без Pro —
@@ -237,7 +239,7 @@
 
 | ID | Задача | Деталі | DoD |
 |---|---|---|---|
-| B8.1 | Модель даних | `trips`, `trip_members` (owner/editor/viewer), `trip_features` (route, waypoint, polygon, circle, line, arrow, label, note; `version`, `deleted_at`, `client_id`); RLS — тільки учасники | RLS-тести: не-учасник нічого не бачить; редактор не видаляє чужі елементи |
+| B8.1 | Модель даних | `trips`, `trip_members` (owner/editor/viewer), `trip_features` (route, waypoint, polygon, circle, line, arrow, label, note, **`shared_pick`** — посилання на власну приватну точку, ADR-018; `version`, `deleted_at`, `client_id`); RLS — тільки учасники | RLS-тести: не-учасник нічого не бачить; редактор не видаляє чужі елементи; поширена точка видна лише учасникам і зникає після виходу автора |
 | B8.2 | API поїздок | `POST/GET/PATCH v1-trips`, запрошення-коди з терміном дії `POST v1-trips/{id}/invite`, `POST v1-trips/join` | Створення — тільки `features.group_trips`; ліміт учасників |
 | B8.3 | Синхронізація елементів | `POST v1-trips/{id}/features/batch` (офлайн-черга, ідемпотентність за `client_id`, конфлікт — за `version`), Supabase Realtime-канал на поїздку | Два клієнти офлайн редагують різні елементи → обидві зміни збережено; один елемент → перемагає новіша версія (тест) |
 | B8.4 | Офлайн-тайли | Векторні тайли України (PMTiles) у Storage; `GET v1-tiles/manifest`; завантаження коридору маршруту / обраних областей. Перевірити ліцензію джерела даних | Жодних масових запитів до tile.openstreetmap.org; розмір пакета коридору оцінено |
@@ -250,9 +252,10 @@
 |---|---|---|---|
 | `user_consents` | 1 | user_id, doc (`eula`/`privacy`), version, accepted_at | свої |
 | `weather_cache` | 2 | cell_id, date, payload, fetched_at | service_role |
-| `friendships` | 3 | requester_id, addressee_id, status, created_at | учасники |
 | `rating_events` | 3 | user_id, delta, reason, pick_id, created_at | читання — свої; запис — service_role |
 | `pick_confirmations` | 3 | pick_id, confirmer_id, distance_m | учасники |
+| `pick_reviews` | 3 | pick_id, reviewer_id, verdict, other_species_id, weight, created_at; unique (pick, reviewer) | запис — перевіряльник через Edge Function; читання — service_role |
+| `pick_reports` | 3 | pick_id, reporter_id, reason, status, created_at | свої |
 | `species_twins` | 5 | species_id, twin_id, difference_label, danger | читання всім |
 | `model_labels` | 5 | model_version, class_index, species_id | читання всім |
 | `training_samples` | 5 | id, storage_path, model_version, predictions JSONB, user_label, month, created_at — **без user_id/координат** | service_role (запис через Edge Function) |
@@ -321,7 +324,7 @@
 | 3 | **B0.4 Єдиний HTTP-шар** | `_shared/http.ts`: `ok()`, `fail(code, status, message)`, `withRateLimit()`, `requireUser()` (JWT → user + `home_region_id` + `is_anonymous`). Перевести `v1-forecast`, `v1-forest-zones`; ліміти в `IP_RATE_LIMITS` | Один формат помилок `{error, message}`; rate limit на всіх `v1-*` |
 | 4 | **B1.1 Кордон області** | Міграція: RPC `get_region_geometry(slug, tolerance)` → спрощений GeoJSON + bbox + центр + zoom. Edge Function `v1-regions` (`/geometry`), `Cache-Control` + `ETag` | Маска «острова» без локального geojson у застосунку |
 | 5 | **B1.2 Ліси тільки Home Region** | `v1-forest-zones` вимагає JWT (гість теж має JWT — ADR-001); полігони лише для `home_region_id` користувача; `403 outside_home_region`, `400 bbox_too_large`; поле `type_label` / `type_color` | Карта отримує ліси лише своєї області з кольорами з сервера |
-| 6 | **B1.6 Гостьовий режим** | `config.toml`: `enable_anonymous_sign_ins = true`; міграція: SQL-хелпер `is_registered()`; RLS — анонім не створює `public`/`friends` точки; `guardian-session-create` / `guardian-sos` → `403 registration_required`; `GET /me` → `is_guest` | Кнопка «Гість» працює з реальним UUID; реєстрація без втрати даних |
+| 6 | **B1.6 Гостьовий режим** | `config.toml`: `enable_anonymous_sign_ins = true`; міграція: SQL-хелпер `is_registered()`; RLS — анонім не створює `public` точки; `guardian-session-create` / `guardian-sos` → `403 registration_required`; `GET /me` → `is_guest` | Кнопка «Гість» працює з реальним UUID; реєстрація без втрати даних |
 | 7 | **B1.3 Онбординг з сервера** | Міграція `user_consents`; `PATCH /me` приймає `accept_terms_version`; `GET /me` → `onboarding: { region_done, terms_done, next_step }` | Застосунок не вирішує сам, який екран онбордингу показати |
 | 8 | **B2.1 Швидкий фікс прогнозу** | `v1-forecast`: прибрати `score` і `probability` з відповіді; RegionGuard за `home_region_id` з JWT | Виконано заборону «ніяких відсотків»; прогноз тільки у своїй області |
 | 9 | **B0.5 Документація контракту** | `openapi/v1.yaml` для ендпоінтів блоку; оновити `docs/API.md` (v1-*, EXIF і rate limit реалізовано, 37 міграцій) | Dart-клієнт генерується з OpenAPI |
