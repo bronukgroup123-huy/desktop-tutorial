@@ -21,7 +21,14 @@ class ForestTile {
         northEast: LatLng((row + 1) * sizeDeg, (col + 1) * sizeDeg),
       );
 
-  String key(String slug) => 'forests_${slug}_${row}_$col';
+  /// Версія кешу: v2 — після виправлення порожніх відповідей сервера
+  /// (region_id = NULL у forest_zones). Старі порожні плитки на телефоні
+  /// ігноруються і видаляються, ліси завантажуються заново.
+  static const String cacheVersion = 'v2';
+
+  static String prefix(String slug) => 'forests_${cacheVersion}_${slug}_';
+
+  String key(String slug) => '${prefix(slug)}${row}_$col';
 
   /// Плитки сітки 0.5°, що перекривають межі області (стабільні між запусками).
   static List<ForestTile> cover(GeoBounds b) {
@@ -88,7 +95,8 @@ class ForestZonesRepository {
   Stream<ForestLoad> loadRegion(String slug, GeoBounds regionBounds, {bool forceRefresh = false}) async* {
     final tiles = ForestTile.cover(regionBounds);
     // Плитки іншої області більше не потрібні (ADR-016).
-    await _store.deleteByPrefix('forests_', keepPrefix: 'forests_${slug}_');
+    // Плитки іншої області та старих версій кешу більше не потрібні (ADR-016).
+    await _store.deleteByPrefix('forests_', keepPrefix: ForestTile.prefix(slug));
 
     final byId = <String, ForestZone>{};
     var done = 0;

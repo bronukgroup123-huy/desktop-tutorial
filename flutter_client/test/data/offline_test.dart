@@ -138,8 +138,17 @@ void main() {
       await loadAll(repo, 'zhytomyrska');
       await loadAll(repo, 'kyivska');
       final names = dir.listSync().map((e) => e.uri.pathSegments.last).toList();
-      expect(names.where((n) => n.startsWith('forests_zhytomyrska_')), isEmpty);
-      expect(names.where((n) => n.startsWith('forests_kyivska_')).length, 4);
+      expect(names.where((n) => n.contains('zhytomyrska')), isEmpty);
+      expect(names.where((n) => n.startsWith(ForestTile.prefix('kyivska'))).length, 4);
+    });
+
+    test('порожні плитки старої версії кешу ігноруються і видаляються', () async {
+      await store.write('forests_zhytomyrska_100_56', {'type': 'FeatureCollection', 'features': []}, savedAt: now);
+      final (api, adapter) = makeClient(forestsServer);
+      final r = await loadAll(ForestZonesRepository(api, store, now: () => now));
+      expect(adapter.requests.length, 4, reason: 'стара копія не вважається свіжою');
+      expect(r.zones.length, 1);
+      expect(await store.read('forests_zhytomyrska_100_56'), isNull);
     });
   });
 

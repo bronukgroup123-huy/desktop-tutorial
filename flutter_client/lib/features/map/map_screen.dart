@@ -201,6 +201,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final zones = load?.zones ?? const <ForestZone>[];
     final offline = load?.offline ?? false;
     final loading = forests.isLoading || (load != null && !load.complete);
+    final showError = (forests.hasError && !forests.isLoading) ||
+        (load != null && load.complete && load.failed > 0);
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
 
     return Scaffold(
@@ -239,6 +241,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               ),
               PolygonLayer(polygons: [_mask()]),
               const RichAttributionWidget(
+                alignment: AttributionAlignment.bottomLeft,
                 attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
               ),
             ],
@@ -259,44 +262,42 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                   : 'Частину лісів не вдалося завантажити',
               onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
             ),
+          // Інструменти карти — праворуч під заголовком, однакового вигляду.
           Positioned(
             right: 16,
-            bottom: 24,
+            // під банером помилки, якщо він показаний
+            top: MediaQuery.of(context).padding.top + (showError ? 136 : 76),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FloatingActionButton.extended(
-                  heroTag: 'add_pick',
-                  onPressed: _onAddPickPressed,
-                  backgroundColor: AppTheme.darkGreen,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Тук-тук'),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
+                _MapToolButton(
                   heroTag: 'whole_region',
                   tooltip: 'Вся область',
+                  icon: Icons.zoom_out_map_rounded,
                   onPressed: _showWholeRegion,
-                  backgroundColor: AppTheme.backgroundColor,
-                  foregroundColor: AppTheme.darkGreen,
-                  child: const Icon(Icons.zoom_out_map_rounded),
                 ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
+                const SizedBox(height: 10),
+                _MapToolButton(
                   heroTag: 'my_location',
+                  tooltip: 'Моє місцезнаходження',
+                  icon: Icons.my_location_rounded,
+                  busy: _locating,
                   onPressed: _locating ? null : _onMyLocationPressed,
-                  backgroundColor: AppTheme.darkGreen,
-                  foregroundColor: Colors.white,
-                  child: _locating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.my_location_rounded),
                 ),
               ],
+            ),
+          ),
+          // Головна дія — окремо, внизу праворуч.
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              heroTag: 'add_pick',
+              onPressed: _onAddPickPressed,
+              backgroundColor: AppTheme.darkGreen,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Тук-тук'),
             ),
           ),
         ],
@@ -379,5 +380,39 @@ class _ErrorBanner extends StatelessWidget {
             ),
           ),
         ),
+      );
+}
+
+/// Кругла кнопка-інструмент карти (бежева з зеленою іконкою).
+class _MapToolButton extends StatelessWidget {
+  const _MapToolButton({
+    required this.heroTag,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.busy = false,
+  });
+
+  final String heroTag;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) => FloatingActionButton.small(
+        heroTag: heroTag,
+        tooltip: tooltip,
+        onPressed: onPressed,
+        backgroundColor: AppTheme.backgroundColor,
+        foregroundColor: AppTheme.darkGreen,
+        elevation: 3,
+        child: busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen),
+              )
+            : Icon(icon),
       );
 }
