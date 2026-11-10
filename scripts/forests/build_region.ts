@@ -3,7 +3,7 @@
 //
 //   deno run -A scripts/forests/build_region.ts --slug zhytomyrska
 //
-// Env: SUPABASE_URL, SUPABASE_ANON_KEY — кордон області з v1-regions (той самий,
+// Env: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY — кордон області з v1-regions (той самий,
 // що й маска на карті). Дані: © OpenStreetMap contributors (ODbL).
 // ============================================================================
 
@@ -28,7 +28,7 @@ function env(name: string): string {
 
 async function regionGeometry(): Promise<{ geometry: unknown; bbox: [number, number, number, number]; name: string }> {
   const url = `${env("SUPABASE_URL")}/functions/v1/v1-regions/${slug}/geometry?detail=high`;
-  const res = await fetch(url, { headers: { apikey: env("SUPABASE_ANON_KEY") } });
+  const res = await fetch(url, { headers: { apikey: env("SUPABASE_PUBLISHABLE_KEY") } });
   if (!res.ok) throw new Error(`Region geometry ${res.status}: ${await res.text()}`);
   const { data } = await res.json();
   return { geometry: data.geometry, bbox: data.bbox, name: data.name };

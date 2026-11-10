@@ -54,15 +54,22 @@ jobs:
         with:
           deno-version: v2.x
 
-      # Публічний anon key — щоб узяти кордон області з v1-regions (та сама маска, що в застосунку).
+      # Публічний publishable key (legacy anon вимкнено) — щоб узяти кордон області
+      # з v1-regions (та сама маска, що в застосунку). Спершу секрет, як у збірці APK;
+      # якщо його немає — з Management API.
       - name: Supabase public config
+        env:
+          SECRET_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            "https://api.supabase.com/v1/projects/$PROJECT_ID/api-keys" \
-            | jq -r '.[] | select(.name=="anon") | .api_key')
-          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Cannot read anon key"; exit 1; fi
+          KEY="$SECRET_KEY"
+          if [ -z "$KEY" ]; then
+            KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              "https://api.supabase.com/v1/projects/$PROJECT_ID/api-keys?reveal=true" \
+              | jq -r '[.[] | select(.type=="publishable")][0].api_key')
+          fi
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Cannot read publishable key"; exit 1; fi
           echo "::add-mask::$KEY"
-          echo "SUPABASE_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_URL=https://$PROJECT_ID.supabase.co" >> "$GITHUB_ENV"
 
       - name: Build
