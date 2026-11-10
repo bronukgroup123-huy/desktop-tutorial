@@ -21,3 +21,6 @@ jwt_secret*
 # *.geojson is ignored except kyiv_oblast.geojson (map mask)
 *.geojson
 !web-guardian/public/kyiv_oblast.geojson
+
+# Local Deno lock from type checks of the forest builder
+scripts/forests/deno.lock
