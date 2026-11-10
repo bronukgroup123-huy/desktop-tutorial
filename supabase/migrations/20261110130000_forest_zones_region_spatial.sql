@@ -1,25 +1,29 @@
 -- ============================================================================
--- Ліси не показувались на карті: forest_zones.region_id = NULL
+-- Прив'язка лісів до областей — за геометрією, а не за даними імпорту
 --
--- Імпорт лісів (scripts/import_all_ukraine.mjs) записував region_id = null для
--- всіх полігонів, а get_forest_zones_geojson_region фільтрував за region_id —
--- тому для будь-якої області сервер повертав 0 лісів.
+-- Аудит 2026-11-10: у forest_zones лише ліси, завантажені з OSM прямокутником
+-- 50.1–51.2 × 29.5–32.2 (scripts/download_forest_data.mjs), і всім записано
+-- region_id Київської області (scripts/import-forests.ts). Прямокутник не
+-- збігається з межами області: частина лісів фактично лежить у Житомирській,
+-- а південь Київської не покритий. Інший скрипт (import_all_ukraine.mjs)
+-- пише region_id = null.
 --
--- 1) Заповнюємо region_id за геометрією (область, що містить точку на полігоні).
--- 2) Тригер заповнює region_id для нових імпортів автоматично.
--- 3) RPC фільтрує за КОРДОНОМ області (джерело істини — геометрія), а не за
---    полем, яке залежить від імпорту.
+-- 1) region_id перераховується для ВСІХ полігонів за геометрією (область, що
+--    містить точку на полігоні).
+-- 2) Тригер робить те саме для майбутніх імпортів, якщо region_id не задано.
+-- 3) RPC вибирає ліси, що перетинають КОРДОН області (джерело істини —
+--    геометрія), тож неточний region_id більше не ховає й не «приписує» ліси.
 -- ============================================================================
 
 SET LOCAL statement_timeout = '15min';
 
--- ─── 1. Backfill ────────────────────────────────────────────────────────────
+-- ─── 1. Перерахунок region_id за геометрією ─────────────────────────────────
 UPDATE public.forest_zones fz
 SET region_id = r.id
 FROM public.regions r
-WHERE fz.region_id IS NULL
-  AND r.polygon && ST_PointOnSurface(fz.polygon)
-  AND ST_Contains(r.polygon, ST_PointOnSurface(fz.polygon));
+WHERE r.polygon && ST_PointOnSurface(fz.polygon)
+  AND ST_Contains(r.polygon, ST_PointOnSurface(fz.polygon))
+  AND fz.region_id IS DISTINCT FROM r.id;
 
 -- ─── 2. Тригер для нових / змінених полігонів ───────────────────────────────
 CREATE OR REPLACE FUNCTION public.forest_zones_set_region()
