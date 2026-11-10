@@ -12,16 +12,7 @@ import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
-
-/// Межі області з відступом 10% — щоб кордон не впирався в край екрана.
-LatLngBounds _paddedBounds(LatLngBounds b) {
-  final dLat = (b.north - b.south) * 0.1;
-  final dLng = (b.east - b.west) * 0.1;
-  return LatLngBounds(
-    LatLng(b.south - dLat, b.west - dLng),
-    LatLng(b.north + dLat, b.east + dLng),
-  );
-}
+import 'package:flutter_client/features/map/region_camera.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
@@ -74,6 +65,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   final MapController _mapController = MapController();
   final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
   bool _locating = false;
+  ({LatLng center, double zoom})? _fit;
 
   // Полігони будуються один раз на набір даних, а не на кожен кадр.
   List<ForestZone>? _zonesBuiltFor;
@@ -176,24 +168,28 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   Widget build(BuildContext context) {
     // Ліси всієї області — з телефону; мережа лише раз на добу (офлайн-карта).
     final forests = ref.watch(regionForestsProvider(_g.slug));
-    final zones = forests.valueOrNull?.value ?? const <ForestZone>[];
-    final offline = forests.valueOrNull?.offline ?? false;
+    final load = forests.valueOrNull;
+    final zones = load?.zones ?? const <ForestZone>[];
+    final offline = load?.offline ?? false;
+    final loading = forests.isLoading || (load != null && !load.complete);
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
 
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
+          LayoutBuilder(builder: (context, box) {
+            // Стартова камера під реальний розмір екрана — вся область видна;
+            // віддалитися можна лише трохи далі, ніж уміщується область.
+            final fit = _fit ??= fitRegion(bounds, box.biggest);
+            return FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _g.center,
-              initialZoom: _g.zoom,
-              minZoom: _g.zoom,
+              initialCenter: fit.center,
+              initialZoom: fit.zoom,
+              minZoom: fit.zoom - 0.5,
               maxZoom: 18,
-              // Ефект «острова»: видима частина карти не може вийти за межі області
-              // (кордон із v1-regions + невеликий відступ). Віддалитися далі, ніж
-              // уміщується область, неможливо.
-              cameraConstraint: CameraConstraint.contain(bounds: _paddedBounds(bounds)),
+              // Ефект «острова»: центр карти не виходить за межі області.
+              cameraConstraint: regionConstraint(bounds),
             ),
             children: [
               TileLayer(
@@ -213,13 +209,21 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
               ),
             ],
-          ),
-          _Header(title: _g.name, loading: forests.isLoading, offline: offline),
+          );
+          }),
+          _Header(title: _g.name, loading: loading, offline: offline),
           if (forests.hasError && !forests.isLoading)
             _ErrorBanner(
               message: forests.error is ApiException
                   ? (forests.error as ApiException).userMessage
                   : 'Не вдалося завантажити ліси',
+              onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
+            )
+          else if (load != null && load.complete && load.failed > 0)
+            _ErrorBanner(
+              message: offline
+                  ? 'Немає інтернету — частину лісів не завантажено'
+                  : 'Частину лісів не вдалося завантажити',
               onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
             ),
           Positioned(
