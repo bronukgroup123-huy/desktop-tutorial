@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 /// Запис у локальному сховищі: дані + коли збережено + ETag сервера.
 class StoredEntry {
@@ -21,9 +22,32 @@ class LocalStore {
 
   static final _safeKey = RegExp(r'^[a-z0-9_.:-]+$');
 
-  File _file(String key) {
+  File _file(String key, [String ext = 'json']) {
     if (!_safeKey.hasMatch(key)) throw ArgumentError.value(key, 'key');
-    return File('${dir.path}/$key.json');
+    return File('${dir.path}/$key.$ext');
+  }
+
+  static const _exts = ['.json', '.bin'];
+
+  /// Ключ із назви файлу (`null` — чужий файл, напр. `.tmp`).
+  static String? _keyOf(String name) {
+    for (final ext in _exts) {
+      if (name.endsWith(ext)) return name.substring(0, name.length - ext.length);
+    }
+    return null;
+  }
+
+  /// Двійкові дані (файл лісів області, gzip) — без JSON-обгортки.
+  Future<Uint8List?> readBytes(String key) async {
+    final f = _file(key, 'bin');
+    return await f.exists() ? f.readAsBytes() : null;
+  }
+
+  Future<void> writeBytes(String key, List<int> bytes) async {
+    await dir.create(recursive: true);
+    final tmp = File('${_file(key, 'bin').path}.tmp');
+    await tmp.writeAsBytes(bytes, flush: true);
+    await tmp.rename(_file(key, 'bin').path);
   }
 
   Future<StoredEntry?> read(String key) async {
@@ -54,8 +78,9 @@ class LocalStore {
   }
 
   Future<void> delete(String key) async {
-    final f = _file(key);
-    if (await f.exists()) await f.delete();
+    for (final f in [_file(key), _file(key, 'bin')]) {
+      if (await f.exists()) await f.delete();
+    }
   }
 
   /// Видаляє всі ключі з префіксом, крім [except] (стара область після зміни Home Region).
@@ -63,12 +88,12 @@ class LocalStore {
   Future<void> deleteByPrefix(String prefix, {String? except, String? keepPrefix}) async {
     if (!await dir.exists()) return;
     await for (final e in dir.list()) {
-      final name = e.uri.pathSegments.last;
+      final key = _keyOf(e.uri.pathSegments.last);
       if (e is File &&
-          name.startsWith(prefix) &&
-          name.endsWith('.json') &&
-          name != '$except.json' &&
-          (keepPrefix == null || !name.startsWith(keepPrefix))) {
+          key != null &&
+          key.startsWith(prefix) &&
+          key != except &&
+          (keepPrefix == null || !key.startsWith(keepPrefix))) {
         await e.delete();
       }
     }

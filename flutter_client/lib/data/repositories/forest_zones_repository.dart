@@ -1,3 +1,10 @@
+import 'dart:convert';
+import 'dart:io' show gzip;
+import 'dart:isolate';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart' show sha256;
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:latlong2/latlong.dart';
 
@@ -6,6 +13,7 @@ import '../api/api_exception.dart';
 import '../local/local_store.dart';
 import '../models/forest_zone.dart';
 import '../models/geo.dart';
+import '../models/region.dart';
 
 /// Плитка сітки, на яку ділиться область для завантаження лісів.
 class ForestTile {
@@ -66,9 +74,36 @@ class ForestLoad {
   bool get complete => done >= total;
 }
 
-/// Полігони лісів — сервер віддає ТІЛЬКИ Home Region користувача (ADR-015 §15.2).
+/// Опис файлу лісів області (`forests-<slug>.json`, генерує GitHub Action).
+class ForestFileMeta {
+  const ForestFileMeta({required this.slug, required this.version, required this.bytes, required this.sha256});
+
+  factory ForestFileMeta.fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) throw const FormatException('forest meta: not an object');
+    final slug = json['slug'], version = json['version'], bytes = json['bytes'], sha = json['sha256'];
+    if (slug is! String || version is! String || bytes is! int || sha is! String || bytes <= 0) {
+      throw const FormatException('forest meta: missing fields');
+    }
+    return ForestFileMeta(slug: slug, version: version, bytes: bytes, sha256: sha.toLowerCase());
+  }
+
+  final String slug;
+  final String version;
+  final int bytes;
+  final String sha256;
+
+  Map<String, dynamic> toJson() => {'slug': slug, 'version': version, 'bytes': bytes, 'sha256': sha256};
+}
+
+/// Полігони лісів — ТІЛЬКИ Home Region користувача (ADR-015 §15.2).
 ///
-/// Офлайн-карта: область ділиться на плитки 0.5°; кожна плитка завантажується
+/// Основний шлях — один файл лісів області (GeoJSON.gz із GitHub Releases,
+/// згенерований з OpenStreetMap). Він завантажується один раз і зберігається на
+/// телефоні; раз на добу перевіряється маленький опис (`version`) — файл
+/// перекачується лише коли вийшла нова версія. Без інтернету — файл з телефону.
+///
+/// Запасний шлях (файлу для області ще немає) — плитки з `v1-forest-zones`:
+/// область ділиться на плитки 0.5°; кожна плитка завантажується
 /// один раз і зберігається на телефоні, далі — з телефону. Раз на добу плитка
 /// тихо перевіряється на сервері (ETag → 304 без тіла).
 ///
@@ -77,11 +112,19 @@ class ForestLoad {
 /// запит на мобільному інтернеті впирається в тайм-аут, і на карті не з'являється
 /// нічого. Плитки малі, вантажаться паралельно і показуються поступово.
 class ForestZonesRepository {
-  ForestZonesRepository(this._api, this._store, {DateTime Function()? now}) : _now = now ?? DateTime.now;
+  ForestZonesRepository(this._api, this._store, {Dio? files, DateTime Function()? now})
+      : _files = files ?? Dio(),
+        _now = now ?? DateTime.now;
 
   final ApiClient _api;
   final LocalStore _store;
+
+  /// Окремий Dio без токенів Supabase — файли лежать на GitHub, туди JWT не шлемо.
+  final Dio _files;
   final DateTime Function() _now;
+
+  static String fileMetaKey(String slug) => 'forestsfile_$slug.meta';
+  static String fileDataKey(String slug) => 'forestsfile_$slug.data';
 
   static const Duration refreshAfter = Duration(hours: 24);
 
@@ -92,9 +135,117 @@ class ForestZonesRepository {
 
   /// Ліси всієї області, плитка за плиткою. Кожен елемент потоку — усі ліси,
   /// що вже є (без дублів: полігон на межі плиток приходить двічі).
-  Stream<ForestLoad> loadRegion(String slug, GeoBounds regionBounds, {bool forceRefresh = false}) async* {
+  Stream<ForestLoad> loadRegion(
+    String slug,
+    GeoBounds regionBounds, {
+    RegionForestFiles? files,
+    bool forceRefresh = false,
+  }) async* {
+    if (files != null) {
+      final fromFile = await _loadFile(slug, files, forceRefresh: forceRefresh);
+      if (fromFile != null) {
+        yield fromFile;
+        return;
+      }
+    }
+    yield* _loadTiles(slug, regionBounds, forceRefresh: forceRefresh);
+  }
+
+  /// Ліси з файлу області; `null` — файлу немає (ще не згенерований) і на
+  /// телефоні його теж немає → запасний шлях плитками.
+  Future<ForestLoad?> _loadFile(String slug, RegionForestFiles files, {required bool forceRefresh}) async {
+    // Файл іншої області більше не потрібен (ADR-016).
+    await _store.deleteByPrefix('forestsfile_', keepPrefix: 'forestsfile_$slug.');
+
+    final stored = await _store.read(fileMetaKey(slug));
+    ForestFileMeta? storedMeta;
+    Uint8List? storedBytes;
+    if (stored != null) {
+      try {
+        storedMeta = ForestFileMeta.fromJson(stored.data);
+        storedBytes = await _store.readBytes(fileDataKey(slug));
+      } on FormatException {
+        storedMeta = null;
+      }
+    }
+    final haveLocal = storedMeta != null && storedBytes != null;
+
+    Future<ForestLoad?> fromLocal({required bool offline}) async {
+      if (!haveLocal) return null;
+      final zones = await _parseFile(storedBytes!);
+      if (zones == null) {
+        await _store.delete(fileMetaKey(slug));
+        await _store.delete(fileDataKey(slug));
+        return null;
+      }
+      debugPrint('[forests] $slug: ${zones.length} forests from phone (file ${storedMeta!.version})');
+      return ForestLoad(zones: zones, done: 1, total: 1, failed: 0, offline: offline);
+    }
+
+    if (haveLocal && !forceRefresh && _now().difference(stored!.savedAt) < refreshAfter) {
+      final local = await fromLocal(offline: false);
+      if (local != null) return local;
+    }
+
+    try {
+      final meta = ForestFileMeta.fromJson(jsonDecode(utf8.decode(await _download(files.metaUrl))));
+      if (meta.slug != slug) throw const FormatException('forest meta: wrong region');
+
+      if (haveLocal && storedMeta.version == meta.version) {
+        await _store.write(fileMetaKey(slug), storedMeta.toJson(), savedAt: _now());
+        final local = await fromLocal(offline: false);
+        if (local != null) return local;
+      }
+
+      debugPrint('[forests] $slug: downloading file ${meta.version} (${meta.bytes} bytes)');
+      final bytes = await _download(files.dataUrl);
+      if (bytes.length != meta.bytes || sha256.convert(bytes).toString() != meta.sha256) {
+        throw const FormatException('forest file: size or checksum mismatch');
+      }
+      final zones = await _parseFile(bytes);
+      if (zones == null) throw const FormatException('forest file: cannot parse');
+
+      await _store.writeBytes(fileDataKey(slug), bytes);
+      await _store.write(fileMetaKey(slug), meta.toJson(), savedAt: _now());
+      // Плитки з v1-forest-zones більше не потрібні — є повний файл.
+      await _store.deleteByPrefix('forests_');
+      debugPrint('[forests] $slug: ${zones.length} forests from file ${meta.version}');
+      return ForestLoad(zones: zones, done: 1, total: 1, failed: 0, offline: false);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      debugPrint('[forests] $slug: file unavailable (${status ?? e.type.name})');
+      return fromLocal(offline: status == null);
+    } on FormatException catch (e) {
+      debugPrint('[forests] $slug: bad file — $e');
+      return fromLocal(offline: false);
+    }
+  }
+
+  Future<Uint8List> _download(String url) async {
+    final res = await _files.get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(minutes: 3),
+      ),
+    );
+    final data = res.data;
+    if (data == null) throw const FormatException('empty response');
+    return data is Uint8List ? data : Uint8List.fromList(data);
+  }
+
+  /// gzip → JSON → ліси, в окремому ізоляті (файл області — мегабайти).
+  static Future<List<ForestZone>?> _parseFile(Uint8List gz) => Isolate.run(() {
+        try {
+          final json = jsonDecode(utf8.decode(gzip.decode(gz)));
+          return ForestZone.listFromFeatureCollection(json as Map<String, dynamic>);
+        } catch (_) {
+          return null;
+        }
+      });
+
+  Stream<ForestLoad> _loadTiles(String slug, GeoBounds regionBounds, {required bool forceRefresh}) async* {
     final tiles = ForestTile.cover(regionBounds);
-    // Плитки іншої області більше не потрібні (ADR-016).
     // Плитки іншої області та старих версій кешу більше не потрібні (ADR-016).
     await _store.deleteByPrefix('forests_', keepPrefix: ForestTile.prefix(slug));
 

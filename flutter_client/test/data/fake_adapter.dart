@@ -12,11 +12,18 @@ class FakeAdapter implements HttpClientAdapter {
   final List<RequestOptions> requests = [];
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+  Future<ResponseBody> fetch(
+      RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     requests.add(options);
     final r = respond(options);
     if (r.throwConnectionError) {
       throw DioException.connectionError(requestOptions: options, reason: 'offline');
+    }
+    final body = r.body;
+    if (body is List<int>) {
+      return ResponseBody.fromBytes(body, r.status, headers: {
+        Headers.contentTypeHeader: ['application/octet-stream'],
+      });
     }
     return ResponseBody.fromString(
       jsonEncode(r.body),
@@ -40,6 +47,12 @@ class FakeResponse {
   final Object? body;
   final Map<String, String> headers;
   final bool throwConnectionError;
+}
+
+/// Простий Dio (без бази й токенів) — для завантаження файлів за повною адресою.
+(Dio, FakeAdapter) makeFilesDio(FakeResponse Function(RequestOptions req) respond) {
+  final adapter = FakeAdapter(respond);
+  return (Dio()..httpClientAdapter = adapter, adapter);
 }
 
 (ApiClient, FakeAdapter) makeClient(FakeResponse Function(RequestOptions req) respond, {String? token = 'jwt-123'}) {

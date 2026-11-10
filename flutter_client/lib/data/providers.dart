@@ -21,8 +21,7 @@ import 'repositories/regions_repository.dart';
 /// Supabase Auth. У тестах перевизначається.
 final goTrueClientProvider = Provider<GoTrueClient>((ref) => Supabase.instance.client.auth);
 
-final authRepositoryProvider =
-    Provider<AuthRepository>((ref) => AuthRepository(ref.watch(goTrueClientProvider)));
+final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(ref.watch(goTrueClientProvider)));
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final auth = ref.watch(authRepositoryProvider);
@@ -47,7 +46,11 @@ final regionsRepositoryProvider = Provider(
   (ref) => RegionsRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
 );
 final forestZonesRepositoryProvider = Provider(
-  (ref) => ForestZonesRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
+  (ref) => ForestZonesRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(localStoreProvider),
+    files: Dio(BaseOptions(connectTimeout: const Duration(seconds: 15))),
+  ),
 );
 final forecastRepositoryProvider = Provider(
   (ref) => ForecastRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
@@ -99,11 +102,11 @@ final regionGeometryProvider = FutureProvider.family<RegionGeometry, String>(
   (ref, slug) => ref.watch(regionsRepositoryProvider).fetchGeometry(slug),
 );
 
-/// Ліси всієї Home Region — плитками: з телефону миттєво, решта з мережі
-/// поступово (офлайн-карта). Кожна подія — усі ліси, що вже завантажені.
+/// Ліси всієї Home Region — файлом області (один раз, далі з телефону), а якщо
+/// файлу ще немає — плитками з сервера. Кожна подія — усі ліси, що вже є.
 final regionForestsProvider = StreamProvider.family<ForestLoad, String>((ref, slug) async* {
   final geometry = await ref.watch(regionGeometryProvider(slug).future);
-  yield* ref.watch(forestZonesRepositoryProvider).loadRegion(slug, geometry.bounds);
+  yield* ref.watch(forestZonesRepositoryProvider).loadRegion(slug, geometry.bounds, files: geometry.forests);
 });
 
 // ─── Прогноз ────────────────────────────────────────────────────────────────
@@ -129,10 +132,7 @@ class ForecastPoint {
 
   @override
   bool operator ==(Object other) =>
-      other is ForecastPoint &&
-      other.lat == lat &&
-      other.lng == lng &&
-      other.forestType == forestType;
+      other is ForecastPoint && other.lat == lat && other.lng == lng && other.forestType == forestType;
 
   @override
   int get hashCode => Object.hash(lat, lng, forestType);
