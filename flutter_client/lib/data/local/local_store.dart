@@ -59,11 +59,16 @@ class LocalStore {
   }
 
   /// Видаляє всі ключі з префіксом, крім [except] (стара область після зміни Home Region).
-  Future<void> deleteByPrefix(String prefix, {String? except}) async {
+  /// [keepPrefix] — не видаляти ключі, що починаються з нього (плитки поточної області).
+  Future<void> deleteByPrefix(String prefix, {String? except, String? keepPrefix}) async {
     if (!await dir.exists()) return;
     await for (final e in dir.list()) {
       final name = e.uri.pathSegments.last;
-      if (e is File && name.startsWith(prefix) && name.endsWith('.json') && name != '$except.json') {
+      if (e is File &&
+          name.startsWith(prefix) &&
+          name.endsWith('.json') &&
+          name != '$except.json' &&
+          (keepPrefix == null || !name.startsWith(keepPrefix))) {
         await e.delete();
       }
     }

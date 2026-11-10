@@ -7,12 +7,12 @@ import 'api/api_client.dart';
 import 'local/local_store.dart';
 import 'local/offline_result.dart';
 import 'models/forecast.dart';
-import 'models/forest_zone.dart';
 import 'models/me.dart';
 import 'models/region.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
+export 'repositories/forest_zones_repository.dart' show ForestLoad;
 import 'repositories/me_repository.dart';
 import 'repositories/regions_repository.dart';
 
@@ -99,10 +99,12 @@ final regionGeometryProvider = FutureProvider.family<RegionGeometry, String>(
   (ref, slug) => ref.watch(regionsRepositoryProvider).fetchGeometry(slug),
 );
 
-/// Ліси всієї Home Region — з телефону (офлайн), мережа лише раз на добу.
-final regionForestsProvider = FutureProvider.family<OfflineResult<List<ForestZone>>, String>(
-  (ref, slug) => ref.watch(forestZonesRepositoryProvider).regionForests(slug),
-);
+/// Ліси всієї Home Region — плитками: з телефону миттєво, решта з мережі
+/// поступово (офлайн-карта). Кожна подія — усі ліси, що вже завантажені.
+final regionForestsProvider = StreamProvider.family<ForestLoad, String>((ref, slug) async* {
+  final geometry = await ref.watch(regionGeometryProvider(slug).future);
+  yield* ref.watch(forestZonesRepositoryProvider).loadRegion(slug, geometry.bounds);
+});
 
 // ─── Прогноз ────────────────────────────────────────────────────────────────
 

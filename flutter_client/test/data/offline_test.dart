@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/local/local_store.dart';
 import 'package:flutter_client/data/repositories/forecast_repository.dart';
+import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/repositories/forest_zones_repository.dart';
 import 'package:flutter_client/data/repositories/regions_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'fake_adapter.dart';
 
@@ -41,6 +43,9 @@ void main() {
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
+  // Область 50.0–50.9 × 28.0–28.9 → 4 плитки по 0.5°.
+  const region = GeoBounds(southWest: LatLng(50.0, 28.0), northEast: LatLng(50.9, 28.9));
+
   FakeResponse forestsServer(RequestOptions req) {
     if (!online) return const FakeResponse.offline();
     final inm = req.headers['If-None-Match'] as String?;
@@ -49,65 +54,92 @@ void main() {
     return const FakeResponse(200, {'data': fc}, headers: {'etag': '"v1"'});
   }
 
-  group('Ліси області — один раз, далі з телефону', () {
-    test('перше відкриття: завантаження всієї області і збереження', () async {
+  Future<ForestLoad> loadAll(ForestZonesRepository repo, [String slug = 'zhytomyrska']) =>
+      repo.loadRegion(slug, region).last;
+
+  group('Ліси області плитками — один раз, далі з телефону', () {
+    test('плитки 0.5° покривають область; кожна — окремий невеликий запит з bbox', () async {
+      expect(ForestTile.cover(region).length, 4);
       final (api, adapter) = makeClient(forestsServer);
-      final repo = ForestZonesRepository(api, store, now: () => now);
-      final r = await repo.regionForests('zhytomyrska');
-      expect(r.value.single.typeLabel, 'Сосновий ліс');
-      expect(r.offline, isFalse);
-      expect(adapter.requests.single.queryParameters, {'z': 11, 'limit': 10000});
-      expect(adapter.requests.single.queryParameters.containsKey('bbox'), isFalse);
+      final r = await loadAll(ForestZonesRepository(api, store, now: () => now));
+      expect(adapter.requests.length, 4);
+      expect(adapter.requests.map((q) => q.queryParameters['bbox']).toSet(), {
+        '28.00000,50.00000,28.50000,50.50000',
+        '28.50000,50.00000,29.00000,50.50000',
+        '28.00000,50.50000,28.50000,51.00000',
+        '28.50000,50.50000,29.00000,51.00000',
+      });
+      expect(adapter.requests.first.queryParameters['z'], 11);
+      // той самий полігон у кількох плитках — на карті один раз
+      expect(r.zones.length, 1);
+      expect(r.complete, isTrue);
+      expect(r.failed, 0);
+    });
+
+    test('потік віддає проміжні стани (ліси з\'являються поступово)', () async {
+      final (api, _) = makeClient(forestsServer);
+      final events = await ForestZonesRepository(api, store, now: () => now).loadRegion('zhytomyrska', region).toList();
+      expect(events.first.done, 0);
+      expect(events.last.done, 4);
     });
 
     test('протягом доби — жодного запиту в мережу', () async {
       final (api, adapter) = makeClient(forestsServer);
       final repo = ForestZonesRepository(api, store, now: () => now);
-      await repo.regionForests('zhytomyrska');
+      await loadAll(repo);
       now = now.add(const Duration(hours: 23));
-      await repo.regionForests('zhytomyrska');
-      await repo.regionForests('zhytomyrska');
-      expect(adapter.requests.length, 1);
+      final r = await loadAll(repo);
+      expect(adapter.requests.length, 4);
+      expect(r.zones.length, 1);
     });
 
-    test('через добу — перевірка ETag: 304 без тіла, дані з телефону', () async {
+    test('через добу — перевірка ETag: 304 без тіла', () async {
       final (api, _) = makeClient(forestsServer);
       final repo = ForestZonesRepository(api, store, now: () => now);
-      await repo.regionForests('zhytomyrska');
+      await loadAll(repo);
       now = now.add(const Duration(hours: 25));
-      final r = await repo.regionForests('zhytomyrska');
-      expect(etagSent, [null, '"v1"']);
-      expect(r.value.length, 1);
-      expect(r.savedAt, now);
+      final r = await loadAll(repo);
+      expect(etagSent.where((e) => e == '"v1"').length, 4);
+      expect(r.zones.length, 1);
     });
 
-    test('без інтернету — збережена копія з позначкою offline', () async {
+    test('без інтернету — плитки з телефону, позначка offline', () async {
       final (api, _) = makeClient(forestsServer);
       final repo = ForestZonesRepository(api, store, now: () => now);
-      await repo.regionForests('zhytomyrska');
+      await loadAll(repo);
       online = false;
       now = now.add(const Duration(days: 3));
-      final r = await repo.regionForests('zhytomyrska');
+      final r = await loadAll(repo);
       expect(r.offline, isTrue);
-      expect(r.value.single.typeLabel, 'Сосновий ліс');
+      expect(r.failed, 0);
+      expect(r.zones.single.typeLabel, 'Сосновий ліс');
     });
 
-    test('без інтернету і без копії — помилка мережі', () async {
+    test('без інтернету і без копії — плитки рахуються як невдалі (банер на карті)', () async {
       online = false;
       final (api, _) = makeClient(forestsServer);
-      await expectLater(
-        ForestZonesRepository(api, store, now: () => now).regionForests('zhytomyrska'),
-        throwsA(isA<ApiException>().having((e) => e.isNetworkError, 'network', true)),
-      );
+      final r = await loadAll(ForestZonesRepository(api, store, now: () => now));
+      expect(r.failed, 4);
+      expect(r.zones, isEmpty);
     });
 
-    test('зміна області — ліси старої області видаляються (ADR-016)', () async {
+    test('помилка сервера в одній плитці не ламає інші', () async {
+      final (api, _) = makeClient((req) => req.queryParameters['bbox'] == '28.00000,50.00000,28.50000,50.50000'
+          ? const FakeResponse(500, {'error': 'db_error'})
+          : const FakeResponse(200, {'data': fc}, headers: {'etag': '"v1"'}));
+      final r = await loadAll(ForestZonesRepository(api, store, now: () => now));
+      expect(r.failed, 1);
+      expect(r.zones.length, 1);
+    });
+
+    test('зміна області — плитки старої області видаляються (ADR-016)', () async {
       final (api, _) = makeClient(forestsServer);
       final repo = ForestZonesRepository(api, store, now: () => now);
-      await repo.regionForests('zhytomyrska');
-      await repo.regionForests('kyivska');
-      expect(await store.read('forests_zhytomyrska'), isNull);
-      expect(await store.read('forests_kyivska'), isNotNull);
+      await loadAll(repo, 'zhytomyrska');
+      await loadAll(repo, 'kyivska');
+      final names = dir.listSync().map((e) => e.uri.pathSegments.last).toList();
+      expect(names.where((n) => n.startsWith('forests_zhytomyrska_')), isEmpty);
+      expect(names.where((n) => n.startsWith('forests_kyivska_')).length, 4);
     });
   });
 

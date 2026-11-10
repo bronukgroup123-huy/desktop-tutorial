@@ -12,16 +12,7 @@ import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
-
-/// Межі області з відступом 10% — щоб кордон не впирався в край екрана.
-LatLngBounds _paddedBounds(LatLngBounds b) {
-  final dLat = (b.north - b.south) * 0.1;
-  final dLng = (b.east - b.west) * 0.1;
-  return LatLngBounds(
-    LatLng(b.south - dLat, b.west - dLng),
-    LatLng(b.north + dLat, b.east + dLng),
-  );
-}
+import 'package:flutter_client/features/map/region_camera.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
@@ -74,6 +65,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   final MapController _mapController = MapController();
   final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
   bool _locating = false;
+  ({LatLng center, double zoom})? _fit;
+  Size? _fitSize;
 
   // Полігони будуються один раз на набір даних, а не на кожен кадр.
   List<ForestZone>? _zonesBuiltFor;
@@ -147,6 +140,29 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     );
   }
 
+  /// Масштаб «вся область» під поточний розмір карти. При повороті екрана
+  /// перераховується; поточне місце на карті зберігається, лише якщо воно
+  /// стало далі за нову межу — повертаємо до всієї області.
+  ({LatLng center, double zoom}) _fitFor(Size size, LatLngBounds bounds) {
+    if (_fit != null && _fitSize == size) return _fit!;
+    final rotated = _fit != null;
+    _fitSize = size;
+    final fit = _fit = fitRegion(bounds, size);
+    if (rotated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_mapController.camera.zoom < fit.zoom) _mapController.move(fit.center, fit.zoom);
+      });
+    }
+    return fit;
+  }
+
+  /// Кнопка «Вся область».
+  void _showWholeRegion() {
+    final fit = _fit;
+    if (fit != null) _mapController.move(fit.center, fit.zoom);
+  }
+
   Future<void> _onMyLocationPressed() async {
     setState(() => _locating = true);
     try {
@@ -159,7 +175,12 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
-      _mapController.move(LatLng(pos.latitude, pos.longitude), 14);
+      final here = LatLng(pos.latitude, pos.longitude);
+      if (!isInsideRegion(here, _g.polygons)) {
+        if (mounted) showToast(context, 'Ви поза своєю областю (${_g.name})');
+        return;
+      }
+      _mapController.move(here, 14);
     } catch (_) {
       if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
     } finally {
@@ -176,30 +197,38 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   Widget build(BuildContext context) {
     // Ліси всієї області — з телефону; мережа лише раз на добу (офлайн-карта).
     final forests = ref.watch(regionForestsProvider(_g.slug));
-    final zones = forests.valueOrNull?.value ?? const <ForestZone>[];
-    final offline = forests.valueOrNull?.offline ?? false;
+    final load = forests.valueOrNull;
+    final zones = load?.zones ?? const <ForestZone>[];
+    final offline = load?.offline ?? false;
+    final loading = forests.isLoading || (load != null && !load.complete);
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
 
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
+          LayoutBuilder(builder: (context, box) {
+            final fit = _fitFor(box.biggest, bounds);
+            return FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _g.center,
-              initialZoom: _g.zoom,
-              minZoom: _g.zoom,
-              maxZoom: 18,
-              // Ефект «острова»: видима частина карти не може вийти за межі області
-              // (кордон із v1-regions + невеликий відступ). Віддалитися далі, ніж
-              // уміщується область, неможливо.
-              cameraConstraint: CameraConstraint.contain(bounds: _paddedBounds(bounds)),
+              initialCenter: fit.center,
+              initialZoom: fit.zoom,
+              // Віддалитися далі, ніж уміщується вся область, не можна.
+              minZoom: fit.zoom,
+              // Ліси спрощені до ~20 м — далі наближати немає сенсу.
+              maxZoom: 17,
+              // «Острів»: за кордон видно лише невеликий відступ; камера не блокується.
+              cameraConstraint: RegionCameraConstraint(bounds: bounds),
+              // Без випадкового обертання двома пальцями — північ завжди вгорі.
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'ua.mushroomradar.app',
-                maxZoom: 19,
+                maxZoom: 17,
               ),
               GestureDetector(
                 onTap: _onForestTap,
@@ -213,13 +242,21 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
               ),
             ],
-          ),
-          _Header(title: _g.name, loading: forests.isLoading, offline: offline),
+          );
+          }),
+          _Header(title: _g.name, loading: loading, offline: offline),
           if (forests.hasError && !forests.isLoading)
             _ErrorBanner(
               message: forests.error is ApiException
                   ? (forests.error as ApiException).userMessage
                   : 'Не вдалося завантажити ліси',
+              onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
+            )
+          else if (load != null && load.complete && load.failed > 0)
+            _ErrorBanner(
+              message: offline
+                  ? 'Немає інтернету — частину лісів не завантажено'
+                  : 'Частину лісів не вдалося завантажити',
               onRetry: () => ref.invalidate(regionForestsProvider(_g.slug)),
             ),
           Positioned(
@@ -235,6 +272,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                   foregroundColor: Colors.white,
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('Тук-тук'),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'whole_region',
+                  tooltip: 'Вся область',
+                  onPressed: _showWholeRegion,
+                  backgroundColor: AppTheme.backgroundColor,
+                  foregroundColor: AppTheme.darkGreen,
+                  child: const Icon(Icons.zoom_out_map_rounded),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
