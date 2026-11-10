@@ -8,4 +8,9 @@
 import { handle, serviceClient } from "../_shared/http.ts";
 import { handleRegionGeometry } from "../_shared/v1/regions.ts";
 
-Deno.serve(handle((req) => handleRegionGeometry(req, { db: serviceClient() })));
+Deno.serve(handle((req) =>
+  handleRegionGeometry(req, {
+    db: serviceClient(),
+    forestsBaseUrl: Deno.env.get("FORESTS_BASE_URL") ?? undefined,
+  })
+));

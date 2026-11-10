@@ -35,6 +35,18 @@ export function parseGeometryRequest(url: URL): { slug: string; tolerance: numbe
   return { slug, tolerance };
 }
 
+/** Де лежать файли лісів областей (GitHub Releases; змінюється без релізу застосунку). */
+export const DEFAULT_FORESTS_BASE_URL =
+  "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/forests-data";
+
+export function forestFiles(slug: string, baseUrl?: string): { meta_url: string; data_url: string } {
+  const base = (baseUrl || DEFAULT_FORESTS_BASE_URL).replace(/\/+$/, "");
+  return {
+    meta_url: `${base}/forests-${slug}.json`,
+    data_url: `${base}/forests-${slug}.geojson.gz`,
+  };
+}
+
 /** Рекомендований початковий zoom, щоб область вмістилась на екрані. */
 export function zoomForBbox(bbox: [number, number, number, number]): number {
   const lngSpan = Math.max(bbox[2] - bbox[0], 1e-6);
@@ -56,7 +68,7 @@ export interface RegionsDb {
 
 export async function handleRegionGeometry(
   req: Request,
-  deps: { db: RegionsDb },
+  deps: { db: RegionsDb; forestsBaseUrl?: string },
 ): Promise<Response> {
   assertMethod(req, ["GET"]);
   // deno-lint-ignore no-explicit-any
@@ -87,6 +99,8 @@ export async function handleRegionGeometry(
     center: row.center,
     zoom: zoomForBbox(row.bbox),
     geometry: row.geometry,
+    // Ліси області — одним файлом (завантажується застосунком один раз, офлайн).
+    forests: forestFiles(row.slug, deps.forestsBaseUrl),
   };
 
   const body = JSON.stringify({ data: payload });

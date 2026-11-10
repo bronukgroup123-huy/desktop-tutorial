@@ -239,7 +239,7 @@ components:
 
     RegionGeometry:
       type: object
-      required: [id, slug, name, bbox, center, zoom, geometry]
+      required: [id, slug, name, bbox, center, zoom, geometry, forests]
       properties:
         id: { type: integer }
         slug: { type: string }
@@ -258,6 +258,16 @@ components:
           description: '[lng, lat]'
         zoom: { type: integer, minimum: 5, maximum: 12 }
         geometry: { type: object, description: GeoJSON MultiPolygon }
+        forests:
+          type: object
+          description: |
+            Ліси області одним файлом (той самий формат, що й /v1-forest-zones, gzip).
+            Застосунок перевіряє meta (version) і завантажує data_url лише при зміні версії.
+            Якщо файлу ще немає (404) — запасний шлях /v1-forest-zones.
+          required: [meta_url, data_url]
+          properties:
+            meta_url: { type: string, format: uri }
+            data_url: { type: string, format: uri }
 
     ForestFeatureCollection:
       type: object
