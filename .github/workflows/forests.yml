@@ -1,0 +1,112 @@
+name: Forests data
+
+# Файли лісів областей (рішення PO 2026-11-10: ліси — файлами, не в Postgres).
+#  * Вручну: Actions → Forests data → Run workflow → slug області (наприклад zhytomyrska)
+#    → файл публікується в реліз «forests-data» (GitHub Releases, CDN).
+#  * PR, що змінює генератор: пробна збірка Житомирщини → Artifacts (без публікації).
+# Дані: © OpenStreetMap contributors (ODbL), Overpass API — по одній області за раз.
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Slug області (zhytomyrska, kyivska, …)'
+        required: true
+        default: zhytomyrska
+  pull_request:
+    paths:
+      - 'scripts/forests/**'
+      - '.github/workflows/forests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forests-${{ github.event.inputs.region || 'pr' }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Generator unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts/forests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test --config deno.json -A lib.test.ts
+      - run: deno check --config deno.json build_region.ts
+
+  build:
+    name: Build forests file (${{ github.event.inputs.region || 'zhytomyrska' }})
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      REGION: ${{ github.event.inputs.region || 'zhytomyrska' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Публічний publishable key (legacy anon вимкнено) — щоб узяти кордон області
+      # з v1-regions (та сама маска, що в застосунку). Спершу секрет, як у збірці APK;
+      # якщо його немає — з Management API.
+      - name: Supabase public config
+        env:
+          SECRET_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          KEY="$SECRET_KEY"
+          if [ -z "$KEY" ]; then
+            KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              "https://api.supabase.com/v1/projects/$PROJECT_ID/api-keys?reveal=true" \
+              | jq -r '[.[] | select(.type=="publishable")][0].api_key')
+          fi
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Cannot read publishable key"; exit 1; fi
+          echo "::add-mask::$KEY"
+          echo "SUPABASE_PUBLISHABLE_KEY=$KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_URL=https://$PROJECT_ID.supabase.co" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: deno run --config scripts/forests/deno.json -A scripts/forests/build_region.ts --slug "$REGION" --out dist
+
+      - name: Summary
+        run: |
+          echo "### Ліси: $REGION" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat "dist/forests-$REGION.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forests-${{ env.REGION }}
+          path: dist/
+          retention-days: 14
+
+  publish:
+    name: Publish to release «forests-data»
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: forests-${{ github.event.inputs.region }}
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: forests-data
+          name: Дані лісів областей
+          prerelease: true
+          make_latest: false
+          body: |
+            Файли лісів областей для застосунку (формат v1-forest-zones, gzip).
+            Генерується workflow «Forests data». Дані: © OpenStreetMap contributors (ODbL).
+          files: dist/*

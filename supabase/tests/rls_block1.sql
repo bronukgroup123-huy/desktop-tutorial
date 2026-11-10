@@ -162,6 +162,24 @@ END $$;
 RESET ROLE;
 
 -- ─── 6. RPC працюють для service_role ──────────────────────────────────────
+-- ─── 5d. Ліс без region_id (як після імпорту) знаходиться за кордоном області ─
+DO $$
+DECLARE rid INT; slug TEXT; inner_poly geometry; got INT; filled INT;
+BEGIN
+  SELECT r.id INTO rid FROM public.regions r ORDER BY r.id LIMIT 1;
+  SELECT ST_Multi(ST_Buffer(ST_PointOnSurface(r.polygon), 0.01)) INTO inner_poly FROM public.regions r WHERE r.id = rid;
+  -- імпорт без region_id: тригер має заповнити його сам
+  INSERT INTO public.forest_zones (polygon, forest_type) VALUES (inner_poly, 'pine');
+  SELECT count(*) INTO filled FROM public.forest_zones WHERE polygon = inner_poly AND region_id = rid;
+  IF filled <> 1 THEN RAISE EXCEPTION 'Test 5d failed: trigger did not set region_id'; END IF;
+  -- навіть якщо region_id порожній, RPC знаходить ліс за кордоном області
+  ALTER TABLE public.forest_zones DISABLE TRIGGER forest_zones_set_region;
+  UPDATE public.forest_zones SET region_id = NULL WHERE polygon = inner_poly;
+  ALTER TABLE public.forest_zones ENABLE TRIGGER forest_zones_set_region;
+  SELECT jsonb_array_length(public.get_forest_zones_geojson_region(rid, NULL, NULL, NULL, NULL, 10000, 0)->'features') INTO got;
+  IF got < 1 THEN RAISE EXCEPTION 'Test 5d failed: RPC returned % forests for region %', got, rid; END IF;
+END $$;
+
 SET LOCAL ROLE service_role;
 DO $$
 DECLARE g JSONB; slug TEXT;

@@ -59,3 +59,16 @@ Deno.test("regions: zoomForBbox — область вміщується в 5..12
   assertEquals(zoomForBbox([0, 0, 0.0001, 0.0001]), 12);
   assertEquals(zoomForBbox([-180, -90, 180, 90]), 5);
 });
+
+Deno.test("regions: відповідь містить адреси файлу лісів області", async () => {
+  const db = mockDb({ ...RL_OK, "rpc.get_region_geometry": { data: ROW, error: null } });
+  const body = await (await run(db, "http://localhost/v1-regions/kyivska/geometry")).json();
+  assertEquals(body.data.forests, {
+    meta_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/forests-data/forests-kyivska.json",
+    data_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/forests-data/forests-kyivska.geojson.gz",
+  });
+  const custom = await handle((r) => handleRegionGeometry(r, { db, forestsBaseUrl: "https://cdn.example/f/" }))(
+    new Request("http://localhost/v1-regions/kyivska/geometry"),
+  );
+  assertEquals((await custom.json()).data.forests.meta_url, "https://cdn.example/f/forests-kyivska.json");
+});

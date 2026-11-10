@@ -27,25 +27,8 @@ export const MAX_BBOX_LAT_SPAN = 6;
 export const DEFAULT_LIMIT = 5000;
 export const MAX_LIMIT = 10000;
 
-/** Підписи й кольори типів лісу — сервер віддає готові (Response Shaping). */
-export const FOREST_TYPE_STYLE: Record<string, { label: string; color: string }> = {
-  pine: { label: "Сосновий ліс", color: "#81c784" },
-  spruce: { label: "Ялиновий ліс", color: "#2e7d32" },
-  oak: { label: "Дубовий ліс", color: "#4caf50" },
-  birch: { label: "Березовий ліс", color: "#aed581" },
-  aspen: { label: "Осиковий ліс", color: "#c5e1a5" },
-  alder: { label: "Вільшаний ліс", color: "#8bc34a" },
-  beech: { label: "Буковий ліс", color: "#689f38" },
-  hornbeam: { label: "Грабовий ліс", color: "#7cb342" },
-  deciduous: { label: "Листяний ліс", color: "#a5d6a7" },
-  coniferous: { label: "Хвойний ліс", color: "#66bb6a" },
-  mixed: { label: "Мішаний ліс", color: "#9e9e9e" },
-};
-export const UNKNOWN_FOREST_STYLE = { label: "Ліс (тип невідомий)", color: "#b0bec5" };
-
-export function forestTypeStyle(type: unknown): { label: string; color: string } {
-  return (typeof type === "string" && FOREST_TYPE_STYLE[type]) || UNKNOWN_FOREST_STYLE;
-}
+export { FOREST_TYPE_STYLE, forestTypeStyle, UNKNOWN_FOREST_STYLE } from "./forest-styles.ts";
+import { forestTypeStyle } from "./forest-styles.ts";
 
 export interface ForestZonesQuery {
   bbox: [number, number, number, number] | null;
