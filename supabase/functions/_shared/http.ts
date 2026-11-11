@@ -120,6 +120,7 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   "v1-forest-zones": 30,
   "v1-regions": 60,
   "v1-me": 60,
+  "v1-picks": 30,
 };
 
 /** Мінімальний тип клієнта, потрібний для rate limit (RPC + fallback upsert). */
@@ -181,7 +182,7 @@ export async function requireUser(
   return user;
 }
 
-/** Гостям (ADR-001) заборонено: публічні/дружні точки, SOS, сесії Наглядача, друзі. */
+/** Гостям (ADR-001) заборонено: публічні точки, SOS, сесії Наглядача. */
 export function assertRegistered(user: AuthUser): void {
   if (user.isAnonymous) {
     throw new HttpError(

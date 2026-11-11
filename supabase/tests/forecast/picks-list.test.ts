@@ -4,13 +4,15 @@ import {
   handlePicksListRequest,
   periodCutoffMs,
   extractLatLng,
+  parseEwkbPoint,
   PICKS_DEFAULT_LIMIT,
   PICKS_MAX_LIMIT,
 } from '../../functions/_shared/forecast/picks-list.ts';
 import type { PicksListDbClient } from '../../functions/_shared/forecast/picks-list.ts';
 
-// Мок-клієнти: read.from('mushroom_picks') + admin.from(users|regions|catalog) +
-// admin.storage.createSignedUrls + admin.rpc — все ланцюжки thenable.
+// Мок-клієнти: read.from('mushroom_picks') — власні точки (RLS);
+// admin.from(mushroom_picks|users|regions|catalog) + admin.storage.createSignedUrls +
+// admin.rpc — все ланцюжки thenable.
 function makeClients(cfg: {
   picks?: { data: unknown; error: unknown; count?: number };
   users?: { data: unknown; error?: unknown };
@@ -28,6 +30,8 @@ function makeClients(cfg: {
         return builder;
       },
       eq(col: string, val: unknown) { calls.push(`eq:${col}:${String(val)}`); return builder; },
+      neq(col: string, val: unknown) { calls.push(`neq:${col}:${String(val)}`); return builder; },
+      is(col: string, val: unknown) { calls.push(`is:${col}:${String(val)}`); return builder; },
       in(col: string, vals: unknown[]) {
         calls.push(`in:${col}:${JSON.stringify(vals)}`);
         return builder;
@@ -59,6 +63,7 @@ function makeClients(cfg: {
   };
 
   const adminTables: Record<string, () => any> = {
+    mushroom_picks: () => cfg.picks ?? { data: [], error: null, count: 0 },
     users: () => cfg.users ?? { data: [], error: null },
     regions: () => cfg.regions ?? { data: [], error: null },
     mushroom_catalog: () => cfg.catalog ?? { data: [], error: null },
@@ -104,8 +109,12 @@ const PICK_ROW = {
   is_negative: false,
   created_at: '2026-10-13T08:00:00Z',
   photo_url: 'u-1/a1b2c3d4.jpg',
-  geom: { type: 'Point', coordinates: [30.52, 50.45] },
+  // Чужим віддається лише зсунуте місце; точного geom у вибірці public немає.
+  display_geom: { type: 'Point', coordinates: [30.52, 50.45] },
 };
+
+// POINT(30.5 50.4) у EWKB-hex — так PostgREST віддає колонки geography
+const EWKB_30_5__50_4 = '0101000020E61000000000000000803E403333333333334940';
 
 // ─── parsePicksQuery ────────────────────────────────────────
 
@@ -149,10 +158,12 @@ Deno.test('picks handler: scope=mine без userId → 401', async () => {
   assertEquals(await res.json(), { error: 'unauthorized' });
 });
 
-Deno.test('picks handler: scope=friends без userId → 401', async () => {
-  const { readDb, adminDb } = makeClients();
-  const res = await handlePicksListRequest(readDb, adminDb, null, new Request('http://localhost/picks?scope=friends'), NOW);
-  assertEquals(res.status, 401);
+Deno.test('picks handler: scope=friends скасовано (ADR-018) → 400 invalid_scope', async () => {
+  const { readDb, adminDb, calls } = makeClients();
+  const res = await handlePicksListRequest(readDb, adminDb, 'u-1', new Request('http://localhost/picks?scope=friends'), NOW);
+  assertEquals(res.status, 400);
+  assertEquals(await res.json(), { error: 'invalid_scope' });
+  assertEquals(calls.some((c) => c.includes('mushroom_picks')), false);
 });
 
 Deno.test('picks handler: OPTIONS → 204', async () => {
@@ -204,6 +215,11 @@ Deno.test('picks handler: public → 200 + мапінг (users/regions/catalog/s
   assertEquals(item.is_indicator, false);
   assertEquals(item.is_negative, false);
   assertEquals(item.created_at, '2026-10-13T08:00:00Z');
+  // чужі точки читає service_role з явними фільтрами — не клієнт користувача
+  assertEquals(calls.includes('admin.from:mushroom_picks'), true);
+  assertEquals(calls.includes('read.from:mushroom_picks'), false);
+  assertEquals(calls.includes('is:deleted_at:null'), true);
+  assertEquals(calls.includes('neq:verification_status:rejected'), true);
   // фільтри + пагінація + сортування
   assertEquals(calls.includes('eq:pick_type:public'), true);
   assertEquals(calls.includes('order:created_at:false'), true);
@@ -212,12 +228,37 @@ Deno.test('picks handler: public → 200 + мапінг (users/regions/catalog/s
   assertEquals(calls.includes('createSignedUrls:u-1/a1b2c3d4.jpg:600'), true);
 });
 
-Deno.test('picks handler: mine → eq user_id + period gte', async () => {
+Deno.test('picks handler: public/region не запитують точний geom — лише display_geom (ADR-018 §18.5)', async () => {
+  for (const url of ['http://localhost/picks?scope=public', 'http://localhost/picks?scope=region&region_slug=kyivska']) {
+    const { readDb, adminDb, calls } = makeClients({
+      rpc: { data: [{ id: 1, name: 'Київська', slug: 'kyivska' }], error: null },
+      users: { data: [{ id: 'u-1', name: 'Олег', home_region_id: 1 }] },
+      // навіть якщо БД раптом поверне geom — у відповідь іде тільки display_geom
+      picks: { data: [{ ...PICK_ROW, geom: EWKB_30_5__50_4, display_geom: { type: 'Point', coordinates: [30.504, 50.403] } }], error: null, count: 1 },
+    });
+    const res = await handlePicksListRequest(readDb, adminDb, 'u-2', new Request(url), NOW);
+    assertEquals(res.status, 200);
+    const select = calls.find((c) => c.startsWith('select:') && c.includes('verification_status'))!;
+    assertEquals(select.includes('display_geom'), true);
+    assertEquals(/[ ,]geom/.test(select.replace('display_geom', '')), false);
+    const item = (await res.json()).data[0];
+    assertEquals([item.lat, item.lng], [50.403, 30.504]);
+    assertEquals(calls.includes('read.from:mushroom_picks'), false);
+  }
+});
+
+Deno.test('picks handler: mine → клієнт користувача (RLS), точний geom, eq user_id + period gte', async () => {
   const { readDb, adminDb, calls } = makeClients({
-    picks: { data: [], error: null, count: 0 },
+    picks: { data: [{ ...PICK_ROW, pick_type: 'private', geom: EWKB_30_5__50_4, display_geom: undefined }], error: null, count: 1 },
+    users: { data: [{ id: 'u-1', name: 'Олег', home_region_id: null }] },
   });
   const res = await handlePicksListRequest(readDb, adminDb, 'u-1', new Request('http://localhost/picks?scope=mine&period=24h'), NOW);
   assertEquals(res.status, 200);
+  assertEquals(calls.includes('read.from:mushroom_picks'), true);
+  assertEquals(calls.includes('admin.from:mushroom_picks'), false);
+  assertEquals(calls.includes('is:deleted_at:null'), true);
+  const item = (await res.json()).data[0];
+  assertEquals([item.lat, item.lng], [50.4, 30.5]);
   assertEquals(calls.includes('eq:user_id:u-1'), true);
   // 24h до NOW
   assertEquals(calls.some((c) => c.startsWith('gte:created_at:2026-10-12T12:00:00.000Z')), true);
@@ -262,6 +303,9 @@ Deno.test('picks handler: region → in(user_id, authors of region)', async () =
   assertEquals(calls.includes('rpc:find_region_by_slug({"slug_input":"kyivska"})'), true);
   assertEquals(calls.includes('eq:home_region_id:1'), true);
   assertEquals(calls.includes('in:user_id:["u-1","u-2"]'), true);
+  // тільки публічні точки авторів області, через service_role
+  assertEquals(calls.includes('admin.from:mushroom_picks'), true);
+  assertEquals(calls.includes('eq:pick_type:public'), true);
 });
 
 Deno.test('picks handler: region без авторів → 200 порожній', async () => {
@@ -292,4 +336,15 @@ Deno.test('picks helpers: periodCutoffMs + extractLatLng', () => {
   assertEquals(extractLatLng({ type: 'Point', coordinates: [30.52, 50.45] }), { lat: 50.45, lng: 30.52 });
   assertEquals(extractLatLng(null), { lat: null, lng: null });
   assertEquals(extractLatLng('garbage'), { lat: null, lng: null });
+});
+
+Deno.test('picks helpers: parseEwkbPoint — geography з PostgREST (EWKB-hex)', () => {
+  assertEquals(parseEwkbPoint(EWKB_30_5__50_4), { lat: 50.4, lng: 30.5 });
+  assertEquals(extractLatLng(EWKB_30_5__50_4), { lat: 50.4, lng: 30.5 });
+  // без SRID
+  assertEquals(parseEwkbPoint('01010000000000000000803E403333333333334940'), { lat: 50.4, lng: 30.5 });
+  // не точка (LineString), обрізаний і не-hex рядки
+  assertEquals(parseEwkbPoint('0102000020E61000000000000000803E403333333333334940'), null);
+  assertEquals(parseEwkbPoint('0101000020E6100000'), null);
+  assertEquals(parseEwkbPoint('zz01000020E61000000000000000803E403333333333334940'), null);
 });
