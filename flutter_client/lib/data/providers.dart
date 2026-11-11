@@ -6,14 +6,18 @@ import '../core/supabase_config.dart';
 import 'api/api_client.dart';
 import 'local/local_store.dart';
 import 'local/offline_result.dart';
+import 'models/analysis.dart';
 import 'models/forecast.dart';
 import 'models/me.dart';
+import 'models/pick.dart';
 import 'models/region.dart';
+import 'repositories/analysis_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
 import 'repositories/me_repository.dart';
+import 'repositories/picks_repository.dart';
 import 'repositories/regions_repository.dart';
 
 // ─── Інфраструктура ─────────────────────────────────────────────────────────
@@ -55,6 +59,17 @@ final forestZonesRepositoryProvider = Provider(
 final forecastRepositoryProvider = Provider(
   (ref) => ForecastRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
 );
+final picksRepositoryProvider = Provider(
+  (ref) => PicksRepository(
+    ref.watch(apiClientProvider),
+    uploads: Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 90),
+      receiveTimeout: const Duration(seconds: 30),
+    )),
+  ),
+);
+final analysisRepositoryProvider = Provider((ref) => AnalysisRepository(ref.watch(apiClientProvider)));
 
 // ─── Стан ───────────────────────────────────────────────────────────────────
 
@@ -149,4 +164,35 @@ final forecastProvider = FutureProvider.autoDispose.family<OfflineResult<Forecas
         date: DateTime.now(),
         forestType: p.forestType,
       ),
+);
+
+// ─── Тук-туки ───────────────────────────────────────────────────────────────
+
+/// Перемикач «Приватні точки» на карті (ADR-018 §18.2).
+final showPrivatePicksProvider = StateProvider<bool>((ref) => false);
+
+/// Точки на карті Home Region: публічні інших людей + власні.
+/// Перезавантажується при зміні області, перемикача або після створення точки.
+final picksMapProvider = FutureProvider.autoDispose<PicksMap>((ref) {
+  final region = ref.watch(meProvider.select((me) => me.valueOrNull?.homeRegion?.slug));
+  if (region == null) return PicksMap.empty;
+  final mine = ref.watch(showPrivatePicksProvider);
+  return ref.watch(picksRepositoryProvider).fetchMap(mine: mine);
+});
+
+/// Картка точки (тап по маркеру).
+final pickCardProvider = FutureProvider.autoDispose.family<PickCard, String>(
+  (ref, id) => ref.watch(picksRepositoryProvider).fetchCard(id),
+);
+
+/// Довідник видів для вибору назви — завантажується один раз за сеанс.
+final pickSpeciesProvider = FutureProvider<SpeciesList>(
+  (ref) => ref.watch(picksRepositoryProvider).fetchSpecies(),
+);
+
+// ─── Аналіз ділянки ─────────────────────────────────────────────────────────
+
+/// Доступні розміри ділянки, збережена ділянка і ліміт аналізів на сьогодні.
+final analysisOverviewProvider = FutureProvider.autoDispose<AnalysisOverview>(
+  (ref) => ref.watch(analysisRepositoryProvider).fetchOverview(),
 );

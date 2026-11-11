@@ -8,17 +8,26 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
+import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
+import 'package:flutter_client/data/models/geo.dart';
+import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/analysis/analysis_sheet.dart';
+import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
+import 'package:flutter_client/features/picks/new_pick_screen.dart';
+import 'package:flutter_client/features/picks/pick_card_sheet.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
 /// Усе, що стосується області, приходить із сервера:
 ///   * кордон і маска «острова», центр, масштаб — `GET /v1-regions/{slug}/geometry`;
-///   * полігони лісів (тільки своєї області) з підписами й кольорами — `GET /v1-forest-zones`.
+///   * полігони лісів (тільки своєї області) з підписами й кольорами — `GET /v1-forest-zones`;
+///   * тук-туки: публічні точки інших людей і власні — `GET /v1-picks/map` (ADR-018);
+///   * аналіз ділянки 5×5 / 10×10 км — `/v1-analysis` (ADR-015).
 /// Клік по пустому місцю точку не створює — тільки FAB «Тук-тук».
 class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
@@ -65,6 +74,17 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   final MapController _mapController = MapController();
   final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
   bool _locating = false;
+  bool _startingPick = false;
+
+  // Аналіз ділянки (ADR-015): центр обирається дотиком до карти.
+  bool _analysisMode = false;
+  bool _analyzing = false;
+  int _analysisSizeKm = 5;
+  LatLng? _analysisCenter;
+
+  /// Точні межі ділянки із сервера (після аналізу); до того — попередній квадрат.
+  GeoBounds? _analysisBounds;
+
   ({LatLng center, double zoom})? _fit;
   Size? _fitSize;
 
@@ -117,6 +137,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   void _onForestTap() {
     final hit = _forestHits.value;
     if (hit == null || hit.hitValues.isEmpty) return;
+    if (_analysisMode) {
+      _setAnalysisCenter(hit.coordinate);
+      return;
+    }
     final zone = hit.hitValues.first;
     final point = ForecastPoint(
       lat: hit.coordinate.latitude,
@@ -163,8 +187,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     if (fit != null) _mapController.move(fit.center, fit.zoom);
   }
 
-  Future<void> _onMyLocationPressed() async {
-    setState(() => _locating = true);
+  /// Місцезнаходження телефона. `null` — недоступне (пояснення вже показано).
+  Future<LatLng?> _currentPosition() async {
     try {
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -172,26 +196,130 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       }
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         if (mounted) showToast(context, 'Дозвольте доступ до геолокації в налаштуваннях', isError: true);
-        return;
+        return null;
       }
       final pos = await Geolocator.getCurrentPosition();
-      final here = LatLng(pos.latitude, pos.longitude);
+      return LatLng(pos.latitude, pos.longitude);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
+      return null;
+    }
+  }
+
+  Future<void> _onMyLocationPressed() async {
+    setState(() => _locating = true);
+    try {
+      final here = await _currentPosition();
+      if (here == null || !mounted) return;
       if (!isInsideRegion(here, _g.polygons)) {
-        if (mounted) showToast(context, 'Ви поза своєю областю (${_g.name})');
+        showToast(context, 'Ви поза своєю областю (${_g.name})');
         return;
       }
       _mapController.move(here, 14);
-    } catch (_) {
-      if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
     } finally {
       if (mounted) setState(() => _locating = false);
     }
   }
 
-  void _onAddPickPressed() {
-    // Майстер створення тук-тука — Фаза 3 (B3.0/B3.1, Signed Upload URL).
-    showToast(context, 'Створення знахідки — скоро');
+  /// «Тук-тук»: місце з телефона → камера (один кадр, без галереї) → форма.
+  /// Точка поза своєю областю не створюється (ADR-015 §15.2).
+  Future<void> _onAddPickPressed() async {
+    if (_startingPick) return;
+    setState(() => _startingPick = true);
+    try {
+      final here = await _currentPosition();
+      if (here == null || !mounted) return;
+      if (!isInsideRegion(here, _g.polygons)) {
+        showToast(context, 'Тук-тук можна створити лише у своїй області (${_g.name})', isError: true);
+        return;
+      }
+      final photo = await takePickPhoto();
+      if (photo == null || !mounted) return;
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => NewPickScreen(photo: photo, point: here, capturedAt: DateTime.now()),
+        ),
+      );
+      if (mounted) ref.invalidate(picksMapProvider);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося відкрити камеру', isError: true);
+    } finally {
+      if (mounted) setState(() => _startingPick = false);
+    }
   }
+
+  // ─── Аналіз ділянки ────────────────────────────────────────────────────────
+
+  void _toggleAnalysisMode() {
+    setState(() {
+      _analysisMode = !_analysisMode;
+      _analysisCenter = null;
+      _analysisBounds = null;
+    });
+  }
+
+  void _setAnalysisCenter(LatLng point) {
+    if (!isInsideRegion(point, _g.polygons)) {
+      showToast(context, 'Оберіть місце в межах своєї області');
+      return;
+    }
+    setState(() {
+      _analysisCenter = point;
+      _analysisBounds = null;
+    });
+  }
+
+  void _setAnalysisSize(AnalysisSizeOption option) {
+    if (!option.available) {
+      // Чи доступний розмір — вирішує сервер; показуємо його пояснення.
+      showToast(context, '${option.label}: ${option.lockLabel ?? 'недоступно'}');
+      return;
+    }
+    setState(() {
+      _analysisSizeKm = option.sizeKm;
+      _analysisBounds = null;
+    });
+  }
+
+  Future<void> _runAnalysis() async {
+    final center = _analysisCenter;
+    if (center == null || _analyzing) return;
+    setState(() => _analyzing = true);
+    try {
+      final result = await ref.read(analysisRepositoryProvider).analyze(center: center, sizeKm: _analysisSizeKm);
+      if (!mounted) return;
+      ref.invalidate(analysisOverviewProvider);
+      setState(() => _analysisBounds = result.area.bounds);
+      await showAnalysisResult(context, result);
+    } on ApiException catch (e) {
+      if (mounted) showToast(context, e.userMessage, isError: true);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося виконати аналіз. Спробуйте ще раз.', isError: true);
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
+    }
+  }
+
+  /// Квадрат ділянки на карті: точні межі із сервера або попередній показ.
+  List<LatLng>? _analysisSquare() {
+    final bounds = _analysisBounds;
+    if (bounds != null) return squareFromBounds(bounds);
+    final center = _analysisCenter;
+    return center == null ? null : squareAround(center, _analysisSizeKm);
+  }
+
+  List<Marker> _pickMarkers(List<MapPick> picks) => [
+        for (final p in picks)
+          Marker(
+            point: p.point,
+            width: 34,
+            height: 34,
+            child: GestureDetector(
+              onTap: () => showPickCard(context, p.id),
+              child: _PickDot(color: p.markerColor, mine: p.isMine),
+            ),
+          ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -204,6 +332,9 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final showError = (forests.hasError && !forests.isLoading) ||
         (load != null && load.complete && load.failed > 0);
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
+    final picks = ref.watch(picksMapProvider).valueOrNull?.points ?? const <MapPick>[];
+    final showPrivate = ref.watch(showPrivatePicksProvider);
+    final square = _analysisMode ? _analysisSquare() : null;
 
     return Scaffold(
       body: Stack(
@@ -225,6 +356,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
+              // У режимі аналізу дотик до карти обирає центр ділянки.
+              onTap: (tapPosition, point) {
+                if (_analysisMode) _setAnalysisCenter(point);
+              },
             ),
             children: [
               TileLayer(
@@ -240,6 +375,18 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 ),
               ),
               PolygonLayer(polygons: [_mask()]),
+              if (square != null)
+                PolygonLayer(
+                  polygons: [
+                    Polygon(
+                      points: square,
+                      color: AppTheme.accentOrange.withValues(alpha: 0.18),
+                      borderColor: AppTheme.accentOrange,
+                      borderStrokeWidth: 2.5,
+                    ),
+                  ],
+                ),
+              MarkerLayer(markers: _pickMarkers(picks)),
               const RichAttributionWidget(
                 alignment: AttributionAlignment.bottomLeft,
                 attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
@@ -287,19 +434,66 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               ],
             ),
           ),
-          // Головна дія — окремо, внизу праворуч.
-          Positioned(
-            right: 16,
-            bottom: 24,
-            child: FloatingActionButton.extended(
-              heroTag: 'add_pick',
-              onPressed: _onAddPickPressed,
-              backgroundColor: AppTheme.darkGreen,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Тук-тук'),
+          if (_analysisMode)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 60,
+              child: _AnalysisPanel(
+                overview: ref.watch(analysisOverviewProvider),
+                sizeKm: _analysisSizeKm,
+                centerSelected: _analysisCenter != null,
+                busy: _analyzing,
+                onSize: _setAnalysisSize,
+                onAnalyze: _runAnalysis,
+                onClose: _toggleAnalysisMode,
+                onRetry: () => ref.invalidate(analysisOverviewProvider),
+              ),
+            )
+          else ...[
+            // Режими карти — внизу ліворуч, з підписами.
+            Positioned(
+              left: 16,
+              bottom: 60,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MapPill(
+                    icon: Icons.crop_free_rounded,
+                    label: 'Аналіз ділянки',
+                    onPressed: _toggleAnalysisMode,
+                  ),
+                  const SizedBox(height: 8),
+                  _MapPill(
+                    icon: showPrivate ? Icons.lock_rounded : Icons.lock_open_rounded,
+                    label: 'Приватні точки',
+                    active: showPrivate,
+                    onPressed: () => ref.read(showPrivatePicksProvider.notifier).state = !showPrivate,
+                  ),
+                ],
+              ),
             ),
-          ),
+            // Головна дія — окремо, внизу праворуч.
+            Positioned(
+              right: 16,
+              bottom: 24,
+              child: FloatingActionButton.extended(
+                heroTag: 'add_pick',
+                onPressed: _startingPick ? null : _onAddPickPressed,
+                backgroundColor: AppTheme.darkGreen,
+                foregroundColor: Colors.white,
+                icon: _startingPick
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.photo_camera_rounded),
+                label: Text(showPrivate ? 'Приватний тук-тук' : 'Тук-тук'),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -415,4 +609,189 @@ class _MapToolButton extends StatelessWidget {
               )
             : Icon(icon),
       );
+}
+
+/// Маркер тук-тука: колір статусу — із сервера; власні точки — з білою серединкою.
+class _PickDot extends StatelessWidget {
+  const _PickDot({required this.color, required this.mine});
+
+  final Color color;
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4)],
+          ),
+          child: mine ? const Center(child: Icon(Icons.circle, size: 7, color: Colors.white)) : null,
+        ),
+      );
+}
+
+/// Кнопка режиму карти з підписом (бежева; активна — зелена).
+class _MapPill extends StatelessWidget {
+  const _MapPill({required this.icon, required this.label, required this.onPressed, this.active = false});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = active ? AppTheme.darkGreen : AppTheme.backgroundColor;
+    final foreground = active ? Colors.white : AppTheme.darkGreen;
+    return Material(
+      color: background,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(color: foreground, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Панель аналізу ділянки: підказка, розміри, ліміт на сьогодні, кнопка запуску.
+/// Розміри, їхня доступність («Доступно в Pro») і ліміт приходять із сервера.
+class _AnalysisPanel extends StatelessWidget {
+  const _AnalysisPanel({
+    required this.overview,
+    required this.sizeKm,
+    required this.centerSelected,
+    required this.busy,
+    required this.onSize,
+    required this.onAnalyze,
+    required this.onClose,
+    required this.onRetry,
+  });
+
+  final AsyncValue<AnalysisOverview> overview;
+  final int sizeKm;
+  final bool centerSelected;
+  final bool busy;
+  final ValueChanged<AnalysisSizeOption> onSize;
+  final VoidCallback onAnalyze;
+  final VoidCallback onClose;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = overview.valueOrNull;
+    final muted = AppTheme.darkGreen.withValues(alpha: 0.65);
+    return Material(
+      color: AppTheme.backgroundColor,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.crop_free_rounded, color: AppTheme.darkGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Аналіз ділянки',
+                    style: GoogleFonts.merriweather(fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Закрити',
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close_rounded, color: AppTheme.darkGreen),
+                ),
+              ],
+            ),
+            if (data == null && overview.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (data == null)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        overview.error is ApiException
+                            ? (overview.error as ApiException).userMessage
+                            : 'Не вдалося завантажити налаштування аналізу.',
+                      ),
+                    ),
+                    TextButton(onPressed: onRetry, child: const Text('Повторити')),
+                  ],
+                ),
+              )
+            else ...[
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  centerSelected ? 'Центр обрано. Можна змінити — торкніться іншого місця.' : data.hintLabel,
+                  style: TextStyle(color: muted),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final option in data.sizes)
+                    ChoiceChip(
+                      avatar: option.available ? null : const Icon(Icons.lock_outline_rounded, size: 16),
+                      label: Text(option.available ? option.label : '${option.label} · ${option.lockLabel ?? ''}'),
+                      selected: option.available && option.sizeKm == sizeKm,
+                      onSelected: busy ? null : (_) => onSize(option),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(data.usage.label, style: TextStyle(fontSize: 12, color: muted)),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilledButton.icon(
+                  onPressed: centerSelected && !busy ? onAnalyze : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.darkGreen,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.insights_rounded),
+                  label: Text(busy ? 'Аналізуємо…' : 'Аналізувати ділянку'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
