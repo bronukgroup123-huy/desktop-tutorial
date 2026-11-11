@@ -3,7 +3,7 @@
 Схема бази даних Supabase (PostgreSQL + PostGIS). Всі таблиці — у схемі `public`,
 геометрія — `extensions.GEOMETRY(MultiPolygon, 4326)` / `GEOGRAPHY`.
 
-Джерело істини — міграції `supabase/migrations/` (43 файли).
+Джерело істини — міграції `supabase/migrations/` (46 файлів).
 Зміни робочого блоку 1 (2026-11-09) — розділ [«Оновлення 2026-11-09»](#оновлення-2026-11-09-робочий-блок-1). API-контракти —
 [API.md](./API.md).
 
@@ -187,22 +187,35 @@ OSM-геозони лісів (migration `20260911000003`).
 | `id` | UUID PK | |
 | `user_id` | UUID NOT NULL → `auth.users(id)` CASCADE | автор |
 | `trip_id` | UUID NULL | походи (зарезервовано) |
-| `geom` | `GEOGRAPHY(Point, 4326)` NOT NULL | координати знахідки |
-| `photo_url` | TEXT NULL | шлях у bucket `mushroom-photos` (не публічний URL) |
-| `mushroom_type` | TEXT NOT NULL | id каталогу |
+| `client_id` | UUID NULL, UNIQUE (`user_id`, `client_id`) | ключ ідемпотентності офлайн-черги (ADR-002) |
+| `geom` | `GEOGRAPHY(Point, 4326)` NOT NULL | **точні** координати — тільки автору і серверу |
+| `display_geom` | `GEOGRAPHY(Point, 4326)` NULL | зсунуте місце публічної точки (300–500 м, ADR-018 §18.5); CHECK: у `public` завжди заповнене |
+| `photo_url` | TEXT NULL | шлях у bucket `mushroom-photos` (не публічний URL): `picks/<id>.<ext>` для v1-picks, `<user_id>/<id>.<ext>` для старого `POST /picks` |
+| `mushroom_type` | TEXT NOT NULL | id каталогу; `unknown` для «Не знаю» (сумісність зі старим кодом прогнозу) |
+| `species_id` | TEXT NULL → `mushroom_catalog(id)` | вид із довідника; NULL = «Не знаю». CHECK: `public` ⇒ NOT NULL |
+| `description` | TEXT NULL, CHECK ≤ 500 символів | опис без контактів |
+| `ai_check` | JSONB NULL | підказка ШІ з телефону + `exif` (серверна перевірка EXIF) |
+| `twin_alert` | BOOLEAN NOT NULL DEFAULT false | ШІ побачив отруйного двійника — без автопідтвердження |
+| `captured_at` | TIMESTAMPTZ NULL | час зйомки на пристрої |
+| `deleted_at` | TIMESTAMPTZ NULL | м'яке видалення |
 | `forest_type` | TEXT NULL | |
 | `weather_data` | JSONB NULL | умови (наприклад `{gpsAccuracy}`) |
-| `pick_type` | TEXT NOT NULL CHECK (`private`/`friends`/`public`) | видимість |
-| `shared_with` | UUID[] NOT NULL DEFAULT '{}' | |
-| `verification_status` | TEXT NOT NULL DEFAULT 'pending' | `pending`/`verified`/`rejected` |
+| `pick_type` | TEXT NOT NULL CHECK (`private`/`public`) | видимість (`friends` скасовано ADR-018) |
+| `shared_with` | UUID[] NOT NULL DEFAULT '{}' | застаріло (ADR-018), завжди порожня |
+| `verification_status` | TEXT NOT NULL DEFAULT 'pending' | `pending`/`verified`/`conditional`/`rejected`; нові точки v1-picks — завжди `pending` |
 | `verified_by` | UUID NULL → `auth.users(id)` | |
 | `weight` | NUMERIC(3,2) NOT NULL DEFAULT 1.0 | вага для краудсорсингу |
 | `is_indicator` | BOOLEAN NOT NULL DEFAULT FALSE | індикаторний вид |
 | `is_negative` | BOOLEAN NOT NULL DEFAULT FALSE | негативний звіт |
 | `created_at` | TIMESTAMPTZ | |
 
-**RLS:** `mushroom_picks_read` — owner | `shared_with` | `public` |
-same `home_region`; `mushroom_picks_insert` — тільки свої рядки.
+**RLS:** `mushroom_picks_read` — **тільки власні точки**. Чужі публічні точки віддає лише
+Edge Function (service_role) і лише `display_geom`. Запис (INSERT / UPDATE / DELETE) для
+клієнтських ролей відкликано: точки створює `create_pick()` з Edge Function `v1-picks`.
+
+**Функції (тільки service_role):** `can_create_pick(user_id, visibility)` → `(allowed, code,
+message)` — добові ліміти та рівень «Лісовик» для публічних; `create_pick(...)` — атомарна
+вставка: перевірка `client_id` і ліміту під блокуванням користувача.
 
 ### `calibration_log`
 
@@ -365,4 +378,10 @@ service_role клієнт, який обходить RLS).
 | `20261109120300` | `is_registered()`; RESTRICTIVE-політики: гість вставляє/оновлює лише `private` точки і не створює `guardian_sessions` (ADR-001); `region_change_log.source` (`onboarding` / `onboarding_fix` / `pro` / `support` / `legacy`, ADR-016) |
 | `20261109120400` | Таблиця `user_consents` (user_id, doc `eula`/`privacy`, version, accepted_at); RLS: читання — свої, запис — тільки service_role |
 | `20261109120500` | **Виправлення приватності:** `mushroom_picks_read` більше не показує `private`/`friends` точки користувачам тієї ж області. Тепер: автор, `shared_with`, `public` |
+
+## Оновлення 2026-11-11 (Тук-тук, B3.0 + B3.1)
+
+| Міграція | Що змінено |
+|---|---|
+| `20261111000000` | **ADR-018.** `pick_type` — лише `private`/`public` (наявні `friends` → `private`, `shared_with` очищено). Нові колонки `mushroom_picks`: `client_id`, `species_id`, `description`, `ai_check`, `twin_alert`, `display_geom`, `captured_at`, `deleted_at`. CHECK: `public` ⇒ є `species_id` і `display_geom`; опис ≤ 500. **Приватність:** `mushroom_picks_read` — тільки власні точки; запис клієнтськими ролями відкликано. Функції `can_create_pick`, `create_pick` (service_role). Наявні публічні точки без виду з довідника стали приватними, решта отримали `display_geom` |
 

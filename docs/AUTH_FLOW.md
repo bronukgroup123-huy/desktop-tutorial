@@ -52,8 +52,8 @@ refresh_token. **Не зберігайте access_token вручну** — бе�
 | `GET /regions` | ✅ працює (публічний) |
 | `GET /catalog` | ✅ працює (публічний) |
 | `GET /picks?scope=public` | ✅ працює |
-| `GET /picks?scope=mine\|friends` | ❌ `401 unauthorized` |
-| `POST /picks`, `GET /me`, `PATCH /me` | ❌ `401 unauthorized` |
+| `GET /picks?scope=mine` | ❌ `401 unauthorized` |
+| `POST /picks`, `POST /v1-picks`, `POST /v1-picks/upload-url`, `GET /me`, `PATCH /me` | ❌ `401 unauthorized` |
 
 Приклад: `401 unauthorized` означатиме «немає або битий заголовок
 Authorization» — оновіть сесію (`supabase.auth.refreshSession()`).
