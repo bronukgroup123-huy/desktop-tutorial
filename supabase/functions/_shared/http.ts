@@ -122,6 +122,7 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   "v1-me": 60,
   // створення точок + карта (кожен рух карти — запит точок)
   "v1-picks": 60,
+  "v1-analysis": 20,
 };
 
 /** Мінімальний тип клієнта, потрібний для rate limit (RPC + fallback upsert). */
