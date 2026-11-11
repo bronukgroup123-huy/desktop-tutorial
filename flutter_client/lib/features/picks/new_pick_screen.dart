@@ -101,8 +101,12 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               contentType: PickPhoto.contentTypeForPath(_photo.path),
             ),
           );
-      ref.invalidate(picksMapProvider);
       if (!mounted) return;
+      // Щойно створену приватну точку одразу видно на карті.
+      if (created.visibility == PickVisibility.private) {
+        ref.read(showPrivatePicksProvider.notifier).state = true;
+      }
+      ref.invalidate(picksMapProvider);
       showToast(context, 'Тук-тук збережено: ${created.statusLabel}');
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {

@@ -198,7 +198,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         if (mounted) showToast(context, 'Дозвольте доступ до геолокації в налаштуваннях', isError: true);
         return null;
       }
-      final pos = await Geolocator.getCurrentPosition();
+      // Обмеження часу: у приміщенні GPS може шукати супутники дуже довго.
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(timeLimit: Duration(seconds: 20)),
+      );
       return LatLng(pos.latitude, pos.longitude);
     } catch (_) {
       if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
