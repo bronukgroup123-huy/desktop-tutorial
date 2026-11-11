@@ -6,6 +6,9 @@
 // POST v1-picks             { client_id, path, lat, lng, captured_at, visibility,
 //                             species_id, description?, ai_check? }
 //   → 201 { data: { id, visibility, status_label, marker_color } }   (повтор → 200)
+// GET  v1-picks/map?bbox=&mine=   — точки для карти (B3.3, `picks-map.ts`)
+// GET  v1-picks/{id}              — картка точки (B3.3, `picks-map.ts`)
+// GET  v1-picks/species           — список видів для вибору назви (`picks-map.ts`)
 //
 // Потік клієнта: (1) upload-url → (2) PUT файлу за upload_url → (3) створення точки.
 // Фото ніколи не передається як base64. `client_id` — ключ ідемпотентності обох кроків.
@@ -40,7 +43,11 @@ import {
   IMAGE_MIME,
   MAX_PHOTO_BYTES,
 } from "../picks/image.ts";
+import { type PickPresentation, pickPresentation } from "../picks/presentation.ts";
 import { cleanDescription, DESCRIPTION_MAX_LENGTH } from "../picks/text.ts";
+import { handlePickCard, handlePickSpecies, handlePicksMap } from "./picks-map.ts";
+
+export { type PickPresentation, pickPresentation };
 
 // ─── Константи ─────────────────────────────────────────────────────────────
 
@@ -57,26 +64,6 @@ const AI_LEVELS = ["high", "medium", "low"] as const;
 const AI_TOP_MAX = 5;
 
 export type Visibility = "private" | "public";
-
-// ─── Підписи й кольори (Thin Client: клієнт лише показує) ───────────────────
-
-export interface PickPresentation {
-  status_label: string;
-  marker_color: string;
-}
-
-const PRIVATE_STYLE: PickPresentation = { status_label: "Приватна точка", marker_color: "#1e88e5" };
-const PUBLIC_STYLE: Record<string, PickPresentation> = {
-  pending: { status_label: "Перевіряється", marker_color: "#9e9e9e" },
-  conditional: { status_label: "Перевіряється", marker_color: "#9e9e9e" },
-  verified: { status_label: "Підтверджено", marker_color: "#43a047" },
-  rejected: { status_label: "Відхилено", marker_color: "#e53935" },
-};
-
-export function pickPresentation(visibility: string, verificationStatus: string): PickPresentation {
-  if (visibility !== "public") return PRIVATE_STYLE;
-  return PUBLIC_STYLE[verificationStatus] ?? PUBLIC_STYLE.pending;
-}
 
 interface PickRow {
   id: string;
@@ -113,6 +100,11 @@ export interface PicksStorage {
     options: { contentType: string; upsert: boolean },
   ): PromiseLike<{ data: unknown; error: unknown }>;
   remove(paths: string[]): PromiseLike<{ data: unknown; error: unknown }>;
+  /** Тимчасове посилання на перегляд фото (картка точки). */
+  createSignedUrl(
+    path: string,
+    expiresIn: number,
+  ): PromiseLike<{ data: { signedUrl: string } | null; error: unknown }>;
 }
 
 export interface PicksDeps {
@@ -577,25 +569,44 @@ async function createPick(
 
 // ─── Маршрутизація ─────────────────────────────────────────────────────────
 
-export type PicksRoute = "create" | "upload-url";
+export type PicksRoute =
+  | { kind: "create" }
+  | { kind: "upload-url" }
+  | { kind: "map" }
+  | { kind: "species" }
+  | { kind: "card"; id: string };
 
 export function parsePicksRoute(url: URL): PicksRoute {
   const m = url.pathname.match(/\/v1-picks(\/[^/]*)?\/?$/);
   const tail = m ? (m[1] ?? "").replace(/^\//, "") : null;
-  if (tail === "") return "create";
-  if (tail === "upload-url") return "upload-url";
-  throw new HttpError(404, "not_found", "Очікується POST /v1-picks або POST /v1-picks/upload-url");
+  if (tail === "") return { kind: "create" };
+  if (tail === "upload-url") return { kind: "upload-url" };
+  if (tail === "map") return { kind: "map" };
+  if (tail === "species") return { kind: "species" };
+  if (tail !== null && UUID_RE.test(tail)) return { kind: "card", id: tail.toLowerCase() };
+  throw new HttpError(404, "not_found", "Невідомий шлях v1-picks");
 }
 
 export async function handlePicks(req: Request, deps: PicksDeps): Promise<Response> {
-  const route = parsePicksRoute(new URL(req.url));
-  assertMethod(req, ["POST"]);
+  const url = new URL(req.url);
+  const route = parsePicksRoute(url);
+  const reads = route.kind === "map" || route.kind === "card" || route.kind === "species";
+  assertMethod(req, reads ? ["GET"] : ["POST"]);
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-picks");
   const user = await requireUser(req, deps.verify);
   const now = deps.now ? deps.now() : new Date();
 
-  return route === "upload-url"
-    ? await createUploadUrl(req, user, deps, now)
-    : await createPick(req, user, deps, now);
+  switch (route.kind) {
+    case "upload-url":
+      return await createUploadUrl(req, user, deps, now);
+    case "create":
+      return await createPick(req, user, deps, now);
+    case "map":
+      return await handlePicksMap(req, url, user, deps);
+    case "species":
+      return await handlePickSpecies(req, deps);
+    case "card":
+      return await handlePickCard(req, route.id, user, deps);
+  }
 }

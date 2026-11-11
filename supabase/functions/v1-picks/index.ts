@@ -3,6 +3,8 @@
 // POST /functions/v1/v1-picks/upload-url  { client_id, content_type, size_bytes }
 // POST /functions/v1/v1-picks             { client_id, path, lat, lng, captured_at,
 //                                           visibility, species_id, description?, ai_check? }
+// GET  /functions/v1/v1-picks/map?bbox=&mine=   точки для карти Home Region (B3.3)
+// GET  /functions/v1/v1-picks/{id}              картка точки (B3.3)
 //
 // JWT обов'язковий (гість має JWT — ADR-001; гість створює лише приватні точки).
 // Фото — тільки через Signed Upload URL, без base64. Логіка — `_shared/v1/picks.ts`.
@@ -30,6 +32,7 @@ Deno.serve(handle((req) => {
     download: (path) => bucket.download(path),
     upload: (path, body, options) => bucket.upload(path, body, options),
     remove: (paths) => bucket.remove(paths),
+    createSignedUrl: (path, expiresIn) => bucket.createSignedUrl(path, expiresIn),
   };
   return handlePicks(req, { db, storage, verify: supabaseTokenVerifier, fuzzSecret: fuzzSecret() });
 }));

@@ -24,6 +24,7 @@ class ApiException implements Exception {
 
   static const String networkError = 'network_error';
   static const String invalidResponse = 'invalid_response';
+  static const String uploadFailed = 'upload_failed';
 
   bool get isUnauthorized => statusCode == 401;
   bool get isNetworkError => code == networkError;
@@ -38,6 +39,8 @@ class ApiException implements Exception {
         return 'Немає зв\'язку з сервером. Перевірте інтернет і спробуйте ще раз.';
       case invalidResponse:
         return 'Сервер повернув неочікувану відповідь. Спробуйте пізніше.';
+      case uploadFailed:
+        return 'Не вдалося завантажити фото. Спробуйте ще раз.';
       default:
         return 'Щось пішло не так. Спробуйте ще раз.';
     }

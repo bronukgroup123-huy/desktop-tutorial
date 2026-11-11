@@ -69,7 +69,7 @@ class _ForecastContent extends StatelessWidget {
           Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
         if (offlineSince != null) ...[
           const SizedBox(height: 12),
-          _InfoCard(
+          ForecastInfoCard(
             icon: Icons.cloud_off_rounded,
             color: AppTheme.accentOrange,
             text: 'Немає інтернету. Показано прогноз від ${_formatTime(offlineSince!)}.',
@@ -78,21 +78,21 @@ class _ForecastContent extends StatelessWidget {
         const SizedBox(height: 16),
         if (f.weather != null) ...[_WeatherCard(weather: f.weather!), const SizedBox(height: 16)],
         if (f.top1 == null)
-          _InfoCard(
+          ForecastInfoCard(
             icon: Icons.eco_outlined,
             text: f.noDataReason ?? 'Зараз немає видів, для яких склалися умови.',
           )
         else ...[
-          _SpeciesCard(species: f.top1!, primary: true),
-          if (f.alternative != null) ...[const SizedBox(height: 12), _SpeciesCard(species: f.alternative!)],
+          ForecastSpeciesCard(species: f.top1!, primary: true),
+          if (f.alternative != null) ...[const SizedBox(height: 12), ForecastSpeciesCard(species: f.alternative!)],
         ],
         if (f.top1 != null && f.noDataReason != null) ...[
           const SizedBox(height: 12),
-          _InfoCard(icon: Icons.info_outline_rounded, text: f.noDataReason!),
+          ForecastInfoCard(icon: Icons.info_outline_rounded, text: f.noDataReason!),
         ],
         for (final w in f.warnings) ...[
           const SizedBox(height: 8),
-          _InfoCard(icon: Icons.warning_amber_rounded, text: w, color: AppTheme.accentOrange),
+          ForecastInfoCard(icon: Icons.warning_amber_rounded, text: w, color: AppTheme.accentOrange),
         ],
         const SizedBox(height: 16),
         Text(
@@ -153,8 +153,9 @@ class _WeatherCard extends StatelessWidget {
       );
 }
 
-class _SpeciesCard extends StatelessWidget {
-  const _SpeciesCard({required this.species, this.primary = false});
+/// Картка виду: рівень, «коли / де / чому». Використовується і в аналізі ділянки.
+class ForecastSpeciesCard extends StatelessWidget {
+  const ForecastSpeciesCard({super.key, required this.species, this.primary = false});
 
   final ForecastSpecies species;
   final bool primary;
@@ -229,8 +230,9 @@ class _Line extends StatelessWidget {
       );
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.icon, required this.text, this.color = AppTheme.darkGreen});
+/// Рядок-підказка з іконкою (попередження, пояснення).
+class ForecastInfoCard extends StatelessWidget {
+  const ForecastInfoCard({super.key, required this.icon, required this.text, this.color = AppTheme.darkGreen});
 
   final IconData icon;
   final String text;

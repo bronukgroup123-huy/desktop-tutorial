@@ -46,6 +46,21 @@ flutter test
 
 Те саме запускає CI (`.github/workflows/test.yml`, job «Flutter client»).
 
+## Що вміє карта
+
+- **Ліси області** — тап по лісу відкриває прогноз.
+- **Тук-туки** (ADR-018): публічні точки інших людей і власні; тап по точці — картка з фото.
+  Чужі точки показано приблизно (300–500 м) — так їх віддає сервер.
+- **«Тук-тук»**: місце з телефона → камера (один кадр, без галереї) → вид зі списку або
+  «Не знаю, що це» → опис → «Лише я» / «Усі». Фото вантажиться за Signed Upload URL
+  (`/v1-picks/upload-url` → `PUT` → `/v1-picks`). Чи можна публікувати — вирішує сервер.
+- **«Приватні точки»** — показує власні приватні точки.
+- **«Аналіз ділянки»** (ADR-015): дотик до карти обирає центр квадрата 5×5 км; розміри та їх
+  доступність (10×10 — «Доступно в Pro») і ліміт на сьогодні приходять із `/v1-analysis`.
+
+Камера — пакет `image_picker` (лише `ImageSource.camera`). Після зміни залежностей виконайте
+`flutter pub get` і закомітьте оновлений `pubspec.lock`.
+
 ## Структура
 
 ```
@@ -53,9 +68,9 @@ lib/
   core/            конфіг (dart-define), тема, Toast
   data/
     api/           ApiClient (apikey + Bearer, { data }, ApiException)
-    models/        Me, RegionSummary, RegionGeometry, ForestZone, Forecast, GeoJSON-хелпери
-    repositories/  Auth, Me, Regions, ForestZones, Forecast
+    models/        Me, RegionSummary, RegionGeometry, ForestZone, Forecast, Pick, Analysis, GeoJSON-хелпери
+    repositories/  Auth, Me, Regions, ForestZones, Forecast, Picks, Analysis
     providers.dart Riverpod-провайдери
-  features/        екрани (auth, onboarding, splash, map, …)
+  features/        екрани (auth, onboarding, splash, map, picks, analysis, …)
 test/              юніт-тести шару даних і роутера, widget-тест входу
 ```

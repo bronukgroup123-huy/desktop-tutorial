@@ -3,7 +3,7 @@
 Схема бази даних Supabase (PostgreSQL + PostGIS). Всі таблиці — у схемі `public`,
 геометрія — `extensions.GEOMETRY(MultiPolygon, 4326)` / `GEOGRAPHY`.
 
-Джерело істини — міграції `supabase/migrations/` (46 файлів).
+Джерело істини — міграції `supabase/migrations/` (48 файлів).
 Зміни робочого блоку 1 (2026-11-09) — розділ [«Оновлення 2026-11-09»](#оновлення-2026-11-09-робочий-блок-1). API-контракти —
 [API.md](./API.md).
 
@@ -385,3 +385,33 @@ service_role клієнт, який обходить RLS).
 |---|---|
 | `20261111000000` | **ADR-018.** `pick_type` — лише `private`/`public` (наявні `friends` → `private`, `shared_with` очищено). Нові колонки `mushroom_picks`: `client_id`, `species_id`, `description`, `ai_check`, `twin_alert`, `display_geom`, `captured_at`, `deleted_at`. CHECK: `public` ⇒ є `species_id` і `display_geom`; опис ≤ 500. **Приватність:** `mushroom_picks_read` — тільки власні точки; запис клієнтськими ролями відкликано. Функції `can_create_pick`, `create_pick` (service_role). Наявні публічні точки без виду з довідника стали приватними, решта отримали `display_geom` |
 
+
+## Оновлення 2026-11-11 (карта тук-туків B3.3, аналіз ділянки B2.9)
+
+| Міграція | Що змінено |
+|---|---|
+| `20261111100000` | Функції `get_picks_map(user, region, bbox…, include_private, limit)` і `get_pick_card(user, region, pick)` (тільки service_role). Для чужих точок повертають і використовують у фільтрах лише `display_geom`; точний `geom` — тільки автору |
+| `20261111110000` | Таблиці `analysis_areas` і `analysis_usage`; функції `save_analysis_area`, `consume_analysis`, `refund_analysis`, `analysis_used_today`, `analyze_area_forest` (тільки service_role) |
+
+### `analysis_areas`
+
+Збережені ділянки машинного прогнозу (ADR-015). Безкоштовно — 1 ділянка (слот 1) 5×5 км.
+
+| Колонка | Тип | Опис |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID NOT NULL → `auth.users(id)` CASCADE | власник |
+| `slot` | SMALLINT CHECK 1..3, UNIQUE (`user_id`, `slot`) | слот ділянки (2–3 — Pro) |
+| `center` | `GEOGRAPHY(Point, 4326)` NOT NULL | центр квадрата |
+| `size_km` | SMALLINT CHECK IN (5, 10) | сторона квадрата (10 — Pro) |
+| `region_id` | INT NOT NULL → `regions(id)` | область ділянки |
+| `label` | TEXT NULL (≤ 60) | назва (зарезервовано) |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+**RLS:** читання — тільки свої; запис — тільки service_role (`save_analysis_area`).
+
+### `analysis_usage`
+
+Лічильник аналізів: `user_id`, `area_id` → `analysis_areas(id)` CASCADE, `day` (київська дата),
+`count`; PK (`user_id`, `area_id`, `day`). Клієнтським ролям недоступна. `consume_analysis`
+збільшує лічильник одним оператором — паралельні запити ліміт не перевищать.
