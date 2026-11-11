@@ -1,104 +1,87 @@
-# Поточна задача: B3.3 — карта тук-туків (`GET v1-picks/map`, `GET v1-picks/{id}`) (ADR-018)
+# Поточна задача: B3.7 + B3.2 — рейтинг, рівні та право на публічні точки (ADR-012, ADR-013)
 
 > Якщо користувач пише «виконуй» / «роби» / «почни» без деталей — **це та задача**.
-> Виконай її повністю: код, тести, OpenAPI, коміт, пуш, PR у `main`.
+> Виконай її повністю: код, міграція, тести, OpenAPI, коміт, пуш, PR у `main`.
 > Питати нічого не потрібно: усі продуктові рішення вже прийняті й описані нижче.
 > Якщо щось у коді суперечить цьому документу — правда в `docs/DECISIONS.md`.
 
-Попередня задача (B3.0 + B3.1, створення тук-тука) виконана 2026-11-11 —
-підсумок у `docs/BACKEND_PLAN.md`, розділ 8.
+Попередні задачі виконано 2026-11-11: створення тук-тука (B3.0 + B3.1), карта тук-туків
+(B3.3), аналіз ділянки (B2.9) і відповідні екрани Flutter — підсумки в
+`docs/BACKEND_PLAN.md`, розділи 8 і 9.
 
-## 0. Прочитай перед роботою (обов'язково)
-1. `CLAUDE.md` — правила репозиторію.
-2. `docs/DECISIONS.md` — **ADR-018** §18.2 (карта), §18.5 (місце публічної точки), §18.4
-   (статуси перевірки); **ADR-015 §15.2** (тільки Home Region); **ADR-001** (гість).
-3. `docs/BACKEND_PLAN.md` — розділ 2 «Правила API», рядок **B3.3**, розділ 8 (що вже зроблено).
+## 0. Навіщо ця задача
+Зараз публічну точку не може створити **ніхто**: потрібен рівень «Лісовик» (201 бал), а
+балів ще нізвідки взяти — є лише колонка `users.rating`, яка завжди 0. Тому на карті немає
+чужих точок. Ця задача дає балам джерело і робить рівні справжніми.
 
-## 1. Що робить користувач (контекст)
-Відкриває карту своєї області й одразу бачить публічні точки інших: сірі — «Перевіряється»,
-зелені — «Підтверджено». Перемикач «Приватні точки» додає власні приватні. Тап по точці
-відкриває картку: фото, назва виду, опис, дата, статус, кнопка «Поскаржитися» і
-застереження «Фото користувача — не порада їсти гриб». Ця задача — **лише бекенд**.
+## 1. Прочитай перед роботою (обов'язково)
+1. `CLAUDE.md`.
+2. `docs/DECISIONS.md` — **ADR-012** (джерела балів, таблиця 8 джерел), **ADR-013** (весь:
+   6 рівнів, сертифікат знань, §13.2 порядок рівнів, §13.5 ліміти), **ADR-010 §10.4**,
+   **ADR-011**, **ADR-018 §18.2** (кнопка «Приватний тук-тук» і підказка із сервера).
+3. `docs/BACKEND_PLAN.md` — рядки **B3.7** і **B3.2**, розділи 8–9.
 
-## 2. Що вже є в коді (не винаходь заново)
+## 2. Що вже є в коді
 | Що | Де |
 |---|---|
-| Функція `v1-picks`: маршрутизація (`parsePicksRoute`), `POST /upload-url`, `POST /` | `supabase/functions/v1-picks/index.ts`, `_shared/v1/picks.ts` |
-| Підписи й кольори статусів (`pickPresentation`) | `_shared/v1/picks.ts` |
-| Спільний HTTP-шар (`requireUser`, `loadHomeRegionId`, `requireHomeRegion`, `enforceRateLimit`, `ok`, `HttpError`) | `_shared/http.ts` |
-| Колонки `mushroom_picks`: `geom` (точне місце), `display_geom` (зсув 300–500 м, у `public` завжди є), `species_id`, `description`, `verification_status`, `twin_alert`, `captured_at`, `deleted_at`, `photo_url` | міграція `20261111000000_tuk_tuk_adr018.sql`, `docs/DB_SCHEMA.md` |
-| RLS: клієнт читає **лише власні** точки; чужі — тільки через service_role | та сама міграція |
-| Розбір `geography` з PostgREST (EWKB-hex) — `parseEwkbPoint` | `_shared/forecast/picks-list.ts` |
-| Перевірка bbox у межах області (зразок) | `_shared/v1/forest-zones.ts`, RPC `get_forest_zones_geojson_region` |
-| Підписані посилання на фото (`createSignedUrls`, TTL 600 с) | `_shared/forecast/picks-list.ts` |
-| Мок supabase-js і приклади тестів | `supabase/tests/v1/mock-db.ts`, `supabase/tests/v1/picks.test.ts` |
+| `users.rating INT`, `users.total_verified_picks` | `supabase/migrations/20260910000001_create_users.sql` |
+| Ліміти точок: `can_create_pick(user, visibility)` з порогом 201 і `-- TODO(B3.7, B6.3)` | `supabase/migrations/20261111000000_tuk_tuk_adr018.sql` |
+| Створення точки: `create_pick(...)`; результат EXIF — у `ai_check.exif.verified` | та сама міграція, `_shared/v1/picks.ts` |
+| Профіль `GET / PATCH v1-me` | `_shared/v1/me.ts`, тести `supabase/tests/v1/me.test.ts` |
+| Зразки SQL-тестів | `supabase/tests/rls_picks_adr018.sql`, `rls_analysis.sql` |
+| Flutter: модель профілю, форма тук-тука, карта | `flutter_client/lib/data/models/me.dart`, `features/picks/new_pick_screen.dart`, `features/map/map_screen.dart` |
 
 ## 3. Що зробити
 
-### 3.1 Міграція: RPC для карти (новий файл, версія більша за `20261111000000`)
-`get_picks_map(p_user_id uuid, p_region_id int, p_min_lng, p_min_lat, p_max_lng, p_max_lat,
-p_include_mine boolean, p_limit int)` → рядки точок. `SECURITY DEFINER`, `search_path = ''`,
-EXECUTE лише `service_role` (зразок — `create_pick`).
-- Чужі точки: `pick_type = 'public'`, `deleted_at IS NULL`, `verification_status <> 'rejected'`,
-  точка в області `p_region_id`. Повертати **тільки** координати `display_geom`.
-- **Фільтр bbox для чужих точок — за `display_geom`, не за `geom`.** Інакше, звужуючи bbox,
-  можна «намацати» справжнє місце точки.
-- Власні точки (`user_id = p_user_id`): публічні — завжди; приватні — лише якщо
-  `p_include_mine`. Для власних повертати точні координати (`geom`) і `is_exact = true`.
-- Числові `lat` / `lng` рахувати в SQL (`ST_Y`, `ST_X`), щоб не розбирати EWKB у коді.
-- `p_limit + 1` рядків, щоб обробник знав, чи є ще точки. Просторовий індекс (GiST) на
-  `display_geom` для публічних невидалених точок.
+### 3.1 Міграція (версія більша за `20261111110000`)
+- `rating_events` — журнал балів: `id`, `user_id`, `delta INT`, `reason TEXT`, `pick_id UUID NULL`,
+  `created_at`. RLS: читання — свої; запис — тільки service_role. `users.rating` = сума журналу
+  (тригер на INSERT; не нижче 0).
+- `users.knowledge_certified_at TIMESTAMPTZ NULL`, `users.curriculum_version TEXT NULL`
+  (сертифікат знань; видаватиме B3.10 — тут лише колонки).
+- `rating_levels` — конфіг 6 рівнів з ADR-013 §13.1: `code`, `min_points`, `max_points`,
+  `requires_certificate`, `label`, `certified_label`, порядок. Читання — всім авторизованим.
+- `compute_level(rating INT, certified BOOLEAN)` → `code` за правилами ADR-013: Грибознавець —
+  лише із сертифікатом і 51–200 балів; Майстер — 1001+ **і** сертифікат; «Досвідчений …» — це
+  позначка, а не рівень.
+- Перше джерело балів (ADR-012, №3): приватна точка з успішною EXIF-перевіркою → **+1**,
+  не більше 5 на добу. Нараховувати всередині `create_pick` (новий параметр
+  `p_exif_verified BOOLEAN`), в одній транзакції зі вставкою точки.
+- `can_create_pick`: замість порогу 201 — рівень із `compute_level`; публічні ліміти без Pro
+  за ADR-013 §13.5: Лісовик — 5 на добу, Хранитель лісу — 10; нижче Лісовика —
+  `level_required`. Приватні — 5 на добу (ADR-011). Pro — окремо, B6.3.
 
-### 3.2 `GET v1-picks/map?bbox=minLng,minLat,maxLng,maxLat&mine=true|false`
-- `requireUser` (гість теж); Home Region обов'язковий; rate limit `v1-picks`.
-- `bbox` необов'язковий (без нього — вся область); некоректний → `400 invalid_bbox`;
-  bbox поза областю → `403 outside_home_region`; більший за область → `400 bbox_too_large`
-  (ті самі правила, що в `v1-forest-zones`).
-- Відповідь `200 { data: { points: [...], truncated: bool } }`, точка:
-  `{ id, lat, lng, is_exact, is_mine, visibility, species_id, name_label, status_label,
-  marker_color }`. Ліміт — 500 точок.
-- `name_label` — назва виду з довідника (`mushroom_catalog.name_ua`) або «Не знаю, що це».
-- Жодних числових ймовірностей і жодних точних координат чужих точок.
+### 3.2 `GET v1-me` — рівень і підказки (Thin Client)
+Додати в профіль: `level_code`, `level_label` (уже з «Досвідчений…»), `is_certified`,
+`next_level_label`, `next_level_hint` («Ще 81 бал до Лісовика»), а також
+`picks: { public_allowed: bool, public_hint_label: string | null }` — чи може користувач
+зараз створити публічну точку і що йому показати, якщо ні (гість → реєстрація; рівень →
+скільки балів лишилось; ліміт → коли оновиться).
 
-### 3.3 `GET v1-picks/{id}` (картка точки)
-- Свою точку бачить автор (будь-яку невидалену). Чужу — лише `public`, не `rejected`, не
-  видалену, **в області користувача**; інакше `404 pick_not_found` (не `403`, щоб не
-  підтверджувати існування чужих приватних точок).
-- Відповідь: `{ id, lat, lng, is_exact, is_mine, visibility, species_id, name_label,
-  description, captured_at, created_at, status_label, marker_color, photo_url (signed, 600 с),
-  disclaimer_label: "Фото користувача — не порада їсти гриб", actions: [...] }`.
-  `actions`: для чужої точки `["report"]`, для своєї `["edit", "delete"]` (самі дії — B3.4, B3.12).
-- Імені автора та його id у відповіді немає.
-
-### 3.4 Не ламати
-- `POST v1-picks` і `POST v1-picks/upload-url` — без змін; старі `GET/POST /picks` — без змін.
+### 3.3 Flutter
+- `Me`: нові поля; профіль показує `level_label` і `next_level_hint`.
+- Форма тук-тука: якщо `picks.public_allowed == false`, варіант «Усі» вимкнений, під ним —
+  `public_hint_label`. Кнопка на карті — «Приватний тук-тук» (ADR-018 §18.2).
 
 ## 4. Тести (обов'язково, CI має бути зеленим)
-- `supabase/tests/v1/picks-map.test.ts`: 401; без області → 409; некоректний / завеликий /
-  чужий bbox; у відповіді для чужих точок немає полів із точними координатами;
-  `mine=true` додає власні приватні; `truncated`; картка: чужа приватна → 404, чужа rejected
-  → 404, своя приватна → 200 з точними координатами, підписи й кольори з сервера.
-- SQL `supabase/tests/rls_picks_map.sql`: чужі приватні не повертаються; чужа публічна
-  повертається з `display_geom` (координати ≠ `geom`); фільтр bbox працює за `display_geom`
-  (bbox навколо точного місця, що не містить зсунутого, точку **не** повертає); `rejected` і
-  видалені не повертаються; RPC недоступний ролі `authenticated`.
-- `openapi/v1.yaml` — обидва ендпоінти; лінт Redocly має пройти.
-
-Перевірка локально (ті самі команди, що в `.github/workflows/test.yml`):
-```
-deno check supabase/functions/*/index.ts supabase/tests/ supabase/functions/_shared/
-deno test --no-check --allow-net --allow-read --allow-env supabase/tests/ supabase/functions/_shared/
-```
+- SQL: рейтинг = сума журналу; 120 балів без сертифіката → Слідопит, із сертифікатом →
+  Грибознавець; 201 + сертифікат → Лісовик з позначкою; 1001 без сертифіката → Хранитель
+  лісу, не Майстер; +1 за приватну точку з EXIF лише 5 разів на добу; журнал клієнту не
+  записати; Слідопит публікувати не може, Лісовик — 5 на добу, Хранитель — 10.
+- Deno: `v1-me` віддає рівень і `picks.*` для гостя, Мандрівника, Лісовика; `v1-picks`
+  передає `p_exif_verified`.
+- Flutter: розбір нових полів; форма вимикає «Усі» і показує підказку.
+- `openapi/v1.yaml` — нові поля `Me`; лінт Redocly має пройти.
 
 ## 5. Заборонено
-- Точні координати чужих точок у будь-якій відповіді (і фільтр за ними, що їх розкриває);
-  ім'я чи id автора в картці чужої точки; числові ймовірності; base64-фото; секрети в коді;
-  зміни в `docs/devops-exercises/`; зміни Flutter-клієнта в цій задачі.
+- Рахувати рівень чи ліміти на клієнті; числові ймовірності у відповідях; бали за
+  розпізнавання, фото для навчання ШІ чи відкриття застосунку (ADR-012); секрети в коді;
+  зміни в `docs/devops-exercises/`.
 
 ## 6. Готово, коли
-- [ ] Міграція (RPC + індекс) + обидва ендпоінти + тести + OpenAPI.
+- [ ] Міграція + `v1-me` + `create_pick` / `can_create_pick` + Flutter + тести + OpenAPI.
 - [ ] Усі тести CI зелені (Tests, Security).
-- [ ] У `docs/BACKEND_PLAN.md` B3.3 позначено ✅ з коротким підсумком; `docs/API.md` оновлено.
-- [ ] Цей файл оновлено: наступна задача (B3.4 `PATCH / DELETE v1-picks/{id}`) або
-      «Немає активної задачі».
+- [ ] У `docs/BACKEND_PLAN.md` B3.7 і B3.2 позначені ✅ з підсумком (решта джерел балів —
+      окремими задачами: B3.10 тести знань, B3.11 відгук, B3.8 підтвердження спільнотою).
+- [ ] Цей файл оновлено: наступна задача або «Немає активної задачі».
 - [ ] PR у `main` українською: що зроблено, як перевірено, що лишилось.

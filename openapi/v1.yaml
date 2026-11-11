@@ -3,7 +3,8 @@ info:
   title: Грибний Радар — клієнтський API v1
   version: 1.0.0
   description: |
-    Ендпоінти `v1-*` для Flutter-клієнта (BACKEND_PLAN, робочий блок 1 + Тук-тук B3.0–B3.1).
+    Ендпоінти `v1-*` для Flutter-клієнта (BACKEND_PLAN: робочий блок 1, Тук-тук B3.0–B3.3,
+    аналіз ділянки B2.9).
 
     * Базовий URL: `https://<PROJECT_REF>.supabase.co/functions/v1`
     * Кожен запит: заголовок `apikey: <SUPABASE_ANON_KEY>`.
@@ -261,6 +262,180 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /v1-picks/map:
+    get:
+      operationId: getPicksMap
+      summary: Тук-туки на карті Home Region
+      description: |
+        Публічні точки інших людей у своїй області (сірі — «Перевіряється», зелені —
+        «Підтверджено»; відхилені не показуються) і власні точки. `mine=true` додає власні
+        приватні (перемикач «Приватні точки», ADR-018 §18.2).
+
+        **Приватність (ADR-018 §18.5).** Для чужих точок `lat` / `lng` — зсунуте місце
+        (300–500 м від справжнього, зсув стабільний), `is_exact: false`. Точні координати —
+        лише автору. Фільтр `bbox` для чужих точок теж працює за зсунутим місцем.
+      parameters:
+        - name: bbox
+          in: query
+          description: 'minLng,minLat,maxLng,maxLat — видима частина карти; без bbox — уся область'
+          schema: { type: string, example: '30.2,50.2,30.9,50.7' }
+        - name: mine
+          in: query
+          description: Показати й власні приватні точки
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Точки (не більше 500; якщо їх більше — `truncated`)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [points, truncated]
+                    properties:
+                      points:
+                        type: array
+                        items: { $ref: '#/components/schemas/MapPick' }
+                      truncated: { type: boolean }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-picks/species:
+    get:
+      operationId: getPickSpecies
+      summary: Список видів для вибору назви тук-тука
+      description: |
+        Назва точки — тільки зі списку довідника (ADR-018 §18.3). `unknown_label` — варіант
+        «Не знаю, що це» (`species_id: null`; така точка може бути лише приватною).
+        Відповідь можна кешувати на годину.
+      responses:
+        '200':
+          description: Види, відсортовані за назвою
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [species, unknown_label]
+                    properties:
+                      species:
+                        type: array
+                        items:
+                          type: object
+                          required: [id, name_label]
+                          properties:
+                            id: { type: string }
+                            name_label: { type: string, example: Білий гриб }
+                            latin_label: { type: [string, 'null'], example: Boletus edulis }
+                      unknown_label: { type: string, example: 'Не знаю, що це' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-picks/{id}:
+    get:
+      operationId: getPickCard
+      summary: Картка тук-тука (тап по точці)
+      description: |
+        Фото, назва, опис, дата, статус перевірки. Свою точку бачить автор; чужу — лише
+        публічну, не відхилену, у своїй області. Інакше `404 pick_not_found` (так само, як
+        для неіснуючої — існування чужих приватних точок не підтверджується).
+        У картці чужої точки немає автора й точного часу зйомки; місце — приблизне.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Картка
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/PickCard' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-analysis:
+    get:
+      operationId: getAnalysisOverview
+      summary: Аналіз ділянки — що доступно користувачу
+      description: |
+        Розміри ділянки з позначкою доступності (10×10 км — лише Pro, `lock_label`),
+        збережена ділянка та скільки аналізів використано сьогодні. Клієнт показує лише це —
+        сам доступ не вирішує (ADR-015).
+      responses:
+        '200':
+          description: Налаштування аналізу
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/AnalysisOverview' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: runAnalysis
+      summary: Машинний прогноз — аналіз квадрата навколо точки
+      description: |
+        Сервер аналізує квадрат `size_km × size_km` з центром у точці: які ліси і скільки їх у
+        ділянці, погода, найімовірніші види. Тільки рівні з підписами — без відсотків.
+
+        * Ділянка — тільки у своїй області (`403 outside_home_region`), і в Pro також.
+        * Безкоштовно: 1 ділянка 5×5 км, базова погода, 5 аналізів на добу (доба — за
+          київським часом). Перевищення — `429 analysis_limit_reached` + `Retry-After`.
+        * 10×10 км і дата далі ніж +3 дні — Pro (`403 pro_required`, текст у `message`).
+        * Ділянка зберігається: повторний аналіз в іншому місці пересуває її.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnalysisRequest' }
+      responses:
+        '200':
+          description: Результат аналізу
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/AnalysisResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403':
+          description: '`outside_home_region`, `pro_required`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422':
+          description: '`validation_error`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: '`analysis_limit_reached` (добовий ліміт, + `Retry-After` до київської півночі) або `rate_limited`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
 components:
   securitySchemes:
     apikey:
@@ -282,7 +457,8 @@ components:
         terms_version_outdated, rate_limited (+ Retry-After), db_error, internal_error.
         Тук-тук (v1-picks): validation_error, photo_too_large, invalid_photo_format,
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
-        daily_limit_reached, storage_error.
+        daily_limit_reached, storage_error, invalid_mine, pick_not_found.
+        Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After).
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -433,6 +609,156 @@ components:
       required: [data]
       properties:
         data: { $ref: '#/components/schemas/PickCreated' }
+
+    MapPick:
+      type: object
+      description: Точка на карті. Підпис і колір — із сервера.
+      required: [id, lat, lng, is_exact, is_mine, visibility, name_label, status_label, marker_color]
+      properties:
+        id: { type: string, format: uuid }
+        lat: { type: number, description: Своя точка — точна широта; чужа — зсунута }
+        lng: { type: number }
+        is_exact: { type: boolean, description: true лише для власних точок }
+        is_mine: { type: boolean }
+        visibility: { type: string, enum: [private, public] }
+        species_id: { type: [string, 'null'] }
+        name_label: { type: string, example: Білий гриб, description: 'Назва виду або «Не знаю, що це»' }
+        status_label: { type: string, example: Перевіряється }
+        marker_color: { type: string, pattern: '^#[0-9a-f]{6}$', example: '#9e9e9e' }
+
+    PickCard:
+      allOf:
+        - $ref: '#/components/schemas/MapPick'
+        - type: object
+          required: [actions]
+          properties:
+            description: { type: [string, 'null'] }
+            date_label: { type: [string, 'null'], example: 10 листопада 2026 р. }
+            captured_at:
+              type: [string, 'null']
+              format: date-time
+              description: Точний час зйомки — лише для власної точки
+            photo_url:
+              type: [string, 'null']
+              format: uri
+              description: Тимчасове посилання на фото (10 хвилин)
+            disclaimer_label:
+              type: [string, 'null']
+              example: Фото користувача — не порада їсти гриб
+            actions:
+              type: array
+              description: Дозволені дії; клієнт показує лише їх (скарги — B3.12, зміна й видалення — B3.4)
+              items: { type: string }
+
+    AnalysisUsage:
+      type: object
+      required: [used, limit, label]
+      properties:
+        used: { type: integer }
+        limit: { type: integer }
+        label: { type: string, example: 'Сьогодні: 2 з 5 аналізів' }
+
+    AnalysisArea:
+      type: object
+      required: [id, slot, lat, lng, size_km, size_label]
+      properties:
+        id: { type: string, format: uuid }
+        slot: { type: integer, minimum: 1, maximum: 3 }
+        lat: { type: number }
+        lng: { type: number }
+        size_km: { type: integer, enum: [5, 10] }
+        size_label: { type: string, example: 5×5 км }
+        bbox:
+          type: array
+          items: { type: number }
+          minItems: 4
+          maxItems: 4
+          description: '[minLng, minLat, maxLng, maxLat] — точні межі проаналізованого квадрата (у відповіді POST)'
+
+    AnalysisOverview:
+      type: object
+      required: [sizes, areas, usage, hint_label]
+      properties:
+        sizes:
+          type: array
+          items:
+            type: object
+            required: [size_km, label, available]
+            properties:
+              size_km: { type: integer, enum: [5, 10] }
+              label: { type: string, example: 10×10 км }
+              available: { type: boolean }
+              lock_label: { type: [string, 'null'], example: Доступно в Pro }
+        areas:
+          type: array
+          items: { $ref: '#/components/schemas/AnalysisArea' }
+        usage: { $ref: '#/components/schemas/AnalysisUsage' }
+        hint_label: { type: string, example: 'Торкніться карти, щоб обрати центр ділянки' }
+
+    AnalysisRequest:
+      type: object
+      required: [lat, lng, size_km]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+        size_km: { type: integer, enum: [5, 10] }
+        date: { type: string, format: date, description: За замовчуванням — сьогодні (київський час) }
+
+    AnalysisSpecies:
+      allOf:
+        - $ref: '#/components/schemas/ForecastSpecies'
+        - type: object
+          properties:
+            forest_label:
+              type: [string, 'null']
+              example: Сосновий ліс
+              description: У якому лісі ділянки шукати цей вид
+
+    AnalysisResult:
+      type: object
+      required: [area, date, forest, warnings, usage]
+      properties:
+        area: { $ref: '#/components/schemas/AnalysisArea' }
+        date: { type: string, format: date }
+        forest:
+          type: object
+          required: [summary_label, types]
+          properties:
+            summary_label: { type: string, example: 'Ліс займає ≈ 9,4 км² з 25 км² ділянки' }
+            types:
+              type: array
+              maxItems: 5
+              items:
+                type: object
+                required: [type_label, type_color, area_label]
+                properties:
+                  forest_type: { type: [string, 'null'] }
+                  type_label: { type: string, example: Сосновий ліс }
+                  type_color: { type: string, pattern: '^#[0-9a-f]{6}$' }
+                  area_label: { type: string, example: '≈ 8,4 км²' }
+                  age_label: { type: [string, 'null'], example: '~60 р.' }
+        top1:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisSpecies'
+            - type: 'null'
+        alternative:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisSpecies'
+            - type: 'null'
+        weather:
+          description: Базова погода (безкоштовно) — температура, вологість, опади
+          oneOf:
+            - type: object
+              required: [icon, temp_label, humidity_label, rain_label]
+              properties:
+                icon: { type: string, enum: [sun, cloud, rain, unknown] }
+                temp_label: { type: string }
+                humidity_label: { type: string }
+                rain_label: { type: string }
+            - type: 'null'
+        warnings: { type: array, items: { type: string } }
+        usage: { $ref: '#/components/schemas/AnalysisUsage' }
+        no_data_reason: { type: string }
 
     RegionGeometry:
       type: object

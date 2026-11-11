@@ -91,6 +91,11 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
 | `POST /v1-forecast` | JWT | Прогноз у межах Home Region; рівні з підписами, **без** `score`/`probability` |
 | `POST /v1-picks/upload-url` | JWT | Тук-тук, крок 1: `{ client_id, content_type, size_bytes }` → `{ upload_url, path, token, expires_at }` (ADR-002) |
 | `POST /v1-picks` | JWT | Тук-тук, крок 3: створити точку `private` / `public` (ADR-018) → `{ id, visibility, status_label, marker_color }` |
+| `GET /v1-picks/map?bbox=&mine=` | JWT | Точки на карті області: публічні інших (зсунуте місце) + власні (точне); `mine=true` — ще й власні приватні |
+| `GET /v1-picks/{id}` | JWT | Картка точки: фото (тимчасове посилання), назва, опис, дата, статус, застереження |
+| `GET /v1-picks/species` | JWT | Список видів для вибору назви + `unknown_label` («Не знаю, що це») |
+| `GET /v1-analysis` | JWT | Аналіз ділянки: доступні розміри (10×10 — `lock_label: "Доступно в Pro"`), збережена ділянка, ліміт на сьогодні |
+| `POST /v1-analysis` | JWT | `{ lat, lng, size_km: 5 \| 10, date? }` → ліси в квадраті, погода, Top-1 / Top-2 рівнями (ADR-015) |
 
 Спільні правила v1:
 - Гість входить через `supabase.auth.signInAnonymously()` і має звичайний JWT (ADR-001).
@@ -166,6 +171,47 @@ curl -X POST "$SUPABASE_URL/functions/v1/v1-picks" \
 Необов'язковий секрет функції `PICK_FUZZ_SECRET` — ключ для зсуву публічних точок; якщо його
 немає, використовується ключ service_role. Зсув зберігається разом із точкою, тож зміна
 секрету не рухає вже створені точки.
+
+### Карта тук-туків: `GET v1-picks/map`, `GET v1-picks/{id}` (B3.3, ADR-018 §18.2, §18.5)
+
+```bash
+curl "$SUPABASE_URL/functions/v1/v1-picks/map?mine=true" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN"
+# → { "data": { "points": [ { "id", "lat", "lng", "is_exact", "is_mine", "visibility",
+#        "species_id", "name_label", "status_label", "marker_color" } ], "truncated": false } }
+```
+
+- Чужі точки — лише публічні, не відхилені, у своїй області; `lat` / `lng` — **зсунуте місце**
+  (`is_exact: false`). Власні — з точними координатами (`is_exact: true`).
+- `bbox` для чужих точок фільтрує за зсунутим місцем — справжнє не можна «намацати» рамкою.
+- До 500 точок; якщо їх більше — `truncated: true` (показано найновіші).
+- Картка `GET v1-picks/{id}`: `description`, `date_label`, `photo_url` (посилання на 10 хв),
+  `disclaimer_label`, `actions` (поки порожній: скарги — B3.12, зміна й видалення — B3.4).
+  Чужа приватна, відхилена чи видалена точка → `404 pick_not_found`.
+
+### Аналіз ділянки: `v1-analysis` (B2.9, ADR-015)
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/v1-analysis" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "lat": 50.4501, "lng": 30.5234, "size_km": 5 }'
+```
+
+Відповідь: `area` (центр, `size_label`, точні межі `bbox`), `forest` (`summary_label` і типи лісу
+з площею), `top1` / `alternative` (рівні з підписами + `forest_label` — у якому лісі шукати),
+`weather` (базова: температура, вологість, опади), `warnings`, `usage`.
+
+| Правило | Помилка |
+|---|---|
+| Ділянка — тільки у своїй області (і в Pro) | `403 outside_home_region` |
+| 10×10 км — лише Pro | `403 pro_required` (+ `message`) |
+| Дата далі ніж +3 дні — лише Pro | `403 pro_required` |
+| Безкоштовно — 5 аналізів на добу (київський час) | `429 analysis_limit_reached` + `Retry-After` |
+| Некоректні поля | `422 validation_error` |
+
+Pro ще не продається (B6.3), тож 10×10 зараз недоступна нікому; застосунок показує її із замком
+за `sizes[].lock_label`. Якщо розрахунок упав, списаний аналіз повертається.
 
 ---
 
