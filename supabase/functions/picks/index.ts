@@ -8,8 +8,10 @@
 //   400 photo_format / photo_too_large | 500 storage_error / db_error
 //
 // Патерн: guardian (withErrorHandling + requireMushroomPicker) +
-// CORS як forecast/index.ts. EXIF-верифікація та rate-limit → V2
-// (клієнт ре-компресить фото перед upload).
+// CORS як forecast/index.ts.
+//
+// Це старий ендпоінт веб-прототипу (фото як base64). Він пише лише приватні точки.
+// Flutter використовує v1-picks (Signed Upload URL, ADR-002 / ADR-018).
 // ============================================================================
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -24,166 +26,15 @@ import {
 import { handlePicksListRequest } from "../_shared/forecast/picks-list.ts";
 import type { PicksListDbClient } from "../_shared/forecast/picks-list.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import exifr from "npm:exifr";
 import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
-
-const BUCKET = "mushroom-photos";
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MiB (bucket limit)
-const MIME: Record<string, string> = {
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-};
-
-// ─── CT-13: EXIF server-verify constants ──────────────────────────────────
-const EXIF_GPS_RADIUS_KM = 1;      // максимальна відхилнність GPS, км
-const EXIF_MAX_AGE_HOURS = 24;     // фото не старіше 24 годин
-
-interface ExifParsed {
-  GPSLatitude?: number[];
-  GPSLongitude?: number[];
-  GPSLatitudeRef?: string;
-  GPSLongitudeRef?: string;
-  DateTime?: string;
-  [key: string]: unknown;
-}
-
-/** Д秒/минути/секунди → десяткові ступені */
-function dmsToDecimal(dms: number[], ref: string): number {
-  const deg = dms[0] + dms[1] / 60 + dms[2] / 3600;
-  return ref === "S" || ref === "W" ? -deg : deg;
-}
-
-/** Відстань Хаверсина між двома точками (км) */
-function haversineKm(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-/**
- * Перевіряє EXIF зображення: GPS збігається з координатами запиту
- * (радіус 1 км) і час створення фото не старший за 24 години.
- * Повертає { hasExif, verified, reason }.
- */
-async function verifyExif(
-  buffer: Uint8Array,
-  inputLat: number,
-  inputLng: number
-): Promise<{ hasExif: boolean; verified: boolean; reason?: string }> {
-  try {
-    const exif = (await exifr.parse(buffer, {
-      tiff: true,
-    })) as ExifParsed;
-
-    if (!exif || Object.keys(exif).length === 0) {
-      return { hasExif: false, verified: false };
-    }
-
-    // GPS перевірка
-    const gpsLat = exif.GPSLatitude;
-    const gpsLng = exif.GPSLongitude;
-    const gpsLatRef = exif.GPSLatitudeRef;
-    const gpsLngRef = exif.GPSLongitudeRef;
-
-    if (!gpsLat || !gpsLng || !gpsLatRef || !gpsLngRef) {
-      return { hasExif: true, verified: false, reason: "No GPS in EXIF" };
-    }
-
-    const lat = dmsToDecimal(gpsLat, gpsLatRef);
-    const lng = dmsToDecimal(gpsLng, gpsLngRef);
-    const distance = haversineKm(inputLat, inputLng, lat, lng);
-
-    if (distance > EXIF_GPS_RADIUS_KM) {
-      return {
-        hasExif: true,
-        verified: false,
-        reason: `GPS mismatch: ${distance.toFixed(1)} km from declared location`,
-      };
-    }
-
-    // Часова перевірка
-    const dateTime = exif.DateTime;
-    if (!dateTime) {
-      return { hasExif: true, verified: false, reason: "No DateTime in EXIF" };
-    }
-
-    const photoTime = new Date(String(dateTime));
-    const now = new Date();
-    const diffHours = (now.getTime() - photoTime.getTime()) / (1000 * 60 * 60);
-
-    if (diffHours > EXIF_MAX_AGE_HOURS) {
-      return {
-        hasExif: true,
-        verified: false,
-        reason: `Photo too old: ${diffHours.toFixed(1)} hours`,
-      };
-    }
-
-    return { hasExif: true, verified: true };
-  } catch {
-    return { hasExif: false, verified: false };
-  }
-}
-
-/**
- * Вирізає EXIF (APP1 сегмент) з JPEG буфера.
- * Для інших форматів повертає буфер без змін.
- */
-function stripExifFromJpeg(buffer: Uint8Array): Uint8Array {
-  const result: number[] = [];
-  let offset = 0;
-
-  while (offset < buffer.length - 1) {
-    const marker = (buffer[offset] << 8) | buffer[offset + 1];
-
-    if (marker === 0xffd8) {
-      // SOI
-      result.push(buffer[offset], buffer[offset + 1]);
-      offset += 2;
-    } else if (marker === 0xffd9) {
-      // EOI
-      result.push(buffer[offset], buffer[offset + 1]);
-      break;
-    } else if ((marker & 0xff00) === 0xff00) {
-      const segLen = (buffer[offset + 2] << 8) | buffer[offset + 3];
-      const segEnd = offset + 2 + segLen;
-
-      // APP1 з Exif заголовком — пропускаємо (вирізаємо)
-      if (
-        marker === 0xffe1 &&
-        offset + 10 < buffer.length &&
-        String.fromCharCode(...buffer.slice(offset + 4, offset + 10)) ===
-          "Exif\0\0"
-      ) {
-        offset = segEnd;
-        continue;
-      }
-
-      for (let i = offset; i < Math.min(segEnd, buffer.length); i++) {
-        result.push(buffer[i]);
-      }
-      offset = segEnd;
-    } else {
-      result.push(buffer[offset]);
-      offset++;
-    }
-  }
-
-  return new Uint8Array(result);
-}
+// EXIF-логіка спільна з v1-picks (BACKEND_PLAN B3.1).
+import { stripImageMetadata, verifyExif } from "../_shared/picks/exif.ts";
+import {
+  IMAGE_EXT as EXT,
+  IMAGE_MIME as MIME,
+  MAX_PHOTO_BYTES,
+  PICKS_BUCKET as BUCKET,
+} from "../_shared/picks/image.ts";
 
 /** JSON-відповідь з CORS (successResponse/errorResponse його не додають) */
 function jsonResponse(data: unknown, status: number, req: Request): Response {
@@ -235,8 +86,6 @@ async function createPicksListClients(req: Request): Promise<{
 
   return { readDb, adminDb, userId };
 }
-
-const EXT: Record<string, string> = { jpeg: "jpg", png: "png", webp: "webp" };
 
 Deno.serve(withErrorHandling(async (req: Request) => {
   // 1. CORS preflight
@@ -310,23 +159,16 @@ Deno.serve(withErrorHandling(async (req: Request) => {
     return jsonResponse({ error: "invalid_photo_format" }, 400, req);
   }
 
-  // 5b. CT-13: EXIF server-verify
+  // 5b. CT-13: перевірка EXIF. Вона не робить точку «verified» (ADR-018: підтверджують
+  //     люди): збіг GPS і часу → pending, немає EXIF або розбіжність → conditional.
   const exifResult = await verifyExif(photoBuffer, input.lat, input.lng);
-  let verificationStatus: "pending" | "verified" | "conditional" = "pending";
-  if (!exifResult.hasExif) {
-    // EXIF відсутній (галерея Flutter тощо) — conditional
-    verificationStatus = "conditional";
-  } else if (exifResult.verified) {
-    verificationStatus = "verified";
-  } else {
-    // EXIF є, але не пройшов перевірку — conditional, не rejected
-    verificationStatus = "conditional";
+  const verificationStatus: "pending" | "conditional" = exifResult.verified ? "pending" : "conditional";
+  if (exifResult.hasExif && !exifResult.verified) {
     console.warn(`EXIF verify failed for pick: ${exifResult.reason}`);
   }
 
   // 5c. Вирізати EXIF перед відправкою в Storage (захист приватності)
-  const bufferToUpload =
-    format === "jpeg" ? stripExifFromJpeg(photoBuffer) : photoBuffer;
+  const bufferToUpload = stripImageMetadata(photoBuffer, format);
 
   // 6. Upload to Storage (service_role обходить storage RLS)
   const pickId = crypto.randomUUID();

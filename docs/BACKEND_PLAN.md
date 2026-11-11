@@ -63,7 +63,7 @@
 
 | # | Проблема | Наслідок | Задача |
 |---|---|---|---|
-| G1 🔴 | `POST /picks` завжди пише `pick_type: "private"` — немає вибору приватності | Тук-тук не може стати public | B3.1 |
+| G1 ✅ | `POST /picks` завжди пише `pick_type: "private"` — немає вибору приватності | Закрито: `POST v1-picks` приймає `visibility` (старий `POST /picks` свідомо лишається лише приватним) | B3.1 |
 | G2 🔴 | `v1-forecast` віддає числовий `score` (0.83) | Порушує заборону «ніяких відсотків» | B2.1 |
 | G3 🔴 | `v1-forecast` має `homeRegionId: null` — RegionGuard вимкнено | Прогноз для будь-якої точки України | B2.1 |
 | G4 🟡 | `v1-forecast`: `when_label = "Хвиля: autumn"` (англ. код у тексті), `why_labels` = технічні рядки (`"temp 13 within fruiting range"`) | Не відповідає Response Shaping | B2.2 |
@@ -160,8 +160,9 @@
 
 | ID | Задача | Деталі | DoD |
 |---|---|---|---|
-| B3.0 🔴 | `POST v1-picks/upload-url` (**ADR-002**) | `{ client_id, content_type, size_bytes }` → `{ upload_url, path, expires_at }` через `createSignedUploadUrl`; шлях `<user_id>/<client_id>.<ext>`; ліміт 5 МБ, JPEG/PNG/WebP. Політика Storage: INSERT тільки у власну папку. Cron: видалення «сиріт» (файл без pick > 24 год) | Клієнт завантажує файл PUT-запитом зі стрімінгом з диска; повторний виклик з тим самим `client_id` повертає валідний URL на той самий шлях |
-| B3.1 🔴 | `POST v1-picks` (**ADR-002, ADR-018**) | `{ client_id, path, lat, lng, captured_at, visibility: private\|public, species_id \| null, description?, ai_check? }` — **без base64**. `species_id = null` («Не знаю») → лише `private` (`422 species_required`). Опис: ліміт довжини, фільтр телефонів/посилань. `ai_check` (підказка з телефону) зберігається як є; `twin_alert` → без автопідтвердження. Сервер читає файл зі Storage, перевіряє magic bytes / розмір / EXIF (якщо є: GPS ≤ 1 км, час ≤ 24 год від `captured_at`), вирізає EXIF перезаписом об'єкта. Точка поза Home Region → `403 outside_home_region`. Для `public` рахує стабільну `display_point` (зсув 300–500 м від id). Перенести EXIF-логіку з `picks/index.ts` у `_shared/picks/exif.ts`. Міграція: `pick_type` лише `private`/`public` (`friends` → `private`) | Повтор із тим самим `client_id` → `200` без дубля; запит без файлу у Storage → `422 photo_not_uploaded`; «Не знаю» + public → 422; старий `POST /picks` (base64) працює для веб-прототипу |
+| ✅ B3.0 | `POST v1-picks/upload-url` (**ADR-002**) — **виконано 2026-11-11** (cron «сиріт» винесено в B3.0b) | `{ client_id, content_type, size_bytes }` → `{ upload_url, path, expires_at }` через `createSignedUploadUrl`; шлях `<user_id>/<client_id>.<ext>`; ліміт 5 МБ, JPEG/PNG/WebP. Політика Storage: INSERT тільки у власну папку. Cron: видалення «сиріт» (файл без pick > 24 год) | Клієнт завантажує файл PUT-запитом зі стрімінгом з диска; повторний виклик з тим самим `client_id` повертає валідний URL на той самий шлях |
+| ✅ B3.1 | `POST v1-picks` (**ADR-002, ADR-018**) — **виконано 2026-11-11** | `{ client_id, path, lat, lng, captured_at, visibility: private\|public, species_id \| null, description?, ai_check? }` — **без base64**. `species_id = null` («Не знаю») → лише `private` (`422 species_required`). Опис: ліміт довжини, фільтр телефонів/посилань. `ai_check` (підказка з телефону) зберігається як є; `twin_alert` → без автопідтвердження. Сервер читає файл зі Storage, перевіряє magic bytes / розмір / EXIF (якщо є: GPS ≤ 1 км, час ≤ 24 год від `captured_at`), вирізає EXIF перезаписом об'єкта. Точка поза Home Region → `403 outside_home_region`. Для `public` рахує стабільну `display_point` (зсув 300–500 м від id). Перенести EXIF-логіку з `picks/index.ts` у `_shared/picks/exif.ts`. Міграція: `pick_type` лише `private`/`public` (`friends` → `private`) | Повтор із тим самим `client_id` → `200` без дубля; запит без файлу у Storage → `422 photo_not_uploaded`; «Не знаю» + public → 422; старий `POST /picks` (base64) працює для веб-прототипу |
+| B3.0b 🟡 | Очищення незавершених завантажень (**ADR-002**) | Клієнт вантажить фото в «чернетку» `<user_id>/<client_id>.<ext>`; після створення точки сервер її видаляє. Якщо точку так і не створили, чернетка лишається. Потрібна Edge Function за розкладом (pg_cron + pg_net, як `guardian-tick`), яка видаляє через Storage API об'єкти у теках користувачів, старші за 24 год, на які не посилається жоден `mushroom_picks.photo_url`. Видаляти рядки `storage.objects` напряму через SQL не можна — файл лишиться у сховищі | Чернетка без точки зникає за ≤ 25 год; фото наявних точок (у т.ч. старого `POST /picks`) не зачіпаються (тест) |
 | B3.2 🔴 | Ліміти публічних точок (**ADR-010**) | Безкоштовно: Мандрівник/Слідопит — `public` заборонено (`403 level_required`), Лісовик — 5/добу. Pro: за рівнями ADR-013 (Мандрівник 5 / Слідопит 20 / Грибознавець 20 / Лісовик 50 / Хранитель 100 / Майстер ∞); free Хранитель — 10/добу. Private (**ADR-011**): безкоштовно — 5/добу з будь-якого рівня (і для гостя), Pro — без ліміту. Перевірка в БД-функції `can_publish_pick(user_id)`; `GET /me` віддає `picks: { public_allowed, public_hint_label }` для кнопки «Тук-тук» / «Приватний тук-тук» | Free-Слідопит → 403; free-Лісовик 6-та точка → `429 daily_limit_reached`; Pro-Мандрівник 5 точок → ок |
 | B3.3 🔴 | `GET v1-picks/map?bbox=&mine=` (**ADR-018**) | За замовчуванням — публічні точки (крім `rejected`) у Home Region; `mine=true` — ще й власні приватні. Для чужих точок — **тільки `display_point`** (похибка 300–500 м), точні координати — лише автору. Готові `marker_color` (сірий pending / зелений verified), `status_label`. `GET v1-picks/{id}` — фото (signed URL), назва, опис, дата, статус | Чужі private ніколи не віддаються (RLS-тест); точні координати чужої точки не потрапляють у відповідь (тест) |
 | B3.4 🟡 | `PATCH / DELETE v1-picks/{id}` | Зміна видимості (private ↔ public, з тими ж правилами B3.2) і опису тільки автором; фото й вид після публікації не змінюються; видалення = soft delete | RLS-тест: чужий pick не змінюється |
@@ -261,7 +262,7 @@
 | `training_samples` | 5 | id, storage_path, model_version, predictions JSONB, user_label, month, created_at — **без user_id/координат** | service_role (запис через Edge Function) |
 | `entitlements` | 6 | user_id, plan, valid_until, source (`revenuecat`) | свої (читання) |
 | `billing_events` | 6 | event_id PK, type, user_id, payload, received_at | service_role |
-| `mushroom_picks` (+колонки) | 3 | client_id UNIQUE(user_id, client_id), captured_at, deleted_at | існуючі політики + тести |
+| `mushroom_picks` (+колонки) ✅ | 3 | client_id UNIQUE(user_id, client_id), species_id, description, ai_check, twin_alert, display_geom, captured_at, deleted_at | читання — лише свої; запис — service_role (`create_pick`); тести `rls_picks_adr018.sql` |
 
 Скасовано рішеннями PO: `hazard_zones` (ADR-003), `recognition_usage` (ADR-007).
 
@@ -341,3 +342,38 @@
 **Обмеження перевірки:** Deno-тести і лінт запускаються локально та в CI. Міграції
 перевіряються на локальному Supabase (Docker), якщо він підніметься в середовищі; інакше —
 SQL-тестами в CI після `db push` на staging.
+
+---
+
+## 8. Робочий блок «Тук-тук» (B3.0 + B3.1) — ✅ виконано 2026-11-11
+
+**Що зроблено.** Міграція `20261111000000_tuk_tuk_adr018.sql`; Edge Function `v1-picks`
+(`/upload-url` і створення точки; логіка — `_shared/v1/picks.ts`); чисті модулі
+`_shared/picks/{text,fuzz,exif,image}.ts`; стрічка `GET /picks` без `friends` і лише з
+`display_geom` для чужих точок; OpenAPI; тести (Deno: 483 ✅, з них 96 нових; SQL: 5 файлів ✅).
+
+**Ліміти зараз** (БД-функція `can_create_pick`, до появи Pro і рівнів — B3.7, B6.3):
+приватні — 5 за 24 год; публічні — лише з рейтингом ≥ 201 («Лісовик»), 5 за 24 год.
+B3.2 повністю (Pro-ліміти, рівні, `GET /me → picks.public_allowed`) — після B3.7.
+
+**Рішення реалізації, які варто знати** (продуктових рішень не змінюють):
+
+| Тема | Як зроблено і чому |
+|---|---|
+| Зсув публічної точки | HMAC-SHA-256(секрет сервера, id точки) → кут і відстань 300–500 м. Просто SHA-256(id) не годиться: id є у відповідях API, тож будь-хто обчислив би зсув і відновив точні координати. Секрет — `PICK_FUZZ_SECRET` або, якщо його немає, ключ service_role. Зсув зберігається в `display_geom` |
+| Де лежить фото | Клієнт вантажить «чернетку» в `<user_id>/<client_id>.<ext>`; сервер перевіряє її, вирізає метадані й кладе чисту копію в `picks/<id>.<ext>` — теку, недоступну клієнтам, — а чернетку видаляє. Інакше повторний PUT за старим посиланням (повтор з офлайн-черги) повернув би у фото EXIF із GPS або підмінив знімок після перевірки |
+| Вирізання метаданих | JPEG: EXIF, XMP, IPTC, коментарі, дані після кінця зображення; орієнтація зберігається. Також PNG і WebP (API приймає ці формати) |
+| Ліміт без гонок | `create_pick()` перевіряє `client_id` і ліміт та вставляє рядок під блокуванням користувача — 30 паралельних запитів не створять 30 точок замість 5 |
+| Прямий запис у таблицю | INSERT / UPDATE / DELETE у `mushroom_picks` для клієнтських ролей відкликано: інакше ліміти й правило «з рівня Лісовик» обходились би запитом до REST API повз Edge Function. Жоден клієнт напряму в таблицю не писав |
+| Старий `POST /picks` | Працює далі, пише лише `private`. EXIF більше не дає статус `verified` (ADR-018): збіг → `pending`, інакше `conditional` |
+
+**Знайдено і виправлено по дорозі:**
+
+| Що | Статус |
+|---|---|
+| Стрічка `GET /picks` завжди віддавала `lat: null, lng: null`: PostgREST повертає `geography` як EWKB-hex, а код чекав GeoJSON | ✅ виправлено (`parseEwkbPoint`) |
+| Перевірка часу в EXIF ніколи не спрацьовувала: код читав тег `DateTime`, якого бібліотека exifr не повертає (є `DateTimeOriginal`) | ✅ виправлено в `_shared/picks/exif.ts` |
+| Вирізався лише сегмент EXIF; GPS у XMP лишався у файлі | ✅ виправлено |
+
+**Потрібно від PO:** нічого обов'язкового. За бажання — окремий секрет `PICK_FUZZ_SECRET`
+(GitHub Secrets → `deploy.yml`), щоб не залежати від ключа service_role.

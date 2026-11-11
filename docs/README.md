@@ -32,7 +32,7 @@ ForecastEngine прогнозує плодоношення грибів за т�
 
 ```
 supabase/
-  migrations/     SQL-міграції (43 файли — джерело істини схеми БД)
+  migrations/     SQL-міграції (46 файлів — джерело істини схеми БД)
   functions/      Edge Functions (Deno)
     _shared/      спільні модулі: forecast engine, guardian, auth, errors
     forecast/     POST /forecast — основний прогноз

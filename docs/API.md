@@ -23,7 +23,7 @@ Edge Functions (`supabase/functions/*/index.ts`) та спільних моду�
 | Рівень | Значення | Де застосовується |
 |---|---|---|
 | Публічний | без заголовка | `POST /forecast`, `GET /regions`, `GET /catalog` |
-| Опційний JWT | `Authorization: Bearer $ACCESS_TOKEN` | `GET /picks` (для `scope=mine/friends`) |
+| Опційний JWT | `Authorization: Bearer $ACCESS_TOKEN` | `GET /picks` (для `scope=mine`) |
 | JWT обов'язковий | `Authorization: Bearer $ACCESS_TOKEN` | `POST /picks`, `GET /me`, `PATCH /me` |
 
 Приклади нижче використовують плейсхолдер `$ACCESS_TOKEN` — **підставте свій
@@ -89,6 +89,8 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
 | `GET /v1-regions/{slug}/geometry?detail=` | публічний | Кордон області (маска «острова»): `bbox`, `center`, `zoom`, `geometry`; кеш + ETag |
 | `GET /v1-forest-zones?bbox=&z=&limit=` | JWT | Ліси **тільки Home Region**: `{ data: FeatureCollection }` з `type_label`/`type_color` |
 | `POST /v1-forecast` | JWT | Прогноз у межах Home Region; рівні з підписами, **без** `score`/`probability` |
+| `POST /v1-picks/upload-url` | JWT | Тук-тук, крок 1: `{ client_id, content_type, size_bytes }` → `{ upload_url, path, token, expires_at }` (ADR-002) |
+| `POST /v1-picks` | JWT | Тук-тук, крок 3: створити точку `private` / `public` (ADR-018) → `{ id, visibility, status_label, marker_color }` |
 
 Спільні правила v1:
 - Гість входить через `supabase.auth.signInAnonymously()` і має звичайний JWT (ADR-001).
@@ -99,6 +101,71 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
 - `POST /guardian-session-create` і `POST /guardian-sos` для гостя → `403 registration_required`.
 - Legacy `/me` (не плутати з `v1-me`): лише `GET` — експорт власних даних (GDPR). `DELETE` та
   інші методи → `405 method_not_allowed`. Видалення акаунта — B6.2.
+
+### Тук-тук: `v1-picks` (B3.0 + B3.1, ADR-002, ADR-018)
+
+Фото **ніколи** не передається як base64. Три кроки, спільний `client_id` (UUID від клієнта)
+робить їх безпечними для повтору з офлайн-черги:
+
+```bash
+# 1. Посилання для завантаження
+curl -X POST "$SUPABASE_URL/functions/v1/v1-picks/upload-url" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "client_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "content_type": "image/jpeg", "size_bytes": 1500000 }'
+# → { "data": { "upload_url": "...", "path": "<user_id>/<client_id>.jpg", "token": "...", "expires_at": "..." } }
+
+# 2. Файл — прямо в Storage (стрімінг з диска; без Authorization / apikey)
+curl -X PUT "$UPLOAD_URL" -H "Content-Type: image/jpeg" --data-binary @photo.jpg
+
+# 3. Точка
+curl -X POST "$SUPABASE_URL/functions/v1/v1-picks" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "path": "<path з кроку 1>",
+    "lat": 50.4501, "lng": 30.5234,
+    "captured_at": "2026-11-10T09:30:00Z",
+    "visibility": "public",
+    "species_id": "boletus_edulis",
+    "description": "Під старими соснами після дощу",
+    "ai_check": { "model_version": "bioclip2-int8-1",
+                  "top": [{ "species_id": "boletus_edulis", "level": "high" }],
+                  "match": true, "twin_alert": false }
+  }'
+# → 201 { "data": { "id": "...", "visibility": "public", "status_label": "Перевіряється", "marker_color": "#9e9e9e" } }
+```
+
+Правила `POST /v1-picks` (перевірки йдуть у цьому порядку):
+
+| # | Перевірка | Помилка |
+|---|---|---|
+| 1 | Гість створює лише `private` | `403 registration_required` |
+| 2 | Поля тіла | `422 validation_error` (+ `message`) |
+| 3 | `path` — лише зі своєї теки | `403 forbidden` |
+| 4 | Той самий `client_id` уже створив точку | `200` з тією самою точкою (не помилка) |
+| 5 | Точка в межах Home Region | `403 outside_home_region` (`409 home_region_required`, якщо область не обрано) |
+| 6 | `species_id: null` («Не знаю») — лише `private`; id має бути в довіднику | `422 species_required`, `422 unknown_species` |
+| 7 | Опис: ≤ 500 символів; телефони, e-mail, посилання, @нікнейми → «…» | `422 validation_error` (задовгий) |
+| 8 | Ліміти: 5 приватних / добу; публічні — з рівня «Лісовик» (рейтинг ≥ 201), 5 / добу | `429 daily_limit_reached`, `403 level_required` |
+| 9 | Фото завантажено, ≤ 5 МіБ, справжній JPEG / PNG / WebP | `422 photo_not_uploaded`, `400 photo_too_large`, `400 invalid_photo_format` |
+
+Що робить сервер із фото і місцем:
+- перевіряє EXIF (GPS ≤ 1 км від заявлених координат, час ≤ 24 год від `captured_at`). Це лише
+  підказка: результат зберігається в `ai_check.exif`, а точку він **не** підтверджує;
+- вирізає EXIF / XMP / IPTC (орієнтація JPEG зберігається) і кладе очищену копію в теку
+  `picks/<id>.<ext>`, куди клієнти писати не можуть; завантажену «чернетку» видаляє;
+- нова публічна точка завжди `pending` («Перевіряється») — підтверджують люди (B3.8);
+- для `public` рахує стабільно зсунуте місце (300–500 м). Точні координати не потрапляють у
+  жодну відповідь для інших користувачів.
+
+`ai_check` — підказка локального ШІ: рівні `high` / `medium` / `low`, **без відсотків**. Зайві
+поля відкидаються. `twin_alert: true` позначає точку: автоматично вона не підтверджується.
+
+Необов'язковий секрет функції `PICK_FUZZ_SECRET` — ключ для зсуву публічних точок; якщо його
+немає, використовується ключ service_role. Зсув зберігається разом із точкою, тож зміна
+секрету не рухає вже створені точки.
 
 ---
 
@@ -188,8 +255,14 @@ curl -X POST "$SUPABASE_URL/functions/v1/forecast" \
 
 ## 2. POST /picks
 
+> **Legacy (веб-прототип).** Flutter використовує `v1-picks` (розділ 0): Signed Upload URL
+> без base64, видимість `private` / `public`. Цей ендпоінт створює **лише приватні** точки.
+
 Створити знахідку («тук-тук»): валідація → завантаження фото в Storage
 (bucket `mushroom-photos`) → вставка в `mushroom_picks` → **201**.
+
+`verificationStatus`: `pending` — EXIF збігається з координатами й часом; `conditional` —
+EXIF немає або він не збігається. EXIF не робить точку `verified` (ADR-018).
 
 **Auth:** JWT обов'язковий (`requireMushroomPicker`).
 
@@ -265,16 +338,21 @@ curl -X POST "$SUPABASE_URL/functions/v1/picks" \
 
 ## 3. GET /picks
 
-Стрічка трофеїв з пагінацією та скоупами видимості. RLS накладається клієнтом
-користувача; enrichment (імена, регіони, signed URLs) — через service_role.
+Стрічка трофеїв з пагінацією та скоупами видимості.
 
-**Auth:** опційний JWT. Для `scope=mine` / `scope=friends` — обов'язковий (інакше `401`).
+**Приватність (ADR-018 §18.5).** `scope=mine` читає власні точки клієнтом користувача (RLS) і
+віддає **точні** координати. `scope=public` / `scope=region` віддають лише публічні точки
+(крім відхилених і видалених), і `lat` / `lng` у них — **зсунуте місце** (300–500 м від
+справжнього, зсув стабільний). Точні координати чужих точок не віддаються ніколи.
+`scope=friends` скасовано (ADR-018) → `400 invalid_scope`.
+
+**Auth:** опційний JWT. Для `scope=mine` — обов'язковий (інакше `401`).
 
 ### Query
 
 | Параметр | Значення | За замовчуванням | Опис |
 |---|---|---|---|
-| `scope` | `mine` \| `friends` \| `public` \| `region` | `public` | `mine` — свої; `friends` — `pick_type=friends`; `public` — `pick_type=public`; `region` — автори з домашньої області |
+| `scope` | `mine` \| `public` \| `region` | `public` | `mine` — свої (точні координати); `public` — усі публічні; `region` — публічні точки авторів з області `region_slug` |
 | `period` | `24h` \| `3d` \| `week` \| `all` | `week` | Фільтр за `created_at` |
 | `limit` | int 1..50 | 20 | Розмір сторінки |
 | `offset` | int ≥ 0 | 0 | Зсув |
@@ -322,7 +400,7 @@ curl "$SUPABASE_URL/functions/v1/picks?scope=public&period=week&limit=20&offset=
 
 `invalid_scope`, `invalid_period`, `invalid_pagination`, `limit_out_of_range`,
 `invalid_offset`, `invalid_mushroom_type`, `invalid_region_slug`,
-`missing_region_slug` → **400**; `unauthorized` (mine/friends без JWT) → **401**;
+`missing_region_slug` → **400**; `unauthorized` (mine без JWT) → **401**;
 `region_not_found` → **404**; `db_error` → **500**.
 
 ---

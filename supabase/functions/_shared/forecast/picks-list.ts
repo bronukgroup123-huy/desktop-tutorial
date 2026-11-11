@@ -1,22 +1,25 @@
 // ============================================================================
 // GET /picks — pure handler (group 9.4)
 //
-// Стрічка трофеїв для Flutter: scopes mine|friends|public|region,
+// Стрічка трофеїв: scopes mine|public|region (scope friends скасовано ADR-018),
 // periods 24h|3d|week|all, фільтри mushroom_type/region_slug,
 // пагінація limit (20 default, max 50) / offset.
 //
-// БЕЗПЕКА (гібрид клієнтів, бо RLS не дає прочитати чужі users-рядки):
+// БЕЗПЕКА (ADR-018 §18.5 — точні координати бачить лише автор):
 //   readDb  — клієнт користувача (anon-key + JWT) → RLS mushroom_picks_read
-//             (owner | shared_with | public | same home_region) enforced
-//   adminDb — service_role → enrichment: users.name/home_region_id,
-//             regions.name, catalog.name_ua, storage signed URLs
+//             (тільки власні точки). Лише для scope=mine; тут віддається точний geom.
+//   adminDb — service_role. Чужі точки (scope=public|region) читаються тільки ним, з
+//             явним фільтром pick_type = 'public' AND deleted_at IS NULL, і тільки
+//             колонка display_geom (зсув 300–500 м). Колонка geom для цих scope
+//             навіть не запитується. Також enrichment: users, regions, catalog,
+//             signed URLs.
 //
 // Логіка винесена сюди, щоб тестувати без supabase-js/esm.sh.
 // ============================================================================
 
 import { buildCorsHeaders } from "../cors.ts";
 
-export const PICKS_SCOPES = ["mine", "friends", "public", "region"] as const;
+export const PICKS_SCOPES = ["mine", "public", "region"] as const;
 export type PicksScope = (typeof PICKS_SCOPES)[number];
 
 export const PICKS_PERIODS = ["24h", "3d", "week", "all"] as const;
@@ -66,6 +69,7 @@ export interface PickFeedItem {
   mushroom_type: string;
   name_ua: string | null;
   photo_url: string | null;
+  /** scope=mine — точні координати; public/region — зсунуте місце (300–500 м). */
   lat: number | null;
   lng: number | null;
   forest_type: string | null;
@@ -78,10 +82,14 @@ export interface PickFeedItem {
 
 export type PicksQueryResult = PicksListFilters | { error: string };
 
-const PICK_SELECT =
+const PICK_COLUMNS =
   "id, user_id, mushroom_type, forest_type, pick_type, " +
   "verification_status, weight, is_indicator, is_negative, " +
-  "created_at, photo_url, geom";
+  "created_at, photo_url";
+/** Власні точки — з точними координатами. */
+const PICK_SELECT_OWN = `${PICK_COLUMNS}, geom`;
+/** Чужі публічні точки — лише зсунуте місце; `geom` не запитується взагалі. */
+const PICK_SELECT_PUBLIC = `${PICK_COLUMNS}, display_geom`;
 
 function jsonResponse(data: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(data), {
@@ -105,8 +113,27 @@ export function periodCutoffMs(period: PicksPeriod, now: Date): number | null {
   }
 }
 
-/** lat/lng з GeoJSON `geom` (supabase-js віддає geography як GeoJSON) */
+/** Точка з EWKB у hex — саме так PostgREST віддає колонки типу geography. */
+export function parseEwkbPoint(hex: string): { lat: number; lng: number } | null {
+  if (hex.length < 42 || hex.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(hex)) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  const view = new DataView(bytes.buffer);
+  const little = bytes[0] === 1;
+  const type = view.getUint32(1, little);
+  if ((type & 0xff) !== 1) return null; // не Point
+  const offset = (type & 0x20000000) !== 0 ? 9 : 5; // з SRID чи без
+  if (offset + 16 > bytes.length) return null;
+  const lng = view.getFloat64(offset, little);
+  const lat = view.getFloat64(offset + 8, little);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+/** lat/lng з колонки geography: EWKB-hex (PostgREST) або GeoJSON. */
 export function extractLatLng(geom: unknown): { lat: number | null; lng: number | null } {
+  if (typeof geom === "string") {
+    return parseEwkbPoint(geom) ?? { lat: null, lng: null };
+  }
   if (geom && typeof geom === "object" && "coordinates" in geom) {
     const c = (geom as { coordinates: unknown }).coordinates;
     if (Array.isArray(c) && c.length === 2) {
@@ -186,8 +213,9 @@ export function parsePicksQuery(url: URL): PicksQueryResult {
  * Статуси: 204 OPTIONS | 405 non-GET | 400 invalid_* | 401 unauthorized |
  *          404 region_not_found | 200 {data,total,limit,offset} | 500 db_error.
  *
- * readDb (RLS-клієнт користувача) — вибірка picks; adminDb (service_role) —
- * enrichment (users/regions/catalog/signed URLs).
+ * readDb (RLS-клієнт користувача) — лише власні точки (scope=mine);
+ * adminDb (service_role) — публічні точки (тільки display_geom) та enrichment
+ * (users/regions/catalog/signed URLs).
  */
 export async function handlePicksListRequest(
   readDb: PicksListDbClient,
@@ -208,8 +236,8 @@ export async function handlePicksListRequest(
     return jsonResponse({ error: filters.error }, 400, req);
   }
 
-  // mine/friends потребують userId (RLS фільтрує, але явний .eq — defense in depth)
-  if ((filters.scope === "mine" || filters.scope === "friends") && !userId) {
+  // mine потребує userId (RLS фільтрує, але явний .eq — defense in depth)
+  if (filters.scope === "mine" && !userId) {
     return jsonResponse({ error: "unauthorized" }, 401, req);
   }
 
@@ -253,18 +281,23 @@ export async function handlePicksListRequest(
       }
     }
 
-    // ── Вибірка picks (RLS-клієнт) ──
-    let query = readDb.from("mushroom_picks").select(PICK_SELECT, { count: "exact" });
+    // ── Вибірка picks ──
+    // mine: клієнт користувача (RLS) + точний geom.
+    // public / region: service_role, тільки публічні точки і тільки display_geom.
+    const own = filters.scope === "mine";
+    let query = own
+      ? readDb.from("mushroom_picks").select(PICK_SELECT_OWN, { count: "exact" })
+      : adminDb.from("mushroom_picks").select(PICK_SELECT_PUBLIC, { count: "exact" });
 
-    if (filters.scope === "mine") {
+    query = query.is("deleted_at", null);
+    if (own) {
       query = query.eq("user_id", userId!);
-    } else if (filters.scope === "friends") {
-      // RLS покаже лише ті, що shared_with=me / public / same-region / mine
-      query = query.eq("pick_type", "friends");
-    } else if (filters.scope === "public") {
-      query = query.eq("pick_type", "public");
-    } else if (filters.scope === "region" && regionUserIds) {
-      query = query.in("user_id", regionUserIds.map((u) => u.id));
+    } else {
+      // Відхилені спільнотою точки зникають зі стрічки (ADR-018 §18.4).
+      query = query.eq("pick_type", "public").neq("verification_status", "rejected");
+      if (filters.scope === "region" && regionUserIds) {
+        query = query.in("user_id", regionUserIds.map((u) => u.id));
+      }
     }
 
     const cutoff = periodCutoffMs(filters.period, now);
@@ -288,7 +321,7 @@ export async function handlePicksListRequest(
     const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
 
     // ── Enrichment (service_role): users → regions → catalog → signed URLs ──
-    const items = await enrichFeedItems(adminDb, rows);
+    const items = await enrichFeedItems(adminDb, rows, own ? "geom" : "display_geom");
 
     return jsonResponse(
       {
@@ -309,7 +342,8 @@ export async function handlePicksListRequest(
 /** Мапінг рядків picks → PickFeedItem (batch-запити на adminDb, не N+1) */
 async function enrichFeedItems(
   adminDb: PicksListDbClient,
-  rows: Record<string, unknown>[]
+  rows: Record<string, unknown>[],
+  coordColumn: "geom" | "display_geom"
 ): Promise<PickFeedItem[]> {
   if (rows.length === 0) return [];
 
@@ -393,7 +427,7 @@ async function enrichFeedItems(
   return rows.map((row) => {
     const userId = String(row.user_id);
     const user = usersById.get(userId);
-    const { lat, lng } = extractLatLng(row.geom);
+    const { lat, lng } = extractLatLng(row[coordColumn]);
     const photoPath = row.photo_url ? String(row.photo_url) : null;
     return {
       id: String(row.id),

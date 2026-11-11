@@ -22,7 +22,7 @@ deno test supabase/tests/forecast/ --allow-net
 ## Структура
 
 ```
-supabase/migrations/   SQL-міграції (43 файли — джерело істини схеми БД)
+supabase/migrations/   SQL-міграції (46 файлів — джерело істини схеми БД)
 supabase/functions/    Edge Functions: forecast, picks, regions, catalog, me + guardian-*
 supabase/tests/        deno-тести + golden dataset (regression)
 web-guardian/          Next.js клієнт (web)
