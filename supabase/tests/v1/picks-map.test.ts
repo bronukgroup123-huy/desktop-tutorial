@@ -255,6 +255,32 @@ Deno.test("card: 401 без токена; 409 без області; некор�
   assertEquals(bad.json.error, "not_found");
 });
 
+Deno.test("species: список видів для вибору назви + «Не знаю, що це»; кешується на годину", async () => {
+  const d = db({
+    "mushroom_catalog.select": {
+      data: [
+        { id: "boletus_edulis", name_ua: "Білий гриб", name_lat: "Boletus edulis" },
+        { id: "cantharellus_cibarius", name_ua: "Лисичка справжня", name_lat: null },
+      ],
+      error: null,
+    },
+  });
+  const { res, json } = await run(d, req("GET", "http://localhost/v1-picks/species"));
+  assertEquals(res.status, 200);
+  assertEquals(json.data, {
+    species: [
+      { id: "boletus_edulis", name_label: "Білий гриб", latin_label: "Boletus edulis" },
+      { id: "cantharellus_cibarius", name_label: "Лисичка справжня", latin_label: null },
+    ],
+    unknown_label: "Не знаю, що це",
+  });
+  assertEquals(res.headers.get("Cache-Control"), "private, max-age=3600");
+  assertEquals(find(d, "mushroom_catalog.select")!.filters, [["order", "name_ua"]]);
+
+  assertEquals((await run(db(), new Request("http://localhost/v1-picks/species"))).res.status, 401);
+  assertEquals((await run(db(), req("POST", "http://localhost/v1-picks/species", {}))).res.status, 405);
+});
+
 Deno.test("dateLabel: дата українською за київським часом", () => {
   assertEquals(dateLabel("2026-11-10T09:30:00Z"), "10 листопада 2026 р.");
   assertEquals(dateLabel("2026-01-01T00:30:00+02:00"), "1 січня 2026 р.");

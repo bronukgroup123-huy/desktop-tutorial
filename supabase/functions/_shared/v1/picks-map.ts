@@ -5,6 +5,8 @@
 //   → 200 { data: { points: [...], truncated } }
 // GET v1-picks/{id}
 //   → 200 { data: { ...картка } } · 404 pick_not_found
+// GET v1-picks/species
+//   → 200 { data: { species: [...], unknown_label } } — список для вибору назви
 //
 // Користувач бачить публічні точки інших у своїй області (сірі — «Перевіряється»,
 // зелені — «Підтверджено») і власні точки; `mine=true` додає власні приватні.
@@ -15,7 +17,7 @@
 // ============================================================================
 
 import { type AuthUser, HttpError, loadHomeRegionId, ok, requireHomeRegion } from "../http.ts";
-import { pickPresentation, speciesLabel } from "../picks/presentation.ts";
+import { pickPresentation, speciesLabel, UNKNOWN_SPECIES_LABEL } from "../picks/presentation.ts";
 import type { PicksDeps } from "./picks.ts";
 
 /** Максимум точок в одній відповіді; якщо їх більше — `truncated: true`. */
@@ -123,6 +125,28 @@ export async function handlePicksMap(
     points: rows.slice(0, MAP_LIMIT).map(shapeMapPoint),
     truncated: rows.length > MAP_LIMIT,
   }, req);
+}
+
+// ─── Список видів для вибору назви (ADR-018 §18.3: назва — тільки з довідника) ──
+
+/** GET v1-picks/species → { data: { species: [{ id, name_label, latin_label }], unknown_label } } */
+export async function handlePickSpecies(req: Request, deps: PicksDeps): Promise<Response> {
+  const { data, error } = await deps.db
+    .from("mushroom_catalog")
+    .select("id, name_ua, name_lat")
+    .order("name_ua");
+  if (error) dbFail("mushroom_catalog select", error);
+  const rows = (data ?? []) as Array<{ id: string; name_ua: string; name_lat: string | null }>;
+  return ok(
+    {
+      species: rows.map((r) => ({ id: r.id, name_label: r.name_ua, latin_label: r.name_lat ?? null })),
+      // Варіант «Не знаю, що це» — така точка може бути лише приватною.
+      unknown_label: UNKNOWN_SPECIES_LABEL,
+    },
+    req,
+    200,
+    { "Cache-Control": "private, max-age=3600" },
+  );
 }
 
 const DATE_FORMAT = new Intl.DateTimeFormat("uk-UA", {

@@ -8,6 +8,7 @@
 //   → 201 { data: { id, visibility, status_label, marker_color } }   (повтор → 200)
 // GET  v1-picks/map?bbox=&mine=   — точки для карти (B3.3, `picks-map.ts`)
 // GET  v1-picks/{id}              — картка точки (B3.3, `picks-map.ts`)
+// GET  v1-picks/species           — список видів для вибору назви (`picks-map.ts`)
 //
 // Потік клієнта: (1) upload-url → (2) PUT файлу за upload_url → (3) створення точки.
 // Фото ніколи не передається як base64. `client_id` — ключ ідемпотентності обох кроків.
@@ -44,7 +45,7 @@ import {
 } from "../picks/image.ts";
 import { type PickPresentation, pickPresentation } from "../picks/presentation.ts";
 import { cleanDescription, DESCRIPTION_MAX_LENGTH } from "../picks/text.ts";
-import { handlePickCard, handlePicksMap } from "./picks-map.ts";
+import { handlePickCard, handlePickSpecies, handlePicksMap } from "./picks-map.ts";
 
 export { type PickPresentation, pickPresentation };
 
@@ -572,6 +573,7 @@ export type PicksRoute =
   | { kind: "create" }
   | { kind: "upload-url" }
   | { kind: "map" }
+  | { kind: "species" }
   | { kind: "card"; id: string };
 
 export function parsePicksRoute(url: URL): PicksRoute {
@@ -580,6 +582,7 @@ export function parsePicksRoute(url: URL): PicksRoute {
   if (tail === "") return { kind: "create" };
   if (tail === "upload-url") return { kind: "upload-url" };
   if (tail === "map") return { kind: "map" };
+  if (tail === "species") return { kind: "species" };
   if (tail !== null && UUID_RE.test(tail)) return { kind: "card", id: tail.toLowerCase() };
   throw new HttpError(404, "not_found", "Невідомий шлях v1-picks");
 }
@@ -587,7 +590,8 @@ export function parsePicksRoute(url: URL): PicksRoute {
 export async function handlePicks(req: Request, deps: PicksDeps): Promise<Response> {
   const url = new URL(req.url);
   const route = parsePicksRoute(url);
-  assertMethod(req, route.kind === "map" || route.kind === "card" ? ["GET"] : ["POST"]);
+  const reads = route.kind === "map" || route.kind === "card" || route.kind === "species";
+  assertMethod(req, reads ? ["GET"] : ["POST"]);
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-picks");
   const user = await requireUser(req, deps.verify);
@@ -600,6 +604,8 @@ export async function handlePicks(req: Request, deps: PicksDeps): Promise<Respon
       return await createPick(req, user, deps, now);
     case "map":
       return await handlePicksMap(req, url, user, deps);
+    case "species":
+      return await handlePickSpecies(req, deps);
     case "card":
       return await handlePickCard(req, route.id, user, deps);
   }
