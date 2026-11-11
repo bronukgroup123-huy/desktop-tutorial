@@ -68,6 +68,10 @@ function mockStorage(files: Record<string, Uint8Array> = {}, fail: { download?: 
       }
       return Promise.resolve({ data: [], error: null });
     },
+    createSignedUrl(path, expiresIn) {
+      calls.push({ op: "sign-read", path, options: expiresIn });
+      return Promise.resolve({ data: { signedUrl: `https://proj.supabase.co/signed/${path}?t=1` }, error: null });
+    },
   };
   return { storage, store, calls };
 }
@@ -135,10 +139,12 @@ const createArgs = (d: ReturnType<typeof mockDb>) => find(d, "rpc.create_pick")!
 // ─── Маршрути ───────────────────────────────────────────────────────────────
 
 Deno.test("v1-picks: маршрути", () => {
-  assertEquals(parsePicksRoute(new URL("http://x/v1-picks")), "create");
-  assertEquals(parsePicksRoute(new URL("http://x/v1-picks/")), "create");
-  assertEquals(parsePicksRoute(new URL("http://x/functions/v1/v1-picks/upload-url")), "upload-url");
-  assertEquals(parsePicksRoute(new URL("http://x/v1-picks/upload-url/")), "upload-url");
+  assertEquals(parsePicksRoute(new URL("http://x/v1-picks")), { kind: "create" });
+  assertEquals(parsePicksRoute(new URL("http://x/v1-picks/")), { kind: "create" });
+  assertEquals(parsePicksRoute(new URL("http://x/functions/v1/v1-picks/upload-url")), { kind: "upload-url" });
+  assertEquals(parsePicksRoute(new URL("http://x/v1-picks/upload-url/")), { kind: "upload-url" });
+  assertEquals(parsePicksRoute(new URL("http://x/v1-picks/map?bbox=1,2,3,4")), { kind: "map" });
+  assertEquals(parsePicksRoute(new URL(`http://x/v1-picks/${PICK_ID.toUpperCase()}`)), { kind: "card", id: PICK_ID });
 });
 
 Deno.test("v1-picks: невідомий шлях → 404, не-POST → 405, rate limit → 429", async () => {
@@ -146,6 +152,8 @@ Deno.test("v1-picks: невідомий шлях → 404, не-POST → 405, rat
   assertEquals((await run(db(), req("POST", "http://localhost/v1-picks/a/b", {}))).res.status, 404);
   assertEquals((await run(db(), req("GET", CREATE))).res.status, 405);
   assertEquals((await run(db(), req("GET", UPLOAD))).res.status, 405);
+  assertEquals((await run(db(), req("POST", "http://localhost/v1-picks/map", {}))).res.status, 405);
+  assertEquals((await run(db(), req("POST", `http://localhost/v1-picks/${PICK_ID}`, {}))).res.status, 405);
 
   const limited = await run(db(RL_BLOCKED), req("POST", CREATE, body()));
   assertEquals(limited.res.status, 429);
