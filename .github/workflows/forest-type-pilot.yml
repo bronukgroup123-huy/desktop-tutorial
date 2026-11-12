@@ -1,0 +1,86 @@
+name: Forest type pilot (Sentinel-2)
+
+# Пілот: хвойний / листяний / мішаний ліс для Житомирщини з Sentinel-2 (без Earth Engine).
+# Маска лісу — ESA WorldCover; перевірка точності — ліси OSM з leaf_type / species.
+# Результат — Artifacts (GeoTIFF, превʼю, звіт). Нічого не публікує.
+on:
+  workflow_dispatch:
+    inputs:
+      bbox:
+        description: 'bbox west,south,east,north (за замовчуванням — Житомирська область)'
+        required: false
+        default: '27.19,49.58,29.74,51.69'
+  push:
+    branches: [claude/project-rb2fo8]
+    paths:
+      - 'scripts/forest_type/**'
+      - '.github/workflows/forest-type-pilot.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forest-type-pilot
+  cancel-in-progress: true
+
+env:
+  BBOX: ${{ github.event.inputs.bbox || '27.19,49.58,29.74,51.69' }}
+  PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+          pip install -q rasterio pystac-client numpy pillow
+
+      # Мітки для перевірки — ліси OSM з породою / типом листя (той самий кеш, що й у Forests data).
+      - name: Cache key
+        id: week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: osm/ukraine-latest.osm.pbf
+          key: geofabrik-ukraine-${{ steps.week.outputs.week }}
+      - name: OSM labels
+        run: |
+          mkdir -p osm
+          if [ ! -s osm/ukraine-latest.osm.pbf ]; then
+            curl -fsSL --retry 5 --retry-delay 30 -o osm/ukraine-latest.osm.pbf "$PBF_URL"
+          fi
+          osmium extract -b "$BBOX" osm/ukraine-latest.osm.pbf -o osm/area.osm.pbf --overwrite
+          osmium tags-filter osm/area.osm.pbf wr/landuse=forest wr/natural=wood wr/landcover=trees -o osm/forests.osm.pbf --overwrite
+          osmium tags-filter osm/forests.osm.pbf wr/leaf_type wr/species wr/genus wr/wood wr/taxon -o osm/labeled.osm.pbf --overwrite
+          osmium export osm/labeled.osm.pbf -f geojsonseq --geometry-types=polygon -u type_id -o osm/labels.geojsonseq --overwrite
+          wc -l osm/labels.geojsonseq
+
+      - name: Classify
+        env:
+          GDAL_HTTP_MAX_RETRY: '5'
+          GDAL_HTTP_RETRY_DELAY: '3'
+          GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+          AWS_NO_SIGN_REQUEST: 'YES'
+          CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
+        run: python scripts/forest_type/s2_leaf_type.py --bbox "$BBOX" --labels osm/labels.geojsonseq --out out
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f out/report.json ]; then
+            echo "### Тип лісу (Sentinel-2), пілот" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"; cat out/report.json >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forest-type-pilot
+          path: out/
+          retention-days: 14
