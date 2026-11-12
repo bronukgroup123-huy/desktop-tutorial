@@ -133,13 +133,12 @@ def search_items(bbox, season):
 
 
 def band_params(asset, item):
+    """Масштаб і зсув із метаданих STAC. У колекції sentinel-2-l2a Earth Search v1
+    зсув +1000 уже прибрано з даних, тож якщо метадані його не вказують — зсуву немає.
+    (Перший прогін віднімав 0,1 «за базовою лінією обробки» → червоний канал ставав
+    від'ємним, NDVI виходив за межі −1…1.)"""
     rb = (asset.extra_fields.get("raster:bands") or [{}])[0]
-    scale = rb.get("scale", 0.0001)
-    offset = rb.get("offset")
-    if offset is None:
-        pb = str(item.properties.get("s2:processing_baseline", "00.00"))
-        offset = -0.1 if pb >= "04.00" else 0.0
-    return scale, offset
+    return rb.get("scale", 0.0001), rb.get("offset", 0.0)
 
 
 def read_overview(href, level):
@@ -162,9 +161,12 @@ def item_ndvi(item, valid_scl):
     n = nir.astype(np.float32) * ns + no
     with np.errstate(divide="ignore", invalid="ignore"):
         ndvi = (n - r) / (n + r)
-    ok = np.isin(scl, list(valid_scl)) & (red > 0) & (nir > 0) & np.isfinite(ndvi)
+    ok = np.isin(scl, list(valid_scl)) & (red > 0) & (nir > 0) & np.isfinite(ndvi) & (r > 0) & (n > 0)
     ndvi[~ok] = np.nan
-    return ndvi, t10, crs
+    bad = np.count_nonzero(np.abs(ndvi[ok]) > 1.0001)
+    if bad > 0.001 * max(1, np.count_nonzero(ok)):
+        raise ValueError(f"NDVI out of [-1, 1] in {bad} px — wrong scale/offset (scale {rs}, offset {ro})")
+    return np.clip(ndvi, -1, 1), t10, crs
 
 
 def season_median(bbox, season, transform, width, height, forest):
