@@ -162,7 +162,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       _setAnalysisCenter(hit.coordinate);
       return;
     }
-    setState(() => _forestLabel = (point: hit.coordinate, zone: hit.hitValues.first));
+    // Під пальцем може бути кілька контурів OSM — беремо найдостовірніший і найточніший.
+    setState(() => _forestLabel = (point: hit.coordinate, zone: pickForestAt(hit.hitValues)));
   }
 
   /// Масштаб «вся область» під поточний розмір карти. При повороті екрана
@@ -358,43 +359,60 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
           ),
       ];
 
-  /// Підпис визначника лісу над точкою дотику.
-  Marker _forestLabelMarker(LatLng point, ForestZone zone) => Marker(
-        point: point,
-        width: 220,
-        height: 56,
-        alignment: Alignment.topCenter,
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: GestureDetector(
-            onTap: () => setState(() => _forestLabel = null),
-            child: Container(
-              key: const ValueKey('forest-label'),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: zone.typeColor, width: 2),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6)],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.forest_rounded, size: 16, color: zone.typeColor),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+  /// Підпис визначника лісу над точкою дотику: тип (і вік), площа, звідки тип.
+  Marker _forestLabelMarker(LatLng point, ForestZone zone) {
+    final title = zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.';
+    final details = [if (zone.areaLabel != null) zone.areaLabel!, if (zone.typeSourceLabel != null) zone.typeSourceLabel!];
+    return Marker(
+      point: point,
+      width: 260,
+      height: details.isEmpty ? 56 : 92,
+      alignment: Alignment.topCenter,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: GestureDetector(
+          onTap: () => setState(() => _forestLabel = null),
+          child: Container(
+            key: const ValueKey('forest-label'),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: zone.typeColor, width: 2),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.forest_rounded, size: 16, color: zone.typeColor),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+                      ),
                     ),
+                  ],
+                ),
+                for (final d in details)
+                  Text(
+                    d,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.65)),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 
   List<Marker> _pickMarkers(List<MapPick> picks) => [
         for (final p in picks)
