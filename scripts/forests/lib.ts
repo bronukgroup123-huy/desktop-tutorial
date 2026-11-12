@@ -170,67 +170,172 @@ export interface BuildStats {
  * Залишає полігони, «точка на полігоні» яких лежить у межах [region]
  * (та сама логіка, що й у БД), площею ≥ 1 га; спрощує й округлює координати.
  */
+/**
+ * id OSM у форматі застосунку: "w123" (way) / "r123" (relation). Порожній — невідомий.
+ * Приймає id з Overpass/osmtogeojson ("way/123") і з `osmium export -u type_id`
+ * ("a246" — площа: парне число = way 123, непарне = relation (n-1)/2).
+ */
+export function normalizeOsmId(raw: unknown): string {
+  const s = String(raw ?? "");
+  const area = s.match(/^a(\d+)$/);
+  if (area) {
+    const n = BigInt(area[1]);
+    return n % 2n === 0n ? `w${n / 2n}` : `r${(n - 1n) / 2n}`;
+  }
+  return s.replace("/", "").replace(/^way/, "w").replace(/^relation/, "r");
+}
+
+/** Ліс у форматі v1-forest-zones (+ дані визначника): спрощений контур, тип, підписи. */
+export function forestFeature(f: Geo, id: string, area: number, tolerance = SIMPLIFY_TOLERANCE_DEG): Geo {
+  const { type: forestType, source } = classifyForest(f.properties ?? {});
+  const style = forestTypeStyle(forestType);
+  return {
+    type: "Feature",
+    id,
+    geometry: simplifyForest(f, area, tolerance),
+    properties: {
+      id,
+      forest_type: forestType,
+      stand_age_years: null,
+      type_label: style.label,
+      type_color: style.color,
+      // Визначник лісу: площа і надійність типу (готові підписи — Thin Client).
+      area_m2: Math.round(area),
+      area_label: areaLabel(area),
+      type_source: source,
+      type_source_label: TYPE_SOURCE_LABEL[source ?? "none"],
+    },
+  };
+}
+
+export interface RegionInput {
+  slug: string;
+  geometry: Geo;
+}
+
+/**
+ * До якої області належить ліс: «точка на полігоні» в межах кордону (та сама логіка,
+ * що в БД). Спершу дешева перевірка bbox, потім точна — лише для кандидатів.
+ */
+export class RegionIndex {
+  private readonly regions: Array<{ slug: string; feature: Geo; bbox: number[] }>;
+
+  constructor(regions: RegionInput[]) {
+    this.regions = regions.map((r) => {
+      const feature = r.geometry.type === "Feature" ? r.geometry : turf.feature(r.geometry);
+      return { slug: r.slug, feature, bbox: turf.bbox(feature) };
+    });
+  }
+
+  find(f: Geo): string | null {
+    const [minX, minY, maxX, maxY] = turf.bbox(f);
+    const candidates = this.regions.filter((r) =>
+      !(maxX < r.bbox[0] || minX > r.bbox[2] || maxY < r.bbox[1] || minY > r.bbox[3])
+    );
+    if (candidates.length === 0) return null;
+    const point = turf.pointOnFeature(f);
+    const [px, py] = point.geometry.coordinates;
+    for (const r of candidates) {
+      if (px < r.bbox[0] || px > r.bbox[2] || py < r.bbox[1] || py > r.bbox[3]) continue;
+      if (turf.booleanPointInPolygon(point, r.feature)) return r.slug;
+    }
+    return null;
+  }
+}
+
+/**
+ * Розкладає ліси по областях потоком (по одному — без зберігання сирих даних
+ * усієї України в пам'яті). Використовується і для однієї області (Overpass),
+ * і для всіх одразу (вивантаження Geofabrik).
+ */
+export class ForestCollector {
+  readonly byRegion = new Map<string, { features: Geo[]; stats: BuildStats }>();
+  readonly totals = { input: 0, outsideRegion: 0, tooSmall: 0, duplicates: 0, invalid: 0 };
+  private readonly seen = new Set<string>();
+  private readonly index: RegionIndex;
+
+  constructor(
+    regions: RegionInput[],
+    private readonly opts: { minAreaM2?: number; tolerance?: number } = {},
+  ) {
+    this.index = new RegionIndex(regions);
+    for (const r of regions) {
+      this.byRegion.set(r.slug, {
+        features: [],
+        stats: { input: 0, outsideRegion: 0, tooSmall: 0, duplicates: 0, output: 0, small: 0, typed: 0 },
+      });
+    }
+  }
+
+  add(f: Geo): void {
+    this.totals.input++;
+    const g = f?.geometry;
+    if (!g || (g.type !== "Polygon" && g.type !== "MultiPolygon")) {
+      this.totals.invalid++;
+      return;
+    }
+    const id = normalizeOsmId(f.id ?? f.properties?.id ?? f.properties?.["@id"]);
+    if (!id || this.seen.has(id)) {
+      this.totals.duplicates++;
+      return;
+    }
+    let area: number;
+    let slug: string | null;
+    try {
+      area = turf.area(f);
+      if (area < (this.opts.minAreaM2 ?? MIN_AREA_M2)) {
+        this.totals.tooSmall++;
+        return;
+      }
+      slug = this.index.find(f);
+    } catch {
+      this.totals.invalid++; // зіпсована геометрія в OSM — пропускаємо, не валимо збірку
+      return;
+    }
+    if (!slug) {
+      this.totals.outsideRegion++;
+      return;
+    }
+    this.seen.add(id);
+    const bucket = this.byRegion.get(slug)!;
+    const out = forestFeature(f, id, area, this.opts.tolerance ?? SIMPLIFY_TOLERANCE_DEG);
+    bucket.features.push(out);
+    bucket.stats.input++;
+    bucket.stats.output++;
+    if (area < 10_000) bucket.stats.small++;
+    if (out.properties.forest_type) bucket.stats.typed++;
+  }
+
+  collection(slug: string): { collection: Geo; stats: BuildStats } {
+    const b = this.byRegion.get(slug)!;
+    return { collection: { type: "FeatureCollection", features: b.features }, stats: b.stats };
+  }
+}
+
+/**
+ * Ліси однієї області у форматі v1-forest-zones.
+ * Залишає полігони, «точка на полігоні» яких лежить у межах [region], площею ≥ 0,1 га.
+ */
 export function buildRegionForests(
   polygons: Geo[],
   region: Geo,
   opts: { minAreaM2?: number; tolerance?: number } = {},
 ): { collection: Geo; stats: BuildStats } {
-  const minArea = opts.minAreaM2 ?? MIN_AREA_M2;
-  const tolerance = opts.tolerance ?? SIMPLIFY_TOLERANCE_DEG;
-  const regionFeature = region.type === "Feature" ? region : turf.feature(region);
-  const regionBbox = turf.bbox(regionFeature);
-  const stats: BuildStats = {
-    input: polygons.length, outsideRegion: 0, tooSmall: 0, duplicates: 0, output: 0, small: 0, typed: 0,
+  const c = new ForestCollector([{ slug: "_", geometry: region }], opts);
+  for (const f of polygons) c.add(f);
+  const { collection, stats } = c.collection("_");
+  return {
+    collection,
+    stats: {
+      input: polygons.length,
+      outsideRegion: c.totals.outsideRegion,
+      tooSmall: c.totals.tooSmall,
+      duplicates: c.totals.duplicates,
+      output: stats.output,
+      small: stats.small,
+      typed: stats.typed,
+    },
   };
-  const seen = new Set<string>();
-  const out: Geo[] = [];
-
-  for (const f of polygons) {
-    const id = String(f.id ?? f.properties?.id ?? "").replace("/", "").replace(/^way/, "w").replace(/^relation/, "r");
-    if (!id || seen.has(id)) {
-      stats.duplicates++;
-      continue;
-    }
-    const [minX, minY, maxX, maxY] = turf.bbox(f);
-    if (maxX < regionBbox[0] || minX > regionBbox[2] || maxY < regionBbox[1] || minY > regionBbox[3]) {
-      stats.outsideRegion++;
-      continue;
-    }
-    const area = turf.area(f);
-    if (area < minArea) {
-      stats.tooSmall++;
-      continue;
-    }
-    if (!turf.booleanPointInPolygon(turf.pointOnFeature(f), regionFeature)) {
-      stats.outsideRegion++;
-      continue;
-    }
-    seen.add(id);
-    if (area < 10_000) stats.small++;
-
-    const { type: forestType, source } = classifyForest(f.properties ?? {});
-    if (forestType) stats.typed++;
-    const style = forestTypeStyle(forestType);
-    out.push({
-      type: "Feature",
-      id,
-      geometry: simplifyForest(f, area, tolerance),
-      properties: {
-        id,
-        forest_type: forestType,
-        stand_age_years: null,
-        type_label: style.label,
-        type_color: style.color,
-        // Визначник лісу: площа і надійність типу (готові підписи — Thin Client).
-        area_m2: Math.round(area),
-        area_label: areaLabel(area),
-        type_source: source,
-        type_source_label: TYPE_SOURCE_LABEL[source ?? "none"],
-      },
-    });
-  }
-  stats.output = out.length;
-  return { collection: { type: "FeatureCollection", features: out }, stats };
 }
 
 /** Розбиває bbox на клітинки ≤ [stepDeg] — Overpass краще тягне невеликі запити. */
