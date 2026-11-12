@@ -24,3 +24,4 @@ jwt_secret*
 
 # Local Deno lock from type checks of the forest builder
 scripts/forests/deno.lock
+__pycache__/

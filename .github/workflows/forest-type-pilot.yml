@@ -3,6 +3,7 @@ name: Forest type pilot (Sentinel-2)
 # Пілот: хвойний / листяний / мішаний ліс для Житомирщини з Sentinel-2 (без Earth Engine).
 # Маска лісу — ESA WorldCover; перевірка точності — ліси OSM з leaf_type / species.
 # Результат — Artifacts (GeoTIFF, превʼю, звіт). Нічого не публікує.
+# Запуск: вручну (Actions → Run workflow) або на PR, що змінює пілот.
 on:
   workflow_dispatch:
     inputs:
@@ -10,8 +11,7 @@ on:
         description: 'bbox west,south,east,north (за замовчуванням — Житомирська область)'
         required: false
         default: '27.19,49.58,29.74,51.69'
-  push:
-    branches: [claude/project-rb2fo8]
+  pull_request:
     paths:
       - 'scripts/forest_type/**'
       - '.github/workflows/forest-type-pilot.yml'
@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: forest-type-pilot
+  group: forest-type-pilot-${{ github.ref }}
   cancel-in-progress: true
 
 env:
