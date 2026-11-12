@@ -81,6 +81,18 @@ const { collection, stats } = buildRegionForests(polygons, region.geometry);
 console.log("Stats:", stats);
 if (stats.output === 0) throw new Error("No forests produced — refusing to publish an empty file");
 
+// Скільки лісів кожного типу і звідки тип — для перевірки достовірності визначника.
+const byType: Record<string, number> = {};
+const bySource: Record<string, number> = {};
+for (const f of collection.features) {
+  const t = f.properties.forest_type ?? "unknown";
+  const src = f.properties.type_source ?? "none";
+  byType[t] = (byType[t] ?? 0) + 1;
+  bySource[src] = (bySource[src] ?? 0) + 1;
+}
+console.log("By type:", byType);
+console.log("By type source:", bySource);
+
 const json = new TextEncoder().encode(JSON.stringify(collection));
 const gz = await gzip(json);
 const version = new Date().toISOString();
@@ -94,6 +106,8 @@ const meta = {
   data_file: `forests-${slug}.geojson.gz`,
   source: "© OpenStreetMap contributors (ODbL)",
   stats,
+  by_type: byType,
+  by_type_source: bySource,
 };
 
 await Deno.mkdir(args.out, { recursive: true });
