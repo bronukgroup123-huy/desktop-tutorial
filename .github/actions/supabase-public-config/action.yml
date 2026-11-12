@@ -1,0 +1,28 @@
+name: Supabase public config
+description: >-
+  Publishable key (legacy anon вимкнено) і URL проєкту → SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
+  у $GITHUB_ENV. Спершу секрет (як у збірці APK); якщо його немає — з Management API
+  (потрібні env SUPABASE_ACCESS_TOKEN і PROJECT_ID у workflow).
+inputs:
+  publishable-key:
+    description: secrets.SUPABASE_PUBLISHABLE_KEY (може бути порожнім)
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SECRET_KEY: ${{ inputs.publishable-key }}
+      run: |
+        KEY="$SECRET_KEY"
+        if [ -z "$KEY" ]; then
+          KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$PROJECT_ID/api-keys?reveal=true" \
+            | jq -r '[.[] | select(.type=="publishable")][0].api_key')
+        fi
+        if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Cannot read publishable key"; exit 1; fi
+        if [ -z "$PROJECT_ID" ]; then echo "::error::SUPABASE_PROJECT_ID secret is not set"; exit 1; fi
+        echo "::add-mask::$KEY"
+        echo "SUPABASE_PUBLISHABLE_KEY=$KEY" >> "$GITHUB_ENV"
+        echo "SUPABASE_URL=https://$PROJECT_ID.supabase.co" >> "$GITHUB_ENV"
