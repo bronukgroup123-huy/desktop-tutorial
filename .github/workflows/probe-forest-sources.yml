@@ -1,0 +1,65 @@
+name: Probe forest data sources
+
+# Тимчасова перевірка джерел даних про породи лісу (запускається пушем у цю гілку).
+# Лише читає публічні адреси; нічого не публікує. Видаляється після перевірки.
+on:
+  push:
+    branches: [claude/project-rb2fo8]
+    paths: ['.github/workflows/probe-forest-sources.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Probe
+        shell: bash
+        run: |
+          set +e
+          UA="MushroomRadar-source-check/1.0 (+https://github.com/${GITHUB_REPOSITORY})"
+          get() { echo; echo "===== $1"; curl -sS -L -m 40 -A "$UA" -o /tmp/body -w 'HTTP %{http_code}  type=%{content_type}  size=%{size_download}  final=%{url_effective}\n' "$1"; head -c "${2:-1500}" /tmp/body | tr -d '\000' ; echo; }
+
+          echo "########## 1. Укрдержліспроект ГІС (ArcGIS Enterprise)"
+          get "https://gis.lisproekt.gov.ua/portal/sharing/rest/info?f=json" 800
+          get "https://gis.lisproekt.gov.ua/portal/sharing/rest/search?q=*&num=100&f=json" 12000
+          get "https://gis.lisproekt.gov.ua/server/rest/services?f=json" 4000
+          get "https://gis.lisproekt.gov.ua/arcgis/rest/services?f=json" 4000
+          get "https://gis.lisproekt.gov.ua/server/services?f=json" 2000
+
+          echo "########## 2. Дані ДЗЗ-інвентаризації"
+          get "https://nfi.lisproekt.gov.ua/" 3000
+          get "https://nfi.org.ua/" 2000
+
+          echo "########## 3. Геопортал «Ліси України» (УкрНДІЛГА)"
+          get "https://forestry.org.ua/" 3000
+          get "https://forestry.org.ua/geoserver/ows?service=WMS&request=GetCapabilities" 4000
+          get "https://forestry.org.ua/geoserver/wfs?service=WFS&request=GetCapabilities" 4000
+          get "https://forests.org.ua/" 1500
+
+          echo "########## 4. Карта найцінніших лісів (WMS/WFS)"
+          get "https://abspatial.com/pralisi-ua/" 1500
+
+          echo "########## 5. ForestPaths tree genus map (Zenodo)"
+          curl -sS -m 60 -A "$UA" "https://zenodo.org/api/records/13341104" -o /tmp/fp.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/fp.json'))
+          md = d.get('metadata', {})
+          print('title:', md.get('title')); print('license:', md.get('license')); print('version:', md.get('version'))
+          print('description:', (md.get('description') or '')[:1500])
+          files = d.get('files', [])
+          print('files:', len(files))
+          for f in files[:400]:
+              print(' ', f.get('key'), f.get('size'))
+          PY
+          pip install -q pyproj >/dev/null 2>&1
+          python3 -c "
+          from pyproj import Transformer
+          t = Transformer.from_crs('EPSG:4326', 'EPSG:3035', always_xy=True)
+          for name, lon, lat in [('Zhytomyr', 28.66, 50.25), ('Ovruch (north Zhytomyr)', 28.80, 51.32), ('Kyiv', 30.52, 50.45), ('Kharkiv', 36.23, 49.99), ('Lviv', 24.03, 49.84)]:
+              x, y = t.transform(lon, lat)
+              print(f'{name}: EPSG:3035 E={x/1e5:.1f}x100km N={y/1e5:.1f}x100km  (x={x:.0f}, y={y:.0f})')
+          "
