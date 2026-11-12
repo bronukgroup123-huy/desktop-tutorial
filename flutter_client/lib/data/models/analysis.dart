@@ -50,34 +50,57 @@ class AnalysisUsage {
   final String label;
 }
 
-/// Збережена ділянка користувача.
+/// Збережена ділянка користувача (ADR-015 §15.4): після створення незмінна —
+/// центр і розмір не пересуваються; її можна лише повторно аналізувати або видалити.
 class AnalysisArea {
   const AnalysisArea({
     required this.id,
     required this.center,
     required this.sizeKm,
     required this.sizeLabel,
+    this.slot = 1,
     this.bounds,
+    this.usage,
+    this.lastResult,
+    this.lastAnalyzedAt,
   });
 
   factory AnalysisArea.fromJson(Map<String, dynamic> json) {
     final bbox = opt<List<dynamic>>(json, 'bbox');
+    final usage = opt<Map<String, dynamic>>(json, 'usage');
+    final last = opt<Map<String, dynamic>>(json, 'last_result');
+    final lastAt = opt<String>(json, 'last_analyzed_at');
     return AnalysisArea(
       id: req<String>(json, 'id'),
+      slot: opt<num>(json, 'slot')?.toInt() ?? 1,
       center: LatLng(toDouble(json['lat'], 'lat'), toDouble(json['lng'], 'lng')),
       sizeKm: req<num>(json, 'size_km').toInt(),
       sizeLabel: req<String>(json, 'size_label'),
       bounds: bbox == null ? null : GeoBounds.fromBbox(bbox),
+      usage: usage == null ? null : AnalysisUsage.fromJson(usage),
+      lastResult: last == null ? null : AnalysisResult.fromJson(last),
+      lastAnalyzedAt: lastAt == null ? null : DateTime.tryParse(lastAt),
     );
   }
 
   final String id;
+  final int slot;
   final LatLng center;
   final int sizeKm;
   final String sizeLabel;
 
   /// Точні межі квадрата, який проаналізував сервер (є у відповіді аналізу).
   final GeoBounds? bounds;
+
+  /// Аналізи цієї ділянки сьогодні.
+  final AnalysisUsage? usage;
+
+  /// Останній результат — показується без повторного списання аналізу.
+  final AnalysisResult? lastResult;
+  final DateTime? lastAnalyzedAt;
+
+  /// «Ділянка 1 · 5×5 км»
+  String get title => 'Ділянка $slot · $sizeLabel';
 }
 
 /// Відповідь `GET /v1-analysis`: що доступно і що вже збережено.
@@ -87,9 +110,12 @@ class AnalysisOverview {
     required this.areas,
     required this.usage,
     required this.hintLabel,
+    this.canCreate = true,
+    this.createHintLabel,
+    this.offlineSince,
   });
 
-  factory AnalysisOverview.fromJson(Map<String, dynamic> json) => AnalysisOverview(
+  factory AnalysisOverview.fromJson(Map<String, dynamic> json, {DateTime? offlineSince}) => AnalysisOverview(
         sizes: (opt<List<dynamic>>(json, 'sizes') ?? const [])
             .map((s) => AnalysisSizeOption.fromJson(s as Map<String, dynamic>))
             .toList(growable: false),
@@ -98,12 +124,31 @@ class AnalysisOverview {
             .toList(growable: false),
         usage: AnalysisUsage.fromJson(req<Map<String, dynamic>>(json, 'usage')),
         hintLabel: req<String>(json, 'hint_label'),
+        canCreate: opt<bool>(json, 'can_create') ?? true,
+        createHintLabel: opt<String>(json, 'create_hint_label'),
+        offlineSince: offlineSince,
       );
 
   final List<AnalysisSizeOption> sizes;
   final List<AnalysisArea> areas;
   final AnalysisUsage usage;
   final String hintLabel;
+
+  /// Чи є вільне місце для нової ділянки (вирішує сервер).
+  final bool canCreate;
+
+  /// Що робити, щоб створити нову: «Видаліть стару у вкладці «Прогноз»…».
+  final String? createHintLabel;
+
+  /// Немає інтернету — показано збережену копію від цього часу.
+  final DateTime? offlineSince;
+
+  AnalysisArea? areaById(String? id) {
+    for (final a in areas) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
 }
 
 /// Тип лісу в ділянці: підпис, колір і площа — із сервера.

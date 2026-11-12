@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/painting.dart';
+import 'package:flutter_client/data/local/local_store.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/geo.dart';
@@ -127,18 +130,70 @@ void main() {
     expect((await repo.fetchOverview()).sizes.length, 2);
     expect(adapter.requests[0].path, '/v1-analysis');
 
-    final result = await repo.analyze(center: const LatLng(50.4501, 30.5234), sizeKm: 5);
+    final result = await repo.createArea(center: const LatLng(50.4501, 30.5234), sizeKm: 5);
     expect(adapter.requests[1].method, 'POST');
     expect(adapter.requests[1].data, {'lat': 50.4501, 'lng': 30.5234, 'size_km': 5});
     expect(result.top1!.species.nameUa, 'Білий гриб');
 
     // Ліс із карти застосунку йде в тіло запиту.
-    await repo.analyze(
+    await repo.createArea(
       center: const LatLng(50.4501, 30.5234),
       sizeKm: 5,
       forest: {'forest_km2': 3.2, 'types': []},
     );
     expect((adapter.requests[2].data as Map)['forest'], {'forest_km2': 3.2, 'types': []});
+  });
+
+  test('AnalysisRepository: повторний аналіз за area_id і видалення ділянки', () async {
+    final (api, adapter) = makeClient(
+      (req) => FakeResponse(200, {
+        'data': req.method == 'DELETE' ? {'deleted': true} : resultJson()
+      }),
+    );
+    final repo = AnalysisRepository(api);
+    await repo.analyzeArea('area-1', forest: {'forest_km2': 1.5, 'types': []});
+    expect(adapter.requests[0].data, {
+      'area_id': 'area-1',
+      'forest': {'forest_km2': 1.5, 'types': []}
+    });
+    await repo.deleteArea('area-1');
+    expect([adapter.requests[1].method, adapter.requests[1].path], ['DELETE', '/v1-analysis/areas/area-1']);
+  });
+
+  test('AnalysisOverview: ділянки з лімітом і останнім результатом; можна створити нову чи ні', () {
+    final json = overviewJson();
+    json['areas'] = <dynamic>[
+      <String, dynamic>{
+        ...(json['areas'] as List)[0] as Map<String, dynamic>,
+        'usage': {'used': 2, 'limit': 5, 'label': 'Сьогодні: 2 з 5 аналізів'},
+        'last_result': resultJson(),
+        'last_analyzed_at': '2026-11-12T08:00:00Z',
+      },
+    ];
+    json['can_create'] = false;
+    json['create_hint_label'] = 'Видаліть стару';
+    final o = AnalysisOverview.fromJson(json);
+    final a = o.areas.single;
+    expect([a.title, a.usage!.used, a.lastResult!.top1!.species.nameUa], ['Ділянка 1 · 5×5 км', 2, 'Білий гриб']);
+    expect([o.canCreate, o.createHintLabel], [false, 'Видаліть стару']);
+    expect(o.areaById('area-1'), same(a));
+  });
+
+  test('AnalysisRepository: без інтернету — збережені ділянки з часом збереження', () async {
+    final dir = Directory.systemTemp.createTempSync('mr_analysis_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final store = LocalStore(dir);
+    var online = true;
+    final (api, _) = makeClient(
+      (_) => online ? FakeResponse(200, {'data': overviewJson()}) : const FakeResponse.offline(),
+    );
+    final repo = AnalysisRepository(api, store);
+    expect((await repo.fetchOverview(userId: 'u1')).offlineSince, isNull);
+    online = false;
+    final cached = await repo.fetchOverview(userId: 'u1');
+    expect([cached.areas.length, cached.offlineSince != null], [1, true]);
+    // кеш іншого користувача не підставляється
+    await expectLater(repo.fetchOverview(userId: 'u2'), throwsA(isA<ApiException>()));
   });
 
   test('AnalysisRepository: 10×10 без Pro → текст із сервера', () async {
@@ -147,7 +202,7 @@ void main() {
           'message': 'Ділянка 10×10 км доступна в Pro. Безкоштовно — ділянка 5×5 км.',
         }));
     await expectLater(
-      AnalysisRepository(api).analyze(center: const LatLng(50.45, 30.52), sizeKm: 10),
+      AnalysisRepository(api).createArea(center: const LatLng(50.45, 30.52), sizeKm: 10),
       throwsA(isA<ApiException>()
           .having((e) => e.code, 'code', 'pro_required')
           .having((e) => e.userMessage, 'userMessage', contains('Pro'))),
@@ -185,8 +240,7 @@ void main() {
     double lat(double km) => km / 111.32;
     double lng(double km) => km / (111.32 * 0.6374); // cos(50.45°)
 
-    ForestZone zone(String id, String? type, List<LatLng> outer, {List<List<LatLng>> holes = const []}) =>
-        ForestZone(
+    ForestZone zone(String id, String? type, List<LatLng> outer, {List<List<LatLng>> holes = const []}) => ForestZone(
           id: id,
           forestType: type,
           standAgeYears: null,
@@ -234,4 +288,3 @@ void main() {
     });
   });
 }
-

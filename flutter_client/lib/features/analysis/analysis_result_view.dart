@@ -23,10 +23,10 @@ class AnalysisResultView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
         Text(
-          'Ділянка ${r.area.sizeLabel}',
+          'Прогноз на ${r.date}',
           style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
         ),
-        Text('${r.date} · ${r.usage.label}', style: TextStyle(color: muted)),
+        Text('Ділянка ${r.area.sizeLabel}', style: TextStyle(color: muted)),
         const SizedBox(height: 16),
         _ForestCard(summary: r.forestSummaryLabel, types: r.forestTypes),
         if (r.weather != null) ...[const SizedBox(height: 12), _WeatherCard(weather: r.weather!)],

@@ -71,9 +71,13 @@ void main() {
     expect(find.textContaining('%'), findsOneWidget, reason: 'лише вологість, жодних відсотків ймовірності');
   });
 
-  testWidgets('Вкладка «Прогноз» без обраної точки — підказка відкрити карту', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: ForecastScreen())));
-    expect(find.text('Оберіть ліс на карті'), findsOneWidget);
+  testWidgets('Вкладка «Прогноз» без ділянок — підказка обрати ділянку на карті', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [analysisOverviewProvider.overrideWith((ref) => overview(areas: []))],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    expect(find.text('Оберіть ділянку на карті'), findsOneWidget);
     expect(find.text('Відкрити карту'), findsOneWidget);
   });
 
@@ -107,29 +111,78 @@ void main() {
     expect(find.text('Вологість 55% — замало (краще від 70%)'), findsOneWidget);
   });
 
-  testWidgets('Вкладка «Прогноз» показує аналіз ділянки повноцінним екраном', (tester) async {
-    final result = AnalysisResult.fromJson({
-      'area': {'id': 'a', 'slot': 1, 'lat': 50.4, 'lng': 30.5, 'size_km': 5, 'size_label': '5×5 км'},
-      'date': '2026-11-12',
-      'forest': {'summary_label': 'На карті в цій ділянці лісів немає', 'types': []},
-      'top1': null,
-      'alternative': null,
-      'weather': null,
-      'warnings': [],
-      'usage': {'used': 1, 'limit': 5, 'label': 'Сьогодні: 1 з 5 аналізів'},
-      'no_data_reason': 'У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо.',
-    });
+  testWidgets('Вкладка «Прогноз»: ділянка з останнім результатом; її не змінити — лише оновити, показати, видалити',
+      (tester) async {
     await tester.pumpWidget(ProviderScope(
-      overrides: [analysisResultProvider.overrideWith((ref) => result)],
+      overrides: [analysisOverviewProvider.overrideWith((ref) => overview(areas: [areaJson(withResult: true)]))],
       child: const MaterialApp(home: ForecastScreen()),
     ));
-    expect(find.text('Аналіз ділянки'), findsOneWidget);
-    expect(find.text('Ділянка 5×5 км'), findsOneWidget);
-    expect(find.textContaining('немає лісу'), findsOneWidget);
-    expect(find.text('Оберіть ліс на карті'), findsNothing);
-
-    await tester.tap(find.byTooltip('Закрити аналіз'));
     await tester.pump();
-    expect(find.text('Оберіть ліс на карті'), findsOneWidget);
+    expect(find.text('Ділянка 1 · 5×5 км'), findsOneWidget);
+    expect(find.text('Сьогодні: 1 з 5 аналізів'), findsOneWidget);
+    expect(find.text('Прогноз на 2026-11-12'), findsOneWidget);
+    expect(find.textContaining('немає лісу'), findsOneWidget);
+    expect(find.text('Оновити аналіз'), findsOneWidget);
+    expect(find.byTooltip('Показати на карті'), findsOneWidget);
+    expect(find.byTooltip('Видалити ділянку'), findsOneWidget);
+    // безкоштовно вже є ділянка → «Нова ділянка» не пропонується
+    expect(find.text('Нова ділянка'), findsNothing);
+  });
+
+  testWidgets('Вкладка «Прогноз»: ділянка без результату і без інтернету — дії вимкнено', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith(
+          (ref) => overview(areas: [areaJson()], canCreate: true, offlineSince: DateTime(2026, 11, 12, 9)),
+        ),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    expect(find.text('Аналізу ще немає'), findsOneWidget);
+    expect(find.textContaining('Немає інтернету'), findsOneWidget);
+    expect(find.text('Нова ділянка'), findsOneWidget);
+    final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Аналізувати ділянку'));
+    expect(button.onPressed, isNull);
   });
 }
+
+Map<String, dynamic> areaJson({bool withResult = false}) => {
+      'id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'slot': 1,
+      'lat': 50.4,
+      'lng': 30.5,
+      'size_km': 5,
+      'size_label': '5×5 км',
+      'usage': {'used': 1, 'limit': 5, 'label': 'Сьогодні: 1 з 5 аналізів'},
+      'last_analyzed_at': withResult ? '2026-11-12T08:00:00Z' : null,
+      'last_result': withResult
+          ? {
+              'area': {'id': 'a', 'slot': 1, 'lat': 50.4, 'lng': 30.5, 'size_km': 5, 'size_label': '5×5 км'},
+              'date': '2026-11-12',
+              'forest': {'summary_label': 'На карті в цій ділянці лісів немає', 'types': []},
+              'top1': null,
+              'alternative': null,
+              'weather': null,
+              'warnings': [],
+              'usage': {'used': 1, 'limit': 5, 'label': 'Сьогодні: 1 з 5 аналізів'},
+              'no_data_reason': 'У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо.',
+            }
+          : null,
+    };
+
+AnalysisOverview overview({
+  required List<Map<String, dynamic>> areas,
+  bool canCreate = false,
+  DateTime? offlineSince,
+}) =>
+    AnalysisOverview.fromJson({
+      'sizes': [
+        {'size_km': 5, 'label': '5×5 км', 'available': true, 'lock_label': null},
+      ],
+      'areas': areas,
+      'can_create': areas.isEmpty || canCreate,
+      'create_hint_label': 'У вас уже є ділянка. Щоб створити нову, видаліть стару у вкладці «Прогноз».',
+      'usage': {'used': 1, 'limit': 5, 'label': 'Сьогодні: 1 з 5 аналізів'},
+      'hint_label': 'Торкніться карти, щоб обрати центр ділянки',
+    }, offlineSince: offlineSince);
