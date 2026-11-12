@@ -224,12 +224,36 @@ Deno.test("analysis POST: наявна ділянка — спершу лімі�
   assertEquals(d.calls.filter((c) => c.key === "rpc.consume_analysis").length, 1);
 });
 
-Deno.test("analysis POST: у ділянці немає лісів → базовий прогноз (тип лісу невідомий)", async () => {
+Deno.test("analysis POST: у ділянці немає лісів → лісових видів немає, пояснення (узгоджено з «лісів немає»)", async () => {
   const d = db({ "rpc.analyze_area_forest": { data: { ...FOREST, forest_km2: 0, types: [] }, error: null } });
   const { json, inputs } = await run(d, req("POST", URL_, body()));
-  assertEquals(inputs.map((i) => i.forestType), [null]);
-  assertEquals(json.data.forest.summary_label, "На карті в цій ділянці лісів немає — прогноз базовий");
-  assertEquals(json.data.top1.forest_label, null);
+  assertEquals(inputs.map((i) => i.forestType), [null]); // прогін лише заради погоди
+  assertEquals(json.data.forest.summary_label, "На карті в цій ділянці лісів немає");
+  assertEquals([json.data.top1, json.data.alternative], [null, null]);
+  assert(String(json.data.no_data_reason).includes("немає лісу"));
+});
+
+Deno.test("analysis POST: ліс із карти застосунку (forest) замінює неповні дані БД", async () => {
+  const d = db({ "rpc.analyze_area_forest": { data: { ...FOREST, forest_km2: 0, types: [] }, error: null } });
+  const hint = { forest_km2: 14.2, types: [{ forest_type: "birch", km2: 3.1 }, { forest_type: "pine", km2: 11.1 }] };
+  const { res, json, inputs } = await run(d, req("POST", URL_, body({ forest: hint })));
+  assertEquals(res.status, 200);
+  assertEquals(json.data.forest.summary_label, "Ліс займає ≈ 14 км² з 25 км² ділянки");
+  assertEquals(json.data.forest.types.map((t: { forest_type: string }) => t.forest_type), ["pine", "birch"]);
+  assertEquals(inputs.map((i) => i.forestType), ["pine", "birch"]);
+  assert(json.data.top1 !== null);
+  assertEquals(json.data.area.bbox, FOREST.bbox); // межі квадрата — з БД
+});
+
+Deno.test("analysis POST: некоректний forest → 422", async () => {
+  for (const forest of [
+    { forest_km2: 99, types: [] },
+    { forest_km2: 1, types: [{ forest_type: "Drop table", km2: 1 }] },
+    { forest_km2: 1, types: [{ forest_type: "pine", km2: 20 }, { forest_type: "oak", km2: 20 }] },
+  ]) {
+    const { res, json } = await run(db(), req("POST", URL_, body({ forest })));
+    assertEquals([res.status, json.error], [422, "validation_error"]);
+  }
 });
 
 Deno.test("analysis POST: найкращий вид обирається серед усіх типів лісу ділянки", async () => {

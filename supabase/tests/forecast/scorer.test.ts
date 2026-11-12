@@ -282,3 +282,13 @@ Deno.test('scoreAll: скорує всі правила', () => {
   assertEquals(all[1].score, 0);
   assertEquals(all[1].probability, 'no_data');
 });
+
+// ─── обмежувальні фактори → missed, а не matched (узгодженість «✓» і рівня) ───
+Deno.test('scoreSpecies: негативні умови не потрапляють у matched, а йдуть у missed', () => {
+  const rule = makeRule({ humidityMin: 80 });
+  const ctx = makeCtx({ weather: makeWeather({ humidity: 50, soilState: 'dry' }) });
+  const r = scoreSpecies(rule, ctx);
+  assert(r.missed.some((x) => x.startsWith('humidity 50 <')));
+  assert(r.missed.some((x) => x.startsWith('dry →')));
+  assert(!r.matched.some((x) => x.startsWith('humidity 50 <') || x.startsWith('dry →')));
+});

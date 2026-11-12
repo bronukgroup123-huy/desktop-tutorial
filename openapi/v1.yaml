@@ -703,6 +703,23 @@ components:
         lng: { type: number, minimum: -180, maximum: 180 }
         size_km: { type: integer, enum: [5, 10] }
         date: { type: string, format: date, description: За замовчуванням — сьогодні (київський час) }
+        forest:
+          type: object
+          description: >-
+            Ліс у квадраті, порахований застосунком із полігонів, які видно на карті
+            (файл лісів області). Якщо передано — замінює дані БД (там є не всі області).
+          required: [forest_km2, types]
+          properties:
+            forest_km2: { type: number, minimum: 0 }
+            types:
+              type: array
+              maxItems: 12
+              items:
+                type: object
+                required: [forest_type, km2]
+                properties:
+                  forest_type: { type: [string, 'null'], pattern: '^[a-z_]{1,32}$' }
+                  km2: { type: number, minimum: 0 }
 
     AnalysisSpecies:
       allOf:
@@ -841,6 +858,12 @@ components:
           maxItems: 4
           items: { type: string }
           example: ['Температура 13° — підходить для плодоношення', 'Дощ 16 мм за останні 3 дні']
+        limit_labels:
+          type: array
+          maxItems: 4
+          description: Що знижує рівень (показується з попередженням, не з «✓»)
+          items: { type: string }
+          example: ['Вологість 55% — замало (краще від 70%)', 'Сухий ґрунт']
 
     ForecastWeather:
       type: object

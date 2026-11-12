@@ -3,7 +3,7 @@
 //
 // GET  v1-analysis
 //   → 200 { data: { sizes: [...], areas: [...], usage, hint_label } }
-// POST v1-analysis  { lat, lng, size_km: 5 | 10, date?: "YYYY-MM-DD" }
+// POST v1-analysis  { lat, lng, size_km: 5 | 10, date?: "YYYY-MM-DD", forest?: { forest_km2, types: [{ forest_type, km2 }] } }
 //   → 200 { data: { area, date, forest, top1, alternative, weather, warnings, usage } }
 //
 // Користувач ставить точку на карті — сервер аналізує квадрат навколо неї: які ліси
@@ -53,6 +53,21 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const sizeLabel = (km: number) => `${km}×${km} км`;
+
+/** Менше за це (≈ 1 га) — «лісу в ділянці немає». */
+export const MIN_FOREST_KM2 = 0.01;
+const MAX_HINT_TYPES = 12;
+
+/**
+ * Ліс у ділянці, порахований застосунком із тих самих полігонів, що на карті
+ * (файл лісів області, ADR-015 + ліси з OSM). Таблиця `forest_zones` у БД містить
+ * лише частину областей — без цієї підказки сервер казав «лісів немає» під
+ * видимим лісовим масивом.
+ */
+export interface ForestHint {
+  forestKm2: number;
+  types: Array<{ forestType: string | null; km2: number }>;
+}
 
 // ─── Залежності ────────────────────────────────────────────────────────────
 
@@ -124,6 +139,52 @@ export interface AnalysisInput {
   sizeKm: AnalysisSize;
   /** "YYYY-MM-DD" */
   date: string;
+  forest: ForestHint | null;
+}
+
+const FOREST_TYPE_RE = /^[a-z_]{1,32}$/;
+
+export function validateForestHint(raw: unknown, sizeKm: number): ForestHint | null {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "object" || Array.isArray(raw)) throw validationError("forest — об'єкт");
+  const obj = raw as Record<string, unknown>;
+  const area = sizeKm * sizeKm;
+  const num = (v: unknown, what: string) => {
+    if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > area * 1.05) {
+      throw validationError(`${what} — площа від 0 до ${area} км²`);
+    }
+    return v;
+  };
+  const forestKm2 = num(obj.forest_km2, "forest.forest_km2");
+  if (!Array.isArray(obj.types) || obj.types.length > MAX_HINT_TYPES) {
+    throw validationError(`forest.types — список до ${MAX_HINT_TYPES} типів`);
+  }
+  const types = obj.types.map((t, i) => {
+    if (t === null || typeof t !== "object") throw validationError(`forest.types[${i}] — об'єкт`);
+    const ft = (t as Record<string, unknown>).forest_type;
+    if (ft !== null && (typeof ft !== "string" || !FOREST_TYPE_RE.test(ft))) {
+      throw validationError(`forest.types[${i}].forest_type — код типу лісу або null`);
+    }
+    return { forestType: ft as string | null, km2: num((t as Record<string, unknown>).km2, `forest.types[${i}].km2`) };
+  });
+  const sum = types.reduce((a, t) => a + t.km2, 0);
+  if (sum > area * 1.05) throw validationError("forest.types — сума площ більша за ділянку");
+  return { forestKm2: Math.min(forestKm2, area), types: types.sort((a, b) => b.km2 - a.km2) };
+}
+
+/** Підставляє ліс із підказки застосунку замість даних БД (межі квадрата — з БД). */
+export function applyForestHint(db: ForestSummary, hint: ForestHint | null): ForestSummary {
+  if (!hint) return db;
+  return {
+    bbox: db.bbox,
+    area_km2: db.area_km2,
+    forest_km2: Math.round(hint.forestKm2 * 100) / 100,
+    types: hint.types.filter((t) => t.km2 > 0).map((t) => ({
+      forest_type: t.forestType,
+      km2: Math.round(t.km2 * 100) / 100,
+      stand_age_years: null,
+    })),
+  };
 }
 
 export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
@@ -155,7 +216,8 @@ export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
   }
   if (date < today) throw validationError("Дата аналізу не може бути в минулому");
 
-  return { lat: obj.lat, lng: obj.lng, sizeKm: obj.size_km as AnalysisSize, date };
+  const sizeKm = obj.size_km as AnalysisSize;
+  return { lat: obj.lat, lng: obj.lng, sizeKm, date, forest: validateForestHint(obj.forest, sizeKm) };
 }
 
 /** На скільки днів `date` пізніше за `today` (обидві — "YYYY-MM-DD"). */
@@ -193,7 +255,7 @@ interface ForestTypeRow {
   stand_age_years: number | null;
 }
 
-interface ForestSummary {
+export interface ForestSummary {
   bbox: [number, number, number, number];
   area_km2: number;
   forest_km2: number;
@@ -202,9 +264,9 @@ interface ForestSummary {
 
 export function shapeForest(f: ForestSummary): Record<string, unknown> {
   return {
-    summary_label: f.forest_km2 > 0
+    summary_label: f.forest_km2 >= MIN_FOREST_KM2
       ? `Ліс займає ${km2Label(f.forest_km2)} з ${f.area_km2} км² ділянки`
-      : "На карті в цій ділянці лісів немає — прогноз базовий",
+      : "На карті в цій ділянці лісів немає",
     types: f.types.slice(0, 5).map((t) => {
       const style = forestTypeStyle(t.forest_type);
       return {
@@ -354,7 +416,8 @@ async function runAnalysis(
       p_size_km: input.sizeKm,
     });
     if (forestRes.error || !forestRes.data) dbFail("analyze_area_forest", forestRes.error ?? "empty result");
-    const forest = forestRes.data as ForestSummary;
+    const forest = applyForestHint(forestRes.data as ForestSummary, input.forest);
+    const hasForest = forest.forest_km2 >= MIN_FOREST_KM2;
 
     // Прогноз для переважних типів лісу ділянки; якщо лісів немає — базовий.
     const forestTypes = forest.types
@@ -371,7 +434,9 @@ async function runAnalysis(
       });
     }
     const first = runs[0].result;
-    const best = pickBest(runs);
+    // Лісу немає — лісові види не прогнозуємо (раніше рушій без типу лісу все одно
+    // віддавав, напр., зимовий опеньок, і це суперечило «лісів немає»).
+    const best = hasForest ? pickBest(runs) : { top1: null, alternative: null };
     const weather = weatherBlock(first.weather);
 
     const data: Record<string, unknown> = {
@@ -395,7 +460,12 @@ async function runAnalysis(
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
       usage: usageBlock(used, limit),
     };
-    if (!best.top1 && first.noDataReason) data.no_data_reason = first.noDataReason;
+    if (!hasForest) {
+      data.no_data_reason = "У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо. " +
+        "Оберіть ділянку, де є ліс.";
+    } else if (!best.top1 && first.noDataReason) {
+      data.no_data_reason = first.noDataReason;
+    }
     return ok(data, req);
   } catch (err) {
     // Розрахунок не вдався — списаний аналіз повертаємо.
