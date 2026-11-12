@@ -1,5 +1,6 @@
 // ============================================================================
-// Генерація файлу лісів області → dist/forests-<slug>.geojson.gz + .json (мета)
+// Генерація файлу лісів ОДНІЄЇ області через Overpass (запасний спосіб; основний —
+// build_all.ts з вивантаження Geofabrik) → dist/forests-<slug>.geojson.gz + .json (мета)
 //
 //   deno run -A scripts/forests/build_region.ts --slug zhytomyrska
 //
@@ -9,6 +10,7 @@
 
 import { parseArgs } from "jsr:@std/cli@1/parse-args";
 import { buildRegionForests, osmToPolygons, overpassQuery, splitBbox } from "./lib.ts";
+import { writeRegionFiles } from "./output.ts";
 
 // Публічні сервери Overpass часто перевантажені (502/504) — пробуємо кілька по черзі.
 const OVERPASS = [
@@ -99,16 +101,6 @@ async function cellPolygons(cell: Cell, label: string, depth = 0): Promise<unkno
   }
 }
 
-async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
-  const d = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function gzip(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
 const region = await regionGeometry();
 console.log(`Region ${slug} (${region.name}), bbox ${region.bbox.join(",")}`);
 
@@ -123,38 +115,4 @@ for (const [i, cell] of cells.entries()) {
 const { collection, stats } = buildRegionForests(polygons, region.geometry);
 console.log("Stats:", stats);
 if (stats.output === 0) throw new Error("No forests produced — refusing to publish an empty file");
-
-// Скільки лісів кожного типу і звідки тип — для перевірки достовірності визначника.
-const byType: Record<string, number> = {};
-const bySource: Record<string, number> = {};
-for (const f of collection.features) {
-  const t = f.properties.forest_type ?? "unknown";
-  const src = f.properties.type_source ?? "none";
-  byType[t] = (byType[t] ?? 0) + 1;
-  bySource[src] = (bySource[src] ?? 0) + 1;
-}
-console.log("By type:", byType);
-console.log("By type source:", bySource);
-
-const json = new TextEncoder().encode(JSON.stringify(collection));
-const gz = await gzip(json);
-const version = new Date().toISOString();
-const meta = {
-  slug,
-  version,
-  features: stats.output,
-  bytes: gz.length,
-  raw_bytes: json.length,
-  sha256: await sha256Hex(gz),
-  data_file: `forests-${slug}.geojson.gz`,
-  source: "© OpenStreetMap contributors (ODbL)",
-  stats,
-  by_type: byType,
-  by_type_source: bySource,
-};
-
-await Deno.mkdir(args.out, { recursive: true });
-await Deno.writeFile(`${args.out}/forests-${slug}.geojson.gz`, gz);
-await Deno.writeTextFile(`${args.out}/forests-${slug}.json`, JSON.stringify(meta, null, 2));
-console.log(`Wrote ${args.out}/forests-${slug}.geojson.gz — ${(gz.length / 1024 / 1024).toFixed(1)} MB gz, ` +
-  `${(json.length / 1024 / 1024).toFixed(1)} MB raw, ${stats.output} forests`);
+await writeRegionFiles(slug, collection, stats, args.out, { method: "overpass" });

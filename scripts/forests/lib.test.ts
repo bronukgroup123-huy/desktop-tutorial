@@ -5,6 +5,8 @@ import {
   buildRegionForests,
   classifyForest,
   classifyForestType,
+  ForestCollector,
+  normalizeOsmId,
   osmToPolygons,
   overpassQuery,
   simplifyForest,
@@ -122,4 +124,45 @@ Deno.test("forests: bbox ділиться на клітинки ≤ 1°, зап�
   assertEquals(q.includes('relation["landuse"="forest"](50,28,51,29)'), true);
   assertEquals(q.includes('way["natural"="wood"](50,28,51,29)'), true);
   assertEquals(q.includes('way["landcover"="trees"](50,28,51,29)'), true);
+});
+
+Deno.test("forests: id з osmium export (-u type_id) і з Overpass → w…/r…", () => {
+  assertEquals(normalizeOsmId("a2"), "w1");
+  assertEquals(normalizeOsmId("a21"), "r10");
+  assertEquals(normalizeOsmId("a246913578024"), "w123456789012");
+  assertEquals(normalizeOsmId("way/77"), "w77");
+  assertEquals(normalizeOsmId("relation/5"), "r5");
+  assertEquals(normalizeOsmId(undefined), "");
+});
+
+Deno.test("forests: усі області за один прохід — кожен ліс у своїй області, зіпсоване пропускається", () => {
+  const sq = (x0: number, x1: number) => ({
+    type: "Polygon",
+    coordinates: [[[x0, 50], [x1, 50], [x1, 51], [x0, 51], [x0, 50]]],
+  });
+  const forest = (id: string, lon: number, d: number, props: Record<string, string> = {}) => ({
+    type: "Feature",
+    id,
+    properties: props,
+    geometry: {
+      type: "MultiPolygon",
+      coordinates: [[[[lon - d, 50.5 - d], [lon + d, 50.5 - d], [lon + d, 50.5 + d], [lon - d, 50.5 + d], [lon - d, 50.5 - d]]]],
+    },
+  });
+  const c = new ForestCollector([{ slug: "a", geometry: sq(28, 29) }, { slug: "b", geometry: sq(29, 30) }]);
+  c.add(forest("a2", 28.5, 0.01, { leaf_type: "needleleaved" }));
+  c.add(forest("a2", 28.5, 0.01)); // дубль
+  c.add(forest("a21", 29.5, 0.01, { genus: "Quercus" }));
+  c.add(forest("a4", 31, 0.01)); // поза областями
+  c.add(forest("a6", 28.2, 0.0001)); // замалий
+  c.add({ type: "Feature", id: "a8", properties: {}, geometry: { type: "LineString", coordinates: [[28, 50], [28.1, 50]] } });
+  c.add({ type: "Feature", id: "a10", properties: {}, geometry: { type: "Polygon", coordinates: [[[28.5, 50.5]]] } });
+  assertEquals(c.collection("a").collection.features.map((f: { id: string }) => f.id), ["w1"]);
+  assertEquals(c.collection("b").collection.features.map((f: { properties: { forest_type: string } }) => f.properties.forest_type), ["oak"]);
+  assertEquals(c.collection("b").stats.typed, 1);
+  assertEquals(c.totals.duplicates, 1);
+  assertEquals(c.totals.outsideRegion, 1);
+  // замалий + вироджений полігон (площа 0); лінія — не полігон
+  assertEquals(c.totals.tooSmall, 2);
+  assertEquals(c.totals.invalid, 1);
 });
