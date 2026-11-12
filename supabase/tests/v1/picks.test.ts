@@ -287,7 +287,7 @@ Deno.test("create: приватна точка «Не знаю» → 201, під
   const { res, json, store } = await run(d, req("POST", CREATE, body({ description: "  Під сосною  " })));
   assertEquals(res.status, 201);
   assertEquals(json, {
-    data: { id: PICK_ID, visibility: "private", status_label: "Приватна точка", marker_color: "#1e88e5" },
+    data: { id: PICK_ID, visibility: "private", status_label: "Приватна точка", marker_color: "#8e24aa" },
   });
 
   const p = createArgs(d);

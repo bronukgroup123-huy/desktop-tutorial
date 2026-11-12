@@ -31,7 +31,15 @@ class PicksRepository {
   Future<SpeciesList> fetchSpecies() async =>
       SpeciesList.fromJson(await _api.get('/v1-picks/species') as Map<String, dynamic>);
 
+  /// Межа розміру фото — як у bucket `mushroom-photos` на сервері.
+  static const int maxPhotoBytes = 5 * 1024 * 1024;
+  static const Set<String> photoTypes = {'image/jpeg', 'image/png', 'image/webp'};
+
   Future<CreatedPick> createPick(NewPick pick, PickPhoto photo) async {
+    // Захист від некоректного виклику: без фото або з неприйнятним фото точку не створюємо.
+    if (photo.sizeBytes <= 0 || photo.sizeBytes > maxPhotoBytes || !photoTypes.contains(photo.contentType)) {
+      throw const ApiException(code: ApiException.invalidPhoto);
+    }
     final target = await _api.post('/v1-picks/upload-url', body: {
       'client_id': pick.clientId,
       'content_type': photo.contentType,

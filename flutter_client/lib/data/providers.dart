@@ -69,7 +69,9 @@ final picksRepositoryProvider = Provider(
     )),
   ),
 );
-final analysisRepositoryProvider = Provider((ref) => AnalysisRepository(ref.watch(apiClientProvider)));
+final analysisRepositoryProvider = Provider(
+  (ref) => AnalysisRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
+);
 
 // ─── Стан ───────────────────────────────────────────────────────────────────
 
@@ -193,6 +195,15 @@ final pickSpeciesProvider = FutureProvider<SpeciesList>(
 // ─── Аналіз ділянки ─────────────────────────────────────────────────────────
 
 /// Доступні розміри ділянки, збережена ділянка і ліміт аналізів на сьогодні.
-final analysisOverviewProvider = FutureProvider.autoDispose<AnalysisOverview>(
-  (ref) => ref.watch(analysisRepositoryProvider).fetchOverview(),
-);
+/// Ділянки аналізу користувача з останніми результатами (ADR-015 §15.4).
+/// Спільні для карти (квадрати ділянок) і вкладки «Прогноз»; без мережі — копія з телефону.
+final analysisOverviewProvider = FutureProvider<AnalysisOverview>((ref) {
+  final userId = ref.watch(meProvider.select((m) => m.valueOrNull?.id));
+  return ref.watch(analysisRepositoryProvider).fetchOverview(userId: userId);
+});
+
+/// Ділянка, відкрита у вкладці «Прогноз» (`null` — перша з наявних).
+final selectedAreaIdProvider = StateProvider<String?>((ref) => null);
+
+/// Запит «показати ділянку на карті»: карта наводить камеру й скидає запит.
+final mapFocusAreaProvider = StateProvider<AnalysisArea?>((ref) => null);

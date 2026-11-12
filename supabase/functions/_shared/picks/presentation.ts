@@ -8,7 +8,7 @@ export interface PickPresentation {
   marker_color: string;
 }
 
-const PRIVATE_STYLE: PickPresentation = { status_label: "Приватна точка", marker_color: "#1e88e5" };
+const PRIVATE_STYLE: PickPresentation = { status_label: "Приватна точка", marker_color: "#8e24aa" };
 const PUBLIC_STYLE: Record<string, PickPresentation> = {
   pending: { status_label: "Перевіряється", marker_color: "#9e9e9e" },
   conditional: { status_label: "Перевіряється", marker_color: "#9e9e9e" },

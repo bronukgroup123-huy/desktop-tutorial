@@ -14,6 +14,7 @@ class ForecastSpecies {
     required this.whenLabel,
     required this.whereLabel,
     required this.whyLabels,
+    this.limitLabels = const [],
   });
 
   factory ForecastSpecies.fromJson(Map<String, dynamic> json) => ForecastSpecies(
@@ -25,6 +26,7 @@ class ForecastSpecies {
         whenLabel: req<String>(json, 'when_label'),
         whereLabel: req<String>(json, 'where_label'),
         whyLabels: stringList(json, 'why_labels'),
+        limitLabels: json['limit_labels'] == null ? const [] : stringList(json, 'limit_labels'),
       );
 
   final String mushroomType;
@@ -37,6 +39,9 @@ class ForecastSpecies {
   final String whenLabel;
   final String whereLabel;
   final List<String> whyLabels;
+
+  /// Що знижує рівень — показується з попередженням (не з «✓»).
+  final List<String> limitLabels;
 }
 
 /// Блок погоди (`weather`) — готові рядки із сервера.

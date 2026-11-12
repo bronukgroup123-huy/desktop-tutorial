@@ -1,6 +1,8 @@
 -- ============================================================================
--- Аналіз ділянки (міграція 20261111110000, BACKEND_PLAN B2.9, ADR-015)
+-- Аналіз ділянки (міграції 20261111110000, 20261112100000; B2.9, ADR-015 §15.4)
 --   * ділянки: користувач читає лише свої; запис — тільки service_role
+--   * ділянку не пересувають: лише створюють у вільний слот і видаляють
+--   * ліміт на добу — на слот: «видалити → створити» його не обнуляє
 --   * лічильник аналізів клієнтам недоступний; ліміт на добу не перевищується
 --   * analyze_area_forest: межі квадрата і площа лісів за типами
 -- Самодостатній тест: усе в транзакції, наприкінці ROLLBACK.
@@ -35,37 +37,55 @@ DECLARE
 BEGIN
   SELECT region_id, lat, lng INTO rid, la, lo FROM fx;
 
-  -- ─── 1. Ділянка зберігається в слоті; повторне збереження її пересуває ─────
-  area := public.save_analysis_area(owner, 1, la, lo, 5, rid);
-  area2 := public.save_analysis_area(owner, 1, la + 0.01, lo, 5, rid);
-  IF area IS NULL OR area <> area2 THEN
-    RAISE EXCEPTION 'Test 1 failed: slot 1 saved as two areas (%, %)', area, area2;
+  -- ─── 1. Ділянка створюється у вільному слоті і не пересувається ────────────
+  SELECT a.id INTO area FROM public.create_analysis_area(owner, 1, la, lo, 5, rid) a;
+  IF area IS NULL THEN RAISE EXCEPTION 'Test 1 failed: first area not created'; END IF;
+  SELECT a.id INTO area2 FROM public.create_analysis_area(owner, 1, la + 0.01, lo, 5, rid) a;
+  IF area2 IS NOT NULL THEN RAISE EXCEPTION 'Test 1b failed: second area in a full free slot'; END IF;
+  IF (SELECT extensions.ST_Y(center::extensions.geometry) FROM public.analysis_areas WHERE id = area) <> la THEN
+    RAISE EXCEPTION 'Test 1c failed: existing area was moved';
   END IF;
-  SELECT count(*) INTO n FROM public.analysis_areas WHERE user_id = owner;
-  IF n <> 1 THEN RAISE EXCEPTION 'Test 1b failed: % areas for one slot', n; END IF;
-
+  -- Pro: другий слот
+  SELECT a.id, a.slot INTO area2, n FROM public.create_analysis_area(owner, 3, la + 0.01, lo, 10, rid) a;
+  IF area2 IS NULL OR n <> 2 THEN RAISE EXCEPTION 'Test 1d failed: Pro area not in slot 2 (%)', n; END IF;
   BEGIN
-    PERFORM public.save_analysis_area(owner, 2, la, lo, 7, rid);
-    RAISE EXCEPTION 'Test 1c failed: size 7 km accepted';
+    PERFORM public.create_analysis_area(owner, 3, la, lo, 7, rid);
+    RAISE EXCEPTION 'Test 1e failed: size 7 km accepted';
   EXCEPTION WHEN check_violation THEN NULL;
   END;
+  IF NOT public.delete_analysis_area(owner, area2) OR public.delete_analysis_area(owner, area2) THEN
+    RAISE EXCEPTION 'Test 1f failed: delete did not report correctly';
+  END IF;
+  IF public.delete_analysis_area('b2b2b2b2-0000-4000-8000-0000000029b2', area) THEN
+    RAISE EXCEPTION 'Test 1g failed: another user deleted the area';
+  END IF;
+  PERFORM public.save_analysis_result(owner, area, '{"date":"2026-11-12"}'::jsonb);
+  IF (SELECT last_result->>'date' FROM public.analysis_areas WHERE id = area) <> '2026-11-12' THEN
+    RAISE EXCEPTION 'Test 1h failed: last result not saved';
+  END IF;
 
-  -- ─── 2. Ліміт: 5 аналізів на добу, шостий — NULL; повернення звільняє один ──
-  IF public.analysis_used_today(owner, area) <> 0 THEN RAISE EXCEPTION 'Test 2 failed: usage is not 0'; END IF;
+  -- ─── 2. Ліміт слоту: 5 на добу; повернення звільняє один ─────────────────
+  IF public.analysis_used_today(owner, 1) <> 0 THEN RAISE EXCEPTION 'Test 2 failed: usage is not 0'; END IF;
   FOR i IN 1..5 LOOP
-    n := public.consume_analysis(owner, area, 5);
+    n := public.consume_analysis(owner, 1, 5);
     IF n IS DISTINCT FROM i THEN RAISE EXCEPTION 'Test 2b failed: consume #% returned %', i, n; END IF;
   END LOOP;
-  IF public.consume_analysis(owner, area, 5) IS NOT NULL THEN
+  IF public.consume_analysis(owner, 1, 5) IS NOT NULL THEN
     RAISE EXCEPTION 'Test 2c failed: 6th analysis allowed';
   END IF;
-  IF public.analysis_used_today(owner, area) <> 5 THEN RAISE EXCEPTION 'Test 2d failed: usage is not 5'; END IF;
-  PERFORM public.refund_analysis(owner, area);
-  IF public.analysis_used_today(owner, area) <> 4 OR public.consume_analysis(owner, area, 5) <> 5 THEN
+  IF public.analysis_used_today(owner, 1) <> 5 THEN RAISE EXCEPTION 'Test 2d failed: usage is not 5'; END IF;
+  PERFORM public.refund_analysis(owner, 1);
+  IF public.analysis_used_today(owner, 1) <> 4 OR public.consume_analysis(owner, 1, 5) <> 5 THEN
     RAISE EXCEPTION 'Test 2e failed: refund did not free one analysis';
   END IF;
-  IF public.consume_analysis(owner, area, 0) IS NOT NULL THEN
+  IF public.consume_analysis(owner, 1, 0) IS NOT NULL THEN
     RAISE EXCEPTION 'Test 2f failed: zero limit allowed an analysis';
+  END IF;
+  -- «видалити → створити» не обнуляє ліміт слоту
+  PERFORM public.delete_analysis_area(owner, area);
+  SELECT a.id INTO area FROM public.create_analysis_area(owner, 1, la, lo, 5, rid) a;
+  IF public.consume_analysis(owner, 1, 5) IS NOT NULL THEN
+    RAISE EXCEPTION 'Test 2g failed: delete + create reset the daily limit';
   END IF;
 
   -- ─── 3. Ліс у квадраті 5×5 км ──────────────────────────────────────────────
@@ -125,18 +145,23 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN
-    PERFORM public.save_analysis_area('b2b2b2b2-0000-4000-8000-0000000029b2', 1, la, lo, 10, rid);
-    RAISE EXCEPTION 'Test 4d failed: client can call save_analysis_area';
+    PERFORM public.create_analysis_area('b2b2b2b2-0000-4000-8000-0000000029b2', 3, la, lo, 10, rid);
+    RAISE EXCEPTION 'Test 4d failed: client can call create_analysis_area';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN
-    PERFORM public.consume_analysis('b2b2b2b2-0000-4000-8000-0000000029b2', gen_random_uuid(), 100);
+    PERFORM public.consume_analysis('b2b2b2b2-0000-4000-8000-0000000029b2', 1, 100);
     RAISE EXCEPTION 'Test 4e failed: client can call consume_analysis';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN
-    PERFORM public.refund_analysis('b2b2b2b2-0000-4000-8000-0000000029b2', gen_random_uuid());
+    PERFORM public.refund_analysis('b2b2b2b2-0000-4000-8000-0000000029b2', 1);
     RAISE EXCEPTION 'Test 4f failed: client can call refund_analysis';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.delete_analysis_area('b2b2b2b2-0000-4000-8000-0000000029b2', gen_random_uuid());
+    RAISE EXCEPTION 'Test 4h failed: client can call delete_analysis_area';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN

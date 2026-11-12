@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -10,14 +11,13 @@ import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
-import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
-import 'package:flutter_client/features/analysis/analysis_sheet.dart';
+import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
-import 'package:flutter_client/features/forecast/forecast_view.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
+import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/picks/pick_card_sheet.dart';
 
@@ -82,8 +82,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   int _analysisSizeKm = 5;
   LatLng? _analysisCenter;
 
-  /// Точні межі ділянки із сервера (після аналізу); до того — попередній квадрат.
-  GeoBounds? _analysisBounds;
+  /// Визначник лісу: тип лісу, по якому торкнулися, і де показати підпис.
+  ({LatLng point, ForestZone zone})? _forestLabel;
 
   ({LatLng center, double zoom})? _fit;
   Size? _fitSize;
@@ -93,6 +93,26 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   List<Polygon<ForestZone>> _polygons = const [];
 
   RegionGeometry get _g => widget.geometry;
+
+  @override
+  void initState() {
+    super.initState();
+    // «Показати на карті» з вкладки «Прогноз», якщо карта ще не була відкрита.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final area = ref.read(mapFocusAreaProvider);
+      if (mounted && area != null) _focusArea(area);
+    });
+  }
+
+  /// Навести камеру на ділянку і скинути запит.
+  void _focusArea(AnalysisArea area) {
+    final corners = squareAround(area.center, area.sizeKm);
+    _mapController.fitCamera(CameraFit.bounds(
+      bounds: LatLngBounds.fromPoints(corners),
+      padding: regionPadding + const EdgeInsets.only(bottom: 80),
+    ));
+    ref.read(mapFocusAreaProvider.notifier).state = null;
+  }
 
   @override
   void dispose() {
@@ -133,7 +153,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
             ),
       ];
 
-  /// Тап по лісу → обрана точка (для вкладки «Прогноз») + прогноз у Bottom Sheet.
+  /// Тап по лісу — визначник лісу: на лісі з'являється підпис його типу.
+  /// Прогноз — лише для ділянки аналізу (вкладка «Прогноз»), не для точки.
   void _onForestTap() {
     final hit = _forestHits.value;
     if (hit == null || hit.hitValues.isEmpty) return;
@@ -141,27 +162,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       _setAnalysisCenter(hit.coordinate);
       return;
     }
-    final zone = hit.hitValues.first;
-    final point = ForecastPoint(
-      lat: hit.coordinate.latitude,
-      lng: hit.coordinate.longitude,
-      forestType: zone.forestType,
-      title: zone.typeLabel,
-    );
-    ref.read(selectedPointProvider.notifier).state = point;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: AppTheme.backgroundColor,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.92,
-        builder: (context, controller) => ForecastView(point: point, scrollController: controller),
-      ),
-    );
+    setState(() => _forestLabel = (point: hit.coordinate, zone: hit.hitValues.first));
   }
 
   /// Масштаб «вся область» під поточний розмір карти. При повороті екрана
@@ -257,7 +258,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     setState(() {
       _analysisMode = !_analysisMode;
       _analysisCenter = null;
-      _analysisBounds = null;
+      _forestLabel = null;
     });
   }
 
@@ -266,10 +267,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       showToast(context, 'Оберіть місце в межах своєї області');
       return;
     }
-    setState(() {
-      _analysisCenter = point;
-      _analysisBounds = null;
-    });
+    setState(() => _analysisCenter = point);
   }
 
   void _setAnalysisSize(AnalysisSizeOption option) {
@@ -278,24 +276,36 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       showToast(context, '${option.label}: ${option.lockLabel ?? 'недоступно'}');
       return;
     }
-    setState(() {
-      _analysisSizeKm = option.sizeKm;
-      _analysisBounds = null;
-    });
+    setState(() => _analysisSizeKm = option.sizeKm);
   }
 
-  Future<void> _runAnalysis() async {
+  /// Створити ділянку в обраному місці й одразу проаналізувати. Пересунути
+  /// ділянку потім не можна (ADR-015 §15.4) — результат і подальша робота з нею
+  /// у вкладці «Прогноз».
+  Future<void> _createArea() async {
     final center = _analysisCenter;
     if (center == null || _analyzing) return;
     setState(() => _analyzing = true);
     try {
-      final result = await ref.read(analysisRepositoryProvider).analyze(center: center, sizeKm: _analysisSizeKm);
+      // Ліс у квадраті — з тих самих полігонів, що на карті (у БД сервера є не всі
+      // області; раніше через це під видимим лісом приходило «лісів немає»).
+      final zones = ref.read(regionForestsProvider(_g.slug)).valueOrNull?.zones ?? const <ForestZone>[];
+      final forest = zones.isEmpty ? null : forestInSquare(zones, squareAround(center, _analysisSizeKm)).toJson();
+      final result = await ref
+          .read(analysisRepositoryProvider)
+          .createArea(center: center, sizeKm: _analysisSizeKm, forest: forest);
       if (!mounted) return;
+      ref.read(selectedAreaIdProvider.notifier).state = result.area.id;
       ref.invalidate(analysisOverviewProvider);
-      setState(() => _analysisBounds = result.area.bounds);
-      await showAnalysisResult(context, result);
+      setState(() {
+        _analysisMode = false;
+        _analysisCenter = null;
+      });
+      context.go('/forecast');
     } on ApiException catch (e) {
-      if (mounted) showToast(context, e.userMessage, isError: true);
+      if (!mounted) return;
+      showToast(context, e.userMessage, isError: true);
+      if (e.code == 'area_limit_reached') ref.invalidate(analysisOverviewProvider);
     } catch (_) {
       if (mounted) showToast(context, 'Не вдалося виконати аналіз. Спробуйте ще раз.', isError: true);
     } finally {
@@ -303,23 +313,103 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     }
   }
 
-  /// Квадрат ділянки на карті: точні межі із сервера або попередній показ.
-  List<LatLng>? _analysisSquare() {
-    final bounds = _analysisBounds;
-    if (bounds != null) return squareFromBounds(bounds);
-    final center = _analysisCenter;
-    return center == null ? null : squareAround(center, _analysisSizeKm);
+  /// Відкрити ділянку у вкладці «Прогноз».
+  void _openArea(AnalysisArea area) {
+    ref.read(selectedAreaIdProvider.notifier).state = area.id;
+    context.go('/forecast');
   }
+
+  List<Polygon> _areaSquares(List<AnalysisArea> areas) => [
+        for (final a in areas)
+          Polygon(
+            points: squareAround(a.center, a.sizeKm),
+            color: AppTheme.darkGreen.withValues(alpha: 0.06),
+            borderColor: AppTheme.darkGreen,
+            borderStrokeWidth: 2,
+            pattern: StrokePattern.dashed(segments: const [10, 6]),
+          ),
+      ];
+
+  List<Marker> _areaLabels(List<AnalysisArea> areas) => [
+        for (final a in areas)
+          Marker(
+            point: squareAround(a.center, a.sizeKm)[3], // північно-західний кут
+            width: 150,
+            height: 34,
+            alignment: Alignment.bottomRight,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                color: AppTheme.darkGreen,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => _openArea(a),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    child: Text(
+                      'Ділянка ${a.slot} · прогноз',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ];
+
+  /// Підпис визначника лісу над точкою дотику.
+  Marker _forestLabelMarker(LatLng point, ForestZone zone) => Marker(
+        point: point,
+        width: 220,
+        height: 56,
+        alignment: Alignment.topCenter,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: GestureDetector(
+            onTap: () => setState(() => _forestLabel = null),
+            child: Container(
+              key: const ValueKey('forest-label'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: zone.typeColor, width: 2),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6)],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.forest_rounded, size: 16, color: zone.typeColor),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 
   List<Marker> _pickMarkers(List<MapPick> picks) => [
         for (final p in picks)
           Marker(
             point: p.point,
-            width: 34,
-            height: 34,
+            width: 40,
+            height: 44,
+            alignment: Alignment.topCenter, // ніжка гриба — у точці на карті
             child: GestureDetector(
               onTap: () => showPickCard(context, p.id),
-              child: _PickDot(color: p.markerColor, mine: p.isMine),
+              child: MushroomMarker(
+                color: p.markerColor,
+                isPrivate: p.visibility == PickVisibility.private,
+                tooltip: '${p.nameLabel} · ${p.statusLabel}',
+              ),
             ),
           ),
       ];
@@ -337,7 +427,14 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
     final picks = ref.watch(picksMapProvider).valueOrNull?.points ?? const <MapPick>[];
     final showPrivate = ref.watch(showPrivatePicksProvider);
-    final square = _analysisMode ? _analysisSquare() : null;
+    final center = _analysisCenter;
+    final square = _analysisMode && center != null ? squareAround(center, _analysisSizeKm) : null;
+    final overview = ref.watch(analysisOverviewProvider);
+    final areas = overview.valueOrNull?.areas ?? const <AnalysisArea>[];
+    final forestLabel = _forestLabel;
+    ref.listen(mapFocusAreaProvider, (_, area) {
+      if (area != null) _focusArea(area);
+    });
 
     return Scaffold(
       body: Stack(
@@ -359,9 +456,14 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
-              // У режимі аналізу дотик до карти обирає центр ділянки.
+              // У режимі аналізу дотик до карти обирає центр ділянки;
+              // поза лісом — ховає підпис визначника лісу.
               onTap: (tapPosition, point) {
-                if (_analysisMode) _setAnalysisCenter(point);
+                if (_analysisMode) {
+                  _setAnalysisCenter(point);
+                } else if (_forestLabel != null) {
+                  setState(() => _forestLabel = null);
+                }
               },
             ),
             children: [
@@ -378,6 +480,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 ),
               ),
               PolygonLayer(polygons: [_mask()]),
+              if (areas.isNotEmpty) PolygonLayer(polygons: _areaSquares(areas)),
               if (square != null)
                 PolygonLayer(
                   polygons: [
@@ -390,6 +493,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                   ],
                 ),
               MarkerLayer(markers: _pickMarkers(picks)),
+              if (areas.isNotEmpty) MarkerLayer(markers: _areaLabels(areas)),
+              if (forestLabel != null) MarkerLayer(markers: [_forestLabelMarker(forestLabel.point, forestLabel.zone)]),
               const RichAttributionWidget(
                 alignment: AttributionAlignment.bottomLeft,
                 attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
@@ -443,14 +548,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               right: 16,
               bottom: 60,
               child: _AnalysisPanel(
-                overview: ref.watch(analysisOverviewProvider),
+                overview: overview,
                 sizeKm: _analysisSizeKm,
                 centerSelected: _analysisCenter != null,
                 busy: _analyzing,
                 onSize: _setAnalysisSize,
-                onAnalyze: _runAnalysis,
+                onAnalyze: _createArea,
                 onClose: _toggleAnalysisMode,
                 onRetry: () => ref.invalidate(analysisOverviewProvider),
+                onOpenAreas: () => context.go('/forecast'),
               ),
             )
           else ...[
@@ -614,29 +720,6 @@ class _MapToolButton extends StatelessWidget {
       );
 }
 
-/// Маркер тук-тука: колір статусу — із сервера; власні точки — з білою серединкою.
-class _PickDot extends StatelessWidget {
-  const _PickDot({required this.color, required this.mine});
-
-  final Color color;
-  final bool mine;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4)],
-          ),
-          child: mine ? const Center(child: Icon(Icons.circle, size: 7, color: Colors.white)) : null,
-        ),
-      );
-}
-
 /// Кнопка режиму карти з підписом (бежева; активна — зелена).
 class _MapPill extends StatelessWidget {
   const _MapPill({required this.icon, required this.label, required this.onPressed, this.active = false});
@@ -685,6 +768,7 @@ class _AnalysisPanel extends StatelessWidget {
     required this.onAnalyze,
     required this.onClose,
     required this.onRetry,
+    required this.onOpenAreas,
   });
 
   final AsyncValue<AnalysisOverview> overview;
@@ -695,6 +779,7 @@ class _AnalysisPanel extends StatelessWidget {
   final VoidCallback onAnalyze;
   final VoidCallback onClose;
   final VoidCallback onRetry;
+  final VoidCallback onOpenAreas;
 
   @override
   Widget build(BuildContext context) {
@@ -748,11 +833,33 @@ class _AnalysisPanel extends StatelessWidget {
                   ],
                 ),
               )
-            else ...[
+            else if (!data.canCreate) ...[
+              // Ділянку не пересувають: нова — лише після видалення старої (або в Pro).
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(data.createHintLabel ?? 'Вільного місця для нової ділянки немає.'),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilledButton.icon(
+                  onPressed: onOpenAreas,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.darkGreen,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.insights_rounded),
+                  label: const Text('Мої ділянки'),
+                ),
+              ),
+            ] else ...[
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Text(
-                  centerSelected ? 'Центр обрано. Можна змінити — торкніться іншого місця.' : data.hintLabel,
+                  centerSelected
+                      ? 'Центр обрано. Перед створенням його можна змінити — торкніться іншого місця. '
+                          'Після створення ділянку пересунути не можна.'
+                      : data.hintLabel,
                   style: TextStyle(color: muted),
                 ),
               ),
@@ -770,8 +877,6 @@ class _AnalysisPanel extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(data.usage.label, style: TextStyle(fontSize: 12, color: muted)),
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -788,7 +893,7 @@ class _AnalysisPanel extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.insights_rounded),
-                  label: Text(busy ? 'Аналізуємо…' : 'Аналізувати ділянку'),
+                  label: Text(busy ? 'Аналізуємо…' : 'Створити ділянку й аналізувати'),
                 ),
               ),
             ],

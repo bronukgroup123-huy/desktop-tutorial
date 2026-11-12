@@ -85,6 +85,56 @@ export function whyLabels(matched: string[], w: WeatherData | null | undefined):
   return out;
 }
 
+/**
+ * Обмежувальний фактор рушія (`ScoredSpecies.missed`) → український підпис.
+ * Показуються з іконкою-попередженням, щоб було видно, ЧОМУ рівень не вищий.
+ */
+export function humanizeLimit(reason: string, w: WeatherData | null | undefined): string | null {
+  let m: RegExpMatchArray | null;
+  if ((m = reason.match(/^humidity ([\d.]+) < ([\d.]+)/))) {
+    return `Вологість ${Math.round(Number(m[1]))}% — замало (краще від ${Math.round(Number(m[2]))}%)`;
+  }
+  if ((m = reason.match(/^rain3d ([\d.]+) < ([\d.]+)/))) {
+    return `Мало дощу: ${mm(Number(m[1]))} за 3 дні (краще від ${mm(Number(m[2]))})`;
+  }
+  if ((m = reason.match(/^drought (\d+)d /))) return `Посуха ${days(Number(m[1]))} без дощу`;
+  if ((m = reason.match(/^daysAfterRain (\d+) outside/))) return `${days(Number(m[1]))} після дощу — не найкращий час`;
+  if ((m = reason.match(/^stand age (\d+)y outside/))) return `Вік деревостану ${m[1]} р. — не оптимальний`;
+  if (reason.startsWith("relief soft-miss")) return "Рельєф не найкращий для виду";
+  if (reason.startsWith("dry →")) return "Сухий ґрунт";
+  if (reason.startsWith("waterlogged →")) return "Ґрунт перезволожений";
+  if (reason.startsWith("forest not confirmed")) return "Тип лісу не визначено";
+  if (reason === "temp in transition zone") {
+    return weatherOk(w) ? `Температура ${deg(w.tempAvg7d)} — на межі сприятливої` : "Температура на межі сприятливої";
+  }
+  // Негативні правила й так українською («Занадто сиро», «Різкі перепади температур»).
+  if (/[А-Яа-яІіЇїЄєҐґ]/.test(reason)) return reason;
+  return null;
+}
+
+/**
+ * «Що заважає»: перекладені обмежувальні фактори. Якщо рівень нижчий за «високий», а
+ * явних факторів немає — пояснюємо сезон, щоб «✓» не суперечили бейджу рівня.
+ */
+export function limitLabels(
+  missed: string[],
+  matched: string[],
+  level: string,
+  w: WeatherData | null | undefined,
+): string[] {
+  const out: string[] = [];
+  for (const r of missed) {
+    const label = humanizeLimit(r, w);
+    if (label && !out.includes(label)) out.push(label);
+    if (out.length >= MAX_WHY) break;
+  }
+  if (out.length === 0 && (level === "low" || level === "medium")) {
+    const peak = matched.some((r) => r.startsWith("peak wave") || r.startsWith("peak month"));
+    out.push(peak ? "Умови сприятливі лише частково" : "Не пік сезону для цього виду");
+  }
+  return out;
+}
+
 /** «Коли»: «Зараз — 3 дні після дощу · Осіння хвиля». */
 export function whenLabel(wave: Wave | null, w: WeatherData | null | undefined): string {
   const waveLabel = wave ? WAVE_LABEL[wave] : "Весь сезон";

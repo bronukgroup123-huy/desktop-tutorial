@@ -11,6 +11,7 @@ import 'package:flutter_client/core/uuid.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/picks/photo_validation.dart';
 import 'package:flutter_client/features/picks/species_picker.dart';
 
 /// Знімок із камери застосунку. Галереї немає, кадр — один (ADR-018 §18.3).
@@ -57,6 +58,20 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
   SpeciesChoice? _species;
   bool _saving = false;
 
+  /// Помилка фото (розмір, формат, пошкоджений файл) — зберегти не можна, доки не перезняти.
+  String? _photoError;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPhoto(widget.photo);
+  }
+
+  Future<void> _checkPhoto(XFile photo) async {
+    final check = await validatePickPhoto(photo);
+    if (mounted && identical(photo, _photo)) setState(() => _photoError = check.error);
+  }
+
   @override
   void dispose() {
     _description.dispose();
@@ -69,7 +84,9 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
     setState(() {
       _photo = photo;
       _capturedAt = DateTime.now();
+      _photoError = null;
     });
+    await _checkPhoto(photo);
   }
 
   Future<void> _pickSpecies() async {
@@ -86,6 +103,14 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
     }
     setState(() => _saving = true);
     try {
+      // Фото обов'язкове: перевіряємо ще раз безпосередньо перед відправкою
+      // (файл міг зникнути з кешу камери), тип — за вмістом, а не розширенням.
+      final check = await validatePickPhoto(_photo);
+      if (!check.isOk) {
+        if (mounted) setState(() => _photoError = check.error);
+        if (mounted) showToast(context, check.error!, isError: true);
+        return;
+      }
       final created = await ref.read(picksRepositoryProvider).createPick(
             NewPick(
               clientId: _clientId,
@@ -97,8 +122,8 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
             ),
             PickPhoto(
               openRead: _photo.openRead,
-              sizeBytes: await _photo.length(),
-              contentType: PickPhoto.contentTypeForPath(_photo.path),
+              sizeBytes: check.sizeBytes,
+              contentType: check.contentType!,
             ),
           );
       if (!mounted) return;
@@ -145,6 +170,17 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
                 ),
               ),
             ),
+            if (_photoError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(_photoError!, style: const TextStyle(color: Colors.red))),
+                  ],
+                ),
+              ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -216,7 +252,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _saving ? null : _save,
+              onPressed: _saving || _photoError != null ? null : _save,
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.darkGreen,
                 minimumSize: const Size.fromHeight(52),

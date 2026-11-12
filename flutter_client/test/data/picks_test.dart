@@ -210,7 +210,7 @@ void main() {
                 'id': 'x',
                 'visibility': 'private',
                 'status_label': 'Приватна точка',
-                'marker_color': '#1e88e5',
+                'marker_color': '#8e24aa',
               },
             }));
       final (uploads, _) = makeFilesDio((_) => const FakeResponse(200, <String, Object>{}));

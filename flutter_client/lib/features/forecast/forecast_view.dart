@@ -201,6 +201,12 @@ class ForecastSpeciesCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, muted: true),
               ],
+              // Чому рівень не вищий — інакше «✓» суперечили б бейджу (напр. «Низька»).
+              if (species.limitLabels.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                for (final limit in species.limitLabels)
+                  _Line(icon: Icons.error_outline_rounded, text: limit, color: AppTheme.accentOrange),
+              ],
             ],
           ),
         ),
@@ -208,11 +214,14 @@ class ForecastSpeciesCard extends StatelessWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line({required this.icon, required this.text, this.muted = false});
+  const _Line({required this.icon, required this.text, this.muted = false, this.color});
 
   final IconData icon;
   final String text;
   final bool muted;
+
+  /// Колір іконки (напр. помаранчевий для обмежувальних факторів).
+  final Color? color;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -220,7 +229,7 @@ class _Line extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: AppTheme.darkGreen.withValues(alpha: muted ? 0.5 : 0.8)),
+            Icon(icon, size: 18, color: color ?? AppTheme.darkGreen.withValues(alpha: muted ? 0.5 : 0.8)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(text, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: muted ? 0.75 : 1))),

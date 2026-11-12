@@ -45,8 +45,11 @@ export function scoreToLevel(score: number): ProbabilityLevel {
 /**
  * Оцінити один вид.
  *
- * matched = reasons матчерів + reasons спрацювавших правил;
- * missed  = reasons матчерів із hardFail (порожній, якщо hardFail немає);
+ * matched = позитивні reasons матчерів + reasons правил, що ПІДВИЩИЛИ скор;
+ * missed  = hardFail → його reasons; інакше — обмежувальні фактори: негативні reasons
+ *           матчерів (вологість/дощ нижче норми, сухий ґрунт…), правила з від'ємною
+ *           дельтою, перехідна зона температури. Без цього клієнт бачив лише «✓» при
+ *           низькому рівні (рівень знижували фактори, яких ніде не було видно).
  * where   = overrideWhere від Rule 3/8, інакше fallback за soilState.
  */
 export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpecies {
@@ -113,16 +116,18 @@ export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpe
 
   // 5) Динамічні правила 1–6, 8 (§12) — адитивні дельти (8.4b РІШЕННЯ 2)
   const ruleReasons: string[] = [];
+  const ruleLimits: string[] = [];
   let overrideWhere: string | null | undefined;
   for (const dynamicRule of MVP_RULES) {
     const res = dynamicRule(rule, ctx);
     if (res.skip) continue;
     score += res.modifier;
-    if (res.reason) ruleReasons.push(res.reason);
+    if (res.reason) (res.modifier < 0 ? ruleLimits : ruleReasons).push(res.reason);
     if (res.overrideWhere) overrideWhere = res.overrideWhere;
   }
 
   score = Math.max(0, Math.min(1, score));
+  const matcherReasons = results.flatMap((r) => r.reasons);
 
   const where =
     overrideWhere ??
@@ -136,11 +141,24 @@ export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpe
     name_ua: rule.nameUa,
     score,
     probability: scoreToLevel(score),
-    matched: [...results.flatMap((r) => r.reasons), ...ruleReasons],
-    missed: [],
+    matched: [...matcherReasons.filter((r) => !isLimitingReason(r)), ...ruleReasons],
+    missed: [
+      ...matcherReasons.filter(isLimitingReason),
+      ...(inTransition ? [TEMP_TRANSITION_REASON] : []),
+      ...ruleLimits,
+    ],
     wave: ctx.wave,
     where,
   };
+}
+
+/** Службовий reason: температура в перехідній зоні (скор ×0.7). */
+export const TEMP_TRANSITION_REASON = "temp in transition zone";
+
+/** Технічні reasons матчерів, що ЗНИЖУЮТЬ скор (а не підтверджують умови). */
+export function isLimitingReason(reason: string): boolean {
+  return /^(humidity [\d.]+ <|rain3d [\d.]+ <|drought \d+d .* no trigger|daysAfterRain \d+ outside|stand age \d+y outside|relief soft-miss|dry →|waterlogged →|forest not confirmed)/
+    .test(reason);
 }
 
 /** Оцінити всі правила (без фільтрації/сортування — 8.5/8.6) */

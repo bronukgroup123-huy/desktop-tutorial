@@ -87,3 +87,27 @@ Deno.test("shapeSpecies: людські підписи і жодних чисе�
   assertEquals(s.why_labels, ["Температура 13° — підходить для плодоношення", "Дощ 16 мм за останні 3 дні"]);
   assertEquals(Object.values(s).some((v) => typeof v === "number"), false);
 });
+
+Deno.test("shapeSpecies: низький рівень пояснюється обмежувальними факторами, а не лише «✓»", () => {
+  const s = shapeSpecies({
+    mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", score: 0.3, probability: "low",
+    matched: ["temp 4 within fruiting range", "11-12 in season"],
+    missed: ["humidity 55 < 70", "dry → ×0.7", "temp in transition zone", "Різкі перепади температур"],
+    wave: "late", where: null,
+  } as ScoredSpecies, W)!;
+  assertEquals(s.level_label, "Низька ймовірність");
+  assertEquals(s.limit_labels, [
+    "Вологість 55% — замало (краще від 70%)",
+    "Сухий ґрунт",
+    "Температура 13° — на межі сприятливої",
+    "Різкі перепади температур",
+  ]);
+});
+
+Deno.test("shapeSpecies: низький рівень без явних факторів — пояснення сезону; високий — без вигаданих", () => {
+  const base = { mushroom_type: "x", name_ua: "X", wave: null, where: null, missed: [] };
+  const low = shapeSpecies({ ...base, score: 0.3, probability: "low", matched: ["11-12 in season"] } as ScoredSpecies, W)!;
+  assertEquals(low.limit_labels, ["Не пік сезону для цього виду"]);
+  const high = shapeSpecies({ ...base, score: 0.8, probability: "high", matched: ["peak wave: autumn"] } as ScoredSpecies, W)!;
+  assertEquals(high.limit_labels, []);
+});
