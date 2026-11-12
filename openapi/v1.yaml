@@ -375,7 +375,8 @@ paths:
       summary: Аналіз ділянки — що доступно користувачу
       description: |
         Розміри ділянки з позначкою доступності (10×10 км — лише Pro, `lock_label`),
-        збережена ділянка та скільки аналізів використано сьогодні. Клієнт показує лише це —
+        збережені ділянки з лімітом на сьогодні й останнім результатом, а також чи можна
+        створити ще одну (`can_create`, `create_hint_label`). Клієнт показує лише це —
         сам доступ не вирішує (ADR-015).
       responses:
         '200':
@@ -391,16 +392,22 @@ paths:
         '429': { $ref: '#/components/responses/Error' }
     post:
       operationId: runAnalysis
-      summary: Машинний прогноз — аналіз квадрата навколо точки
+      summary: Машинний прогноз — нова ділянка або повторний аналіз збереженої
       description: |
-        Сервер аналізує квадрат `size_km × size_km` з центром у точці: які ліси і скільки їх у
-        ділянці, погода, найімовірніші види. Тільки рівні з підписами — без відсотків.
+        Два варіанти тіла:
+        * `{ lat, lng, size_km }` — створити НОВУ ділянку (квадрат `size_km × size_km` з центром
+          у точці) у вільному слоті й проаналізувати. Вільного слоту немає → `409 area_limit_reached`.
+        * `{ area_id }` — повторний аналіз збереженої ділянки. Ділянку не пересувають
+          (ADR-015 §15.4): щоб обрати інше місце, її видаляють і створюють нову.
+
+        Відповідь: які ліси і скільки їх у ділянці, погода, найімовірніші види. Тільки рівні з
+        підписами — без відсотків. Результат зберігається з ділянкою (`last_result` у GET).
 
         * Ділянка — тільки у своїй області (`403 outside_home_region`), і в Pro також.
-        * Безкоштовно: 1 ділянка 5×5 км, базова погода, 5 аналізів на добу (доба — за
-          київським часом). Перевищення — `429 analysis_limit_reached` + `Retry-After`.
-        * 10×10 км і дата далі ніж +3 дні — Pro (`403 pro_required`, текст у `message`).
-        * Ділянка зберігається: повторний аналіз в іншому місці пересуває її.
+        * Безкоштовно: 1 ділянка 5×5 км, базова погода, 5 аналізів на добу на ділянку (доба — за
+          київським часом). Ліміт рахується на слот: «видалити → створити» його не обнуляє.
+          Перевищення — `429 analysis_limit_reached` + `Retry-After`.
+        * 10×10 км, до 3 ділянок і дата далі ніж +3 дні — Pro (`403 pro_required`, текст у `message`).
       requestBody:
         required: true
         content:
@@ -423,8 +430,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
+        '404':
+          description: '`not_found` — ділянку (area_id) не знайдено'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: '`area_limit_reached` — немає вільного слоту (текст у `message`), `home_region_required`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '422':
           description: '`validation_error`'
           content:
@@ -435,6 +450,35 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /v1-analysis/areas/{id}:
+    delete:
+      operationId: deleteAnalysisArea
+      summary: Видалити ділянку аналізу
+      description: |
+        Звільняє слот для нової ділянки (ADR-015 §15.4). Ліміт аналізів на сьогодні не скидається.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Видалено
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [deleted]
+                    properties:
+                      deleted: { type: boolean, const: true }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 
 components:
   securitySchemes:
@@ -458,7 +502,7 @@ components:
         Тук-тук (v1-picks): validation_error, photo_too_large, invalid_photo_format,
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
         daily_limit_reached, storage_error, invalid_mine, pick_not_found.
-        Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After).
+        Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -674,6 +718,13 @@ components:
           minItems: 4
           maxItems: 4
           description: '[minLng, minLat, maxLng, maxLat] — точні межі проаналізованого квадрата (у відповіді POST)'
+        usage: { $ref: '#/components/schemas/AnalysisUsage' }
+        last_result:
+          description: Останній результат аналізу ділянки (у GET); null — ще не аналізували
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisResult'
+            - type: 'null'
+        last_analyzed_at: { type: [string, 'null'], format: date-time }
 
     AnalysisOverview:
       type: object
@@ -694,11 +745,16 @@ components:
           items: { $ref: '#/components/schemas/AnalysisArea' }
         usage: { $ref: '#/components/schemas/AnalysisUsage' }
         hint_label: { type: string, example: 'Торкніться карти, щоб обрати центр ділянки' }
+        can_create: { type: boolean, description: Чи є вільний слот для нової ділянки }
+        create_hint_label:
+          type: string
+          example: 'У вас уже є ділянка. Щоб створити нову, видаліть стару у вкладці «Прогноз».'
 
     AnalysisRequest:
       type: object
-      required: [lat, lng, size_km]
+      description: Або `area_id` (повторний аналіз), або `lat` + `lng` + `size_km` (нова ділянка).
       properties:
+        area_id: { type: string, format: uuid }
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }
         size_km: { type: integer, enum: [5, 10] }

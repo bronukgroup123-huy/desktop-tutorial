@@ -58,7 +58,9 @@ function db(extra: Results = {}) {
     "users.select": { data: { home_region_id: 10 }, error: null },
     "analysis_areas.select": { data: [], error: null },
     "rpc.point_in_region": { data: true, error: null },
-    "rpc.save_analysis_area": { data: AREA, error: null },
+    "rpc.create_analysis_area": { data: [{ id: AREA, slot: 1 }], error: null },
+    "rpc.save_analysis_result": { data: null, error: null },
+    "rpc.delete_analysis_area": { data: true, error: null },
     "rpc.consume_analysis": { data: 1, error: null },
     "rpc.analysis_used_today": { data: 0, error: null },
     "rpc.analyze_area_forest": { data: FOREST, error: null },
@@ -105,6 +107,7 @@ Deno.test("analysis GET: без Pro — 5×5 доступна, 10×10 із за�
   assertEquals(json.data.areas, []);
   assertEquals(json.data.usage, { used: 0, limit: 5, label: "Сьогодні: 0 з 5 аналізів" });
   assert(json.data.hint_label.length > 0);
+  assertEquals(json.data.can_create, true);
 });
 
 Deno.test("analysis GET: збережена ділянка і використані сьогодні аналізи", async () => {
@@ -113,8 +116,16 @@ Deno.test("analysis GET: збережена ділянка і використа
     "rpc.analysis_used_today": { data: 3, error: null },
   });
   const { json } = await run(d, req("GET", URL_));
-  assertEquals(json.data.areas, [{ id: AREA, slot: 1, lat: 50.4, lng: 30.5, size_km: 5, size_label: "5×5 км" }]);
-  assertEquals(json.data.usage, { used: 3, limit: 5, label: "Сьогодні: 3 з 5 аналізів" });
+  const usage = { used: 3, limit: 5, label: "Сьогодні: 3 з 5 аналізів" };
+  assertEquals(json.data.areas, [{
+    id: AREA, slot: 1, lat: 50.4, lng: 30.5, size_km: 5, size_label: "5×5 км", usage,
+    last_result: null, last_analyzed_at: null,
+  }]);
+  assertEquals(json.data.usage, usage);
+  // безкоштовно ділянка одна — нову створити не можна, доки не видалити стару
+  assertEquals(json.data.can_create, false);
+  assert(json.data.create_hint_label.includes("видаліть стару"));
+  assertEquals(find(d, "rpc.analysis_used_today")!.args[0], { p_user_id: USER, p_slot: 1 });
   assertEquals(find(d, "analysis_areas.select")!.filters, [["user_id", USER]]);
 });
 
@@ -160,10 +171,14 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
   assertEquals([inputs[0].lat, inputs[0].lng, inputs[0].homeRegionId], [KYIV.lat, KYIV.lng, 10]);
   assertEquals(inputs[0].date.toISOString(), "2026-11-11T00:00:00.000Z");
 
-  assertEquals(find(d, "rpc.save_analysis_area")!.args[0], {
-    p_user_id: USER, p_slot: 1, p_lat: KYIV.lat, p_lng: KYIV.lng, p_size_km: 5, p_region_id: 10,
+  assertEquals(find(d, "rpc.create_analysis_area")!.args[0], {
+    p_user_id: USER, p_max_slots: 1, p_lat: KYIV.lat, p_lng: KYIV.lng, p_size_km: 5, p_region_id: 10,
   });
-  assertEquals(find(d, "rpc.consume_analysis")!.args[0], { p_user_id: USER, p_area_id: AREA, p_limit: 5 });
+  assertEquals(find(d, "rpc.consume_analysis")!.args[0], { p_user_id: USER, p_slot: 1, p_limit: 5 });
+  // останній результат зберігається з ділянкою
+  const saved = find(d, "rpc.save_analysis_result")!.args[0] as Record<string, unknown>;
+  assertEquals([saved.p_user_id, saved.p_area_id], [USER, AREA]);
+  assertEquals((saved.p_result as Record<string, unknown>).date, "2026-11-11");
   assertEquals(find(d, "rpc.analyze_area_forest")!.args[0], { p_region_id: 10, p_lat: KYIV.lat, p_lng: KYIV.lng, p_size_km: 5 });
 });
 
@@ -173,7 +188,7 @@ Deno.test("analysis POST: безкоштовно 10×10 → 403 pro_required, д
   assertEquals(res.status, 403);
   assertEquals(json.error, "pro_required");
   assert(json.message.includes("Pro"));
-  assertEquals(find(d, "rpc.save_analysis_area"), undefined);
+  assertEquals(find(d, "rpc.create_analysis_area"), undefined);
   assertEquals(find(d, "rpc.consume_analysis"), undefined);
   assertEquals(inputs.length, 0);
 });
@@ -184,7 +199,8 @@ Deno.test("analysis POST: у Pro 10×10 дозволено, ліміт 10 на �
   assertEquals(res.status, 200);
   assertEquals(json.data.area.size_label, "10×10 км");
   assertEquals((find(d, "rpc.consume_analysis")!.args[0] as Record<string, unknown>).p_limit, 10);
-  assertEquals((find(d, "rpc.save_analysis_area")!.args[0] as Record<string, unknown>).p_size_km, 10);
+  const created = find(d, "rpc.create_analysis_area")!.args[0] as Record<string, unknown>;
+  assertEquals([created.p_size_km, created.p_max_slots], [10, 3]);
 });
 
 Deno.test("analysis POST: ділянка поза областю → 403 outside_home_region (і в Pro)", async () => {
@@ -197,31 +213,77 @@ Deno.test("analysis POST: ділянка поза областю → 403 outside
   }
 });
 
-Deno.test("analysis POST: шостий аналіз за добу → 429 analysis_limit_reached з часом скидання", async () => {
-  // ділянка вже є — ліміт перевіряється до того, як її пересунути
+Deno.test("analysis POST: шостий аналіз ділянки за добу → 429 analysis_limit_reached з часом скидання", async () => {
   const d = db({
     "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB }], error: null },
     "rpc.consume_analysis": { data: null, error: null },
   });
-  const { res, json, inputs } = await run(d, req("POST", URL_, body()));
+  const { res, json, inputs } = await run(d, req("POST", URL_, { area_id: AREA }));
   assertEquals(res.status, 429);
   assertEquals(json.error, "analysis_limit_reached");
   assert(json.message.includes("5"));
   assertEquals(res.headers.get("Retry-After"), String(12 * 3600)); // до київської півночі
-  assertEquals(find(d, "rpc.save_analysis_area"), undefined);
   assertEquals(inputs.length, 0);
 });
 
-Deno.test("analysis POST: наявна ділянка — спершу ліміт, потім пересування; лічильник з БД", async () => {
+Deno.test("analysis POST: ділянку не пересувають — повторний аналіз за area_id з її центром і розміром", async () => {
   const d = db({
     "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB }], error: null },
     "rpc.consume_analysis": { data: 4, error: null },
   });
-  const { json } = await run(d, req("POST", URL_, body()));
+  const { res, json, inputs } = await run(d, req("POST", URL_, { area_id: AREA }));
+  assertEquals(res.status, 200);
+  assertEquals([json.data.area.id, json.data.area.lat, json.data.area.lng], [AREA, 50.4, 30.5]);
+  assertEquals([inputs[0].lat, inputs[0].lng], [50.4, 30.5]);
   assertEquals(json.data.usage, { used: 4, limit: 5, label: "Сьогодні: 4 з 5 аналізів" });
-  const order = d.calls.map((c) => c.key).filter((k) => k.startsWith("rpc.") && !k.includes("rate_limit"));
-  assertEquals(order, ["rpc.point_in_region", "rpc.consume_analysis", "rpc.save_analysis_area", "rpc.analyze_area_forest"]);
-  assertEquals(d.calls.filter((c) => c.key === "rpc.consume_analysis").length, 1);
+  assertEquals(find(d, "rpc.create_analysis_area"), undefined);
+  assertEquals(find(d, "rpc.consume_analysis")!.args[0], { p_user_id: USER, p_slot: 1, p_limit: 5 });
+  assertEquals(find(d, "rpc.analyze_area_forest")!.args[0], { p_region_id: 10, p_lat: 50.4, p_lng: 30.5, p_size_km: 5 });
+
+  // спроба «пересунути» ділянку тим самим запитом — 422
+  const moved = await run(db(), req("POST", URL_, { area_id: AREA, ...KYIV }));
+  assertEquals([moved.res.status, moved.json.error], [422, "validation_error"]);
+  // чужа / видалена ділянка — 404
+  const gone = await run(db(), req("POST", URL_, { area_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" }));
+  assertEquals([gone.res.status, gone.json.error], [404, "not_found"]);
+});
+
+Deno.test("analysis POST: безкоштовно вже є ділянка → нова не створюється (409), аналіз не списується", async () => {
+  const d = db({ "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB }], error: null } });
+  const { res, json, inputs } = await run(d, req("POST", URL_, body()));
+  assertEquals([res.status, json.error], [409, "area_limit_reached"]);
+  assert(json.message.includes("видаліть стару"));
+  assertEquals([find(d, "rpc.consume_analysis"), find(d, "rpc.create_analysis_area"), inputs.length], [undefined, undefined, 0]);
+});
+
+Deno.test("analysis POST: Pro — друга ділянка займає слот 2 (ліміт рахується на слот 2)", async () => {
+  const d = db({
+    "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB }], error: null },
+    "rpc.create_analysis_area": { data: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", slot: 2 }], error: null },
+  });
+  const { res, json } = await run(d, req("POST", URL_, body({ size_km: 10 })), { pro: true });
+  assertEquals(res.status, 200);
+  assertEquals(json.data.area.slot, 2);
+  assertEquals(find(d, "rpc.consume_analysis")!.args[0], { p_user_id: USER, p_slot: 2, p_limit: 10 });
+});
+
+Deno.test("analysis POST: паралельний запит зайняв слот → 409 і списаний аналіз повернуто", async () => {
+  const d = db({ "rpc.create_analysis_area": { data: [], error: null } });
+  const { res, json } = await run(d, req("POST", URL_, body()));
+  assertEquals([res.status, json.error], [409, "area_limit_reached"]);
+  assertEquals(find(d, "rpc.refund_analysis")!.args[0], { p_user_id: USER, p_slot: 1 });
+});
+
+Deno.test("analysis DELETE: видалення своєї ділянки; чужа/неіснуюча — 404", async () => {
+  const d = db();
+  const { res, json } = await run(d, req("DELETE", `${URL_}/areas/${AREA}`));
+  assertEquals([res.status, json.data], [200, { deleted: true }]);
+  assertEquals(find(d, "rpc.delete_analysis_area")!.args[0], { p_user_id: USER, p_area_id: AREA });
+
+  const missing = await run(db({ "rpc.delete_analysis_area": { data: false, error: null } }), req("DELETE", `${URL_}/areas/${AREA}`));
+  assertEquals(missing.res.status, 404);
+  assertEquals((await run(db(), req("DELETE", `${URL_}/areas/not-a-uuid`))).res.status, 404);
+  assertEquals((await run(db(), req("DELETE", URL_))).res.status, 404);
 });
 
 Deno.test("analysis POST: у ділянці немає лісів → лісових видів немає, пояснення (узгоджено з «лісів немає»)", async () => {
@@ -297,7 +359,7 @@ Deno.test("analysis POST: розрахунок упав → 500 і списан�
   assertEquals(res.status, 500);
   assertEquals(json.error, "internal_error");
   assertEquals(JSON.stringify(json).includes("exploded"), false);
-  assertEquals(find(d, "rpc.refund_analysis")!.args[0], { p_user_id: USER, p_area_id: AREA });
+  assertEquals(find(d, "rpc.refund_analysis")!.args[0], { p_user_id: USER, p_slot: 1 });
 
   const d2 = db({ "rpc.analyze_area_forest": { data: null, error: { message: "boom" } } });
   const failed = await run(d2, req("POST", URL_, body()));
@@ -347,7 +409,7 @@ Deno.test("analysis: 401 без токена, 409 без області, 429 rat
   const noRegion = await run(db({ "users.select": { data: { home_region_id: null }, error: null } }), req("POST", URL_, body()));
   assertEquals(noRegion.res.status, 409);
   assertEquals((await run(db(RL_BLOCKED), req("GET", URL_))).res.status, 429);
-  assertEquals((await run(db(), req("DELETE", URL_))).res.status, 405);
+  assertEquals((await run(db(), req("PATCH", URL_))).res.status, 405);
   assertEquals((await run(db(), req("POST", URL_, body()), { isAnonymous: true })).res.status, 200);
 });
 
