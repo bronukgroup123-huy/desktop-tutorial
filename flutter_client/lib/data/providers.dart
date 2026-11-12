@@ -193,6 +193,10 @@ final pickSpeciesProvider = FutureProvider<SpeciesList>(
 // ─── Аналіз ділянки ─────────────────────────────────────────────────────────
 
 /// Доступні розміри ділянки, збережена ділянка і ліміт аналізів на сьогодні.
+/// Останній результат аналізу ділянки — його показує вкладка «Прогноз»
+/// (повноцінний екран замість Bottom Sheet на карті). Тап по лісу його скидає.
+final analysisResultProvider = StateProvider<AnalysisResult?>((ref) => null);
+
 final analysisOverviewProvider = FutureProvider.autoDispose<AnalysisOverview>(
   (ref) => ref.watch(analysisRepositoryProvider).fetchOverview(),
 );

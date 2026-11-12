@@ -16,10 +16,16 @@ class AnalysisRepository {
       AnalysisOverview.fromJson(await _api.get('/v1-analysis') as Map<String, dynamic>);
 
   /// Аналіз квадрата [sizeKm]×[sizeKm] км з центром у [center] на сьогодні.
-  Future<AnalysisResult> analyze({required LatLng center, required int sizeKm}) async =>
+  /// [forest] — ліс у квадраті з полігонів на карті (сервер має не всі області).
+  Future<AnalysisResult> analyze({
+    required LatLng center,
+    required int sizeKm,
+    Map<String, dynamic>? forest,
+  }) async =>
       AnalysisResult.fromJson(await _api.post('/v1-analysis', body: {
         'lat': center.latitude,
         'lng': center.longitude,
         'size_km': sizeKm,
+        if (forest != null) 'forest': forest,
       }) as Map<String, dynamic>);
 }

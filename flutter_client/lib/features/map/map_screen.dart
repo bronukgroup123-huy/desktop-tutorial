@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -14,10 +15,11 @@ import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
-import 'package:flutter_client/features/analysis/analysis_sheet.dart';
+import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
+import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/picks/pick_card_sheet.dart';
 
@@ -149,6 +151,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       title: zone.typeLabel,
     );
     ref.read(selectedPointProvider.notifier).state = point;
+    // Вкладка «Прогноз» показує останній вибір — тепер це точка, а не ділянка.
+    ref.read(analysisResultProvider.notifier).state = null;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -289,11 +293,19 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     if (center == null || _analyzing) return;
     setState(() => _analyzing = true);
     try {
-      final result = await ref.read(analysisRepositoryProvider).analyze(center: center, sizeKm: _analysisSizeKm);
+      // Ліс у квадраті — з тих самих полігонів, що на карті (у БД сервера є не всі
+      // області; раніше через це під видимим лісом приходило «лісів немає»).
+      final zones = ref.read(regionForestsProvider(_g.slug)).valueOrNull?.zones ?? const <ForestZone>[];
+      final forest = zones.isEmpty ? null : forestInSquare(zones, squareAround(center, _analysisSizeKm)).toJson();
+      final result = await ref
+          .read(analysisRepositoryProvider)
+          .analyze(center: center, sizeKm: _analysisSizeKm, forest: forest);
       if (!mounted) return;
       ref.invalidate(analysisOverviewProvider);
       setState(() => _analysisBounds = result.area.bounds);
-      await showAnalysisResult(context, result);
+      // Результат — повноцінний екран у вкладці «Прогноз», а не Bottom Sheet на карті.
+      ref.read(analysisResultProvider.notifier).state = result;
+      context.go('/forecast');
     } on ApiException catch (e) {
       if (mounted) showToast(context, e.userMessage, isError: true);
     } catch (_) {
@@ -315,11 +327,16 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         for (final p in picks)
           Marker(
             point: p.point,
-            width: 34,
-            height: 34,
+            width: 40,
+            height: 44,
+            alignment: Alignment.topCenter, // ніжка гриба — у точці на карті
             child: GestureDetector(
               onTap: () => showPickCard(context, p.id),
-              child: _PickDot(color: p.markerColor, mine: p.isMine),
+              child: MushroomMarker(
+                color: p.markerColor,
+                isPrivate: p.visibility == PickVisibility.private,
+                tooltip: '${p.nameLabel} · ${p.statusLabel}',
+              ),
             ),
           ),
       ];
@@ -611,29 +628,6 @@ class _MapToolButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen),
               )
             : Icon(icon),
-      );
-}
-
-/// Маркер тук-тука: колір статусу — із сервера; власні точки — з білою серединкою.
-class _PickDot extends StatelessWidget {
-  const _PickDot({required this.color, required this.mine});
-
-  final Color color;
-  final bool mine;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4)],
-          ),
-          child: mine ? const Center(child: Icon(Icons.circle, size: 7, color: Colors.white)) : null,
-        ),
       );
 }
 

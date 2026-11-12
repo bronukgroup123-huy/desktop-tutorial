@@ -3,7 +3,9 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/repositories/analysis_repository.dart';
+import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
+import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -129,6 +131,14 @@ void main() {
     expect(adapter.requests[1].method, 'POST');
     expect(adapter.requests[1].data, {'lat': 50.4501, 'lng': 30.5234, 'size_km': 5});
     expect(result.top1!.species.nameUa, 'Білий гриб');
+
+    // Ліс із карти застосунку йде в тіло запиту.
+    await repo.analyze(
+      center: const LatLng(50.4501, 30.5234),
+      sizeKm: 5,
+      forest: {'forest_km2': 3.2, 'types': []},
+    );
+    expect((adapter.requests[2].data as Map)['forest'], {'forest_km2': 3.2, 'types': []});
   });
 
   test('AnalysisRepository: 10×10 без Pro → текст із сервера', () async {
@@ -168,4 +178,60 @@ void main() {
       LatLng(50.4726, 30.488),
     ]);
   });
+
+  group('forestInSquare — ліс у ділянці з полігонів карти', () {
+    const center = LatLng(50.45, 30.52);
+    final square = squareAround(center, 5); // 25 км²
+    double lat(double km) => km / 111.32;
+    double lng(double km) => km / (111.32 * 0.6374); // cos(50.45°)
+
+    ForestZone zone(String id, String? type, List<LatLng> outer, {List<List<LatLng>> holes = const []}) =>
+        ForestZone(
+          id: id,
+          forestType: type,
+          standAgeYears: null,
+          typeLabel: 'ліс',
+          typeColor: const Color(0xFF81C784),
+          polygons: [GeoPolygon(outer: outer, holes: holes)],
+        );
+
+    List<LatLng> rect(double dxKm, double dyKm, double wKm, double hKm) {
+      final sw = LatLng(center.latitude + lat(dyKm), center.longitude + lng(dxKm));
+      return [
+        sw,
+        LatLng(sw.latitude, sw.longitude + lng(wKm)),
+        LatLng(sw.latitude + lat(hKm), sw.longitude + lng(wKm)),
+        LatLng(sw.latitude + lat(hKm), sw.longitude),
+      ];
+    }
+
+    test('ліс повністю всередині: площа 2×2 = 4 км²', () {
+      final r = forestInSquare([zone('a', 'pine', rect(-1, -1, 2, 2))], square);
+      expect(r.forestKm2, closeTo(4, 0.05));
+      expect(r.byType['pine'], closeTo(4, 0.05));
+    });
+
+    test('великий масив, що виходить за межі, обрізається квадратом (не більше 25 км²)', () {
+      final r = forestInSquare([zone('big', 'mixed', rect(-10, -10, 20, 20))], square);
+      expect(r.forestKm2, closeTo(25, 0.1));
+    });
+
+    test('частковий перетин і «дірка» віднімається; поза квадратом — не рахується', () {
+      final r = forestInSquare([
+        zone('half', 'birch', rect(0, -1, 10, 2)), // у квадраті — 2.5×2 = 5 км²
+        zone('holed', 'oak', rect(-2, 0.5, 1, 1.5), holes: [rect(-1.8, 0.7, 0.5, 0.5)]), // 1.5 − 0.25
+        zone('far', 'pine', rect(20, 20, 2, 2)),
+      ], square);
+      expect(r.byType['birch'], closeTo(5, 0.05));
+      expect(r.byType['oak'], closeTo(1.25, 0.05));
+      expect(r.byType.containsKey('pine'), isFalse);
+      final json = r.toJson();
+      expect((json['types'] as List).first['forest_type'], 'birch');
+    });
+
+    test('лісів немає — 0', () {
+      expect(forestInSquare(const [], square).forestKm2, 0);
+    });
+  });
 }
+

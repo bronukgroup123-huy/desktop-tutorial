@@ -7,20 +7,7 @@ import 'package:flutter_client/features/forecast/forecast_view.dart';
 
 /// Результат аналізу ділянки (ADR-015): ліси в квадраті, погода, Top-1 / Top-2.
 /// Лише рівні з готовими підписами із сервера — без відсотків.
-Future<void> showAnalysisResult(BuildContext context, AnalysisResult result) => showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: AppTheme.backgroundColor,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.65,
-        minChildSize: 0.3,
-        maxChildSize: 0.92,
-        builder: (context, controller) => AnalysisResultView(result: result, scrollController: controller),
-      ),
-    );
-
+/// Показується повноцінним екраном у вкладці «Прогноз» (див. ForecastScreen).
 class AnalysisResultView extends StatelessWidget {
   const AnalysisResultView({super.key, required this.result, this.scrollController});
 
@@ -36,7 +23,7 @@ class AnalysisResultView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
         Text(
-          'Аналіз ділянки ${r.area.sizeLabel}',
+          'Ділянка ${r.area.sizeLabel}',
           style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
         ),
         Text('${r.date} · ${r.usage.label}', style: TextStyle(color: muted)),
