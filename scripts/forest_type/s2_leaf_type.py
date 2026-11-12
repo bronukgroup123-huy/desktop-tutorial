@@ -133,12 +133,13 @@ def search_items(bbox, season):
 
 
 def band_params(asset, item):
-    """Масштаб і зсув із метаданих STAC. У колекції sentinel-2-l2a Earth Search v1
-    зсув +1000 уже прибрано з даних, тож якщо метадані його не вказують — зсуву немає.
-    (Перший прогін віднімав 0,1 «за базовою лінією обробки» → червоний канал ставав
-    від'ємним, NDVI виходив за межі −1…1.)"""
+    """Масштаб і зсув із метаданих STAC (зсув перевіряється ще й за даними — див. item_ndvi)."""
     rb = (asset.extra_fields.get("raster:bands") or [{}])[0]
-    return rb.get("scale", 0.0001), rb.get("offset", 0.0)
+    offset = rb.get("offset", 0.0)
+    # Earth Search позначає, що зсув +1000 уже прибрано з самих даних.
+    if item.properties.get("earthsearch:boa_offset_applied") is True:
+        offset = 0.0
+    return rb.get("scale", 0.0001), offset
 
 
 def read_overview(href, level):
@@ -157,6 +158,11 @@ def item_ndvi(item, valid_scl):
     red, nir, scl = red[:h, :w], nir[:h, :w], scl[:h, :w]
     rs, ro = band_params(red_a, item)
     ns, no = band_params(nir_a, item)
+    # Перевірка за даними: з урахованим зсувом +1000 червоний канал рослинності ≥ ~1000 DN.
+    # Якщо медіана нижча — зсув уже прибраний (а метадані кажуть інакше): не віднімаємо вдруге.
+    veg = (scl == 4) & (red > 0)
+    if ro < 0 and np.count_nonzero(veg) > 1000 and float(np.median(red[veg])) < 900:
+        ro = no = 0.0
     r = red.astype(np.float32) * rs + ro
     n = nir.astype(np.float32) * ns + no
     with np.errstate(divide="ignore", invalid="ignore"):
