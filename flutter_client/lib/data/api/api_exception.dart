@@ -23,6 +23,7 @@ class ApiException implements Exception {
   final int? retryAfter;
 
   static const String networkError = 'network_error';
+  static const String invalidPhoto = 'invalid_photo';
   static const String invalidResponse = 'invalid_response';
   static const String uploadFailed = 'upload_failed';
 
@@ -41,6 +42,8 @@ class ApiException implements Exception {
         return 'Сервер повернув неочікувану відповідь. Спробуйте пізніше.';
       case uploadFailed:
         return 'Не вдалося завантажити фото. Спробуйте ще раз.';
+      case invalidPhoto:
+        return 'Фото не підходить: потрібне JPEG, PNG або WebP до 5 МБ. Перезніміть, будь ласка.';
       default:
         return 'Щось пішло не так. Спробуйте ще раз.';
     }
