@@ -25,12 +25,13 @@ const MAX_AREA_LOSS = 0.15;
 type Geo = any;
 
 /** Звідки взято тип лісу — показується у визначнику лісу, щоб було видно надійність. */
-export type ForestTypeSource = "osm_species" | "osm_leaf_type" | "osm_name";
+export type ForestTypeSource = "osm_species" | "osm_leaf_type" | "osm_name" | "satellite";
 
 export const TYPE_SOURCE_LABEL: Record<ForestTypeSource | "none", string> = {
   osm_species: "Порода вказана в OpenStreetMap",
   osm_leaf_type: "У OpenStreetMap вказано лише хвойний / листяний",
   osm_name: "Визначено за назвою урочища — може бути неточно",
+  satellite: "Визначено за супутниковими знімками (Sentinel-2) — без породи",
   none: "Порода в OpenStreetMap не вказана",
 };
 
@@ -153,6 +154,22 @@ export function osmToPolygons(osm: unknown): Geo[] {
   );
 }
 
+/**
+ * Тип лісу за супутником: середня ймовірність «хвойний» по полігону, % (scripts/forest_type).
+ * Пороги — ті самі, за якими рахується точність пілота (POLY_CONIFER_MIN / POLY_BROADLEAF_MAX).
+ */
+export const SATELLITE_CONIFER_MIN = 60;
+export const SATELLITE_BROADLEAF_MAX = 40;
+
+export function satelliteForestType(probConiferPct: number): "coniferous" | "deciduous" | "mixed" {
+  if (probConiferPct >= SATELLITE_CONIFER_MIN) return "coniferous";
+  if (probConiferPct <= SATELLITE_BROADLEAF_MAX) return "deciduous";
+  return "mixed";
+}
+
+/** id лісу → ймовірність «хвойний», % (вихід scripts/forest_type/zonal.py). */
+export type SatelliteTypes = Map<string, number>;
+
 export interface BuildStats {
   input: number;
   outsideRegion: number;
@@ -163,6 +180,8 @@ export interface BuildStats {
   small: number;
   /** Ліси з відомим типом. */
   typed: number;
+  /** З них тип визначено за супутником (порода в OSM не вказана). */
+  satellite?: number;
 }
 
 /**
@@ -186,8 +205,19 @@ export function normalizeOsmId(raw: unknown): string {
 }
 
 /** Ліс у форматі v1-forest-zones (+ дані визначника): спрощений контур, тип, підписи. */
-export function forestFeature(f: Geo, id: string, area: number, tolerance = SIMPLIFY_TOLERANCE_DEG): Geo {
-  const { type: forestType, source } = classifyForest(f.properties ?? {});
+export function forestFeature(
+  f: Geo,
+  id: string,
+  area: number,
+  tolerance = SIMPLIFY_TOLERANCE_DEG,
+  satelliteProbPct?: number,
+): Geo {
+  let { type: forestType, source } = classifyForest(f.properties ?? {});
+  // OSM має пріоритет (там людина бачила ліс); супутник — лише коли тип у OSM не вказано.
+  if (forestType === null && satelliteProbPct !== undefined) {
+    forestType = satelliteForestType(satelliteProbPct);
+    source = "satellite";
+  }
   const style = forestTypeStyle(forestType);
   return {
     type: "Feature",
@@ -256,13 +286,13 @@ export class ForestCollector {
 
   constructor(
     regions: RegionInput[],
-    private readonly opts: { minAreaM2?: number; tolerance?: number } = {},
+    private readonly opts: { minAreaM2?: number; tolerance?: number; satellite?: SatelliteTypes } = {},
   ) {
     this.index = new RegionIndex(regions);
     for (const r of regions) {
       this.byRegion.set(r.slug, {
         features: [],
-        stats: { input: 0, outsideRegion: 0, tooSmall: 0, duplicates: 0, output: 0, small: 0, typed: 0 },
+        stats: { input: 0, outsideRegion: 0, tooSmall: 0, duplicates: 0, output: 0, small: 0, typed: 0, satellite: 0 },
       });
     }
   }
@@ -298,12 +328,13 @@ export class ForestCollector {
     }
     this.seen.add(id);
     const bucket = this.byRegion.get(slug)!;
-    const out = forestFeature(f, id, area, this.opts.tolerance ?? SIMPLIFY_TOLERANCE_DEG);
+    const out = forestFeature(f, id, area, this.opts.tolerance ?? SIMPLIFY_TOLERANCE_DEG, this.opts.satellite?.get(id));
     bucket.features.push(out);
     bucket.stats.input++;
     bucket.stats.output++;
     if (area < 10_000) bucket.stats.small++;
     if (out.properties.forest_type) bucket.stats.typed++;
+    if (out.properties.type_source === "satellite") bucket.stats.satellite = (bucket.stats.satellite ?? 0) + 1;
   }
 
   collection(slug: string): { collection: Geo; stats: BuildStats } {

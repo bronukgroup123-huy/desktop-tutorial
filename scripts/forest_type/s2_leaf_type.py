@@ -15,7 +15,10 @@
 класи збалансовані); точність рахується на іншій половині (поділ за md5 id полігону).
 
 Використання (GitHub Actions):
-  python s2_leaf_type.py --bbox 27.19,49.58,29.74,51.69 --labels labels.geojsonseq --out out/
+  python s2_leaf_type.py --slug zhytomyrska --bbox 27.19,49.58,29.74,51.69 --labels labels.geojsonseq --out out/
+
+Вихід: forest-type-<slug>.tif — ймовірність «хвойний» 0…100 на клітинку лісу 40 м (255 — не ліс),
+її читає zonal.py під час збірки файлів лісів; report.json; preview.png.
 """
 import argparse
 import hashlib
@@ -35,8 +38,13 @@ from rasterio.transform import from_origin
 from rasterio.warp import reproject, transform_bounds, transform_geom
 from rasterio.windows import from_bounds
 
+from zonal import NODATA, polygon_prob
+
+# Тип полігона за середньою ймовірністю «хвойний» — ті самі пороги, що в lib.ts (satelliteForestType).
+POLY_CONIFER_MIN, POLY_BROADLEAF_MAX = 60, 40
+
 RES = 40.0  # м — роздільність сітки пілоту
-DST_CRS = "EPSG:32635"  # UTM 35N — уся Житомирщина в зоні 35
+DST_CRS = "EPSG:32635"  # перевизначається в main() — зона UTM центру області
 STAC = "https://earth-search.aws.element84.com/v1"
 WORLDCOVER = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif"
 
@@ -112,11 +120,7 @@ def search_items(bbox, season):
         res = cat.search(collections=["sentinel-2-l2a"], bbox=bbox, datetime=dt,
                          query={"eo:cloud_cover": {"lt": 40}}, max_items=2000)
         items += list(res.items())
-    # лише зона UTM 35 (уся область у ній), щоб не дублювати тайли зони 36
-    def epsg(it):
-        p = it.properties
-        return p.get("proj:epsg") or int(str(p.get("proj:code", "0")).split(":")[-1] or 0)
-    items = [it for it in items if epsg(it) == 32635]
+    # Тайли всіх зон UTM: область на межі зон інакше лишилася б без частини знімків.
     by_date = defaultdict(list)
     for it in items:
         by_date[it.datetime.date().isoformat()].append(it)
@@ -295,7 +299,7 @@ def load_labels(path, transform, width, height):
     log(f"labels ≤ {MAX_LABEL_HA} ha: {dict(n)} (1 conifer, 2 broadleaf, 3 mixed); train {len(shapes_train)}, "
         f"test {len(shapes_test)}; skipped big {skipped_big}")
     r = lambda s: rasterize(s, out_shape=(height, width), transform=transform, fill=0, dtype="uint8") if s else np.zeros((height, width), np.uint8)
-    return r(shapes_train), r(shapes_test), dict(n)
+    return r(shapes_train), r(shapes_test), dict(n), shapes_test
 
 
 # ─── Класифікація ─────────────────────────────────────────────────────────
@@ -312,6 +316,24 @@ def evaluate(pred, lab, forest):
             "share_decided_not_mixed": decided, "pixels": int(m.sum())}
 
 
+def evaluate_polygons(shapes, prob8, transform):
+    """Точність на рівні полігонів (як у застосунку): середня ймовірність → тип за порогами."""
+    conf = np.zeros((4, 4), dtype=np.int64)  # мітка × прогноз (1 хвойний, 2 листяний, 3 мішаний)
+    missing = 0
+    for geom, lab in shapes:
+        p, _ = polygon_prob(geom, prob8, transform)
+        if p is None:
+            missing += 1
+            continue
+        pred = 1 if p >= POLY_CONIFER_MIN else 2 if p <= POLY_BROADLEAF_MAX else 3
+        conf[lab, pred] += 1
+    recall = {name: float(conf[v, v] / max(1, conf[v, 1] + conf[v, 2])) for v, name in ((1, "conifer"), (2, "broadleaf"))}
+    decided = {name: float((conf[v, 1] + conf[v, 2]) / max(1, conf[v, 1:].sum())) for v, name in ((1, "conifer"), (2, "broadleaf"))}
+    return {"confusion_label_x_pred": conf[1:, 1:].tolist(), "recall_decided": recall,
+            "balanced_accuracy": (recall["conifer"] + recall["broadleaf"]) / 2,
+            "share_decided_not_mixed": decided, "polygons": int(conf.sum()), "no_data": missing}
+
+
 def save_preview(cls, forest, path, step=4):
     from PIL import Image
     small = cls[::step, ::step]
@@ -326,11 +348,15 @@ def save_preview(cls, forest, path, step=4):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--slug", default="zhytomyrska")
     ap.add_argument("--bbox", required=True)
     ap.add_argument("--labels", required=True)
     ap.add_argument("--out", default="out")
     a = ap.parse_args()
     bbox = [float(x) for x in a.bbox.split(",")]
+    global DST_CRS
+    DST_CRS = f"EPSG:{32600 + int((((bbox[0] + bbox[2]) / 2) + 180) // 6) + 1}"
+    log(f"CRS {DST_CRS}")
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
 
@@ -352,7 +378,7 @@ def main():
     log(f"median over forest: NDVI summer {np.nanmedian(on['ndvi'][forest]):.2f}, "
         f"leaf-off {np.nanmedian(off['ndvi'][forest]):.2f}")
 
-    lab_train, lab_test, label_counts = load_labels(a.labels, transform, width, height)
+    lab_train, lab_test, label_counts, test_shapes = load_labels(a.labels, transform, width, height)
 
     # Random Forest на пікселях навчальних лісів (хвойний / листяний), класи збалансовані.
     from sklearn.ensemble import RandomForestClassifier
@@ -384,6 +410,11 @@ def main():
     cls[ok & (prob_conifer > 0.5 - MIXED) & (prob_conifer < 0.5 + MIXED)] = 3
     t_lo, t_hi = 0.5 - MIXED, 0.5 + MIXED
 
+    prob8 = np.full((height, width), NODATA, dtype=np.uint8)
+    prob8[ok] = np.clip(np.round(prob_conifer[ok] * 100), 0, 100).astype(np.uint8)
+    poly_test = evaluate_polygons(test_shapes, prob8, transform)
+    log(f"polygon-level test: {poly_test}")
+
     test = evaluate(cls, lab_test, forest)
     train = evaluate(cls, lab_train, forest)
     shares = {name: float(np.count_nonzero(cls == v) / max(1, np.count_nonzero(cls))) for v, name in
@@ -395,7 +426,7 @@ def main():
         "coverage_of_forest": float(np.count_nonzero(cls) / max(1, forest.sum())),
         "model": "RandomForest", "feature_importances": importances,
         "mixed_band_prob_conifer": [t_lo, t_hi], "labels_max_ha": MAX_LABEL_HA, "labels": label_counts,
-        "train": train, "test": test, "class_shares": shares,
+        "train": train, "test": test, "test_polygons": poly_test, "class_shares": shares,
         "median_ndvi_by_label": {
             name: {"summer": float(np.nanmedian(on["ndvi"][lab_train == v])) if (lab_train == v).any() else None,
                    "leaf_off": float(np.nanmedian(off["ndvi"][lab_train == v])) if (lab_train == v).any() else None}
@@ -407,8 +438,12 @@ def main():
 
     profile = dict(driver="GTiff", width=width, height=height, count=1, dtype="uint8", crs=DST_CRS,
                    transform=transform, compress="deflate", nodata=0, tiled=True)
-    with rasterio.open(os.path.join(a.out, "forest_type_40m.tif"), "w", **profile) as dst:
-        dst.write(cls, 1)
+    with rasterio.open(os.path.join(a.out, f"forest-type-{a.slug}.tif"), "w",
+                       **{**profile, "nodata": NODATA, "predictor": 2}) as dst:
+        dst.write(prob8, 1)
+        dst.update_tags(slug=a.slug, created=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                        meaning="probability of coniferous forest, percent; 255 = not forest",
+                        source="Copernicus Sentinel-2 L2A (Earth Search), ESA WorldCover 2021, OSM labels")
     save_preview(cls, forest, os.path.join(a.out, "preview.png"))
     log("done")
 

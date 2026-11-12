@@ -1,16 +1,30 @@
-name: Forest type pilot (Sentinel-2)
+name: Forest type (Sentinel-2)
 
-# Пілот: хвойний / листяний / мішаний ліс для Житомирщини з Sentinel-2 (без Earth Engine).
-# Маска лісу — ESA WorldCover; перевірка точності — ліси OSM з leaf_type / species.
-# Результат — Artifacts (GeoTIFF, превʼю, звіт). Нічого не публікує.
-# Запуск: вручну (Actions → Run workflow) або на PR, що змінює пілот.
+# Карта типу лісу області (ймовірність «хвойний» на клітинку 40 м) із Sentinel-2 — без
+# Earth Engine. Маска лісу — ESA WorldCover; навчання й перевірка точності — ліси OSM з
+# leaf_type / species. Карта потрібна збірці «Forests data»: полігонам без породи в OSM
+# вона ставить «хвойний / листяний / мішаний» з позначкою «за супутником».
+#
+#  * Вручну: Actions → Forest type → slug і bbox області, publish = true → карта йде в
+#    реліз «forest-type-data». Склад лісу за рік майже не змінюється — перераховувати
+#    досить раз на рік; після публікації перезапусти «Forests data» для області.
+#  * PR, що змінює скрипти: пробний прогін для Житомирщини → Artifacts (без публікації).
+# Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors.
 on:
   workflow_dispatch:
     inputs:
+      slug:
+        description: 'slug області'
+        required: true
+        default: zhytomyrska
       bbox:
-        description: 'bbox west,south,east,north (за замовчуванням — Житомирська область)'
-        required: false
+        description: 'bbox області: west,south,east,north'
+        required: true
         default: '27.19,49.58,29.74,51.69'
+      publish:
+        description: 'Опублікувати карту в реліз «forest-type-data»'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'scripts/forest_type/**'
@@ -20,10 +34,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: forest-type-pilot-${{ github.ref }}
+  group: forest-type-${{ github.event.inputs.slug || 'zhytomyrska' }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
+  SLUG: ${{ github.event.inputs.slug || 'zhytomyrska' }}
   BBOX: ${{ github.event.inputs.bbox || '27.19,49.58,29.74,51.69' }}
   PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
 
@@ -31,8 +46,14 @@ jobs:
   pilot:
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Check inputs
+        run: |
+          printf '%s' "$SLUG" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $SLUG"; exit 1; }
+          printf '%s' "$BBOX" | grep -Eq '^-?[0-9.]+,-?[0-9.]+,-?[0-9.]+,-?[0-9.]+$' || { echo "::error::Некоректний bbox: $BBOX"; exit 1; }
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -68,19 +89,34 @@ jobs:
           GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
           AWS_NO_SIGN_REQUEST: 'YES'
           CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
-        run: python scripts/forest_type/s2_leaf_type.py --bbox "$BBOX" --labels osm/labels.geojsonseq --out out
+        run: python scripts/forest_type/s2_leaf_type.py --slug "$SLUG" --bbox "$BBOX" --labels osm/labels.geojsonseq --out out
 
       - name: Summary
         if: always()
         run: |
           if [ -f out/report.json ]; then
-            echo "### Тип лісу (Sentinel-2), пілот" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Тип лісу (Sentinel-2): $SLUG" >> "$GITHUB_STEP_SUMMARY"
             echo '```json' >> "$GITHUB_STEP_SUMMARY"; cat out/report.json >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: forest-type-pilot
+          name: forest-type-${{ env.SLUG }}
           path: out/
           retention-days: 14
+
+      - name: Publish to release «forest-type-data»
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s "out/forest-type-$SLUG.tif"
+          cp out/report.json "out/forest-type-$SLUG.report.json"
+          gh release view forest-type-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create forest-type-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "Тип лісу за супутником (Sentinel-2)" \
+              --notes "Карти ймовірності «хвойний ліс» (0–100 %, 255 — не ліс) для областей, 40 м. Генерує workflow «Forest type (Sentinel-2)»; використовує збірка «Forests data». Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors (ODbL)."
+          gh release upload forest-type-data "out/forest-type-$SLUG.tif" "out/forest-type-$SLUG.report.json" \
+            --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Опубліковано карту: forest-type-$SLUG.tif. Далі — перезапусти «Forests data» для $SLUG." >> "$GITHUB_STEP_SUMMARY"

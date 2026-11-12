@@ -21,6 +21,7 @@ Map<String, dynamic> feature(String id, String? type, {String? source, int? area
           'osm_species' => 'Порода вказана в OpenStreetMap',
           'osm_leaf_type' => 'У OpenStreetMap вказано лише хвойний / листяний',
           'osm_name' => 'Визначено за назвою урочища — може бути неточно',
+          'satellite' => 'Визначено за супутниковими знімками (Sentinel-2) — без породи',
           _ => 'Порода в OpenStreetMap не вказана',
         },
       },
@@ -62,6 +63,14 @@ void main() {
         zone('leaf', 'coniferous', source: 'osm_leaf_type', area: 800000),
       ];
       expect(pickForestAt(hits).id, 'leaf');
+    });
+
+    test('супутник: важливіший за «ліс без типу», поступається даним OSM і породі з назви', () {
+      final sat = zone('sat', 'coniferous', source: 'satellite', area: 50000);
+      expect(pickForestAt([zone('big', null, area: 5000000), sat]).id, 'sat');
+      expect(pickForestAt([sat, zone('leaf', 'deciduous', source: 'osm_leaf_type', area: 900000)]).id, 'leaf');
+      expect(pickForestAt([sat, zone('byName', 'pine', source: 'osm_name', area: 900000)]).id, 'byName');
+      expect(sat.typeSourceLabel, 'Визначено за супутниковими знімками (Sentinel-2) — без породи');
     });
 
     test('однаково надійні — менший (локальніший) контур', () {

@@ -9,6 +9,7 @@ import {
   normalizeOsmId,
   osmToPolygons,
   overpassQuery,
+  satelliteForestType,
   simplifyForest,
   splitBbox,
 } from "./lib.ts";
@@ -165,4 +166,44 @@ Deno.test("forests: усі області за один прохід — кож�
   // замалий + вироджений полігон (площа 0); лінія — не полігон
   assertEquals(c.totals.tooSmall, 2);
   assertEquals(c.totals.invalid, 1);
+});
+
+Deno.test("forests: тип за супутником — пороги ймовірності «хвойний»", () => {
+  assertEquals([100, 60, 59, 41, 40, 0].map(satelliteForestType), [
+    "coniferous",
+    "coniferous",
+    "mixed",
+    "mixed",
+    "deciduous",
+    "deciduous",
+  ]);
+});
+
+Deno.test("forests: супутник заповнює лише ліси без типу в OSM, з позначкою джерела", () => {
+  const forest = (id: string, lon: number, props: Record<string, string> = {}) => ({
+    type: "Feature",
+    id,
+    properties: props,
+    geometry: {
+      type: "Polygon",
+      coordinates: [[[lon - 0.01, 50.49], [lon + 0.01, 50.49], [lon + 0.01, 50.51], [lon - 0.01, 50.51], [lon - 0.01, 50.49]]],
+    },
+  });
+  const satellite = new Map([["w1", 92], ["w2", 8], ["w3", 50]]);
+  const c = new ForestCollector([{ slug: "a", geometry: REGION }], { satellite });
+  c.add(forest("a2", 28.2)); // w1 — без типу → хвойний за супутником
+  c.add(forest("a4", 28.4, { genus: "Quercus" })); // w2 — дуб з OSM, супутник не чіпає
+  c.add(forest("a6", 28.6)); // w3 — непевно → мішаний
+  c.add(forest("a8", 28.8)); // w4 — немає даних супутника → невідомо
+  const { collection, stats } = c.collection("a");
+  const props = collection.features.map((f: { properties: Record<string, unknown> }) => f.properties);
+  assertEquals(props.map((p: Record<string, unknown>) => [p.id, p.forest_type, p.type_source]), [
+    ["w1", "coniferous", "satellite"],
+    ["w2", "oak", "osm_species"],
+    ["w3", "mixed", "satellite"],
+    ["w4", null, null],
+  ]);
+  assertEquals(props[0].type_label, "Хвойний ліс");
+  assertEquals(props[0].type_source_label, "Визначено за супутниковими знімками (Sentinel-2) — без породи");
+  assertEquals([stats.typed, stats.satellite], [3, 2]);
 });
