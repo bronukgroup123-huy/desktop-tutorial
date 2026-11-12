@@ -1,17 +1,22 @@
 name: Forests data
 
 # Файли лісів областей (рішення PO 2026-11-10: ліси — файлами, не в Postgres).
-#  * Вручну: Actions → Forests data → Run workflow → slug області (наприклад zhytomyrska)
-#    → файл публікується в реліз «forests-data» (GitHub Releases, CDN).
+#  * Вручну: Actions → Forests data → Run workflow → `all` (усі області) або slug однієї
+#    (наприклад zhytomyrska) → файли публікуються в реліз «forests-data» (GitHub Releases, CDN).
+#  * Щомісяця: перебудова всіх областей (OSM постійно доповнюється). Застосунок
+#    перекачує файл лише тоді, коли змінилась його версія.
 #  * PR, що змінює генератор: пробна збірка Житомирщини → Artifacts (без публікації).
-# Дані: © OpenStreetMap contributors (ODbL), Overpass API — по одній області за раз.
+# Дані: © OpenStreetMap contributors (ODbL), Overpass API. Області збираються паралельно,
+# але не більше 4 одночасно — щоб не перевантажувати публічні сервери Overpass.
 on:
   workflow_dispatch:
     inputs:
       region:
-        description: 'Slug області (zhytomyrska, kyivska, …)'
+        description: '«all» — усі області, або slug однієї (zhytomyrska, kyivska, …)'
         required: true
-        default: zhytomyrska
+        default: all
+  schedule:
+    - cron: '17 1 3 * *' # 3-го числа щомісяця, 01:17 UTC
   pull_request:
     paths:
       - 'scripts/forests/**'
@@ -21,8 +26,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: forests-${{ github.event.inputs.region || 'pr' }}
+  group: forests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.event.inputs.region || 'all' }}
   cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
 
 jobs:
   test:
@@ -39,38 +48,63 @@ jobs:
       - run: deno test --config deno.json -A lib.test.ts
       - run: deno check --config deno.json build_region.ts
 
-  build:
-    name: Build forests file (${{ github.event.inputs.region || 'zhytomyrska' }})
+  # Які області збирати: PR — Житомирщина; вручну — одна або всі; за розкладом — усі.
+  plan:
+    name: Regions to build
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    outputs:
+      regions: ${{ steps.list.outputs.regions }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Supabase public config
+        uses: ./.github/actions/supabase-public-config
+        with:
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      - name: List regions
+        id: list
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT: ${{ github.event.inputs.region }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            REGIONS='["zhytomyrska"]'
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT" ] && [ "$INPUT" != "all" ]; then
+            if ! printf '%s' "$INPUT" | grep -Eq '^[a-z0-9-]{2,40}$'; then
+              echo "::error::Некоректний slug області: $INPUT"; exit 1
+            fi
+            REGIONS=$(jq -cn --arg s "$INPUT" '[$s]')
+          else
+            REGIONS=$(curl -sf -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "$SUPABASE_URL/functions/v1/regions" \
+              | jq -c '[.data[].slug] | sort')
+          fi
+          COUNT=$(printf '%s' "$REGIONS" | jq 'length')
+          if [ -z "$COUNT" ] || [ "$COUNT" -eq 0 ]; then echo "::error::Список областей порожній"; exit 1; fi
+          echo "regions=$REGIONS" >> "$GITHUB_OUTPUT"
+          echo "### Області для збірки: $COUNT" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$REGIONS" | jq -r '.[]' | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build ${{ matrix.region }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false # одна область не зупиняє решту
+      max-parallel: 4
+      matrix:
+        region: ${{ fromJSON(needs.plan.outputs.regions) }}
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-      REGION: ${{ github.event.inputs.region || 'zhytomyrska' }}
+      REGION: ${{ matrix.region }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
-      # Публічний publishable key (legacy anon вимкнено) — щоб узяти кордон області
-      # з v1-regions (та сама маска, що в застосунку). Спершу секрет, як у збірці APK;
-      # якщо його немає — з Management API.
       - name: Supabase public config
-        env:
-          SECRET_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-        run: |
-          KEY="$SECRET_KEY"
-          if [ -z "$KEY" ]; then
-            KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-              "https://api.supabase.com/v1/projects/$PROJECT_ID/api-keys?reveal=true" \
-              | jq -r '[.[] | select(.type=="publishable")][0].api_key')
-          fi
-          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then echo "::error::Cannot read publishable key"; exit 1; fi
-          echo "::add-mask::$KEY"
-          echo "SUPABASE_PUBLISHABLE_KEY=$KEY" >> "$GITHUB_ENV"
-          echo "SUPABASE_URL=https://$PROJECT_ID.supabase.co" >> "$GITHUB_ENV"
+        uses: ./.github/actions/supabase-public-config
+        with:
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Build
         run: deno run --config scripts/forests/deno.json -A scripts/forests/build_region.ts --slug "$REGION" --out dist
@@ -84,29 +118,45 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: forests-${{ env.REGION }}
+          name: forests-${{ matrix.region }}
           path: dist/
           retention-days: 14
 
+  # Публікуємо все, що зібралося, навіть якщо якась область упала (її старий файл лишається).
   publish:
     name: Publish to release «forests-data»
-    if: github.event_name == 'workflow_dispatch'
-    needs: build
+    if: ${{ always() && github.event_name != 'pull_request' && needs.plan.result == 'success' }}
+    needs: [plan, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: forests-${{ github.event.inputs.region }}
+          pattern: forests-*
           path: dist
+          merge-multiple: true
+      - name: Check files
+        id: files
+        run: |
+          shopt -s nullglob
+          files=(dist/forests-*.geojson.gz)
+          echo "count=${#files[@]}" >> "$GITHUB_OUTPUT"
+          echo "### Опубліковано областей: ${#files[@]}" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Область | Лісів | Розмір | З відомою породою |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          for m in dist/forests-*.json; do
+            jq -r '"| \(.slug) | \(.features) | \((.bytes/1048576*10|round)/10) МБ | \(.stats.typed // "—") |"' "$m" >> "$GITHUB_STEP_SUMMARY"
+          done
       - uses: softprops/action-gh-release@v2
+        if: steps.files.outputs.count != '0'
         with:
           tag_name: forests-data
           name: Дані лісів областей
           prerelease: true
           make_latest: false
+          overwrite_files: true
           body: |
             Файли лісів областей для застосунку (формат v1-forest-zones, gzip).
-            Генерується workflow «Forests data». Дані: © OpenStreetMap contributors (ODbL).
+            Генерується workflow «Forests data» (вручну й щомісяця). Дані: © OpenStreetMap contributors (ODbL).
           files: dist/*
