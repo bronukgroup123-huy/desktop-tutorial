@@ -1,0 +1,48 @@
+name: Probe forest data sources
+
+# Тимчасова перевірка джерела (Earth Engine app ForTy). Лише читає публічні адреси.
+on:
+  push:
+    branches: [claude/project-rb2fo8]
+    paths: ['.github/workflows/probe-forest-sources.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Earth Engine app — page, scripts, asset ids, classes
+        shell: bash
+        run: |
+          set +e
+          UA="Mozilla/5.0 MushroomRadar-source-check/1.0"
+          APP="https://nature-trace.projects.earthengine.app/view/forest-typology-2020"
+          curl -sSL -m 60 -A "$UA" "$APP" -o app.html; echo "page bytes: $(wc -c < app.html)"
+          echo "=== script/src/link urls"; grep -oE '(src|href)="[^"]+"' app.html | sort -u | head -60
+          echo "=== inline hints"; grep -oE '[A-Za-z_]*(modules|appId|APP_|script)[A-Za-z_]*[^,;]{0,160}' app.html | head -40
+          for u in $(grep -oE 'https?://[^"'"'"' ]+\.(js|json)[^"'"'"' ]*' app.html | sort -u | head -20); do
+            echo "=== fetch $u"; curl -sSL -m 60 -A "$UA" "$u" -o part.txt; wc -c < part.txt
+            grep -oE "projects/[A-Za-z0-9_./-]+|users/[A-Za-z0-9_./-]+|ee\.(Image|ImageCollection)\(['\"][^'\"]+" part.txt | sort -u | head -40
+          done
+          # Earth Engine apps keep the app source in a modules JSON next to the view.
+          for u in "https://nature-trace.projects.earthengine.app/javascript/forest-typology-2020-modules.json" \
+                   "https://nature-trace.projects.earthengine.app/view/forest-typology-2020/modules.json"; do
+            echo "=== try $u"; curl -sSL -m 60 -A "$UA" "$u" -o mod.json -w 'HTTP %{http_code} size=%{size_download}\n'
+            python3 - <<'PY'
+          import json, re
+          try:
+              d = json.load(open('mod.json'))
+          except Exception as e:
+              print('not json:', e); raise SystemExit
+          text = json.dumps(d, ensure_ascii=False)
+          print('assets:', sorted(set(re.findall(r'projects/[A-Za-z0-9_./-]+', text)))[:40])
+          src = d.get('dependencies') or d
+          blob = text.replace('\\n', '\n')
+          for kw in ['palette', 'names', 'labels', 'class', 'Select', 'addLayer', 'bands', 'select(']:
+              for m in re.finditer(kw, blob):
+                  print('…', blob[max(0, m.start()-200):m.start()+300].replace('\n', ' ⏎ ')[:500]); break
+          PY
+          done
