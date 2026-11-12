@@ -44,11 +44,13 @@ VALID_SCL_ON = {4, 5, 6, 7}
 VALID_SCL_OFF = {2, 4, 5, 6, 7}
 
 SEASONS = {
-    "on": ["2024-06-01/2024-08-31", "2025-06-01/2025-08-31"],
-    "off": ["2023-11-01/2023-11-30", "2024-03-20/2024-04-20", "2024-11-01/2024-11-30",
-            "2025-03-20/2025-04-20", "2025-11-01/2025-11-30"],
+    "on": ["2024-06-10/2024-08-20", "2025-06-10/2025-08-20"],
+    # Справді безлистий період: з середини листопада до кінця березня (у квітні 2024–2025
+    # береза й осика на Поліссі вже розпускались — перший прогін через це не розрізняв ліси).
+    "off": ["2022-11-15/2023-03-25", "2023-11-15/2024-03-25", "2024-11-15/2025-03-25"],
 }
-MAX_DATES = {"on": 16, "off": 16}
+MAX_DATES = {"on": 18, "off": 24}
+MAX_PER_MONTH = 3  # щоб не набрати всі дати з одного (найяснішого) місяця
 
 
 def log(*a):
@@ -116,9 +118,16 @@ def search_items(bbox, season):
     by_date = defaultdict(list)
     for it in items:
         by_date[it.datetime.date().isoformat()].append(it)
-    # найменш хмарні дати першими
-    dates = sorted(by_date, key=lambda d: np.mean([i.properties.get("eo:cloud_cover", 100) for i in by_date[d]]))
-    dates = dates[: MAX_DATES[season]]
+    # найменш хмарні дати першими, але не більше MAX_PER_MONTH на місяць
+    ranked = sorted(by_date, key=lambda d: np.mean([i.properties.get("eo:cloud_cover", 100) for i in by_date[d]]))
+    per_month, dates = defaultdict(int), []
+    for d in ranked:
+        if per_month[d[:7]] >= MAX_PER_MONTH:
+            continue
+        per_month[d[:7]] += 1
+        dates.append(d)
+        if len(dates) >= MAX_DATES[season]:
+            break
     log(f"season {season}: {len(items)} items, using {len(dates)} dates: {sorted(dates)}")
     return {d: by_date[d] for d in dates}
 
@@ -178,8 +187,11 @@ def season_median(bbox, season, transform, width, height, forest):
                           resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
                 fill = np.isnan(mosaic) & ~np.isnan(tmp)
                 mosaic[fill] = tmp[fill]
-        cover = np.count_nonzero(~np.isnan(mosaic) & forest) / max(1, np.count_nonzero(forest))
-        log(f"  {season} {d}: {len(items)} tiles, valid on forest {cover:.0%}, {time.time() - t0:.0f} s")
+        on_forest = mosaic[forest & ~np.isnan(mosaic)]
+        cover = on_forest.size / max(1, np.count_nonzero(forest))
+        med = float(np.median(on_forest)) if on_forest.size else float("nan")
+        log(f"  {season} {d}: {len(items)} tiles, valid on forest {cover:.0%}, median forest NDVI {med:.2f}, "
+            f"{time.time() - t0:.0f} s")
         stack.append(mosaic.astype(np.float16))
     stack = np.stack(stack) if stack else np.full((1, height, width), np.nan, dtype=np.float16)
     med = np.full((height, width), np.nan, dtype=np.float32)
@@ -254,7 +266,7 @@ def calibrate(ratio, lab):
     c = ratio[(lab == 1) & np.isfinite(ratio)]
     b = ratio[(lab == 2) & np.isfinite(ratio)]
     best = (0, 0.5)
-    for t in np.arange(0.2, 1.0, 0.005):
+    for t in np.arange(-0.2, 1.2, 0.005):
         bal = 0.5 * (np.mean(c >= t) + np.mean(b < t))
         if bal > best[0]:
             best = (bal, float(t))
@@ -309,6 +321,7 @@ def main():
     with np.errstate(all="ignore"):
         ratio = np.where(forest & (on > 0.4) & (on_n >= 2) & (off_n >= 2), off / on, np.nan).astype(np.float32)
     log(f"forest cells with enough observations: {np.isfinite(ratio).sum()} of {forest.sum()}")
+    log(f"median NDVI over forest: summer {np.nanmedian(on[forest]):.2f}, leaf-off {np.nanmedian(off[forest]):.2f}")
 
     lab_train, lab_test, label_counts = load_labels(a.labels, transform, width, height)
     t, t_lo, t_hi, bal_train, nc, nb = calibrate(ratio, lab_train)
@@ -328,6 +341,10 @@ def main():
         "coverage_of_forest": float(np.count_nonzero(cls) / max(1, forest.sum())),
         "threshold": t, "mixed_band": [t_lo, t_hi], "labels": label_counts,
         "train": train, "test": test, "class_shares": shares,
+        "median_ndvi_by_label": {
+            name: {"summer": float(np.nanmedian(on[lab_train == v])) if (lab_train == v).any() else None,
+                   "leaf_off": float(np.nanmedian(off[lab_train == v])) if (lab_train == v).any() else None}
+            for v, name in ((1, "conifer"), (2, "broadleaf"), (3, "mixed"))},
         "median_ratio": {"conifer_train": float(np.nanmedian(ratio[lab_train == 1])) if (lab_train == 1).any() else None,
                           "broadleaf_train": float(np.nanmedian(ratio[lab_train == 2])) if (lab_train == 2).any() else None},
         "minutes": round((time.time() - t0) / 60, 1),
