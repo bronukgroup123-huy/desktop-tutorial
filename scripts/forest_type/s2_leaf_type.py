@@ -10,7 +10,9 @@
   * ESA WorldCover 2021 v200 (CC BY 4.0) — маска «деревна рослинність»;
   * мітки для перевірки — ліси OpenStreetMap з leaf_type / species (ODbL).
 
-Пороги калібруються на половині позначених лісів, точність рахується на іншій половині.
+Ознаки: NDVI, NIR (B08) і NDMI (B08/B11) влітку й у безлистий період + відношення NDVI.
+Класифікатор — Random Forest, навчений на половині позначених лісів (полігони ≤ 200 га,
+класи збалансовані); точність рахується на іншій половині (поділ за md5 id полігону).
 
 Використання (GitHub Actions):
   python s2_leaf_type.py --bbox 27.19,49.58,29.74,51.69 --labels labels.geojsonseq --out out/
@@ -147,69 +149,88 @@ def read_overview(href, level):
         return src.read(1), src.transform, src.crs
 
 
+FEATURES = ("ndvi", "nir", "ndmi")
+
+
 def item_ndvi(item, valid_scl):
+    """Ознаки знімка на сітці 40 м: NDVI, NIR (B08) і NDMI = (NIR − SWIR1) / (NIR + SWIR1)."""
     a = item.assets
-    red_a, nir_a, scl_a = a["red"], a["nir"], a["scl"]
+    red_a, nir_a, scl_a, sw_a = a["red"], a["nir"], a["scl"], a["swir16"]
     red, t10, crs = read_overview(red_a.href, 1)  # 10 м → огляд 40 м
     nir, _, _ = read_overview(nir_a.href, 1)
     scl, t20, _ = read_overview(scl_a.href, 0)  # 20 м → огляд 40 м
-    h = min(red.shape[0], nir.shape[0], scl.shape[0])
-    w = min(red.shape[1], nir.shape[1], scl.shape[1])
-    red, nir, scl = red[:h, :w], nir[:h, :w], scl[:h, :w]
+    sw, _, _ = read_overview(sw_a.href, 0)
+    h = min(red.shape[0], nir.shape[0], scl.shape[0], sw.shape[0])
+    w = min(red.shape[1], nir.shape[1], scl.shape[1], sw.shape[1])
+    red, nir, scl, sw = red[:h, :w], nir[:h, :w], scl[:h, :w], sw[:h, :w]
     rs, ro = band_params(red_a, item)
     ns, no = band_params(nir_a, item)
+    ss, so = band_params(sw_a, item)
     # Перевірка за даними: з урахованим зсувом +1000 червоний канал рослинності ≥ ~1000 DN.
     # Якщо медіана нижча — зсув уже прибраний (а метадані кажуть інакше): не віднімаємо вдруге.
     veg = (scl == 4) & (red > 0)
     if ro < 0 and np.count_nonzero(veg) > 1000 and float(np.median(red[veg])) < 900:
-        ro = no = 0.0
+        ro = no = so = 0.0
     r = red.astype(np.float32) * rs + ro
     n = nir.astype(np.float32) * ns + no
+    sw1 = sw.astype(np.float32) * ss + so
     with np.errstate(divide="ignore", invalid="ignore"):
         ndvi = (n - r) / (n + r)
+        ndmi = (n - sw1) / (n + sw1)
     ok = np.isin(scl, list(valid_scl)) & (red > 0) & (nir > 0) & np.isfinite(ndvi) & (r > 0) & (n > 0)
     ndvi[~ok] = np.nan
     bad = np.count_nonzero(np.abs(ndvi[ok]) > 1.0001)
     if bad > 0.001 * max(1, np.count_nonzero(ok)):
         raise ValueError(f"NDVI out of [-1, 1] in {bad} px — wrong scale/offset (scale {rs}, offset {ro})")
-    return np.clip(ndvi, -1, 1), t10, crs
+    ndmi[~ok | ~np.isfinite(ndmi) | (sw1 <= 0)] = np.nan
+    nir_r = np.where(ok, n, np.nan).astype(np.float32)
+    return {"ndvi": np.clip(ndvi, -1, 1), "nir": nir_r, "ndmi": np.clip(ndmi, -1, 1)}, t10, crs
 
 
 def season_median(bbox, season, transform, width, height, forest):
+    """Медіани ознак за сезон: {feature: масив}, кількість спостережень, кількість дат."""
     dates = search_items(bbox, season)
     valid_scl = VALID_SCL_ON if season == "on" else VALID_SCL_OFF
-    stack = []
+    stacks = {f: [] for f in FEATURES}
     for d, items in sorted(dates.items()):
-        mosaic = np.full((height, width), np.nan, dtype=np.float32)
+        mosaic = {f: np.full((height, width), np.nan, dtype=np.float32) for f in FEATURES}
         t0 = time.time()
         with ThreadPoolExecutor(max_workers=6) as ex:
             futs = {ex.submit(item_ndvi, it, valid_scl): it.id for it in items}
-            for f in as_completed(futs):
+            for fu in as_completed(futs):
                 try:
-                    ndvi, t, crs = f.result()
+                    feats, t, crs = fu.result()
                 except Exception as e:
-                    log(f"  {futs[f]}: {e}")
+                    log(f"  {futs[fu]}: {e}")
                     continue
-                tmp = np.full((height, width), np.nan, dtype=np.float32)
-                reproject(ndvi, tmp, src_transform=t, src_crs=crs, dst_transform=transform, dst_crs=DST_CRS,
-                          resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
-                fill = np.isnan(mosaic) & ~np.isnan(tmp)
-                mosaic[fill] = tmp[fill]
-        on_forest = mosaic[forest & ~np.isnan(mosaic)]
+                for f in FEATURES:
+                    tmp = np.full((height, width), np.nan, dtype=np.float32)
+                    reproject(feats[f], tmp, src_transform=t, src_crs=crs, dst_transform=transform, dst_crs=DST_CRS,
+                              resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+                    fill = np.isnan(mosaic[f]) & ~np.isnan(tmp)
+                    mosaic[f][fill] = tmp[fill]
+        on_forest = mosaic["ndvi"][forest & ~np.isnan(mosaic["ndvi"])]
         cover = on_forest.size / max(1, np.count_nonzero(forest))
         med = float(np.median(on_forest)) if on_forest.size else float("nan")
         log(f"  {season} {d}: {len(items)} tiles, valid on forest {cover:.0%}, median forest NDVI {med:.2f}, "
             f"{time.time() - t0:.0f} s")
-        stack.append(mosaic.astype(np.float16))
-    stack = np.stack(stack) if stack else np.full((1, height, width), np.nan, dtype=np.float16)
-    med = np.full((height, width), np.nan, dtype=np.float32)
-    cnt = np.zeros((height, width), dtype=np.uint8)
-    for r0 in range(0, height, 256):  # по смугах — менше пам'яті
-        part = stack[:, r0:r0 + 256].astype(np.float32)
-        with np.errstate(all="ignore"):
-            med[r0:r0 + 256] = np.nanmedian(part, axis=0)
-        cnt[r0:r0 + 256] = np.count_nonzero(~np.isnan(part), axis=0)
-    return med, cnt, len(dates)
+        if cover < 0.10:
+            continue  # майже вся дата — хмари/сніг: мало користі, а пам'ять займає
+        for f in FEATURES:
+            stacks[f].append(mosaic[f].astype(np.float16))
+    out, cnt = {}, np.zeros((height, width), dtype=np.uint8)
+    for f in FEATURES:
+        st = np.stack(stacks[f]) if stacks[f] else np.full((1, height, width), np.nan, dtype=np.float16)
+        med = np.full((height, width), np.nan, dtype=np.float32)
+        for r0 in range(0, height, 256):  # по смугах — менше пам'яті
+            part = st[:, r0:r0 + 256].astype(np.float32)
+            with np.errstate(all="ignore"):
+                med[r0:r0 + 256] = np.nanmedian(part, axis=0)
+            if f == "ndvi":
+                cnt[r0:r0 + 256] = np.count_nonzero(~np.isnan(part), axis=0)
+        out[f] = med
+        stacks[f] = None
+    return out, cnt, len(dates)
 
 
 # ─── Мітки OSM ────────────────────────────────────────────────────────────
@@ -240,8 +261,21 @@ def osm_label(tags):
     return 0
 
 
+MAX_LABEL_HA = 200  # великі загальні контури OSM часто змішують хвойні й листяні ділянки
+
+
+def ring_area(ring):
+    return abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1]))) / 2
+
+
+def geom_area_m2(g):
+    polys = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
+    return sum(ring_area(p[0]) - sum(ring_area(h) for h in p[1:]) for p in polys)
+
+
 def load_labels(path, transform, width, height):
     shapes_train, shapes_test, n = [], [], defaultdict(int)
+    skipped_big = 0
     with open(path, encoding="utf-8") as fh:
         for line in fh:
             line = line.lstrip("\x1e").strip()
@@ -252,40 +286,19 @@ def load_labels(path, transform, width, height):
             if not lab:
                 continue
             geom = transform_geom("EPSG:4326", DST_CRS, f["geometry"])
+            if geom_area_m2(geom) > MAX_LABEL_HA * 10_000:
+                skipped_big += 1
+                continue
             split = int(hashlib.md5(str(f.get("id")).encode()).hexdigest(), 16) % 2  # стабільний поділ
             (shapes_test if split else shapes_train).append((geom, lab))
             n[lab] += 1
-    log(f"labels: {dict(n)} (1 conifer, 2 broadleaf, 3 mixed); train {len(shapes_train)}, test {len(shapes_test)}")
+    log(f"labels ≤ {MAX_LABEL_HA} ha: {dict(n)} (1 conifer, 2 broadleaf, 3 mixed); train {len(shapes_train)}, "
+        f"test {len(shapes_test)}; skipped big {skipped_big}")
     r = lambda s: rasterize(s, out_shape=(height, width), transform=transform, fill=0, dtype="uint8") if s else np.zeros((height, width), np.uint8)
     return r(shapes_train), r(shapes_test), dict(n)
 
 
 # ─── Класифікація ─────────────────────────────────────────────────────────
-def classify(ratio, t_lo, t_hi):
-    out = np.zeros(ratio.shape, dtype=np.uint8)
-    ok = np.isfinite(ratio)
-    out[ok & (ratio >= t_hi)] = 1  # хвойний
-    out[ok & (ratio <= t_lo)] = 2  # листяний
-    out[ok & (ratio > t_lo) & (ratio < t_hi)] = 3  # мішаний / непевний
-    return out
-
-
-def calibrate(ratio, lab):
-    c = ratio[(lab == 1) & np.isfinite(ratio)]
-    b = ratio[(lab == 2) & np.isfinite(ratio)]
-    best = (0, 0.5)
-    for t in np.arange(-0.2, 1.2, 0.005):
-        bal = 0.5 * (np.mean(c >= t) + np.mean(b < t))
-        if bal > best[0]:
-            best = (bal, float(t))
-    # «мішаний» — смуга невизначеності довкола порогу (≈ 10% кожного класу з боку порогу)
-    t = best[1]
-    lo = float(np.quantile(b, 0.90)) if b.size else t - 0.05
-    hi = float(np.quantile(c, 0.10)) if c.size else t + 0.05
-    t_lo, t_hi = min(lo, t - 0.02), max(hi, t + 0.02)
-    return t, t_lo, t_hi, best[0], c.size, b.size
-
-
 def evaluate(pred, lab, forest):
     m = forest & (lab > 0) & (pred > 0)
     conf = np.zeros((4, 4), dtype=np.int64)
@@ -293,7 +306,9 @@ def evaluate(pred, lab, forest):
     binary = (lab[m] != 3) & (pred[m] != 3)
     acc_bin = float(np.mean(lab[m][binary] == pred[m][binary])) if binary.any() else float("nan")
     decided = float(np.mean(pred[m][lab[m] != 3] != 3)) if m.any() else float("nan")
+    recall = {name: float(conf[v, v] / max(1, conf[v, 1] + conf[v, 2])) for v, name in ((1, "conifer"), (2, "broadleaf"))}
     return {"confusion_label_x_pred": conf[1:, 1:].tolist(), "accuracy_conifer_vs_broadleaf": acc_bin,
+            "recall_decided": recall, "balanced_accuracy": (recall["conifer"] + recall["broadleaf"]) / 2,
             "share_decided_not_mixed": decided, "pixels": int(m.sum())}
 
 
@@ -326,17 +341,48 @@ def main():
 
     on, on_n, on_dates = season_median(bbox, "on", transform, width, height, forest)
     off, off_n, off_dates = season_median(bbox, "off", transform, width, height, forest)
+    ok = forest & (on["ndvi"] > 0.4) & (on_n >= 2) & (off_n >= 2)
     with np.errstate(all="ignore"):
-        ratio = np.where(forest & (on > 0.4) & (on_n >= 2) & (off_n >= 2), off / on, np.nan).astype(np.float32)
-    log(f"forest cells with enough observations: {np.isfinite(ratio).sum()} of {forest.sum()}")
-    log(f"median NDVI over forest: summer {np.nanmedian(on[forest]):.2f}, leaf-off {np.nanmedian(off[forest]):.2f}")
+        ratio = np.where(ok, off["ndvi"] / on["ndvi"], np.nan).astype(np.float32)
+    feats = [on["ndvi"], off["ndvi"], ratio, on["ndmi"], off["ndmi"], on["nir"], off["nir"]]
+    names = ["ndvi_on", "ndvi_off", "ndvi_ratio", "ndmi_on", "ndmi_off", "nir_on", "nir_off"]
+    for fa in feats:
+        ok &= np.isfinite(fa)
+    log(f"forest cells with all features: {ok.sum()} of {forest.sum()}")
+    log(f"median over forest: NDVI summer {np.nanmedian(on['ndvi'][forest]):.2f}, "
+        f"leaf-off {np.nanmedian(off['ndvi'][forest]):.2f}")
 
     lab_train, lab_test, label_counts = load_labels(a.labels, transform, width, height)
-    t, t_lo, t_hi, bal_train, nc, nb = calibrate(ratio, lab_train)
-    log(f"threshold {t:.3f} (balanced acc on train {bal_train:.1%}, conifer px {nc}, broadleaf px {nb}); "
-        f"mixed band {t_lo:.3f}…{t_hi:.3f}")
-    cls = classify(ratio, t_lo, t_hi)
-    cls[~forest] = 0
+
+    # Random Forest на пікселях навчальних лісів (хвойний / листяний), класи збалансовані.
+    from sklearn.ensemble import RandomForestClassifier
+    rng = np.random.default_rng(0)
+    xs, ys = [], []
+    for cls_id in (1, 2):
+        idx = np.flatnonzero(ok & (lab_train == cls_id))
+        if idx.size > 40_000:
+            idx = rng.choice(idx, 40_000, replace=False)
+        xs.append(np.stack([fa.ravel()[idx] for fa in feats], axis=1))
+        ys.append(np.full(idx.size, cls_id))
+    X, y = np.concatenate(xs), np.concatenate(ys)
+    log(f"training on {len(y)} px: conifer {np.sum(y == 1)}, broadleaf {np.sum(y == 2)}")
+    rf = RandomForestClassifier(n_estimators=150, max_depth=14, min_samples_leaf=20, class_weight="balanced",
+                                n_jobs=-1, random_state=0).fit(X, y)
+    importances = dict(zip(names, (round(float(v), 3) for v in rf.feature_importances_)))
+    log(f"feature importances: {importances}")
+
+    cls = np.zeros((height, width), dtype=np.uint8)
+    prob_conifer = np.full((height, width), np.nan, dtype=np.float32)
+    flat_ok = np.flatnonzero(ok)
+    for c0 in range(0, flat_ok.size, 2_000_000):
+        idx = flat_ok[c0:c0 + 2_000_000]
+        p = rf.predict_proba(np.stack([fa.ravel()[idx] for fa in feats], axis=1))[:, list(rf.classes_).index(1)]
+        prob_conifer.ravel()[idx] = p
+    MIXED = 0.2  # |p − 0.5| < MIXED → «мішаний / непевний»
+    cls[ok & (prob_conifer >= 0.5 + MIXED)] = 1
+    cls[ok & (prob_conifer <= 0.5 - MIXED)] = 2
+    cls[ok & (prob_conifer > 0.5 - MIXED) & (prob_conifer < 0.5 + MIXED)] = 3
+    t_lo, t_hi = 0.5 - MIXED, 0.5 + MIXED
 
     test = evaluate(cls, lab_test, forest)
     train = evaluate(cls, lab_train, forest)
@@ -347,14 +393,13 @@ def main():
         "scenes": {"leaf_on_dates": on_dates, "leaf_off_dates": off_dates},
         "forest_cells": int(forest.sum()), "classified_cells": int(np.count_nonzero(cls)),
         "coverage_of_forest": float(np.count_nonzero(cls) / max(1, forest.sum())),
-        "threshold": t, "mixed_band": [t_lo, t_hi], "labels": label_counts,
+        "model": "RandomForest", "feature_importances": importances,
+        "mixed_band_prob_conifer": [t_lo, t_hi], "labels_max_ha": MAX_LABEL_HA, "labels": label_counts,
         "train": train, "test": test, "class_shares": shares,
         "median_ndvi_by_label": {
-            name: {"summer": float(np.nanmedian(on[lab_train == v])) if (lab_train == v).any() else None,
-                   "leaf_off": float(np.nanmedian(off[lab_train == v])) if (lab_train == v).any() else None}
+            name: {"summer": float(np.nanmedian(on["ndvi"][lab_train == v])) if (lab_train == v).any() else None,
+                   "leaf_off": float(np.nanmedian(off["ndvi"][lab_train == v])) if (lab_train == v).any() else None}
             for v, name in ((1, "conifer"), (2, "broadleaf"), (3, "mixed"))},
-        "median_ratio": {"conifer_train": float(np.nanmedian(ratio[lab_train == 1])) if (lab_train == 1).any() else None,
-                          "broadleaf_train": float(np.nanmedian(ratio[lab_train == 2])) if (lab_train == 2).any() else None},
         "minutes": round((time.time() - t0) / 60, 1),
     }
     json.dump(report, open(os.path.join(a.out, "report.json"), "w"), indent=2, ensure_ascii=False)

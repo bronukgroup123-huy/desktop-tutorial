@@ -39,7 +39,7 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
-          pip install -q rasterio pystac-client numpy pillow
+          pip install -q rasterio pystac-client numpy pillow scikit-learn
 
       # Мітки для перевірки — ліси OSM з породою / типом листя (той самий кеш, що й у Forests data).
       - name: Cache key
