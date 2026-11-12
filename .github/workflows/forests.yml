@@ -7,7 +7,8 @@ name: Forests data
 #    перекачує файл лише тоді, коли змінилась його версія.
 #  * PR, що змінює генератор: пробна збірка Житомирщини → Artifacts (без публікації).
 # Дані: © OpenStreetMap contributors (ODbL), Overpass API. Області збираються паралельно,
-# але не більше 4 одночасно — щоб не перевантажувати публічні сервери Overpass.
+# але не більше 2 одночасно — публічні сервери Overpass і так часто перевантажені (502/504).
+# Кожна область публікується одразу після збірки — не чекає решту.
 on:
   workflow_dispatch:
     inputs:
@@ -84,14 +85,35 @@ jobs:
           echo "### Області для збірки: $COUNT" >> "$GITHUB_STEP_SUMMARY"
           printf '%s' "$REGIONS" | jq -r '.[]' | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
 
-  build:
-    name: Build ${{ matrix.region }}
+  # Реліз створюється один раз заздалегідь — щоб паралельні збірки не створювали його одночасно.
+  release:
+    name: Ensure release «forests-data»
+    if: github.event_name != 'pull_request'
     needs: plan
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: |
+          gh release view forests-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create forests-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "Дані лісів областей" \
+              --notes "Файли лісів областей для застосунку (формат v1-forest-zones, gzip). Генерується workflow «Forests data» (вручну й щомісяця). Дані: © OpenStreetMap contributors (ODbL)."
+
+  build:
+    name: Build ${{ matrix.region }}
+    needs: [plan, release]
+    # PR: release пропускається — збірка все одно має йти.
+    if: ${{ always() && needs.plan.result == 'success' && needs.release.result != 'failure' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 180
+    permissions:
+      contents: write
     strategy:
       fail-fast: false # одна область не зупиняє решту
-      max-parallel: 4
+      max-parallel: 2
       matrix:
         region: ${{ fromJSON(needs.plan.outputs.regions) }}
     env:
@@ -122,14 +144,22 @@ jobs:
           path: dist/
           retention-days: 14
 
-  # Публікуємо все, що зібралося, навіть якщо якась область упала (її старий файл лишається).
-  publish:
-    name: Publish to release «forests-data»
+      # Одразу в реліз: спершу дані, потім опис (застосунок читає опис і за ним — дані).
+      - name: Publish ${{ matrix.region }}
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload forests-data "dist/forests-$REGION.geojson.gz" --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload forests-data "dist/forests-$REGION.json" --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Опубліковано: $REGION" >> "$GITHUB_STEP_SUMMARY"
+
+  # Підсумок: що зібралося (області публікуються в build; упала — лишається старий файл).
+  summary:
+    name: Summary
     if: ${{ always() && github.event_name != 'pull_request' && needs.plan.result == 'success' }}
     needs: [plan, build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -142,21 +172,9 @@ jobs:
           shopt -s nullglob
           files=(dist/forests-*.geojson.gz)
           echo "count=${#files[@]}" >> "$GITHUB_OUTPUT"
-          echo "### Опубліковано областей: ${#files[@]}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Зібрано й опубліковано областей: ${#files[@]}" >> "$GITHUB_STEP_SUMMARY"
           echo "| Область | Лісів | Розмір | З відомою породою |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
           for m in dist/forests-*.json; do
             jq -r '"| \(.slug) | \(.features) | \((.bytes/1048576*10|round)/10) МБ | \(.stats.typed // "—") |"' "$m" >> "$GITHUB_STEP_SUMMARY"
           done
-      - uses: softprops/action-gh-release@v2
-        if: steps.files.outputs.count != '0'
-        with:
-          tag_name: forests-data
-          name: Дані лісів областей
-          prerelease: true
-          make_latest: false
-          overwrite_files: true
-          body: |
-            Файли лісів областей для застосунку (формат v1-forest-zones, gzip).
-            Генерується workflow «Forests data» (вручну й щомісяця). Дані: © OpenStreetMap contributors (ODbL).
-          files: dist/*
