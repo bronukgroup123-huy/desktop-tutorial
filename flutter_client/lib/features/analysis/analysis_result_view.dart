@@ -9,10 +9,22 @@ import 'package:flutter_client/features/forecast/forecast_view.dart';
 /// Лише рівні з готовими підписами із сервера — без відсотків.
 /// Показується повноцінним екраном у вкладці «Прогноз» (див. ForecastScreen).
 class AnalysisResultView extends StatelessWidget {
-  const AnalysisResultView({super.key, required this.result, this.scrollController});
+  const AnalysisResultView({
+    super.key,
+    required this.result,
+    this.scrollController,
+    this.onRefineForest,
+    this.refineHintLabel,
+  });
 
   final AnalysisResult result;
   final ScrollController? scrollController;
+
+  /// «Уточнити ліс» (ADR-015 §15.6); `null` — кнопки немає (ліміт, офлайн, лісів немає).
+  final VoidCallback? onRefineForest;
+
+  /// «Уточнити ліс сьогодні можна ще 1 раз» — із сервера.
+  final String? refineHintLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +40,7 @@ class AnalysisResultView extends StatelessWidget {
         ),
         Text('Ділянка ${r.area.sizeLabel}', style: TextStyle(color: muted)),
         const SizedBox(height: 16),
-        _ForestCard(summary: r.forestSummaryLabel, types: r.forestTypes),
+        _ForestCard(result: r, onRefine: onRefineForest, refineHintLabel: refineHintLabel),
         if (r.weather != null) ...[const SizedBox(height: 12), _WeatherCard(weather: r.weather!)],
         const SizedBox(height: 16),
         if (r.top1 == null)
@@ -78,10 +90,11 @@ class _SpeciesBlock extends StatelessWidget {
 }
 
 class _ForestCard extends StatelessWidget {
-  const _ForestCard({required this.summary, required this.types});
+  const _ForestCard({required this.result, this.onRefine, this.refineHintLabel});
 
-  final String summary;
-  final List<AnalysisForestType> types;
+  final AnalysisResult result;
+  final VoidCallback? onRefine;
+  final String? refineHintLabel;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -97,25 +110,78 @@ class _ForestCard extends StatelessWidget {
                 children: [
                   const Icon(Icons.forest_rounded, color: AppTheme.darkGreen),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(summary, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(child: Text(result.forestSummaryLabel, style: const TextStyle(fontWeight: FontWeight.w600))),
                 ],
               ),
-              for (final t in types)
+              for (final t in result.forestTypes)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(color: t.typeColor, shape: BoxShape.circle),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(color: t.typeColor, shape: BoxShape.circle),
+                        ),
                       ),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(t.ageLabel == null ? t.typeLabel : '${t.typeLabel}, ${t.ageLabel}')),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t.ageLabel == null ? t.typeLabel : '${t.typeLabel}, ${t.ageLabel}'),
+                            if (t.speciesLabel != null)
+                              Text(t.speciesLabel!, style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                          ],
+                        ),
+                      ),
                       Text(t.areaLabel, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
                     ],
                   ),
                 ),
+              for (final e in result.forestExtra)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.add_circle_outline_rounded, size: 14, color: AppTheme.darkGreen),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(e.label)),
+                      Text(e.presenceLabel, style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                    ],
+                  ),
+                ),
+              if (result.refineNoteLabel != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  result.refineNoteLabel!,
+                  style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                ),
+              ],
+              if (onRefine != null || refineHintLabel != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (refineHintLabel != null)
+                      Expanded(
+                        child: Text(
+                          refineHintLabel!,
+                          style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    TextButton.icon(
+                      onPressed: onRefine,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Уточнити ліс'),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

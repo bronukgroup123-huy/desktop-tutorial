@@ -48,6 +48,9 @@ class ApiClient {
       _send(() => _dio.patch<dynamic>(path, data: body));
 
   /// DELETE, повертає вміст поля `data`.
+  Future<dynamic> put(String path, {Object? body}) =>
+      _send(() => _dio.put<dynamic>(path, data: body));
+
   Future<dynamic> delete(String path) => _send(() => _dio.delete<dynamic>(path));
 
   /// GET з перевіркою змін (`If-None-Match`). Якщо дані на сервері не змінились —

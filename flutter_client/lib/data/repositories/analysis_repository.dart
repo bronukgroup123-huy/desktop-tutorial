@@ -59,6 +59,14 @@ class AnalysisRepository {
         if (forest != null) 'forest': forest,
       }) as Map<String, dynamic>);
 
+  /// Уточнити ліс ділянки вручну й одразу переаналізувати (ADR-015 §15.6).
+  /// [override] `null` — «Скинути до карти». Понад 2 на добу — `429 forest_edit_limit_reached`.
+  Future<AnalysisResult> refineForest(String areaId, ForestOverride? override, {Map<String, dynamic>? forest}) async =>
+      AnalysisResult.fromJson(await _api.put('/v1-analysis/areas/$areaId/forest', body: {
+        'override': override?.toJson(),
+        if (forest != null) 'forest': forest,
+      }) as Map<String, dynamic>);
+
   Future<void> deleteArea(String areaId) async {
     await _api.delete('/v1-analysis/areas/$areaId');
   }

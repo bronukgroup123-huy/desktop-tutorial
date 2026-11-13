@@ -480,6 +480,59 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
+  /v1-analysis/areas/{id}/forest:
+    put:
+      operationId: refineAnalysisForest
+      summary: Уточнити ліс ділянки вручну й переаналізувати
+      description: |
+        ADR-015 §15.6. Породи — лише зі списку `forest_edit_options` (GET v1-analysis): 1–2 на
+        тип лісу з карти + породи, яких карта не бачить (`extra`). `override: null` — «Скинути до
+        карти». Не частіше 2 разів на добу на ділянку (`429 forest_edit_limit_reached` +
+        `Retry-After`). Одразу переаналіз; добовий ліміт аналізів не списується. На загальну
+        карту лісів не впливає.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [override]
+              properties:
+                override:
+                  oneOf:
+                    - $ref: '#/components/schemas/ForestOverride'
+                    - type: 'null'
+                forest:
+                  $ref: '#/components/schemas/AnalysisRequest/properties/forest'
+                date: { type: string, format: date }
+      responses:
+        '200':
+          description: Уточнення збережено, результат переаналізу
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/AnalysisResult'
+                      - type: object
+                        required: [forest_edit]
+                        properties:
+                          forest_edit: { $ref: '#/components/schemas/ForestEditUsage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
 components:
   securitySchemes:
     apikey:
@@ -502,7 +555,8 @@ components:
         Тук-тук (v1-picks): validation_error, photo_too_large, invalid_photo_format,
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
         daily_limit_reached, storage_error, invalid_mine, pick_not_found.
-        Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached.
+        Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
+        forest_edit_limit_reached (+ Retry-After).
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -725,6 +779,53 @@ components:
             - $ref: '#/components/schemas/AnalysisResult'
             - type: 'null'
         last_analyzed_at: { type: [string, 'null'], format: date-time }
+        forest_override:
+          description: Уточнення лісу вручну (у GET); null — немає
+          oneOf:
+            - $ref: '#/components/schemas/ForestOverride'
+            - type: 'null'
+        forest_edit: { $ref: '#/components/schemas/ForestEditUsage' }
+
+    ForestSpeciesCode:
+      type: string
+      enum: [pine, spruce, oak, birch, aspen, alder, beech, hornbeam]
+
+    ForestOverride:
+      type: object
+      description: Породи, обрані користувачем для своєї ділянки (ADR-015 §15.6)
+      properties:
+        types:
+          type: array
+          maxItems: 12
+          items:
+            type: object
+            required: [forest_type, species]
+            properties:
+              forest_type: { type: [string, 'null'], pattern: '^[a-z_]{1,32}$', description: Тип лісу з карти }
+              species:
+                type: array
+                minItems: 1
+                maxItems: 2
+                uniqueItems: true
+                items: { $ref: '#/components/schemas/ForestSpeciesCode' }
+        extra:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            required: [species, presence]
+            properties:
+              species: { $ref: '#/components/schemas/ForestSpeciesCode' }
+              presence: { type: string, enum: [dominant, present] }
+
+    ForestEditUsage:
+      type: object
+      required: [used, limit, can_edit, label]
+      properties:
+        used: { type: integer }
+        limit: { type: integer, example: 2 }
+        can_edit: { type: boolean }
+        label: { type: string, example: Уточнити ліс сьогодні можна ще 1 раз }
 
     AnalysisOverview:
       type: object
@@ -749,6 +850,26 @@ components:
         create_hint_label:
           type: string
           example: 'У вас уже є ділянка. Щоб створити нову, видаліть стару у вкладці «Прогноз».'
+        forest_edit_options:
+          type: object
+          description: Список для «Уточнити ліс» (лише вибір зі списку)
+          properties:
+            species:
+              type: array
+              items:
+                type: object
+                required: [code, label]
+                properties:
+                  code: { $ref: '#/components/schemas/ForestSpeciesCode' }
+                  label: { type: string, example: Сосна }
+            presence:
+              type: array
+              items:
+                type: object
+                required: [code, label]
+                properties:
+                  code: { type: string, enum: [dominant, present] }
+                  label: { type: string, example: є місцями }
 
     AnalysisRequest:
       type: object
@@ -810,6 +931,22 @@ components:
                   type_color: { type: string, pattern: '^#[0-9a-f]{6}$' }
                   area_label: { type: string, example: '≈ 8,4 км²' }
                   age_label: { type: [string, 'null'], example: '~60 р.' }
+                  species:
+                    type: array
+                    items: { $ref: '#/components/schemas/ForestSpeciesCode' }
+                  species_label: { type: [string, 'null'], example: 'сосна, ялина · уточнено вами' }
+            extra:
+              type: array
+              items:
+                type: object
+                required: [species, label, presence, presence_label]
+                properties:
+                  species: { $ref: '#/components/schemas/ForestSpeciesCode' }
+                  label: { type: string, example: Дуб }
+                  presence: { type: string, enum: [dominant, present] }
+                  presence_label: { type: string, example: є місцями · уточнено вами }
+            refined: { type: boolean, description: Ліс уточнено вручну }
+            refine_note_label: { type: [string, 'null'] }
         top1:
           oneOf:
             - $ref: '#/components/schemas/AnalysisSpecies'
