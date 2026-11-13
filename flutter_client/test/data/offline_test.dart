@@ -164,7 +164,10 @@ void main() {
     final (api2, adapter2) = makeClient((_) => const FakeResponse.offline());
     final g = await RegionsRepository(api2, store, now: () => now.add(const Duration(days: 30))).fetchGeometry('zhytomyrska');
     expect(g.name, 'Житомирська', reason: 'збережена копія — одразу, без очікування мережі');
-    await pumpEventQueue();
+    // оновлення — у фоні (через читання файлу копії), тож чекаємо до 2 с
+    for (var i = 0; i < 100 && adapter2.requests.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
     expect(adapter2.requests.length, 1, reason: 'оновлення пробує у фоні');
   });
 

@@ -73,16 +73,12 @@ final localBasemapProvider = FutureProvider.family<LocalBasemap?, String>(
   (ref, slug) => ref.watch(basemapRepositoryProvider).local(slug),
 );
 
-/// Опис карти області на сервері — розмір для кнопки «Завантажити»; `null` — карти ще немає
-/// або немає мережі (тоді кнопку не показуємо).
-final remoteBasemapProvider = FutureProvider.family<BasemapMeta?, String>((ref, slug) async {
+/// Опис офлайн карти області на сервері — розмір для кнопки «Завантажити»; `null` — карти для
+/// області ще немає (404); помилка — немає мережі.
+final remoteBasemapProvider = FutureProvider.autoDispose.family<BasemapMeta?, String>((ref, slug) async {
   final files = (await ref.watch(regionGeometryProvider(slug).future)).basemap;
   if (files == null) return null;
-  try {
-    return await ref.watch(basemapRepositoryProvider).remote(files);
-  } catch (_) {
-    return null;
-  }
+  return ref.watch(basemapRepositoryProvider).remote(files);
 });
 
 final forecastRepositoryProvider = Provider(

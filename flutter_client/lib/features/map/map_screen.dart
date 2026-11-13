@@ -17,7 +17,6 @@ import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
-import 'package:flutter_client/data/repositories/basemap_repository.dart' show BasemapMeta;
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/map/basemap_style.dart';
@@ -61,15 +60,164 @@ class MapScreen extends ConsumerWidget {
           ),
         ),
       ),
-      data: (g) => _RegionMap(key: ValueKey(g.slug), geometry: g),
+      data: (g) => _OfflineMapGate(key: ValueKey(g.slug), geometry: g),
+    );
+  }
+}
+
+/// Карта показується лише з офлайн карти області (ADR-020): серверних плиток немає.
+/// Поки офлайн карту не завантажено — на екрані лише пропозиція завантажити її.
+class _OfflineMapGate extends ConsumerWidget {
+  const _OfflineMapGate({super.key, required this.geometry});
+
+  final RegionGeometry geometry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final local = ref.watch(localBasemapProvider(geometry.slug));
+    final file = local.valueOrNull;
+    if (local.isLoading && file == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (file == null) return _OfflineMapPrompt(geometry: geometry);
+    final tiles = ref.watch(_basemapTilesProvider(file.path));
+    return tiles.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      // Файл не відкрився (пошкоджений) — видаляємо й пропонуємо завантажити знову.
+      error: (_, __) => _OfflineMapPrompt(geometry: geometry, broken: true),
+      data: (provider) => _RegionMap(key: ValueKey(file.path), geometry: geometry, basemap: provider),
+    );
+  }
+}
+
+/// «Офлайн карта»: по центру екрана — лише ця пропозиція; після завантаження з'являється
+/// карта разом з усім іншим.
+class _OfflineMapPrompt extends ConsumerStatefulWidget {
+  const _OfflineMapPrompt({required this.geometry, this.broken = false});
+
+  final RegionGeometry geometry;
+  final bool broken;
+
+  @override
+  ConsumerState<_OfflineMapPrompt> createState() => _OfflineMapPromptState();
+}
+
+class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
+  double? _progress;
+  String? _error;
+
+  String get _slug => widget.geometry.slug;
+
+  Future<void> _download() async {
+    final files = widget.geometry.basemap;
+    if (files == null || _progress != null) return;
+    setState(() {
+      _progress = 0;
+      _error = null;
+    });
+    final repo = ref.read(basemapRepositoryProvider);
+    try {
+      if (widget.broken) await repo.delete(_slug);
+      await for (final p in repo.download(_slug, files)) {
+        if (mounted) setState(() => _progress = p);
+      }
+      ref.invalidate(localBasemapProvider(_slug));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e is FormatException
+            ? e.message
+            : 'Не вдалося завантажити. Перевірте інтернет і спробуйте ще раз.');
+      }
+    } finally {
+      if (mounted) setState(() => _progress = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remote = ref.watch(remoteBasemapProvider(_slug));
+    final meta = remote.valueOrNull;
+    final progress = _progress;
+    final muted = AppTheme.darkGreen.withValues(alpha: 0.65);
+
+    final Widget action;
+    if (progress != null) {
+      action = Column(
+        children: [
+          LinearProgressIndicator(value: progress, minHeight: 6, borderRadius: BorderRadius.circular(3)),
+          const SizedBox(height: 8),
+          Text('Завантаження… ${(progress * 100).round()}%', style: TextStyle(color: muted)),
+        ],
+      );
+    } else if (remote.isLoading) {
+      action = const CircularProgressIndicator();
+    } else if (remote.hasError) {
+      action = Column(
+        children: [
+          Text('Потрібен інтернет, щоб завантажити офлайн карту.', textAlign: TextAlign.center, style: TextStyle(color: muted)),
+          TextButton(onPressed: () => ref.invalidate(remoteBasemapProvider(_slug)), child: const Text('Повторити')),
+        ],
+      );
+    } else if (meta == null) {
+      action = Text(
+        'Офлайн карта для вашої області ще готується. Спробуйте пізніше.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: muted),
+      );
+    } else {
+      action = FilledButton.icon(
+        onPressed: _download,
+        style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, minimumSize: const Size.fromHeight(50)),
+        icon: const Icon(Icons.download_rounded),
+        label: Text('Завантажити · ${meta.sizeLabel}'),
+      );
+    }
+
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.map_rounded, size: 64, color: AppTheme.darkGreen),
+                const SizedBox(height: 16),
+                Text(
+                  'Офлайн карта',
+                  style: GoogleFonts.merriweather(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.broken
+                      ? 'Файл карти пошкоджено. Завантажте карту «${widget.geometry.name}» ще раз.'
+                      : 'Карта «${widget.geometry.name}» завантажується один раз і далі працює без '
+                          'інтернету — і в лісі теж. Краще через Wi-Fi.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                action,
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red.shade700)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _RegionMap extends ConsumerStatefulWidget {
-  const _RegionMap({super.key, required this.geometry});
+  const _RegionMap({super.key, required this.geometry, required this.basemap});
 
   final RegionGeometry geometry;
+
+  /// Офлайн карта області з телефону.
+  final VectorTileProvider basemap;
 
   @override
   ConsumerState<_RegionMap> createState() => _RegionMapState();
@@ -100,9 +248,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   List<Widget> _forestLayers = const [];
   RegionGeometry? _maskFor;
   Widget _maskLayer = const SizedBox.shrink();
-
-  /// Завантаження карти області: частка 0…1; `null` — не качаємо.
-  double? _basemapProgress;
 
   RegionGeometry get _g => widget.geometry;
 
@@ -190,46 +335,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   static Color _nudge(Color c, int delta) {
     final argb = c.toARGB32();
     return Color((argb & 0xFFFFFF00) | ((argb & 0xFF) ^ delta));
-  }
-
-  /// «Карта без інтернету»: один раз завантажити файл карти області (пілот, рішення PO
-  /// 2026-11-13). Далі підкладка малюється з телефону, без серверів плиток.
-  Future<void> _downloadBasemap(BasemapMeta meta) async {
-    final files = _g.basemap;
-    if (files == null || _basemapProgress != null) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Карта області без інтернету'),
-        content: Text(
-          'Завантажити карту «${_g.name}» (${meta.sizeLabel})? Її завантажують один раз — '
-          'далі карта працює без інтернету, зокрема в лісі. Краще через Wi-Fi.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Пізніше')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Завантажити')),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    setState(() => _basemapProgress = 0);
-    try {
-      await for (final p in ref.read(basemapRepositoryProvider).download(_g.slug, files)) {
-        if (mounted) setState(() => _basemapProgress = p);
-      }
-      ref.invalidate(localBasemapProvider(_g.slug));
-      if (mounted) showToast(context, 'Карту області збережено — працює без інтернету');
-    } catch (e) {
-      if (mounted) {
-        showToast(
-          context,
-          e is FormatException ? e.message : 'Не вдалося завантажити карту. Перевірте інтернет і спробуйте ще раз.',
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _basemapProgress = null);
-    }
   }
 
   /// Тап по карті: у режимі аналізу — центр ділянки; інакше — визначник лісу
@@ -534,10 +639,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final overview = ref.watch(analysisOverviewProvider);
     final areas = overview.valueOrNull?.areas ?? const <AnalysisArea>[];
     final forestLabel = _forestLabel;
-    final localBasemap = ref.watch(localBasemapProvider(_g.slug)).valueOrNull;
-    final vectorBasemap =
-        localBasemap == null ? null : ref.watch(_basemapTilesProvider(localBasemap.path)).valueOrNull;
-    final remoteBasemap = localBasemap == null ? ref.watch(remoteBasemapProvider(_g.slug)).valueOrNull : null;
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
@@ -566,23 +667,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               onTap: (tapPosition, point) => _onMapTap(point),
             ),
             children: [
-              if (vectorBasemap != null)
-                // Карта області з телефону — без інтернету й без серверів плиток.
-                VectorTileLayer(
-                  key: ValueKey(localBasemap!.path),
-                  tileProviders: TileProviders({'openmaptiles': vectorBasemap}),
-                  theme: basemapTheme,
-                  maximumZoom: 17,
-                )
-              else
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'ua.mushroomradar.app',
-                maxZoom: 17,
-                // Плитки зберігаються на телефоні між запусками (раніше — лише в пам'яті,
-                // і після кожного запуску карта качалась заново); запити до плиток, з яких
-                // уже прогорнули, скасовуються — на слабкому інтернеті видимі вантажаться першими.
-                tileProvider: _tiles,
+              // Офлайн карта області з телефону — без інтернету й без серверів плиток.
+              VectorTileLayer(
+                tileProviders: TileProviders({'openmaptiles': widget.basemap}),
+                theme: basemapTheme,
+                maximumZoom: 17,
+                // Більший кеш намальованих плиток — повернення до вже переглянутого місця
+                // не перемальовує його заново.
+                memoryTileCacheMaxSize: 48 * 1024 * 1024,
+                memoryTileDataCacheMaxSize: 64,
               ),
               _ForestLodView(layers: _forestLayersFor(load)),
               _mask(),
@@ -674,16 +767,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (remoteBasemap != null) ...[
-                    _MapPill(
-                      icon: Icons.download_for_offline_rounded,
-                      label: _basemapProgress == null
-                          ? 'Карта без інтернету · ${remoteBasemap.sizeLabel}'
-                          : 'Завантаження карти… ${(_basemapProgress! * 100).round()}%',
-                      onPressed: () => _downloadBasemap(remoteBasemap),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
                   _MapPill(
                     icon: Icons.crop_free_rounded,
                     label: 'Аналіз ділянки',
@@ -1020,20 +1103,14 @@ class _AnalysisPanel extends StatelessWidget {
   }
 }
 
-/// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
-/// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
-/// не перераховує контури заново.
-/// Відкрита карта області з телефону (PMTiles) — одна на шлях файлу.
+/// Відкрита офлайн карта області з телефону (PMTiles) — одна на шлях файлу.
 final _basemapTilesProvider = FutureProvider.family<VectorTileProvider, String>(
   (ref, path) => PmTilesVectorTileProvider.fromSource(path),
 );
 
-/// Плитки підкладки: дисковий кеш до 300 МБ (свіжість — за заголовками сервера) і
-/// скасування застарілих запитів. Один екземпляр на застосунок.
-final NetworkTileProvider _tiles = NetworkTileProvider(
-  cachingProvider: BuiltInMapCachingProvider.getOrCreateInstance(maxCacheSize: 300 * 1024 * 1024),
-);
-
+/// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
+/// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
+/// не перераховує контури заново.
 class _ForestLodView extends StatelessWidget {
   const _ForestLodView({required this.layers});
 
