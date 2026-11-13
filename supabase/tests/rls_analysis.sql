@@ -88,6 +88,38 @@ BEGIN
     RAISE EXCEPTION 'Test 2g failed: delete + create reset the daily limit';
   END IF;
 
+  -- ─── 2h. Уточнення лісу (ADR-015 §15.6): ≤ 2 на ділянку за добу ─────────────
+  IF public.forest_edits_today(owner, area) <> 0 THEN RAISE EXCEPTION 'Test 2h failed: edits not 0'; END IF;
+  IF public.consume_forest_edit(owner, area, 2) IS DISTINCT FROM 1
+     OR public.consume_forest_edit(owner, area, 2) IS DISTINCT FROM 2 THEN
+    RAISE EXCEPTION 'Test 2h failed: first two edits not counted';
+  END IF;
+  IF public.consume_forest_edit(owner, area, 2) IS NOT NULL THEN
+    RAISE EXCEPTION 'Test 2i failed: third edit of the day allowed';
+  END IF;
+  PERFORM public.refund_forest_edit(owner, area);
+  IF public.forest_edits_today(owner, area) <> 1 THEN RAISE EXCEPTION 'Test 2j failed: refund did not free one edit'; END IF;
+  -- чужу ділянку уточнити не можна
+  IF public.consume_forest_edit('b2b2b2b2-0000-4000-8000-0000000029b2', area, 2) IS NOT NULL THEN
+    RAISE EXCEPTION 'Test 2k failed: another user consumed an edit of my area';
+  END IF;
+  -- уточнення зберігається разом із результатом; «скинути до карти» — NULL
+  IF NOT public.save_forest_override(owner, area, '{"types":[{"forest_type":"coniferous","species":["pine"]}],"extra":[]}'::jsonb,
+                                     '{"date":"2026-11-13"}'::jsonb)
+     OR (SELECT forest_override->'types'->0->'species'->>0 FROM public.analysis_areas WHERE id = area) <> 'pine'
+     OR (SELECT last_result->>'date' FROM public.analysis_areas WHERE id = area) <> '2026-11-13' THEN
+    RAISE EXCEPTION 'Test 2l failed: override not saved';
+  END IF;
+  IF public.save_forest_override('b2b2b2b2-0000-4000-8000-0000000029b2', area, NULL, '{}'::jsonb) THEN
+    RAISE EXCEPTION 'Test 2m failed: another user overwrote the override';
+  END IF;
+  PERFORM public.save_forest_override(owner, area, NULL, '{}'::jsonb);
+  IF (SELECT forest_override FROM public.analysis_areas WHERE id = area) IS NOT NULL THEN
+    RAISE EXCEPTION 'Test 2n failed: reset to map did not clear the override';
+  END IF;
+  -- уточнення не списує ліміт аналізів
+  IF public.analysis_used_today(owner, 1) <> 5 THEN RAISE EXCEPTION 'Test 2o failed: edits changed analysis usage'; END IF;
+
   -- ─── 3. Ліс у квадраті 5×5 км ──────────────────────────────────────────────
   f := public.analyze_area_forest(rid, la, lo, 5);
   w := extensions.ST_Distance(
@@ -136,6 +168,21 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.analysis_usage LIMIT 1;
     RAISE EXCEPTION 'Test 4b failed: client reads analysis_usage';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM 1 FROM public.analysis_forest_edits LIMIT 1;
+    RAISE EXCEPTION 'Test 4i failed: client reads analysis_forest_edits';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.consume_forest_edit('b2b2b2b2-0000-4000-8000-0000000029b2', gen_random_uuid(), 100);
+    RAISE EXCEPTION 'Test 4j failed: client can call consume_forest_edit';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.save_forest_override('b2b2b2b2-0000-4000-8000-0000000029b2', gen_random_uuid(), NULL, '{}'::jsonb);
+    RAISE EXCEPTION 'Test 4k failed: client can call save_forest_override';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN

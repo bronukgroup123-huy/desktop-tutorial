@@ -531,9 +531,14 @@ API: `POST v1-analysis { lat, lng, size_km }` — нова ділянка (`409 
 5. **На загальну карту лісів уточнення не впливає** і голосом за тип полігона не є: тип на карті
    змінюють лише перевірені тук-туки й відповіді на них (ADR-019 §19.4). У картці — підказка:
    «Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх».
-6. API (Thin Client): `PUT v1-analysis/areas/{id}/forest { types: [{ forest_type, species: [..] }],
-   extra: [{ species, presence: dominant|present }] }` → новий `last_result`; понад ліміт —
-   `429 forest_edit_limit_reached` з `message` (коли знову можна). Список порід і підписи — із сервера.
+6. API (Thin Client): `PUT v1-analysis/areas/{id}/forest { override: { types: [{ forest_type, species: [..] }],
+   extra: [{ species, presence: dominant|present }] } | null, forest? }` (`null` — «Скинути до карти»;
+   `forest` — ліс із карти, як у POST) → результат переаналізу + `forest_edit`; понад ліміт —
+   `429 forest_edit_limit_reached` з `message` і `Retry-After`. Список порід (`forest_edit_options`),
+   уточнення ділянки (`forest_override`) і залишок уточнень (`forest_edit`) — у `GET v1-analysis`.
+7. Прогноз з уточненням рахується для до 3 порід: площа типу ділиться між обраними породами,
+   «переважає» — першою, «є місцями» — після решти. Збережене уточнення діє і на кожен наступний
+   аналіз ділянки.
 
 ---
 

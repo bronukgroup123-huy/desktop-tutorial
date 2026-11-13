@@ -209,6 +209,89 @@ void main() {
     );
   });
 
+  test('Уточнення лісу: поля з сервера, тіло PUT, «скинути до карти» — override: null', () async {
+    final json = resultJson();
+    final forest = json['forest'] as Map<String, dynamic>;
+    final types = forest['types'] = <dynamic>[...forest['types'] as List];
+    types[0] = <String, dynamic>{
+      ...types[0] as Map,
+      'species': ['pine', 'spruce'],
+      'species_label': 'сосна, ялина · уточнено вами',
+    };
+    forest
+      ..['extra'] = [
+        {'species': 'oak', 'label': 'Дуб', 'presence': 'present', 'presence_label': 'є місцями · уточнено вами'},
+      ]
+      ..['refined'] = true
+      ..['refine_note_label'] = 'Уточнення діє лише для вашої ділянки.';
+    final r = AnalysisResult.fromJson(json);
+    expect(r.forestTypes.first.forestType, 'pine');
+    expect(r.forestTypes.first.species, ['pine', 'spruce']);
+    expect(r.forestTypes.first.speciesLabel, 'сосна, ялина · уточнено вами');
+    expect(r.forestTypes[1].speciesLabel, isNull);
+    expect([r.forestExtra.single.label, r.forestExtra.single.presenceLabel], ['Дуб', 'є місцями · уточнено вами']);
+    expect([r.forestRefined, r.refineNoteLabel], [true, 'Уточнення діє лише для вашої ділянки.']);
+    // старий результат без нових полів — розбирається
+    expect(AnalysisResult.fromJson(resultJson()).forestRefined, isFalse);
+
+    final ov = overviewJson()
+      ..['forest_edit_options'] = {
+        'species': [
+          {'code': 'pine', 'label': 'Сосна'},
+          {'code': 'oak', 'label': 'Дуб'},
+        ],
+        'presence': [
+          {'code': 'dominant', 'label': 'переважає'},
+          {'code': 'present', 'label': 'є місцями'},
+        ],
+      };
+    final areas = ov['areas'] = <dynamic>[...ov['areas'] as List];
+    areas[0] = <String, dynamic>{...areas[0] as Map}
+      ..['forest_override'] = {
+        'types': [
+          {'forest_type': 'coniferous', 'species': ['pine']},
+        ],
+        'extra': [],
+      }
+      ..['forest_edit'] = {'used': 1, 'limit': 2, 'can_edit': true, 'label': 'Уточнити ліс сьогодні можна ще 1 раз'};
+    final o = AnalysisOverview.fromJson(ov);
+    expect(o.forestEditOptions!.species.map((s) => s.label), ['Сосна', 'Дуб']);
+    expect(o.areas.single.forestOverride!.types, {
+      'coniferous': ['pine'],
+    });
+    expect([o.areas.single.forestEdit!.canEdit, o.areas.single.forestEdit!.label], [true, 'Уточнити ліс сьогодні можна ще 1 раз']);
+
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': resultJson()}));
+    final repo = AnalysisRepository(api);
+    await repo.refineForest(
+      'area-1',
+      const ForestOverride(types: {
+        'coniferous': ['pine', 'spruce'],
+        'mixed': [],
+      }, extra: {
+        'oak': 'present',
+      }),
+      forest: {'forest_km2': 18, 'types': []},
+    );
+    expect([adapter.requests[0].method, adapter.requests[0].path], ['PUT', '/v1-analysis/areas/area-1/forest']);
+    expect(adapter.requests[0].data, {
+      'override': {
+        'types': [
+          {
+            'forest_type': 'coniferous',
+            'species': ['pine', 'spruce'],
+          },
+        ],
+        'extra': [
+          {'species': 'oak', 'presence': 'present'},
+        ],
+      },
+      'forest': {'forest_km2': 18, 'types': []},
+    });
+    await repo.refineForest('area-1', null);
+    expect(adapter.requests[1].data, {'override': null});
+  });
+
   test('squareAround: квадрат потрібного розміру з центром у точці', () {
     const center = LatLng(50.45, 30.52);
     const distance = Distance();

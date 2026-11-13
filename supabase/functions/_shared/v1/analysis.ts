@@ -9,6 +9,8 @@
 // POST   v1-analysis  { area_id, date?, forest? }                     — повторний аналіз тієї ж ділянки
 //   → 200 { data: { area, date, forest, top1, alternative, weather, warnings, usage } }
 // DELETE v1-analysis/areas/{id}  → 200 { data: { deleted: true } }
+// PUT    v1-analysis/areas/{id}/forest  { override: { types, extra } | null, forest?, date? }
+//   → 200 { data: { ...як POST, forest_edit } } — уточнення лісу вручну + переаналіз (ADR-015 §15.6)
 //
 // Правила (ADR-015 §15.1, §15.2, §15.4):
 //   * ділянка — тільки у своїй області (`403 outside_home_region`);
@@ -72,6 +74,155 @@ const MAX_HINT_TYPES = 12;
 export interface ForestHint {
   forestKm2: number;
   types: Array<{ forestType: string | null; km2: number }>;
+}
+
+// ─── Уточнення лісу ділянки вручну (ADR-015 §15.6) ──────────────────────────
+
+/** Не частіше 2 уточнень на ділянку за добу (київський час). */
+export const FOREST_EDITS_PER_DAY = 2;
+/** З уточненням прогноз рахується для до 3 порід (без нього — для 2 переважних типів). */
+export const MAX_REFINED_RUNS = 3;
+
+/** Породи, які знає прогноз (правила видів, `SpeciesRule.forestType`). */
+export const FOREST_SPECIES = ["pine", "spruce", "oak", "birch", "aspen", "alder", "beech", "hornbeam"] as const;
+export type ForestSpecies = (typeof FOREST_SPECIES)[number];
+
+export const SPECIES_LABEL: Record<ForestSpecies, string> = {
+  pine: "сосна",
+  spruce: "ялина",
+  oak: "дуб",
+  birch: "береза",
+  aspen: "осика",
+  alder: "вільха",
+  beech: "бук",
+  hornbeam: "граб",
+};
+
+export const PRESENCE_LABEL = { dominant: "переважає", present: "є місцями" } as const;
+export type Presence = keyof typeof PRESENCE_LABEL;
+
+const MAX_OVERRIDE_TYPES = 12;
+const MAX_OVERRIDE_EXTRA = 4;
+
+/** Що користувач обрав: породи для типів лісу з карти + породи, яких карта не бачить. */
+export interface ForestOverride {
+  types: Array<{ forestType: string | null; species: ForestSpecies[] }>;
+  extra: Array<{ species: ForestSpecies; presence: Presence }>;
+}
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Список порід і варіантів «присутності» — для вибору в застосунку (лише зі списку). */
+export function forestEditOptions(): Record<string, unknown> {
+  return {
+    species: FOREST_SPECIES.map((code) => ({ code, label: capitalize(SPECIES_LABEL[code]) })),
+    presence: (Object.keys(PRESENCE_LABEL) as Presence[]).map((code) => ({ code, label: PRESENCE_LABEL[code] })),
+  };
+}
+
+function isSpecies(v: unknown): v is ForestSpecies {
+  return typeof v === "string" && (FOREST_SPECIES as readonly string[]).includes(v);
+}
+
+/** Перевірка уточнення з тіла запиту; `null` — «Скинути до карти». */
+export function validateForestOverride(raw: unknown): ForestOverride | null {
+  if (raw === null) return null;
+  if (typeof raw !== "object" || Array.isArray(raw)) throw validationError("override — об'єкт або null");
+  const obj = raw as Record<string, unknown>;
+  const typesRaw = obj.types ?? [];
+  const extraRaw = obj.extra ?? [];
+  if (!Array.isArray(typesRaw) || typesRaw.length > MAX_OVERRIDE_TYPES) {
+    throw validationError(`override.types — список до ${MAX_OVERRIDE_TYPES} типів лісу`);
+  }
+  if (!Array.isArray(extraRaw) || extraRaw.length > MAX_OVERRIDE_EXTRA) {
+    throw validationError(`override.extra — до ${MAX_OVERRIDE_EXTRA} порід`);
+  }
+  const seenTypes = new Set<string>();
+  const types = typesRaw.map((t, i) => {
+    if (t === null || typeof t !== "object") throw validationError(`override.types[${i}] — об'єкт`);
+    const ft = (t as Record<string, unknown>).forest_type;
+    if (ft !== null && (typeof ft !== "string" || !FOREST_TYPE_RE.test(ft))) {
+      throw validationError(`override.types[${i}].forest_type — код типу лісу або null`);
+    }
+    const key = String(ft);
+    if (seenTypes.has(key)) throw validationError(`override.types[${i}] — тип лісу повторюється`);
+    seenTypes.add(key);
+    const sp = (t as Record<string, unknown>).species;
+    if (!Array.isArray(sp) || sp.length < 1 || sp.length > 2 || !sp.every(isSpecies) || new Set(sp).size !== sp.length) {
+      throw validationError(`override.types[${i}].species — 1 або 2 різні породи зі списку`);
+    }
+    return { forestType: ft as string | null, species: sp as ForestSpecies[] };
+  });
+  const seenExtra = new Set<string>();
+  const extra = extraRaw.map((e, i) => {
+    if (e === null || typeof e !== "object") throw validationError(`override.extra[${i}] — об'єкт`);
+    const { species, presence } = e as Record<string, unknown>;
+    if (!isSpecies(species)) throw validationError(`override.extra[${i}].species — порода зі списку`);
+    if (seenExtra.has(species)) throw validationError(`override.extra[${i}] — порода повторюється`);
+    seenExtra.add(species);
+    if (typeof presence !== "string" || !(presence in PRESENCE_LABEL)) {
+      throw validationError(`override.extra[${i}].presence — dominant або present`);
+    }
+    return { species, presence: presence as Presence };
+  });
+  if (types.length === 0 && extra.length === 0) {
+    throw validationError("override — оберіть хоча б одну породу (або null, щоб скинути до карти)");
+  }
+  return { types, extra };
+}
+
+/** Збережене уточнення з БД (зіпсоване — ігноруємо, щоб аналіз не падав). */
+export function parseStoredOverride(raw: unknown): ForestOverride | null {
+  if (raw === null || raw === undefined) return null;
+  try {
+    return validateForestOverride(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function overrideToJson(o: ForestOverride): Record<string, unknown> {
+  return {
+    types: o.types.map((t) => ({ forest_type: t.forestType, species: t.species })),
+    extra: o.extra.map((e) => ({ species: e.species, presence: e.presence })),
+  };
+}
+
+/**
+ * Для яких типів лісу рахувати прогноз. Без уточнення — 2 переважні типи з карти.
+ * З уточненням — породи замість типів з карти (площа типу ділиться між обраними
+ * породами), «переважає» — першою, «є місцями» — після решти; до 3 порід.
+ */
+export function forestRunTypes(forest: ForestSummary, override: ForestOverride | null): string[] {
+  if (!override) {
+    return forest.types
+      .map((t) => t.forest_type)
+      .filter((t): t is string => typeof t === "string" && t.length > 0)
+      .slice(0, MAX_FOREST_RUNS);
+  }
+  const weight = new Map<string, number>();
+  const add = (k: string, w: number) => weight.set(k, (weight.get(k) ?? 0) + w);
+  for (const t of forest.types) {
+    const refined = override.types.find((o) => o.forestType === t.forest_type);
+    if (refined) {
+      for (const sp of refined.species) add(sp, Number(t.km2) / refined.species.length);
+    } else if (t.forest_type) {
+      add(t.forest_type, Number(t.km2));
+    }
+  }
+  for (const e of override.extra) add(e.species, e.presence === "dominant" ? Number.POSITIVE_INFINITY : 0);
+  return [...weight.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, MAX_REFINED_RUNS);
+}
+
+export function forestEditBlock(used: number, limit = FOREST_EDITS_PER_DAY): Record<string, unknown> {
+  return {
+    used,
+    limit,
+    can_edit: used < limit,
+    label: used < limit
+      ? `Уточнити ліс сьогодні можна ще ${limit - used} ${limit - used === 1 ? "раз" : "рази"}`
+      : "Сьогодні ліс уже уточнено двічі. Знову можна завтра.",
+  };
 }
 
 // ─── Залежності ────────────────────────────────────────────────────────────
@@ -285,21 +436,37 @@ export interface ForestSummary {
   types: ForestTypeRow[];
 }
 
-export function shapeForest(f: ForestSummary): Record<string, unknown> {
+export function shapeForest(f: ForestSummary, override: ForestOverride | null = null): Record<string, unknown> {
+  const refined = override !== null;
   return {
     summary_label: f.forest_km2 >= MIN_FOREST_KM2
       ? `Ліс займає ${km2Label(f.forest_km2)} з ${f.area_km2} км² ділянки`
       : "На карті в цій ділянці лісів немає",
     types: f.types.slice(0, 5).map((t) => {
       const style = forestTypeStyle(t.forest_type);
+      const species = override?.types.find((o) => o.forestType === t.forest_type)?.species ?? [];
       return {
         forest_type: t.forest_type,
         type_label: style.label,
         type_color: style.color,
         area_label: km2Label(Number(t.km2)),
         age_label: t.stand_age_years ? `~${Math.round(Number(t.stand_age_years))} р.` : null,
+        // Уточнення вручну (ADR-015 §15.6): «сосна, ялина · уточнено вами».
+        species,
+        species_label: species.length > 0 ? `${species.map((s) => SPECIES_LABEL[s]).join(", ")} · уточнено вами` : null,
       };
     }),
+    extra: (override?.extra ?? []).map((e) => ({
+      species: e.species,
+      label: capitalize(SPECIES_LABEL[e.species]),
+      presence: e.presence,
+      presence_label: `${PRESENCE_LABEL[e.presence]} · уточнено вами`,
+    })),
+    refined,
+    // Уточнення діє лише на цю ділянку; ліс на карті змінюють перевірені тук-туки (ADR-019).
+    refine_note_label: refined
+      ? "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх."
+      : null,
   };
 }
 
@@ -321,15 +488,22 @@ export interface AreaRow {
   center: unknown;
   last_result?: unknown;
   last_analyzed_at?: string | null;
+  forest_override?: unknown;
 }
 
 async function loadAreas(db: AnalysisDb, userId: string): Promise<AreaRow[]> {
   const { data, error } = await db
     .from("analysis_areas")
-    .select("id, slot, size_km, center, last_result, last_analyzed_at")
+    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override")
     .eq("user_id", userId);
   if (error) dbFail("analysis_areas select", error);
   return ((data ?? []) as AreaRow[]).sort((a, b) => a.slot - b.slot);
+}
+
+async function forestEditsToday(db: AnalysisDb, userId: string, areaId: string): Promise<number> {
+  const { data, error } = await db.rpc("forest_edits_today", { p_user_id: userId, p_area_id: areaId });
+  if (error) dbFail("forest_edits_today", error);
+  return Number(data ?? 0);
 }
 
 async function usedToday(db: AnalysisDb, userId: string, slot: number): Promise<number> {
@@ -378,6 +552,11 @@ async function getOverview(req: Request, user: AuthUser, deps: AnalysisDeps): Pr
       usage: usageBlock(await usedToday(deps.db, user.id, a.slot), limit),
       last_result: a.last_result ?? null,
       last_analyzed_at: a.last_analyzed_at ?? null,
+      forest_override: (() => {
+        const o = parseStoredOverride(a.forest_override);
+        return o ? overrideToJson(o) : null;
+      })(),
+      forest_edit: forestEditBlock(await forestEditsToday(deps.db, user.id, a.id)),
     });
   }
 
@@ -388,6 +567,7 @@ async function getOverview(req: Request, user: AuthUser, deps: AnalysisDeps): Pr
     // Зворотна сумісність: ліміт першої ділянки (старі збірки застосунку).
     usage: shaped[0]?.usage ?? usageBlock(0, limit),
     hint_label: "Торкніться карти, щоб обрати центр ділянки",
+    forest_edit_options: forestEditOptions(),
   }, req);
 }
 
@@ -463,8 +643,9 @@ async function runAnalysis(
   const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
   const areas = await loadAreas(deps.db, user.id);
 
-  let area: { id: string; slot: number; lat: number; lng: number; sizeKm: number };
+  let area: AreaRef;
   let used: number;
+  let override: ForestOverride | null = null;
 
   if (input.target.kind === "area") {
     // Повторний аналіз збереженої ділянки — центр і розмір незмінні.
@@ -478,6 +659,7 @@ async function runAnalysis(
     await assertInRegion(deps, point.lat, point.lng, regionId);
     used = await consume(deps, user.id, row.slot, limit, now);
     area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km };
+    override = parseStoredOverride(row.forest_override);
   } else {
     const t = input.target;
     await assertInRegion(deps, t.lat, t.lng, regionId);
@@ -518,68 +700,10 @@ async function runAnalysis(
   }
 
   try {
-    const forestHint = validateForestHint(input.forestRaw, area.sizeKm);
-    const forestRes = await deps.db.rpc("analyze_area_forest", {
-      p_region_id: regionId,
-      p_lat: area.lat,
-      p_lng: area.lng,
-      p_size_km: area.sizeKm,
-    });
-    if (forestRes.error || !forestRes.data) dbFail("analyze_area_forest", forestRes.error ?? "empty result");
-    const forest = applyForestHint(forestRes.data as ForestSummary, forestHint);
-    const hasForest = forest.forest_km2 >= MIN_FOREST_KM2;
-
-    // Прогноз для переважних типів лісу ділянки; якщо лісів немає — лише погода.
-    const forestTypes = forest.types
-      .map((t) => t.forest_type)
-      .filter((t): t is string => typeof t === "string" && t.length > 0)
-      .slice(0, MAX_FOREST_RUNS);
-    const runTypes: Array<string | null> = forestTypes.length > 0 ? forestTypes : [null];
-    const date = new Date(`${input.date}T00:00:00Z`);
-    const runs = [];
-    for (const forestType of runTypes) {
-      runs.push({
-        forestType,
-        result: await deps.forecast({ lat: area.lat, lng: area.lng, date, forestType, homeRegionId: regionId }),
-      });
-    }
-    const first = runs[0].result;
-    // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
-    const best = hasForest ? pickBest(runs) : { top1: null, alternative: null };
-    const weather = weatherBlock(first.weather);
-
-    const data: Record<string, unknown> = {
-      area: {
-        id: area.id,
-        slot: area.slot,
-        lat: area.lat,
-        lng: area.lng,
-        size_km: area.sizeKm,
-        size_label: sizeLabel(area.sizeKm),
-        bbox: forest.bbox,
-      },
-      date: input.date,
-      forest: shapeForest(forest),
-      top1: shapeCandidate(best.top1, first),
-      alternative: shapeCandidate(best.alternative, first),
-      // Безкоштовно — базова погода: температура, вологість, опади (ADR-015 §15.1).
-      weather: weather
-        ? { icon: weather.icon, temp_label: weather.temp_label, humidity_label: weather.humidity_label, rain_label: weather.rain_label }
-        : null,
-      warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
-      usage: usageBlock(used, limit),
-    };
-    if (!hasForest) {
-      data.no_data_reason = "У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо. " +
-        "Видаліть ділянку й оберіть місце, де є ліс.";
-    } else if (!best.top1 && first.noDataReason) {
-      data.no_data_reason = first.noDataReason;
-    }
-
+    const data = await analyzeArea(deps, area, regionId, input.date, input.forestRaw, override, usageBlock(used, limit));
     // Останній результат — разом із ділянкою (вкладка «Прогноз», інші пристрої).
     const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: area.id, p_result: data });
     if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
-
     return ok(data, req);
   } catch (err) {
     // Розрахунок не вдався — списаний аналіз повертаємо.
@@ -587,6 +711,159 @@ async function runAnalysis(
     if (err instanceof HttpError) throw err;
     console.error("[v1-analysis] analysis failed:", err);
     throw new HttpError(500, "internal_error", "Не вдалося виконати аналіз. Спробуйте ще раз.");
+  }
+}
+
+interface AreaRef {
+  id: string;
+  slot: number;
+  lat: number;
+  lng: number;
+  sizeKm: number;
+}
+
+/** Розрахунок аналізу ділянки (без списань і збереження). */
+async function analyzeArea(
+  deps: AnalysisDeps,
+  area: AreaRef,
+  regionId: number,
+  dateStr: string,
+  forestRaw: unknown,
+  override: ForestOverride | null,
+  usage: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const forestHint = validateForestHint(forestRaw, area.sizeKm);
+  const forestRes = await deps.db.rpc("analyze_area_forest", {
+    p_region_id: regionId,
+    p_lat: area.lat,
+    p_lng: area.lng,
+    p_size_km: area.sizeKm,
+  });
+  if (forestRes.error || !forestRes.data) dbFail("analyze_area_forest", forestRes.error ?? "empty result");
+  const forest = applyForestHint(forestRes.data as ForestSummary, forestHint);
+  const hasForest = forest.forest_km2 >= MIN_FOREST_KM2;
+
+  // Прогноз для переважних типів лісу (з уточненням — для обраних порід); лісів немає — лише погода.
+  const forestTypes = forestRunTypes(forest, override);
+  const runTypes: Array<string | null> = forestTypes.length > 0 ? forestTypes : [null];
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  const runs = [];
+  for (const forestType of runTypes) {
+    runs.push({
+      forestType,
+      result: await deps.forecast({ lat: area.lat, lng: area.lng, date, forestType, homeRegionId: regionId }),
+    });
+  }
+  const first = runs[0].result;
+  // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
+  const best = hasForest ? pickBest(runs) : { top1: null, alternative: null };
+  const weather = weatherBlock(first.weather);
+
+  const data: Record<string, unknown> = {
+    area: {
+      id: area.id,
+      slot: area.slot,
+      lat: area.lat,
+      lng: area.lng,
+      size_km: area.sizeKm,
+      size_label: sizeLabel(area.sizeKm),
+      bbox: forest.bbox,
+    },
+    date: dateStr,
+    forest: shapeForest(forest, override),
+    top1: shapeCandidate(best.top1, first),
+    alternative: shapeCandidate(best.alternative, first),
+    // Безкоштовно — базова погода: температура, вологість, опади (ADR-015 §15.1).
+    weather: weather
+      ? { icon: weather.icon, temp_label: weather.temp_label, humidity_label: weather.humidity_label, rain_label: weather.rain_label }
+      : null,
+    warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
+    usage,
+  };
+  if (!hasForest) {
+    data.no_data_reason = "У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо. " +
+      "Видаліть ділянку й оберіть місце, де є ліс.";
+  } else if (!best.top1 && first.noDataReason) {
+    data.no_data_reason = first.noDataReason;
+  }
+  return data;
+}
+
+// ─── PUT: уточнити ліс ділянки вручну (ADR-015 §15.6) ─────────────────────
+
+async function editForest(
+  req: Request,
+  user: AuthUser,
+  deps: AnalysisDeps,
+  areaId: string,
+  now: Date,
+): Promise<Response> {
+  if (!UUID_RE.test(areaId)) throw new HttpError(404, "not_found", "Ділянку не знайдено");
+  const body = await readJson(req);
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    throw validationError("Тіло запиту має бути JSON-об'єктом");
+  }
+  const obj = body as Record<string, unknown>;
+  if (!("override" in obj)) throw validationError("override — уточнення лісу або null (скинути до карти)");
+  const override = validateForestOverride(obj.override);
+  const { date } = validateAnalysisBody({ area_id: areaId, date: obj.date }, now);
+
+  const regionId = requireHomeRegion(await loadHomeRegionId(deps.db, user.id));
+  const pro = await hasPro(deps, user);
+  if (!pro && daysAhead(date, kyivToday(now)) > FREE_HORIZON_DAYS) {
+    throw new HttpError(403, "pro_required", "Прогноз далі ніж на 3 дні доступний у Pro.");
+  }
+  const areas = await loadAreas(deps.db, user.id);
+  const row = areas.find((a) => a.id === areaId);
+  const point = row ? areaCenter(row) : null;
+  if (!row || !point) throw new HttpError(404, "not_found", "Ділянку не знайдено. Можливо, її видалено.");
+  if (!pro && (row.size_km === PRO_SIZE_KM || row.slot > FREE_MAX_AREAS)) {
+    throw new HttpError(403, "pro_required", "Ця ділянка доступна в Pro. Безкоштовно — одна ділянка 5×5 км.");
+  }
+  await assertInRegion(deps, point.lat, point.lng, regionId);
+  const area: AreaRef = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km };
+  validateForestHint(obj.forest, area.sizeKm); // до списання уточнення
+
+  // Не частіше 2 разів на добу на ділянку; переаналіз ліміт аналізів не списує.
+  const edits = await deps.db.rpc("consume_forest_edit", {
+    p_user_id: user.id,
+    p_area_id: area.id,
+    p_limit: FOREST_EDITS_PER_DAY,
+  });
+  if (edits.error) dbFail("consume_forest_edit", edits.error);
+  if (typeof edits.data !== "number") {
+    throw new HttpError(
+      429,
+      "forest_edit_limit_reached",
+      "Сьогодні ліс цієї ділянки вже уточнено двічі. Знову можна завтра (о 00:00 за київським часом).",
+      { "Retry-After": String(secondsToKyivMidnight(now)) },
+    );
+  }
+
+  try {
+    const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
+    const usage = usageBlock(await usedToday(deps.db, user.id, area.slot), limit);
+    const data = await analyzeArea(deps, area, regionId, date, obj.forest, override, usage);
+    const saved = await deps.db.rpc("save_forest_override", {
+      p_user_id: user.id,
+      p_area_id: area.id,
+      p_override: override ? overrideToJson(override) : null,
+      p_result: data,
+    });
+    if (saved.error) dbFail("save_forest_override", saved.error);
+    if (saved.data !== true) throw new HttpError(404, "not_found", "Ділянку не знайдено. Можливо, її видалено.");
+    return ok({ ...data, forest_edit: forestEditBlock(edits.data) }, req);
+  } catch (err) {
+    // Уточнення не збереглося — списане повертаємо.
+    try {
+      const r = await deps.db.rpc("refund_forest_edit", { p_user_id: user.id, p_area_id: area.id });
+      if (r.error) console.warn("[v1-analysis] refund_forest_edit failed:", r.error);
+    } catch (refundErr) {
+      console.warn("[v1-analysis] refund_forest_edit failed:", refundErr);
+    }
+    if (err instanceof HttpError) throw err;
+    console.error("[v1-analysis] forest edit failed:", err);
+    throw new HttpError(500, "internal_error", "Не вдалося уточнити ліс. Спробуйте ще раз.");
   }
 }
 
@@ -624,6 +901,12 @@ async function consume(
   return data;
 }
 
+/** `/v1-analysis/areas/{id}/forest` → id ділянки. */
+function forestAreaIdFromPath(url: URL): string | null {
+  const m = url.pathname.match(/\/v1-analysis\/areas\/([^/]+)\/forest\/?$/);
+  return m ? decodeURIComponent(m[1]).toLowerCase() : null;
+}
+
 /** `/v1-analysis/areas/{id}` → id ділянки. */
 function areaIdFromPath(url: URL): string | null {
   const m = url.pathname.match(/\/v1-analysis\/areas\/([^/]+)\/?$/);
@@ -631,12 +914,17 @@ function areaIdFromPath(url: URL): string | null {
 }
 
 export async function handleAnalysis(req: Request, deps: AnalysisDeps): Promise<Response> {
-  assertMethod(req, ["GET", "POST", "DELETE"]);
+  assertMethod(req, ["GET", "POST", "PUT", "DELETE"]);
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-analysis");
   const user = await requireUser(req, deps.verify);
   const now = deps.now ? deps.now() : new Date();
 
+  if (req.method === "PUT") {
+    const id = forestAreaIdFromPath(new URL(req.url));
+    if (!id) throw new HttpError(404, "not_found", "Очікується /v1-analysis/areas/{id}/forest");
+    return await editForest(req, user, deps, id, now);
+  }
   if (req.method === "DELETE") {
     const id = areaIdFromPath(new URL(req.url));
     if (!id) throw new HttpError(404, "not_found", "Очікується /v1-analysis/areas/{id}");

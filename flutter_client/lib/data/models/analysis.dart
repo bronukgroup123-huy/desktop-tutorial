@@ -63,9 +63,13 @@ class AnalysisArea {
     this.usage,
     this.lastResult,
     this.lastAnalyzedAt,
+    this.forestOverride,
+    this.forestEdit,
   });
 
   factory AnalysisArea.fromJson(Map<String, dynamic> json) {
+    final override = opt<Map<String, dynamic>>(json, 'forest_override');
+    final edit = opt<Map<String, dynamic>>(json, 'forest_edit');
     final bbox = opt<List<dynamic>>(json, 'bbox');
     final usage = opt<Map<String, dynamic>>(json, 'usage');
     final last = opt<Map<String, dynamic>>(json, 'last_result');
@@ -80,6 +84,8 @@ class AnalysisArea {
       usage: usage == null ? null : AnalysisUsage.fromJson(usage),
       lastResult: last == null ? null : AnalysisResult.fromJson(last),
       lastAnalyzedAt: lastAt == null ? null : DateTime.tryParse(lastAt),
+      forestOverride: override == null ? null : ForestOverride.fromJson(override),
+      forestEdit: edit == null ? null : ForestEditUsage.fromJson(edit),
     );
   }
 
@@ -99,6 +105,12 @@ class AnalysisArea {
   final AnalysisResult? lastResult;
   final DateTime? lastAnalyzedAt;
 
+  /// Уточнення лісу вручну (ADR-015 §15.6); `null` — ліс як на карті.
+  final ForestOverride? forestOverride;
+
+  /// Скільки уточнень лісу ще можна сьогодні — вирішує сервер.
+  final ForestEditUsage? forestEdit;
+
   /// «Ділянка 1 · 5×5 км»
   String get title => 'Ділянка $slot · $sizeLabel';
 }
@@ -113,6 +125,7 @@ class AnalysisOverview {
     this.canCreate = true,
     this.createHintLabel,
     this.offlineSince,
+    this.forestEditOptions,
   });
 
   factory AnalysisOverview.fromJson(Map<String, dynamic> json, {DateTime? offlineSince}) => AnalysisOverview(
@@ -127,6 +140,10 @@ class AnalysisOverview {
         canCreate: opt<bool>(json, 'can_create') ?? true,
         createHintLabel: opt<String>(json, 'create_hint_label'),
         offlineSince: offlineSince,
+        forestEditOptions: switch (opt<Map<String, dynamic>>(json, 'forest_edit_options')) {
+          final o? => ForestEditOptions.fromJson(o),
+          null => null,
+        },
       );
 
   final List<AnalysisSizeOption> sizes;
@@ -143,6 +160,9 @@ class AnalysisOverview {
   /// Немає інтернету — показано збережену копію від цього часу.
   final DateTime? offlineSince;
 
+  /// Породи для «Уточнити ліс» — лише зі списку сервера.
+  final ForestEditOptions? forestEditOptions;
+
   AnalysisArea? areaById(String? id) {
     for (final a in areas) {
       if (a.id == id) return a;
@@ -158,19 +178,117 @@ class AnalysisForestType {
     required this.typeColor,
     required this.areaLabel,
     required this.ageLabel,
+    this.forestType,
+    this.species = const [],
+    this.speciesLabel,
   });
 
   factory AnalysisForestType.fromJson(Map<String, dynamic> json) => AnalysisForestType(
+        forestType: opt<String>(json, 'forest_type'),
         typeLabel: req<String>(json, 'type_label'),
         typeColor: parseHexColor(req<String>(json, 'type_color')),
         areaLabel: req<String>(json, 'area_label'),
         ageLabel: opt<String>(json, 'age_label'),
+        species: stringList(json, 'species'),
+        speciesLabel: opt<String>(json, 'species_label'),
       );
 
+  /// Код типу з карти (`coniferous`, `pine`…); `null` — тип невідомий.
+  final String? forestType;
   final String typeLabel;
   final Color typeColor;
   final String areaLabel;
   final String? ageLabel;
+
+  /// Породи, обрані вручну для цього типу.
+  final List<String> species;
+
+  /// «сосна, ялина · уточнено вами»
+  final String? speciesLabel;
+}
+
+/// Порода, якої карта не бачить, додана вручну: «Дуб — є місцями».
+class AnalysisForestExtra {
+  const AnalysisForestExtra({required this.species, required this.label, required this.presence, required this.presenceLabel});
+
+  factory AnalysisForestExtra.fromJson(Map<String, dynamic> json) => AnalysisForestExtra(
+        species: req<String>(json, 'species'),
+        label: req<String>(json, 'label'),
+        presence: req<String>(json, 'presence'),
+        presenceLabel: req<String>(json, 'presence_label'),
+      );
+
+  final String species;
+  final String label;
+  final String presence;
+  final String presenceLabel;
+}
+
+/// Уточнення лісу ділянки (тіло `PUT v1-analysis/areas/{id}/forest`).
+class ForestOverride {
+  const ForestOverride({this.types = const {}, this.extra = const {}});
+
+  factory ForestOverride.fromJson(Map<String, dynamic> json) => ForestOverride(
+        types: {
+          for (final t in (opt<List<dynamic>>(json, 'types') ?? const []).cast<Map<String, dynamic>>())
+            opt<String>(t, 'forest_type'): stringList(t, 'species'),
+        },
+        extra: {
+          for (final e in (opt<List<dynamic>>(json, 'extra') ?? const []).cast<Map<String, dynamic>>())
+            req<String>(e, 'species'): req<String>(e, 'presence'),
+        },
+      );
+
+  /// Тип лісу з карти (`null` — невідомий) → 1–2 породи.
+  final Map<String?, List<String>> types;
+
+  /// Порода → `dominant` | `present`.
+  final Map<String, String> extra;
+
+  bool get isEmpty => types.values.every((s) => s.isEmpty) && extra.isEmpty;
+
+  Map<String, dynamic> toJson() => {
+        'types': [
+          for (final e in types.entries)
+            if (e.value.isNotEmpty) {'forest_type': e.key, 'species': e.value},
+        ],
+        'extra': [
+          for (final e in extra.entries) {'species': e.key, 'presence': e.value},
+        ],
+      };
+}
+
+/// Скільки разів сьогодні ще можна уточнити ліс ділянки.
+class ForestEditUsage {
+  const ForestEditUsage({required this.used, required this.limit, required this.canEdit, required this.label});
+
+  factory ForestEditUsage.fromJson(Map<String, dynamic> json) => ForestEditUsage(
+        used: req<num>(json, 'used').toInt(),
+        limit: req<num>(json, 'limit').toInt(),
+        canEdit: req<bool>(json, 'can_edit'),
+        label: req<String>(json, 'label'),
+      );
+
+  final int used;
+  final int limit;
+  final bool canEdit;
+  final String label;
+}
+
+/// Варіанти для «Уточнити ліс» — із сервера.
+class ForestEditOptions {
+  const ForestEditOptions({required this.species, required this.presence});
+
+  factory ForestEditOptions.fromJson(Map<String, dynamic> json) {
+    List<({String code, String label})> list(String key) => [
+          for (final o in (opt<List<dynamic>>(json, key) ?? const []).cast<Map<String, dynamic>>())
+            (code: req<String>(o, 'code'), label: req<String>(o, 'label')),
+        ];
+    return ForestEditOptions(species: list('species'), presence: list('presence'));
+  }
+
+  final List<({String code, String label})> species;
+  final List<({String code, String label})> presence;
 }
 
 /// Вид у результаті аналізу + у якому лісі ділянки його шукати.
@@ -221,6 +339,9 @@ class AnalysisResult {
     required this.warnings,
     required this.usage,
     required this.noDataReason,
+    this.forestExtra = const [],
+    this.forestRefined = false,
+    this.refineNoteLabel,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -235,6 +356,11 @@ class AnalysisResult {
       forestTypes: (opt<List<dynamic>>(forest, 'types') ?? const [])
           .map((t) => AnalysisForestType.fromJson(t as Map<String, dynamic>))
           .toList(growable: false),
+      forestExtra: (opt<List<dynamic>>(forest, 'extra') ?? const [])
+          .map((e) => AnalysisForestExtra.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      forestRefined: opt<bool>(forest, 'refined') ?? false,
+      refineNoteLabel: opt<String>(forest, 'refine_note_label'),
       top1: top1 == null ? null : AnalysisSpecies.fromJson(top1),
       alternative: alt == null ? null : AnalysisSpecies.fromJson(alt),
       weather: weather == null ? null : AnalysisWeather.fromJson(weather),
@@ -248,6 +374,15 @@ class AnalysisResult {
   final String date;
   final String forestSummaryLabel;
   final List<AnalysisForestType> forestTypes;
+
+  /// Породи, додані вручну («Дуб — є місцями»).
+  final List<AnalysisForestExtra> forestExtra;
+
+  /// Ліс уточнено вручну (ADR-015 §15.6).
+  final bool forestRefined;
+
+  /// «Уточнення діє лише для вашої ділянки…»
+  final String? refineNoteLabel;
   final AnalysisSpecies? top1;
   final AnalysisSpecies? alternative;
   final AnalysisWeather? weather;

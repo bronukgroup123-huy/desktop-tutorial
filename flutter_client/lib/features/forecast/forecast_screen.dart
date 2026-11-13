@@ -11,6 +11,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/analysis_result_view.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
+import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart' show ForecastInfoCard;
 
 /// Вкладка «Прогноз» — робота з ділянками аналізу (ADR-015 §15.4).
@@ -143,6 +144,33 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     }
   }
 
+  /// «Уточнити ліс» (ADR-015 §15.6): породи зі списку → одразу переаналіз ділянки.
+  Future<void> _refineForest(AnalysisResult result, ForestEditOptions options) async {
+    final choice = await showForestRefineSheet(
+      context,
+      result: result,
+      options: options,
+      current: _area.forestOverride,
+      usageLabel: _area.forestEdit?.label,
+    );
+    if (choice == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(analysisRepositoryProvider).refineForest(_area.id, choice.override, forest: _forestHint());
+      ref.invalidate(analysisOverviewProvider);
+      if (mounted) {
+        showToast(context, choice.override == null ? 'Ліс повернуто як на карті' : 'Ліс уточнено — прогноз оновлено');
+      }
+    } on ApiException catch (e) {
+      if (mounted) showToast(context, e.userMessage, isError: true);
+      if (e.code == 'forest_edit_limit_reached') ref.invalidate(analysisOverviewProvider);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося уточнити ліс. Спробуйте ще раз.', isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _showOnMap() {
     ref.read(mapFocusAreaProvider.notifier).state = _area;
     context.go('/map');
@@ -242,7 +270,18 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   title: 'Аналізу ще немає',
                   text: 'Натисніть «Аналізувати ділянку», щоб отримати прогноз.',
                 )
-              : AnalysisResultView(result: result),
+              : AnalysisResultView(
+                  result: result,
+                  refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
+                  // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
+                  onRefineForest: o.forestEditOptions != null &&
+                          result.forestTypes.isNotEmpty &&
+                          (_area.forestEdit?.canEdit ?? false) &&
+                          !_busy &&
+                          !offline
+                      ? () => _refineForest(result, o.forestEditOptions!)
+                      : null,
+                ),
         ),
       ],
     );

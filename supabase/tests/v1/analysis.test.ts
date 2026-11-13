@@ -65,6 +65,10 @@ function db(extra: Results = {}) {
     "rpc.analysis_used_today": { data: 0, error: null },
     "rpc.analyze_area_forest": { data: FOREST, error: null },
     "rpc.refund_analysis": { data: null, error: null },
+    "rpc.forest_edits_today": { data: 0, error: null },
+    "rpc.consume_forest_edit": { data: 1, error: null },
+    "rpc.save_forest_override": { data: true, error: null },
+    "rpc.refund_forest_edit": { data: null, error: null },
     ...extra,
   });
 }
@@ -119,8 +123,12 @@ Deno.test("analysis GET: збережена ділянка і використа
   const usage = { used: 3, limit: 5, label: "Сьогодні: 3 з 5 аналізів" };
   assertEquals(json.data.areas, [{
     id: AREA, slot: 1, lat: 50.4, lng: 30.5, size_km: 5, size_label: "5×5 км", usage,
-    last_result: null, last_analyzed_at: null,
+    last_result: null, last_analyzed_at: null, forest_override: null,
+    forest_edit: { used: 0, limit: 2, can_edit: true, label: "Уточнити ліс сьогодні можна ще 2 рази" },
   }]);
+  // список порід для «Уточнити ліс» — із сервера, лише зі списку
+  assertEquals(json.data.forest_edit_options.species[0], { code: "pine", label: "Сосна" });
+  assertEquals(json.data.forest_edit_options.presence.map((p: { code: string }) => p.code), ["dominant", "present"]);
   assertEquals(json.data.usage, usage);
   // безкоштовно ділянка одна — нову створити не можна, доки не видалити стару
   assertEquals(json.data.can_create, false);
@@ -150,9 +158,12 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
   assertEquals(a.forest, {
     summary_label: "Ліс займає ≈ 9,4 км² з 25 км² ділянки",
     types: [
-      { forest_type: "pine", type_label: "Сосновий ліс", type_color: "#81c784", area_label: "≈ 8,4 км²", age_label: "~60 р." },
-      { forest_type: "oak", type_label: "Дубовий ліс", type_color: "#4caf50", area_label: "≈ 1,0 км²", age_label: null },
+      { forest_type: "pine", type_label: "Сосновий ліс", type_color: "#81c784", area_label: "≈ 8,4 км²", age_label: "~60 р.", species: [], species_label: null },
+      { forest_type: "oak", type_label: "Дубовий ліс", type_color: "#4caf50", area_label: "≈ 1,0 км²", age_label: null, species: [], species_label: null },
     ],
+    extra: [],
+    refined: false,
+    refine_note_label: null,
   });
   assertEquals(a.top1.name_ua, "Білий гриб");
   assertEquals(a.top1.level, "high");
@@ -432,4 +443,110 @@ Deno.test("analysis: pickBest — порожні прогони", () => {
   const only = pickBest([{ forestType: "pine", result: result({ alternative: null }) }]);
   assertEquals(only.top1?.species.mushroom_type, "boletus_edulis");
   assertEquals(only.alternative, null);
+});
+
+// ─── PUT: уточнення лісу вручну (ADR-015 §15.6) ────────────────────────────
+
+const FOREST_URL = `${URL_}/areas/${AREA}/forest`;
+const SATELLITE_HINT = {
+  forest_km2: 18,
+  types: [{ forest_type: "coniferous", km2: 16 }, { forest_type: "deciduous", km2: 1.3 }, { forest_type: "mixed", km2: 0.4 }],
+};
+const savedArea = (o: Record<string, unknown> = {}) => ({
+  "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, ...o }], error: null },
+});
+
+Deno.test("analysis PUT forest: породи замість типів з карти → переаналіз для них, без списання ліміту аналізів", async () => {
+  const d = db({ ...savedArea(), "rpc.analysis_used_today": { data: 2, error: null } });
+  const override = {
+    types: [{ forest_type: "coniferous", species: ["pine", "spruce"] }],
+    extra: [{ species: "oak", presence: "present" }],
+  };
+  const { res, json, inputs } = await run(d, req("PUT", FOREST_URL, { override, forest: SATELLITE_HINT }));
+  assertEquals(res.status, 200);
+  // хвойний (16 км²) ділиться між сосною і ялиною; «дуб — є місцями» — після; до 3 порід
+  assertEquals(inputs.map((i) => i.forestType), ["pine", "spruce", "deciduous"]);
+  const f = json.data.forest;
+  assertEquals(f.refined, true);
+  assertEquals(f.types[0].species, ["pine", "spruce"]);
+  assertEquals(f.types[0].species_label, "сосна, ялина · уточнено вами");
+  assertEquals(f.types[1].species_label, null);
+  assertEquals(f.extra, [{ species: "oak", label: "Дуб", presence: "present", presence_label: "є місцями · уточнено вами" }]);
+  assert(f.refine_note_label.includes("тук-тук"));
+  // ліміт аналізів не списано; уточнень — 1 з 2
+  assertEquals(find(d, "rpc.consume_analysis"), undefined);
+  assertEquals(json.data.usage, { used: 2, limit: 5, label: "Сьогодні: 2 з 5 аналізів" });
+  assertEquals(json.data.forest_edit, { used: 1, limit: 2, can_edit: true, label: "Уточнити ліс сьогодні можна ще 1 раз" });
+  assertEquals(find(d, "rpc.consume_forest_edit")!.args[0], { p_user_id: USER, p_area_id: AREA, p_limit: 2 });
+  // уточнення і результат зберігаються разом з ділянкою
+  const saved = find(d, "rpc.save_forest_override")!.args[0] as Record<string, unknown>;
+  assertEquals([saved.p_user_id, saved.p_area_id, saved.p_override], [USER, AREA, override]);
+  assertEquals((saved.p_result as { forest: { refined: boolean } }).forest.refined, true);
+});
+
+Deno.test("analysis PUT forest: «переважає» — першою; null — скинути до карти", async () => {
+  const d = db(savedArea());
+  const { json, inputs } = await run(d, req("PUT", FOREST_URL, {
+    override: { types: [], extra: [{ species: "birch", presence: "dominant" }] },
+    forest: SATELLITE_HINT,
+  }));
+  assertEquals(inputs.map((i) => i.forestType), ["birch", "coniferous", "deciduous"]);
+  assertEquals(json.data.forest.extra[0].presence_label, "переважає · уточнено вами");
+
+  const reset = db(savedArea({ forest_override: { types: [{ forest_type: "coniferous", species: ["pine"] }], extra: [] } }));
+  const r2 = await run(reset, req("PUT", FOREST_URL, { override: null, forest: SATELLITE_HINT }));
+  assertEquals(r2.res.status, 200);
+  assertEquals(r2.inputs.map((i) => i.forestType), ["coniferous", "deciduous"]);
+  assertEquals(r2.json.data.forest.refined, false);
+  assertEquals((find(reset, "rpc.save_forest_override")!.args[0] as Record<string, unknown>).p_override, null);
+});
+
+Deno.test("analysis PUT forest: третє уточнення за добу → 429, без розрахунку", async () => {
+  const d = db({ ...savedArea(), "rpc.consume_forest_edit": { data: null, error: null } });
+  const { res, json, inputs } = await run(d, req("PUT", FOREST_URL, {
+    override: { types: [{ forest_type: "coniferous", species: ["pine"] }] },
+  }));
+  assertEquals([res.status, json.error], [429, "forest_edit_limit_reached"]);
+  assert(Number(res.headers.get("Retry-After")) > 0);
+  assertEquals(inputs.length, 0);
+  assertEquals(find(d, "rpc.save_forest_override"), undefined);
+});
+
+Deno.test("analysis PUT forest: лише породи зі списку, 1–2 на тип; некоректне → 422 без списання", async () => {
+  for (const override of [
+    { types: [{ forest_type: "coniferous", species: ["palm"] }] },
+    { types: [{ forest_type: "coniferous", species: ["pine", "spruce", "oak"] }] },
+    { types: [{ forest_type: "coniferous", species: [] }] },
+    { types: [{ forest_type: "coniferous", species: ["pine", "pine"] }] },
+    { types: [{ forest_type: "coniferous", species: ["pine"] }, { forest_type: "coniferous", species: ["spruce"] }] },
+    { extra: [{ species: "oak", presence: "everywhere" }] },
+    { types: [], extra: [] },
+    "сосна",
+  ]) {
+    const d = db(savedArea());
+    const { res, json } = await run(d, req("PUT", FOREST_URL, { override }));
+    assertEquals([res.status, json.error], [422, "validation_error"], JSON.stringify(override));
+    assertEquals(find(d, "rpc.consume_forest_edit"), undefined);
+  }
+  const missing = await run(db(savedArea()), req("PUT", FOREST_URL, { forest: SATELLITE_HINT }));
+  assertEquals(missing.res.status, 422);
+});
+
+Deno.test("analysis PUT forest: чужа ділянка → 404; розрахунок упав → 500 і уточнення повернуто", async () => {
+  const gone = await run(db(), req("PUT", FOREST_URL, { override: null }));
+  assertEquals([gone.res.status, gone.json.error], [404, "not_found"]);
+
+  const d = db(savedArea());
+  const { res } = await run(d, req("PUT", FOREST_URL, { override: null }), {
+    forecast: () => Promise.reject(new Error("engine exploded")),
+  });
+  assertEquals(res.status, 500);
+  assertEquals(find(d, "rpc.refund_forest_edit")!.args[0], { p_user_id: USER, p_area_id: AREA });
+});
+
+Deno.test("analysis POST area_id: збережене уточнення діє і на повторний аналіз", async () => {
+  const d = db(savedArea({ forest_override: { types: [{ forest_type: "coniferous", species: ["pine"] }], extra: [] } }));
+  const { json, inputs } = await run(d, req("POST", URL_, { area_id: AREA, forest: SATELLITE_HINT }));
+  assertEquals(inputs.map((i) => i.forestType), ["pine", "deciduous", "mixed"]);
+  assertEquals(json.data.forest.types[0].species_label, "сосна · уточнено вами");
 });
