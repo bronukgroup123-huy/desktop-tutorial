@@ -1,52 +1,84 @@
 name: Basemap (offline region map)
 
-# Пілот: векторна карта-підкладка області для роботи без інтернету (рішення PO 2026-11-13).
-# Замість плиток із сервера tile.openstreetmap.org (його правила забороняють застосункам
-# масове й офлайн-використання) застосунок один раз качає файл карти своєї області.
+# Офлайн карта області (ADR-020): векторна карта-підкладка, яку застосунок качає один раз і
+# далі малює з телефону — без серверів плиток і без інтернету. Серверних плиток у застосунку
+# немає: поки офлайн карту не завантажено, карта не показується.
 #
 # Дані — те саме вивантаження OpenStreetMap для України з Geofabrik, що й для лісів;
-# Planetiler (схема OpenMapTiles) будує один файл PMTiles на область, z0–14
-# (далі застосунок наближає без нових даних).
+# Planetiler (схема OpenMapTiles) будує один файл PMTiles на область, z0–14 (далі застосунок
+# наближає без нових даних). Без будівель, номерів будинків, POI й аеропортів — грибнику
+# вони не потрібні, а файл і малювання стають легшими. Назви — з `name:uk` (у прикордонних
+# річок `name` двомовне: «Дністер / Nistru»).
 #
-#  * Вручну: Actions → Basemap → slug області → publish = true → реліз «basemap-data».
+#  * Вручну: Actions → Basemap → `all` або slug області → publish = true → реліз «basemap-data».
 # Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
 # дрібний масштаб — Natural Earth (public domain); вода — osmdata.openstreetmap.de (ODbL).
 on:
   workflow_dispatch:
     inputs:
       region:
-        description: 'slug області (lvivska, kyivska, …)'
+        description: '«all» — усі області, або slug однієї (lvivska, kyivska, …)'
         required: true
-        default: lvivska
+        default: all
       publish:
         description: 'Опублікувати в реліз «basemap-data»'
         type: boolean
         default: false
-  # Пілот: поки workflow немає в main, запуск вручну недоступний — збирає Львівську з гілки.
-  push:
-    branches: [claude/project-rb2fo8]
-    paths:
-      - '.github/workflows/basemap.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: basemap-${{ github.event.inputs.region || 'lvivska' }}
+  group: basemap-${{ github.event.inputs.region }}
   cancel-in-progress: true
 
 env:
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
   PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
-  REGION: ${{ github.event.inputs.region || 'lvivska' }}
 
 jobs:
+  regions:
+    name: Regions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Supabase public config
+        uses: ./.github/actions/supabase-public-config
+        with:
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      - name: List regions
+        id: list
+        env:
+          IN_REGION: ${{ github.event.inputs.region }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$IN_REGION" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $IN_REGION"; exit 1; }
+          if [ "$IN_REGION" = "all" ]; then
+            curl -fsS --retry 4 -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "$SUPABASE_URL/functions/v1/regions" \
+              | jq -c '[.data[].slug] | sort' > matrix.json
+          else
+            jq -cn --arg s "$IN_REGION" '[$s]' > matrix.json
+          fi
+          cat matrix.json
+          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+
   build:
+    name: Basemap ${{ matrix.region }}
+    needs: regions
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        region: ${{ fromJson(needs.regions.outputs.matrix) }}
+    env:
+      REGION: ${{ matrix.region }}
     steps:
       - uses: actions/checkout@v4
       - name: Check input
@@ -95,13 +127,14 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL -o planetiler.jar https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar
-          java -jar planetiler.jar --version 2>/dev/null | head -3 || true
           START=$(date +%s)
           java -Xmx10g -jar planetiler.jar \
             --osm-path=osm/region.osm.pbf \
             --output="dist/basemap-$REGION.pmtiles" \
             --download --download-threads=4 \
-            --maxzoom=14 --force
+            --maxzoom=14 --force \
+            --languages=uk \
+            --exclude-layers=building,housenumber,poi,aerodrome_label,aeroway,mountain_peak
           echo "BUILD_SECONDS=$(( $(date +%s) - START ))" >> "$GITHUB_ENV"
           ls -lh dist/
 
@@ -114,28 +147,25 @@ jobs:
             --arg file "basemap-$REGION.pmtiles" \
             '{slug: $slug, version: $version, bytes: $bytes, sha256: $sha256, data_file: $file,
               format: "pmtiles", schema: "openmaptiles", maxzoom: 14,
-              source: "© OpenStreetMap contributors (ODbL); Natural Earth"}' > "dist/basemap-$REGION.json"
+              source: "© OpenStreetMap contributors (ODbL); OpenMapTiles; Natural Earth"}' > "dist/basemap-$REGION.json"
           cat "dist/basemap-$REGION.json"
-          {
-            echo "### Карта області $REGION"
-            echo "- Розмір: $(( $(stat -c %s "$F") / 1048576 )) МБ"
-            echo "- Збірка Planetiler: ${BUILD_SECONDS} с"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "| $REGION | $(( $(stat -c %s "$F") / 1048576 )) МБ | ${BUILD_SECONDS} с |" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
           name: basemap-${{ env.REGION }}
           path: dist/
-          retention-days: 14
+          retention-days: 7
 
       - name: Publish to release «basemap-data»
-        if: github.event.inputs.publish == 'true' || github.event_name == 'push'
+        if: github.event.inputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view basemap-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create basemap-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
-              --title "Карти областей для роботи без інтернету" \
-              --notes "Векторні карти-підкладки областей (PMTiles, схема OpenMapTiles). Генерує workflow «Basemap». Дані: © OpenStreetMap contributors (ODbL); Natural Earth."
+              --title "Офлайн карти областей" \
+              --notes "Векторні карти-підкладки областей (PMTiles, схема OpenMapTiles). Генерує workflow «Basemap». Дані: © OpenStreetMap contributors (ODbL); OpenMapTiles; Natural Earth."
+          # Спершу файл, потім опис: застосунок читає опис і за ним — файл.
           gh release upload basemap-data "dist/basemap-$REGION.pmtiles" --clobber --repo "$GITHUB_REPOSITORY"
           gh release upload basemap-data "dist/basemap-$REGION.json" --clobber --repo "$GITHUB_REPOSITORY"
