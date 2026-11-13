@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
@@ -36,9 +37,25 @@ class RegionsRepository {
     if (inMemory != null) return inMemory;
 
     final cached = await _store.read(key);
-    if (cached != null && _now().difference(cached.savedAt) < refreshAfter) {
+    if (cached != null) {
+      // Кордон області майже не змінюється: збережена копія показується одразу, а
+      // застаріла (> доби) оновлюється у фоні — карта не чекає на слабкий інтернет.
+      if (_now().difference(cached.savedAt) >= refreshAfter) unawaited(_refreshGeometry(slug, detail, key));
       return _memory[key] = RegionGeometry.fromJson(cached.data as Map<String, dynamic>);
     }
+    return _downloadGeometry(slug, detail, key);
+  }
+
+  Future<void> _refreshGeometry(String slug, GeometryDetail detail, String key) async {
+    try {
+      await _downloadGeometry(slug, detail, key);
+    } catch (_) {
+      // немає мережі — лишається збережена копія, спробуємо наступного разу
+    }
+  }
+
+  Future<RegionGeometry> _downloadGeometry(String slug, GeometryDetail detail, String key) async {
+    final cached = await _store.read(key);
     try {
       final data = await _api.get(
         '/v1-regions/${Uri.encodeComponent(slug)}/geometry',

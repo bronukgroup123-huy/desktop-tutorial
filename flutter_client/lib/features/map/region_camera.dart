@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:math' show Point;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -30,7 +29,7 @@ const double regionMarginPx = 16;
     center: bounds.center,
     zoom: 5,
     rotation: 0,
-    nonRotatedSize: Point(w, h),
+    nonRotatedSize: Size(w, h),
   );
   final fitted = CameraFit.bounds(bounds: bounds, padding: padding).fit(camera);
   return (center: fitted.center, zoom: fitted.zoom);
@@ -54,14 +53,14 @@ class RegionCameraConstraint extends CameraConstraint {
   @override
   MapCamera constrain(MapCamera camera) {
     final zoom = camera.zoom;
-    final ne = camera.project(bounds.northEast, zoom);
-    final sw = camera.project(bounds.southWest, zoom);
+    final ne = camera.projectAtZoom(bounds.northEast, zoom);
+    final sw = camera.projectAtZoom(bounds.southWest, zoom);
     final half = camera.size / 2;
 
-    final minX = math.min(sw.x, ne.x) - marginPx;
-    final maxX = math.max(sw.x, ne.x) + marginPx;
-    final minY = math.min(sw.y, ne.y) - marginPx;
-    final maxY = math.max(sw.y, ne.y) + marginPx;
+    final minX = math.min(sw.dx, ne.dx) - marginPx;
+    final maxX = math.max(sw.dx, ne.dx) + marginPx;
+    final minY = math.min(sw.dy, ne.dy) - marginPx;
+    final maxY = math.max(sw.dy, ne.dy) + marginPx;
 
     double axis(double value, double lo, double hi, double halfSize) {
       final okLo = lo + halfSize;
@@ -70,10 +69,10 @@ class RegionCameraConstraint extends CameraConstraint {
       return value.clamp(okLo, okHi);
     }
 
-    final c = camera.project(camera.center, zoom);
-    final constrained = Point(axis(c.x, minX, maxX, half.x), axis(c.y, minY, maxY, half.y));
+    final c = camera.projectAtZoom(camera.center, zoom);
+    final constrained = Offset(axis(c.dx, minX, maxX, half.width), axis(c.dy, minY, maxY, half.height));
     if (constrained == c) return camera;
-    return camera.withPosition(center: camera.unproject(constrained, zoom));
+    return camera.withPosition(center: camera.unprojectAtZoom(constrained, zoom));
   }
 
   @override

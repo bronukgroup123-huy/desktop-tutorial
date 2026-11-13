@@ -519,6 +519,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'ua.mushroomradar.app',
                 maxZoom: 17,
+                // Плитки зберігаються на телефоні між запусками (раніше — лише в пам'яті,
+                // і після кожного запуску карта качалась заново); запити до плиток, з яких
+                // уже прогорнули, скасовуються — на слабкому інтернеті видимі вантажаться першими.
+                tileProvider: _tiles,
               ),
               _ForestLodView(layers: _forestLayersFor(load)),
               _mask(),
@@ -949,6 +953,12 @@ class _AnalysisPanel extends StatelessWidget {
 /// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
 /// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
 /// не перераховує контури заново.
+/// Плитки підкладки: дисковий кеш до 300 МБ (свіжість — за заголовками сервера) і
+/// скасування застарілих запитів. Один екземпляр на застосунок.
+final NetworkTileProvider _tiles = NetworkTileProvider(
+  cachingProvider: BuiltInMapCachingProvider.getOrCreateInstance(maxCacheSize: 300 * 1024 * 1024),
+);
+
 class _ForestLodView extends StatelessWidget {
   const _ForestLodView({required this.layers});
 

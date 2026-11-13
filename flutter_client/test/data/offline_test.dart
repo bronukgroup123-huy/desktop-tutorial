@@ -163,8 +163,9 @@ void main() {
 
     final (api2, adapter2) = makeClient((_) => const FakeResponse.offline());
     final g = await RegionsRepository(api2, store, now: () => now.add(const Duration(days: 30))).fetchGeometry('zhytomyrska');
-    expect(g.name, 'Житомирська');
-    expect(adapter2.requests.length, 1, reason: 'спробував оновити, але взяв копію');
+    expect(g.name, 'Житомирська', reason: 'збережена копія — одразу, без очікування мережі');
+    await pumpEventQueue();
+    expect(adapter2.requests.length, 1, reason: 'оновлення пробує у фоні');
   });
 
   group('Прогноз офлайн', () {
