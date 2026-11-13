@@ -10,6 +10,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
+import 'package:flutter_client/data/models/forest_lod.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
@@ -72,7 +73,6 @@ class _RegionMap extends ConsumerStatefulWidget {
 
 class _RegionMapState extends ConsumerState<_RegionMap> {
   final MapController _mapController = MapController();
-  final LayerHitNotifier<ForestZone> _forestHits = ValueNotifier(null);
   bool _locating = false;
   bool _startingPick = false;
 
@@ -88,9 +88,14 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   ({LatLng center, double zoom})? _fit;
   Size? _fitSize;
 
-  // Полігони будуються один раз на набір даних, а не на кожен кадр.
-  List<ForestZone>? _zonesBuiltFor;
-  List<Polygon<ForestZone>> _polygons = const [];
+  // Шари лісів (за рівнями деталізації) і маска будуються один раз на набір даних.
+  // Ті самі екземпляри віджетів при кожній перебудові екрана — інакше flutter_map
+  // скидає кеш проєкцій і перераховує всі ~13 тис. контурів.
+  List<ForestZone>? _lodFor;
+  ForestLod? _lod;
+  List<Widget> _forestLayers = const [];
+  RegionGeometry? _maskFor;
+  Widget _maskLayer = const SizedBox.shrink();
 
   RegionGeometry get _g => widget.geometry;
 
@@ -114,14 +119,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     ref.read(mapFocusAreaProvider.notifier).state = null;
   }
 
-  @override
-  void dispose() {
-    _forestHits.dispose();
-    super.dispose();
-  }
-
   /// Світ із «дірками» на місці області — усе поза областю затемнене.
-  Polygon _mask() => Polygon(
+  Polygon _maskPolygon() => Polygon(
         points: const [
           LatLng(-85, -180),
           LatLng(-85, 180),
@@ -134,36 +133,75 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         borderStrokeWidth: 2,
       );
 
-  List<Polygon<ForestZone>> _forestPolygons(List<ForestZone> zones) {
-    if (identical(zones, _zonesBuiltFor)) return _polygons;
-    _zonesBuiltFor = zones;
-    return _polygons = _buildPolygons(zones);
+  Widget _mask() {
+    if (!identical(_maskFor, _g)) {
+      _maskFor = _g;
+      _maskLayer = PolygonLayer(polygons: [_maskPolygon()], simplificationTolerance: 0, polygonLabels: false);
+    }
+    return _maskLayer;
   }
 
-  List<Polygon<ForestZone>> _buildPolygons(List<ForestZone> zones) => [
-        for (final z in zones)
-          for (final p in z.polygons)
-            Polygon<ForestZone>(
-              points: p.outer,
-              holePointsList: p.holes,
-              color: z.typeColor.withValues(alpha: 0.45),
-              borderColor: z.typeColor,
-              borderStrokeWidth: 1,
-              hitValue: z,
-            ),
-      ];
+  /// Шари лісів для кожного рівня деталізації — будуються один раз на набір лісів.
+  List<Widget> _forestLayersFor(ForestLoad? load) {
+    final zones = load?.zones ?? const <ForestZone>[];
+    if (identical(zones, _lodFor)) return _forestLayers;
+    _lodFor = zones;
+    // Повний файл області — уже підготовлений в ізоляті; запасні плитки — тут.
+    final lod = _lod = load?.lod ?? buildForestLod(zones);
+    return _forestLayers = [
+      for (var l = 0; l < forestLodLevels.length; l++) _forestLevelLayer(zones, lod.levels[l], forestLodLevels[l]),
+    ];
+  }
 
-  /// Тап по лісу — визначник лісу: на лісі з'являється підпис його типу.
-  /// Прогноз — лише для ділянки аналізу (вкладка «Прогноз»), не для точки.
-  void _onForestTap() {
-    final hit = _forestHits.value;
-    if (hit == null || hit.hitValues.isEmpty) return;
+  /// Один рівень лісів. Кольори непрозорі, а прозорість — у всього шару одразу:
+  /// flutter_map малює напівпрозорі полігони кожен окремо (тисячі викликів на кадр),
+  /// а непрозорі однакового кольору — одним шляхом.
+  static Widget _forestLevelLayer(List<ForestZone> zones, List<LodPolygon> polys, ForestLodLevel level) => Opacity(
+        opacity: 0.5,
+        child: PolygonLayer(
+          polygons: [
+            for (var i = 0; i < polys.length; i++)
+              Polygon(
+                points: polys[i].outer,
+                holePointsList: polys[i].holes,
+                // Ліс із дірками малюється окремо (інакше дірки «вирізають» сусідні ліси
+                // в спільному шляху) — для цього колір на 1–2 одиниці синього інший.
+                color: polys[i].holes.isEmpty
+                    ? zones[polys[i].zone].typeColor
+                    : _nudge(zones[polys[i].zone].typeColor, 1 + (i & 1)),
+                borderColor: zones[polys[i].zone].typeColor,
+                borderStrokeWidth: level.borders ? 1 : 0,
+              ),
+          ],
+          // Контури вже спрощені під рівень; вбудоване спрощення flutter_map 7 перераховує
+          // всі контури щокадру (лінивий кеш) — вимкнено.
+          simplificationTolerance: 0,
+          polygonLabels: false,
+        ),
+      );
+
+  static Color _nudge(Color c, int delta) {
+    final argb = c.toARGB32();
+    return Color((argb & 0xFFFFFF00) | ((argb & 0xFF) ^ delta));
+  }
+
+  /// Тап по карті: у режимі аналізу — центр ділянки; інакше — визначник лісу
+  /// (підпис типу на лісі). Прогноз — лише для ділянки аналізу, не для точки.
+  void _onMapTap(LatLng point) {
     if (_analysisMode) {
-      _setAnalysisCenter(hit.coordinate);
+      _setAnalysisCenter(point);
+      return;
+    }
+    final zones = _lodFor;
+    final hits = (zones == null || _lod == null)
+        ? const <ForestZone>[]
+        : _lod!.zonesAt(point, zones, level: forestLodLevelFor(_mapController.camera.zoom));
+    if (hits.isEmpty) {
+      if (_forestLabel != null) setState(() => _forestLabel = null);
       return;
     }
     // Під пальцем може бути кілька контурів OSM — беремо найдостовірніший і найточніший.
-    setState(() => _forestLabel = (point: hit.coordinate, zone: pickForestAt(hit.hitValues)));
+    setState(() => _forestLabel = (point: point, zone: pickForestAt(hits)));
   }
 
   /// Масштаб «вся область» під поточний розмір карти. При повороті екрана
@@ -437,7 +475,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     // Ліси всієї області — з телефону; мережа лише раз на добу (офлайн-карта).
     final forests = ref.watch(regionForestsProvider(_g.slug));
     final load = forests.valueOrNull;
-    final zones = load?.zones ?? const <ForestZone>[];
     final offline = load?.offline ?? false;
     final loading = forests.isLoading || (load != null && !load.complete);
     final showError = (forests.hasError && !forests.isLoading) ||
@@ -474,15 +511,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
-              // У режимі аналізу дотик до карти обирає центр ділянки;
-              // поза лісом — ховає підпис визначника лісу.
-              onTap: (tapPosition, point) {
-                if (_analysisMode) {
-                  _setAnalysisCenter(point);
-                } else if (_forestLabel != null) {
-                  setState(() => _forestLabel = null);
-                }
-              },
+              // У режимі аналізу дотик обирає центр ділянки; інакше — визначник лісу.
+              onTap: (tapPosition, point) => _onMapTap(point),
             ),
             children: [
               TileLayer(
@@ -490,14 +520,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 userAgentPackageName: 'ua.mushroomradar.app',
                 maxZoom: 17,
               ),
-              GestureDetector(
-                onTap: _onForestTap,
-                child: PolygonLayer<ForestZone>(
-                  polygons: _forestPolygons(zones),
-                  hitNotifier: _forestHits,
-                ),
-              ),
-              PolygonLayer(polygons: [_mask()]),
+              _ForestLodView(layers: _forestLayersFor(load)),
+              _mask(),
               if (areas.isNotEmpty) PolygonLayer(polygons: _areaSquares(areas)),
               if (square != null)
                 PolygonLayer(
@@ -918,6 +942,26 @@ class _AnalysisPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
+/// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
+/// не перераховує контури заново.
+class _ForestLodView extends StatelessWidget {
+  const _ForestLodView({required this.layers});
+
+  final List<Widget> layers;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = forestLodLevelFor(MapCamera.of(context).zoom);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < layers.length; i++) Offstage(offstage: i != level, child: layers[i]),
+      ],
     );
   }
 }

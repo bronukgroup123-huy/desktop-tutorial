@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
+import '../models/forest_lod.dart';
 import '../models/forest_zone.dart';
 import '../models/geo.dart';
 import '../models/region.dart';
@@ -59,9 +60,14 @@ class ForestLoad {
     required this.total,
     required this.failed,
     required this.offline,
+    this.lod,
   });
 
   final List<ForestZone> zones;
+
+  /// Ліси, підготовлені для карти (рівні деталізації, індекс для тапу). Для повного файлу
+  /// будується в ізоляті разом із розбором; для запасних плиток — `null` (карта збудує сама).
+  final ForestLod? lod;
   final int done;
   final int total;
 
@@ -172,14 +178,14 @@ class ForestZonesRepository {
 
     Future<ForestLoad?> fromLocal({required bool offline}) async {
       if (!haveLocal) return null;
-      final zones = await _parseFile(storedBytes!);
-      if (zones == null) {
+      final parsed = await _parseFile(storedBytes!);
+      if (parsed == null) {
         await _store.delete(fileMetaKey(slug));
         await _store.delete(fileDataKey(slug));
         return null;
       }
-      debugPrint('[forests] $slug: ${zones.length} forests from phone (file ${storedMeta!.version})');
-      return ForestLoad(zones: zones, done: 1, total: 1, failed: 0, offline: offline);
+      debugPrint('[forests] $slug: ${parsed.zones.length} forests from phone (file ${storedMeta!.version})');
+      return ForestLoad(zones: parsed.zones, lod: parsed.lod, done: 1, total: 1, failed: 0, offline: offline);
     }
 
     if (haveLocal && !forceRefresh && _now().difference(stored!.savedAt) < refreshAfter) {
@@ -202,15 +208,15 @@ class ForestZonesRepository {
       if (bytes.length != meta.bytes || sha256.convert(bytes).toString() != meta.sha256) {
         throw const FormatException('forest file: size or checksum mismatch');
       }
-      final zones = await _parseFile(bytes);
-      if (zones == null) throw const FormatException('forest file: cannot parse');
+      final parsed = await _parseFile(bytes);
+      if (parsed == null) throw const FormatException('forest file: cannot parse');
 
       await _store.writeBytes(fileDataKey(slug), bytes);
       await _store.write(fileMetaKey(slug), meta.toJson(), savedAt: _now());
       // Плитки з v1-forest-zones більше не потрібні — є повний файл.
       await _store.deleteByPrefix('forests_');
-      debugPrint('[forests] $slug: ${zones.length} forests from file ${meta.version}');
-      return ForestLoad(zones: zones, done: 1, total: 1, failed: 0, offline: false);
+      debugPrint('[forests] $slug: ${parsed.zones.length} forests from file ${meta.version}');
+      return ForestLoad(zones: parsed.zones, lod: parsed.lod, done: 1, total: 1, failed: 0, offline: false);
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       debugPrint('[forests] $slug: file unavailable (${status ?? e.type.name})');
@@ -234,11 +240,13 @@ class ForestZonesRepository {
     return data is Uint8List ? data : Uint8List.fromList(data);
   }
 
-  /// gzip → JSON → ліси, в окремому ізоляті (файл області — мегабайти).
-  static Future<List<ForestZone>?> _parseFile(Uint8List gz) => Isolate.run(() {
+  /// gzip → JSON → ліси + підготовка для карти, в окремому ізоляті (файл області —
+  /// мегабайти; на головному потоці це підвисання інтерфейсу).
+  static Future<({List<ForestZone> zones, ForestLod lod})?> _parseFile(Uint8List gz) => Isolate.run(() {
         try {
           final json = jsonDecode(utf8.decode(gzip.decode(gz)));
-          return ForestZone.listFromFeatureCollection(json as Map<String, dynamic>);
+          final zones = ForestZone.listFromFeatureCollection(json as Map<String, dynamic>);
+          return (zones: zones, lod: buildForestLod(zones));
         } catch (_) {
           return null;
         }
