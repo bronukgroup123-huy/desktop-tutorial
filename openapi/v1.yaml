@@ -1002,6 +1002,15 @@ components:
             meta_url: { type: string, format: uri }
             data_url: { type: string, format: uri }
 
+        basemap:
+          type: object
+          description: >-
+            Карта-підкладка області для роботи без інтернету (PMTiles, схема OpenMapTiles; пілот).
+            Застосунок качає її один раз; немає опису (404) — карти для області ще немає.
+          required: [meta_url, data_url]
+          properties:
+            meta_url: { type: string, format: uri }
+            data_url: { type: string, format: uri }
     ForestFeatureCollection:
       type: object
       required: [type, features]

@@ -136,9 +136,20 @@ void main() {
     await load(repo(dio));
     now = now.add(const Duration(days: 3));
     online = false;
-    final r = await load(repo(dio));
-    expect(r.zones.length, 2);
-    expect(r.offline, isTrue);
+    final events = await repo(dio).loadRegion('zhytomyrska', region, files: files).toList();
+    // спершу — збережений файл одразу, потім — позначка «без інтернету» (версію не перевірено)
+    expect(events.map((e) => (e.zones.length, e.offline)).toList(), [(2, false), (2, true)]);
+  });
+
+  test('застарілий файл показується одразу; та сама версія — без повторного розбору', () async {
+    final (dio, adapter) = makeFilesDio(server);
+    await load(repo(dio));
+    now = now.add(const Duration(days: 3));
+    final before = adapter.requests.length;
+    final events = await repo(dio).loadRegion('zhytomyrska', region, files: files).toList();
+    expect(events.length, 1, reason: 'версія та сама — друга подія не потрібна');
+    expect(events.single.zones.length, 2);
+    expect(adapter.requests.length - before, 1, reason: 'лише опис файлу, без повторного завантаження');
   });
 
   test('пошкоджений файл (sha256 не збігається) не зберігається', () async {

@@ -12,5 +12,6 @@ Deno.serve(handle((req) =>
   handleRegionGeometry(req, {
     db: serviceClient(),
     forestsBaseUrl: Deno.env.get("FORESTS_BASE_URL") ?? undefined,
+    basemapBaseUrl: Deno.env.get("BASEMAP_BASE_URL") ?? undefined,
   })
 ));

@@ -67,6 +67,10 @@ Deno.test("regions: відповідь містить адреси файлу л
     meta_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/forests-data/forests-kyivska.json",
     data_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/forests-data/forests-kyivska.geojson.gz",
   });
+  assertEquals(body.data.basemap, {
+    meta_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/basemap-data/basemap-kyivska.json",
+    data_url: "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/basemap-data/basemap-kyivska.pmtiles",
+  });
   const custom = await handle((r) => handleRegionGeometry(r, { db, forestsBaseUrl: "https://cdn.example/f/" }))(
     new Request("http://localhost/v1-regions/kyivska/geometry"),
   );

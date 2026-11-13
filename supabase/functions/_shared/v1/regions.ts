@@ -47,6 +47,19 @@ export function forestFiles(slug: string, baseUrl?: string): { meta_url: string;
   };
 }
 
+/** Де лежать карти-підкладки областей для роботи без інтернету (пілот, рішення PO 2026-11-13). */
+export const DEFAULT_BASEMAP_BASE_URL =
+  "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/basemap-data";
+
+/** Файл карти області (PMTiles) і його опис; немає опису (404) — карти для області ще немає. */
+export function basemapFiles(slug: string, baseUrl?: string): { meta_url: string; data_url: string } {
+  const base = (baseUrl || DEFAULT_BASEMAP_BASE_URL).replace(/\/+$/, "");
+  return {
+    meta_url: `${base}/basemap-${slug}.json`,
+    data_url: `${base}/basemap-${slug}.pmtiles`,
+  };
+}
+
 /** Рекомендований початковий zoom, щоб область вмістилась на екрані. */
 export function zoomForBbox(bbox: [number, number, number, number]): number {
   const lngSpan = Math.max(bbox[2] - bbox[0], 1e-6);
@@ -68,7 +81,7 @@ export interface RegionsDb {
 
 export async function handleRegionGeometry(
   req: Request,
-  deps: { db: RegionsDb; forestsBaseUrl?: string },
+  deps: { db: RegionsDb; forestsBaseUrl?: string; basemapBaseUrl?: string },
 ): Promise<Response> {
   assertMethod(req, ["GET"]);
   // deno-lint-ignore no-explicit-any
@@ -101,6 +114,8 @@ export async function handleRegionGeometry(
     geometry: row.geometry,
     // Ліси області — одним файлом (завантажується застосунком один раз, офлайн).
     forests: forestFiles(row.slug, deps.forestsBaseUrl),
+    // Карта-підкладка області — один файл, завантажується один раз і працює без інтернету.
+    basemap: basemapFiles(row.slug, deps.basemapBaseUrl),
   };
 
   const body = JSON.stringify({ data: payload });

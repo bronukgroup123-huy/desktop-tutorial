@@ -1,0 +1,141 @@
+name: Basemap (offline region map)
+
+# Пілот: векторна карта-підкладка області для роботи без інтернету (рішення PO 2026-11-13).
+# Замість плиток із сервера tile.openstreetmap.org (його правила забороняють застосункам
+# масове й офлайн-використання) застосунок один раз качає файл карти своєї області.
+#
+# Дані — те саме вивантаження OpenStreetMap для України з Geofabrik, що й для лісів;
+# Planetiler (схема OpenMapTiles) будує один файл PMTiles на область, z0–14
+# (далі застосунок наближає без нових даних).
+#
+#  * Вручну: Actions → Basemap → slug області → publish = true → реліз «basemap-data».
+# Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
+# дрібний масштаб — Natural Earth (public domain); вода — osmdata.openstreetmap.de (ODbL).
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'slug області (lvivska, kyivska, …)'
+        required: true
+        default: lvivska
+      publish:
+        description: 'Опублікувати в реліз «basemap-data»'
+        type: boolean
+        default: false
+  # Пілот: поки workflow немає в main, запуск вручну недоступний — збирає Львівську з гілки.
+  push:
+    branches: [claude/project-rb2fo8]
+    paths:
+      - '.github/workflows/basemap.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: basemap-${{ github.event.inputs.region || 'lvivska' }}
+  cancel-in-progress: true
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+  PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
+  REGION: ${{ github.event.inputs.region || 'lvivska' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check input
+        run: |
+          printf '%s' "$REGION" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $REGION"; exit 1; }
+      - name: Supabase public config
+        uses: ./.github/actions/supabase-public-config
+        with:
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+
+      - name: Cache key
+        id: week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: osm/ukraine-latest.osm.pbf
+          key: geofabrik-ukraine-${{ steps.week.outputs.week }}
+      # Natural Earth і полігони води Planetiler качає сам (--download); зберігаємо між запусками.
+      - uses: actions/cache@v4
+        with:
+          path: data/sources
+          key: planetiler-sources-${{ steps.week.outputs.week }}
+          restore-keys: planetiler-sources-
+
+      - name: Region boundary → OSM extract
+        run: |
+          set -euo pipefail
+          mkdir -p osm dist
+          if [ ! -s osm/ukraine-latest.osm.pbf ]; then
+            curl -fsSL --retry 5 --retry-delay 30 -A "MushroomRadar-basemap/1.0 (+https://github.com/${GITHUB_REPOSITORY})" \
+              -o osm/ukraine-latest.osm.pbf "$PBF_URL"
+          fi
+          curl -fsS --retry 4 -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/functions/v1/v1-regions/$REGION/geometry?detail=high" \
+            | jq '{type: "Feature", properties: {}, geometry: .data.geometry}' > osm/region.geojson
+          osmium extract -p osm/region.geojson --strategy smart -o osm/region.osm.pbf --overwrite osm/ukraine-latest.osm.pbf
+          ls -lh osm/region.osm.pbf
+
+      - name: Planetiler (OpenMapTiles) → PMTiles
+        run: |
+          set -euo pipefail
+          curl -fsSL -o planetiler.jar https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar
+          java -jar planetiler.jar --version 2>/dev/null | head -3 || true
+          START=$(date +%s)
+          java -Xmx10g -jar planetiler.jar \
+            --osm-path=osm/region.osm.pbf \
+            --output="dist/basemap-$REGION.pmtiles" \
+            --download --download-threads=4 \
+            --maxzoom=14 --force
+          echo "BUILD_SECONDS=$(( $(date +%s) - START ))" >> "$GITHUB_ENV"
+          ls -lh dist/
+
+      - name: Meta
+        run: |
+          set -euo pipefail
+          F="dist/basemap-$REGION.pmtiles"
+          jq -n --arg slug "$REGION" --arg version "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson bytes "$(stat -c %s "$F")" --arg sha256 "$(sha256sum "$F" | cut -d' ' -f1)" \
+            --arg file "basemap-$REGION.pmtiles" \
+            '{slug: $slug, version: $version, bytes: $bytes, sha256: $sha256, data_file: $file,
+              format: "pmtiles", schema: "openmaptiles", maxzoom: 14,
+              source: "© OpenStreetMap contributors (ODbL); Natural Earth"}' > "dist/basemap-$REGION.json"
+          cat "dist/basemap-$REGION.json"
+          {
+            echo "### Карта області $REGION"
+            echo "- Розмір: $(( $(stat -c %s "$F") / 1048576 )) МБ"
+            echo "- Збірка Planetiler: ${BUILD_SECONDS} с"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: basemap-${{ env.REGION }}
+          path: dist/
+          retention-days: 14
+
+      - name: Publish to release «basemap-data»
+        if: github.event.inputs.publish == 'true' || github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view basemap-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create basemap-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "Карти областей для роботи без інтернету" \
+              --notes "Векторні карти-підкладки областей (PMTiles, схема OpenMapTiles). Генерує workflow «Basemap». Дані: © OpenStreetMap contributors (ODbL); Natural Earth."
+          gh release upload basemap-data "dist/basemap-$REGION.pmtiles" --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload basemap-data "dist/basemap-$REGION.json" --clobber --repo "$GITHUB_REPOSITORY"

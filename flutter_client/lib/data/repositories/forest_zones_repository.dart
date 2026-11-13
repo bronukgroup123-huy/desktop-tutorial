@@ -148,6 +148,21 @@ class ForestZonesRepository {
     bool forceRefresh = false,
   }) async* {
     if (files != null) {
+      // Файл на телефоні старший за добу — показуємо його ОДРАЗУ, а версію перевіряємо
+      // вже після (на слабкому інтернеті карта не чекає на мережу). Нова версія — ще одна подія.
+      final stale = forceRefresh ? null : await _staleLocal(slug);
+      if (stale != null) {
+        yield stale.load;
+        final updated = await _loadFile(slug, files, forceRefresh: true, shownVersion: stale.version);
+        if (identical(updated, _offlineMarker)) {
+          // Перевірити версію не вдалося — показане лишається, з позначкою «без інтернету».
+          final l = stale.load;
+          yield ForestLoad(zones: l.zones, lod: l.lod, done: 1, total: 1, failed: 0, offline: true);
+        } else if (updated != null) {
+          yield updated;
+        }
+        return;
+      }
       final fromFile = await _loadFile(slug, files, forceRefresh: forceRefresh);
       if (fromFile != null) {
         yield fromFile;
@@ -157,9 +172,40 @@ class ForestZonesRepository {
     yield* _loadTiles(slug, regionBounds, forceRefresh: forceRefresh);
   }
 
+  /// Повертає [_loadFile], коли версію вже показаного файлу не вдалося перевірити (немає мережі).
+  static const ForestLoad _offlineMarker = ForestLoad(zones: [], done: 0, total: 0, failed: 0, offline: true);
+
+  /// Збережений файл області, якщо він старший за [refreshAfter] (свіжий читає [_loadFile]).
+  Future<({ForestLoad load, String version})?> _staleLocal(String slug) async {
+    final stored = await _store.read(fileMetaKey(slug));
+    if (stored == null || _now().difference(stored.savedAt) < refreshAfter) return null;
+    try {
+      final meta = ForestFileMeta.fromJson(stored.data);
+      final bytes = await _store.readBytes(fileDataKey(slug));
+      if (bytes == null) return null;
+      final parsed = await _parseFile(bytes);
+      if (parsed == null) return null;
+      debugPrint('[forests] $slug: ${parsed.zones.length} forests from phone (stale ${meta.version}), checking for update');
+      return (
+        load: ForestLoad(zones: parsed.zones, lod: parsed.lod, done: 1, total: 1, failed: 0, offline: false),
+        version: meta.version,
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
   /// Ліси з файлу області; `null` — файлу немає (ще не згенерований) і на
   /// телефоні його теж немає → запасний шлях плитками.
-  Future<ForestLoad?> _loadFile(String slug, RegionForestFiles files, {required bool forceRefresh}) async {
+  ///
+  /// [shownVersion] — версія, яку вже показано з телефону: якщо вона не змінилась або мережі
+  /// немає, повертає `null` (повторно не розбираємо той самий файл).
+  Future<ForestLoad?> _loadFile(
+    String slug,
+    RegionForestFiles files, {
+    required bool forceRefresh,
+    String? shownVersion,
+  }) async {
     // Файл іншої області більше не потрібен (ADR-016).
     await _store.deleteByPrefix('forestsfile_', keepPrefix: 'forestsfile_$slug.');
 
@@ -199,6 +245,7 @@ class ForestZonesRepository {
 
       if (haveLocal && storedMeta.version == meta.version) {
         await _store.write(fileMetaKey(slug), storedMeta.toJson(), savedAt: _now());
+        if (shownVersion == meta.version) return null;
         final local = await fromLocal(offline: false);
         if (local != null) return local;
       }
@@ -220,10 +267,11 @@ class ForestZonesRepository {
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       debugPrint('[forests] $slug: file unavailable (${status ?? e.type.name})');
+      if (shownVersion != null) return status == null ? _offlineMarker : null;
       return fromLocal(offline: status == null);
     } on FormatException catch (e) {
       debugPrint('[forests] $slug: bad file — $e');
-      return fromLocal(offline: false);
+      return shownVersion != null ? null : fromLocal(offline: false);
     }
   }
 

@@ -1,5 +1,3 @@
-import 'dart:math' show Point;
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
@@ -18,7 +16,7 @@ void main() {
         center: center,
         zoom: zoom,
         rotation: 0,
-        nonRotatedSize: Point(size.width, size.height),
+        nonRotatedSize: size,
       );
 
   group('Стартовий масштаб — вся область, не більше', () {
@@ -60,19 +58,19 @@ void main() {
       final c = constraint.constrain(cameraAt(const LatLng(49.0, 26.0), 11));
       final cam = cameraAt(c.center, 11);
       final margin = regionMarginPx + 1;
-      final swPx = cam.project(zhytomyr.southWest);
-      final viewSw = cam.project(cam.visibleBounds.southWest);
-      expect(swPx.x - viewSw.x, lessThanOrEqualTo(margin));
-      expect(viewSw.y - swPx.y, lessThanOrEqualTo(margin));
+      final swPx = cam.projectAtZoom(zhytomyr.southWest);
+      final viewSw = cam.projectAtZoom(cam.visibleBounds.southWest);
+      expect(swPx.dx - viewSw.dx, lessThanOrEqualTo(margin));
+      expect(viewSw.dy - swPx.dy, lessThanOrEqualTo(margin));
     });
 
     test('область менша за екран — тримається по центру', () {
       final c = constraint.constrain(cameraAt(const LatLng(45.0, 20.0), 5));
       final cam = cameraAt(c.center, 5);
-      final mid = cam.project(zhytomyr.center);
-      final centerPx = cam.project(c.center);
-      expect((mid.x - centerPx.x).abs(), lessThan(1));
-      expect((mid.y - centerPx.y).abs(), lessThan(1));
+      final mid = cam.projectAtZoom(zhytomyr.center);
+      final centerPx = cam.projectAtZoom(c.center);
+      expect((mid.dx - centerPx.dx).abs(), lessThan(1));
+      expect((mid.dy - centerPx.dy).abs(), lessThan(1));
     });
   });
 

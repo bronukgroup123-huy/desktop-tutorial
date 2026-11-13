@@ -1,5 +1,8 @@
+import 'dart:io' show Directory;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_config.dart';
@@ -13,6 +16,7 @@ import 'models/pick.dart';
 import 'models/region.dart';
 import 'repositories/analysis_repository.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/basemap_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
@@ -56,6 +60,31 @@ final forestZonesRepositoryProvider = Provider(
     files: Dio(BaseOptions(connectTimeout: const Duration(seconds: 15))),
   ),
 );
+final basemapRepositoryProvider = Provider(
+  (ref) => BasemapRepository(
+    ref.watch(localStoreProvider),
+    files: Dio(BaseOptions(connectTimeout: const Duration(seconds: 15))),
+    directory: () async => Directory('${(await getApplicationSupportDirectory()).path}/basemaps'),
+  ),
+);
+
+/// Карта області на телефоні (`null` — ще не завантажена).
+final localBasemapProvider = FutureProvider.family<LocalBasemap?, String>(
+  (ref, slug) => ref.watch(basemapRepositoryProvider).local(slug),
+);
+
+/// Опис карти області на сервері — розмір для кнопки «Завантажити»; `null` — карти ще немає
+/// або немає мережі (тоді кнопку не показуємо).
+final remoteBasemapProvider = FutureProvider.family<BasemapMeta?, String>((ref, slug) async {
+  final files = (await ref.watch(regionGeometryProvider(slug).future)).basemap;
+  if (files == null) return null;
+  try {
+    return await ref.watch(basemapRepositoryProvider).remote(files);
+  } catch (_) {
+    return null;
+  }
+});
+
 final forecastRepositoryProvider = Provider(
   (ref) => ForecastRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
 );
