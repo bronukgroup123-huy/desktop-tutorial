@@ -5,6 +5,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' show ProvidedThemes;
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -15,6 +18,7 @@ import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/data/repositories/basemap_repository.dart' show BasemapMeta;
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
@@ -96,6 +100,9 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   List<Widget> _forestLayers = const [];
   RegionGeometry? _maskFor;
   Widget _maskLayer = const SizedBox.shrink();
+
+  /// Завантаження карти області: частка 0…1; `null` — не качаємо.
+  double? _basemapProgress;
 
   RegionGeometry get _g => widget.geometry;
 
@@ -183,6 +190,46 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   static Color _nudge(Color c, int delta) {
     final argb = c.toARGB32();
     return Color((argb & 0xFFFFFF00) | ((argb & 0xFF) ^ delta));
+  }
+
+  /// «Карта без інтернету»: один раз завантажити файл карти області (пілот, рішення PO
+  /// 2026-11-13). Далі підкладка малюється з телефону, без серверів плиток.
+  Future<void> _downloadBasemap(BasemapMeta meta) async {
+    final files = _g.basemap;
+    if (files == null || _basemapProgress != null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Карта області без інтернету'),
+        content: Text(
+          'Завантажити карту «${_g.name}» (${meta.sizeLabel})? Її завантажують один раз — '
+          'далі карта працює без інтернету, зокрема в лісі. Краще через Wi-Fi.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Пізніше')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Завантажити')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _basemapProgress = 0);
+    try {
+      await for (final p in ref.read(basemapRepositoryProvider).download(_g.slug, files)) {
+        if (mounted) setState(() => _basemapProgress = p);
+      }
+      ref.invalidate(localBasemapProvider(_g.slug));
+      if (mounted) showToast(context, 'Карту області збережено — працює без інтернету');
+    } catch (e) {
+      if (mounted) {
+        showToast(
+          context,
+          e is FormatException ? e.message : 'Не вдалося завантажити карту. Перевірте інтернет і спробуйте ще раз.',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _basemapProgress = null);
+    }
   }
 
   /// Тап по карті: у режимі аналізу — центр ділянки; інакше — визначник лісу
@@ -487,6 +534,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final overview = ref.watch(analysisOverviewProvider);
     final areas = overview.valueOrNull?.areas ?? const <AnalysisArea>[];
     final forestLabel = _forestLabel;
+    final localBasemap = ref.watch(localBasemapProvider(_g.slug)).valueOrNull;
+    final vectorBasemap =
+        localBasemap == null ? null : ref.watch(_basemapTilesProvider(localBasemap.path)).valueOrNull;
+    final remoteBasemap = localBasemap == null ? ref.watch(remoteBasemapProvider(_g.slug)).valueOrNull : null;
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
@@ -515,6 +566,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               onTap: (tapPosition, point) => _onMapTap(point),
             ),
             children: [
+              if (vectorBasemap != null)
+                // Карта області з телефону — без інтернету й без серверів плиток.
+                VectorTileLayer(
+                  key: ValueKey(localBasemap!.path),
+                  tileProviders: TileProviders({'openmaptiles': vectorBasemap}),
+                  theme: _basemapTheme,
+                  maximumZoom: 17,
+                )
+              else
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'ua.mushroomradar.app',
@@ -614,6 +674,16 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (remoteBasemap != null) ...[
+                    _MapPill(
+                      icon: Icons.download_for_offline_rounded,
+                      label: _basemapProgress == null
+                          ? 'Карта без інтернету · ${remoteBasemap.sizeLabel}'
+                          : 'Завантаження карти… ${(_basemapProgress! * 100).round()}%',
+                      onPressed: () => _downloadBasemap(remoteBasemap),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   _MapPill(
                     icon: Icons.crop_free_rounded,
                     label: 'Аналіз ділянки',
@@ -953,6 +1023,14 @@ class _AnalysisPanel extends StatelessWidget {
 /// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
 /// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
 /// не перераховує контури заново.
+/// Стиль векторної карти області (схема OpenMapTiles; © OpenMapTiles, OSM Bright — BSD/CC-BY).
+final _basemapTheme = ProvidedThemes.lightTheme();
+
+/// Відкрита карта області з телефону (PMTiles) — одна на шлях файлу.
+final _basemapTilesProvider = FutureProvider.family<VectorTileProvider, String>(
+  (ref, path) => PmTilesVectorTileProvider.fromSource(path),
+);
+
 /// Плитки підкладки: дисковий кеш до 300 МБ (свіжість — за заголовками сервера) і
 /// скасування застарілих запитів. Один екземпляр на застосунок.
 final NetworkTileProvider _tiles = NetworkTileProvider(

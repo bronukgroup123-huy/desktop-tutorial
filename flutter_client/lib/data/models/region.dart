@@ -28,6 +28,7 @@ class RegionGeometry {
     required this.zoom,
     required this.polygons,
     this.forests,
+    this.basemap,
   });
 
   factory RegionGeometry.fromJson(Map<String, dynamic> json) {
@@ -41,6 +42,7 @@ class RegionGeometry {
       zoom: req<num>(json, 'zoom').toDouble(),
       polygons: parseGeoPolygons(opt<Map<String, dynamic>>(json, 'geometry')),
       forests: RegionForestFiles.fromJson(opt<Map<String, dynamic>>(json, 'forests')),
+      basemap: RegionForestFiles.fromJson(opt<Map<String, dynamic>>(json, 'basemap')),
     );
   }
 
@@ -56,6 +58,9 @@ class RegionGeometry {
 
   /// Файл лісів області (GitHub Releases). `null` — старий кеш/сервер без поля.
   final RegionForestFiles? forests;
+
+  /// Карта-підкладка області для роботи без інтернету (той самий формат посилань: опис + файл).
+  final RegionForestFiles? basemap;
 }
 
 /// Де лежить файл лісів області: опис (`version`, `sha256`) і сам GeoJSON.gz.
