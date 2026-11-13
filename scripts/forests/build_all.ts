@@ -5,6 +5,7 @@
 //   osmium tags-filter ukraine-latest.osm.pbf wr/landuse=forest wr/natural=wood wr/landcover=trees -o forests.osm.pbf
 //   osmium export forests.osm.pbf -f geojsonseq --geometry-types=polygon -u type_id -o forests.geojsonseq
 //   deno run -A scripts/forests/build_all.ts --input forests.geojsonseq --out dist [--only zhytomyrska]
+//     [--satellite satellite.json]   ← тип лісу за супутником (scripts/forest_type/zonal.py)
 //
 // Env: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY — список і кордони областей (ті самі, що
 // й маска на карті). Дані: © OpenStreetMap contributors (ODbL).
@@ -12,12 +13,12 @@
 
 import { parseArgs } from "jsr:@std/cli@1/parse-args";
 import { TextLineStream } from "jsr:@std/streams@1/text-line-stream";
-import { ForestCollector, type RegionInput } from "./lib.ts";
+import { ForestCollector, type RegionInput, type SatelliteTypes } from "./lib.ts";
 import { writeRegionFiles } from "./output.ts";
 
-const args = parseArgs(Deno.args, { string: ["input", "out", "only"], default: { out: "dist" } });
+const args = parseArgs(Deno.args, { string: ["input", "out", "only", "satellite"], default: { out: "dist" } });
 if (!args.input) {
-  console.error("Usage: build_all.ts --input forests.geojsonseq [--out dist] [--only <slug>]");
+  console.error("Usage: build_all.ts --input forests.geojsonseq [--out dist] [--only <slug>] [--satellite <json>]");
   Deno.exit(2);
 }
 if (args.only && !/^[a-z0-9][a-z0-9_-]{1,39}$/.test(args.only)) {
@@ -58,8 +59,16 @@ for (const slug of slugs) {
 }
 console.log(`Regions: ${regions.length} (${regions.map((r) => r.slug).join(", ")})`);
 
+// ─── Тип лісу за супутником (необов'язково): id лісу → ймовірність «хвойний», % ──
+let satellite: SatelliteTypes | undefined;
+if (args.satellite) {
+  const raw = JSON.parse(await Deno.readTextFile(args.satellite)) as Record<string, number>;
+  satellite = new Map(Object.entries(raw).filter(([, v]) => Number.isFinite(v) && v >= 0 && v <= 100));
+  console.log(`Satellite forest types: ${satellite.size}`);
+}
+
 // ─── Ліси: потоком, по одному об'єкту (файл для всієї України — гігабайти) ────
-const collector = new ForestCollector(regions);
+const collector = new ForestCollector(regions, { satellite });
 const file = await Deno.open(args.input, { read: true });
 const lines = file.readable.pipeThrough(new TextDecoderStream()).pipeThrough(new TextLineStream());
 let parseErrors = 0;
@@ -91,7 +100,15 @@ for (const { slug } of regions) {
     empty.push(slug); // порожній файл не публікуємо — лишається попередній
     continue;
   }
-  await writeRegionFiles(slug, collection, stats, args.out, { method: "geofabrik" });
+  await writeRegionFiles(slug, collection, stats, args.out, {
+    method: "geofabrik",
+    ...(stats.satellite
+      ? {
+        source: "© OpenStreetMap contributors (ODbL); тип лісу без породи в OSM — " +
+          "Copernicus Sentinel-2 (модифіковані дані), ESA WorldCover 2021 (CC BY 4.0)",
+      }
+      : {}),
+  });
   written++;
 }
 if (empty.length) console.warn(`⚠ No forests for: ${empty.join(", ")} — not written`);

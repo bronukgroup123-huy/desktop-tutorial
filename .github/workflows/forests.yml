@@ -12,7 +12,9 @@ name: Forests data
 #  * Щомісяця: перебудова всіх областей (OSM постійно доповнюється). Застосунок
 #    перекачує файл лише тоді, коли змінилась його версія.
 #  * PR, що змінює генератор: пробна збірка всіх областей → Artifacts (без публікації).
-# Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH.
+#  * Тип лісу без породи в OSM — з карт релізу «forest-type-data» (Sentinel-2), якщо є.
+# Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
+# тип за супутником — Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0).
 on:
   workflow_dispatch:
     inputs:
@@ -25,6 +27,7 @@ on:
   pull_request:
     paths:
       - 'scripts/forests/**'
+      - 'scripts/forest_type/zonal.py'
       - '.github/workflows/forests.yml'
       - '.github/actions/supabase-public-config/**'
 
@@ -114,22 +117,42 @@ jobs:
             -o osm/forests.geojsonseq --overwrite
           ls -lh osm/forests.osm.pbf osm/forests.geojsonseq
 
+      # Тип лісу за супутником для полігонів без породи в OSM — з карт релізу
+      # «forest-type-data» (workflow «Forest type (Sentinel-2)»). Немає карти — тип лишається з OSM.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Satellite forest type
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p rasters
+          gh release download forest-type-data --repo "$GITHUB_REPOSITORY" --pattern 'forest-type-*.tif' --dir rasters --clobber || true
+          if ls rasters/forest-type-*.tif >/dev/null 2>&1; then
+            ls -lh rasters
+            pip install -q rasterio numpy
+            python scripts/forest_type/zonal.py --input osm/forests.geojsonseq --rasters rasters --out osm/satellite.json
+          else
+            echo "Карт типу лісу немає — тип лише з OSM"
+            echo '{}' > osm/satellite.json
+          fi
+
       - name: Build region files
         run: |
           ONLY=""
           if [ "$REGION" != "all" ]; then ONLY="--only $REGION"; fi
           deno run --config scripts/forests/deno.json --v8-flags=--max-old-space-size=10240 -A \
-            scripts/forests/build_all.ts --input osm/forests.geojsonseq --out dist $ONLY
+            scripts/forests/build_all.ts --input osm/forests.geojsonseq --out dist --satellite osm/satellite.json $ONLY
 
       - name: Summary
         run: |
           shopt -s nullglob
           metas=(dist/forests-*.json)
           echo "### Ліси областей: ${#metas[@]}" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Область | Лісів | Малих (0,1–1 га) | З відомим типом | Розмір |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Область | Лісів | Малих (0,1–1 га) | З відомим типом | З них за супутником | Розмір |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
           for m in "${metas[@]}"; do
-            jq -r '"| \(.slug) | \(.features) | \(.stats.small) | \(.stats.typed) | \((.bytes/1048576*10|round)/10) МБ |"' "$m" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '"| \(.slug) | \(.features) | \(.stats.small) | \(.stats.typed) | \(.stats.satellite // 0) | \((.bytes/1048576*10|round)/10) МБ |"' "$m" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - uses: actions/upload-artifact@v4

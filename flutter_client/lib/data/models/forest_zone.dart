@@ -68,11 +68,12 @@ int _typeRank(ForestZone z) {
   return general.contains(t) ? 1 : 2;
 }
 
-/// Наскільки надійне джерело типу: порода з OSM > хвойний/листяний з OSM > назва.
+/// Наскільки надійне джерело типу: порода з OSM > хвойний/листяний з OSM >
+/// назва урочища ≈ супутник (за рівності виграє конкретніший тип — порода з назви).
 int _sourceRank(ForestZone z) => switch (z.typeSource) {
       'osm_species' => 3,
       'osm_leaf_type' => 2,
-      'osm_name' => 1,
+      'osm_name' || 'satellite' => 1,
       _ => z.forestType == null ? 0 : 2, // старі дані без джерела
     };
 
