@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' show ProvidedThemes;
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -21,6 +20,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/basemap_repository.dart' show BasemapMeta;
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
+import 'package:flutter_client/features/map/basemap_style.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
@@ -571,7 +571,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 VectorTileLayer(
                   key: ValueKey(localBasemap!.path),
                   tileProviders: TileProviders({'openmaptiles': vectorBasemap}),
-                  theme: _basemapTheme,
+                  theme: basemapTheme,
                   maximumZoom: 17,
                 )
               else
@@ -1023,9 +1023,6 @@ class _AnalysisPanel extends StatelessWidget {
 /// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
 /// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
 /// не перераховує контури заново.
-/// Стиль векторної карти області (схема OpenMapTiles; © OpenMapTiles, OSM Bright — BSD/CC-BY).
-final _basemapTheme = ProvidedThemes.lightTheme();
-
 /// Відкрита карта області з телефону (PMTiles) — одна на шлях файлу.
 final _basemapTilesProvider = FutureProvider.family<VectorTileProvider, String>(
   (ref, path) => PmTilesVectorTileProvider.fromSource(path),
