@@ -42,6 +42,10 @@ from zonal import NODATA, polygon_prob
 
 # Тип полігона за середньою ймовірністю «хвойний» — ті самі пороги, що в lib.ts (satelliteForestType).
 POLY_CONIFER_MIN, POLY_BROADLEAF_MAX = 60, 40
+# Публікувати карту лише за такої перевіреної точності (на лісах OSM, яких модель не бачила).
+MIN_BALANCED_ACCURACY = 0.75
+MIN_TEST_POLYGONS = 8
+MIN_TRAIN_PX = 300
 
 RES = 40.0  # м — роздільність сітки пілоту
 DST_CRS = "EPSG:32635"  # перевизначається в main() — зона UTM центру області
@@ -220,20 +224,28 @@ def season_median(bbox, season, transform, width, height, forest):
             f"{time.time() - t0:.0f} s")
         if cover < 0.10:
             continue  # майже вся дата — хмари/сніг: мало користі, а пам'ять займає
+        # Зберігаємо лише клітинки лісу: у степових областях ліс — кілька відсотків площі,
+        # а повні знімки великих областей не вміщаються в пам'ять раннера.
         for f in FEATURES:
-            stacks[f].append(mosaic[f].astype(np.float16))
+            stacks[f].append(mosaic[f][forest].astype(np.float16))
+    n_forest = int(np.count_nonzero(forest))
     out, cnt = {}, np.zeros((height, width), dtype=np.uint8)
+    cnt_forest = np.zeros(n_forest, dtype=np.uint8)
     for f in FEATURES:
-        st = np.stack(stacks[f]) if stacks[f] else np.full((1, height, width), np.nan, dtype=np.float16)
-        med = np.full((height, width), np.nan, dtype=np.float32)
-        for r0 in range(0, height, 256):  # по смугах — менше пам'яті
-            part = st[:, r0:r0 + 256].astype(np.float32)
+        st = np.stack(stacks[f]) if stacks[f] else np.full((1, n_forest), np.nan, dtype=np.float16)
+        med_forest = np.full(n_forest, np.nan, dtype=np.float32)
+        step = 2_000_000  # частинами — менше пам'яті
+        for c0 in range(0, n_forest, step):
+            part = st[:, c0:c0 + step].astype(np.float32)
             with np.errstate(all="ignore"):
-                med[r0:r0 + 256] = np.nanmedian(part, axis=0)
+                med_forest[c0:c0 + step] = np.nanmedian(part, axis=0)
             if f == "ndvi":
-                cnt[r0:r0 + 256] = np.count_nonzero(~np.isnan(part), axis=0)
+                cnt_forest[c0:c0 + step] = np.count_nonzero(~np.isnan(part), axis=0)
+        med = np.full((height, width), np.nan, dtype=np.float32)
+        med[forest] = med_forest
         out[f] = med
         stacks[f] = None
+    cnt[forest] = cnt_forest
     return out, cnt, len(dates)
 
 
@@ -392,6 +404,15 @@ def main():
         ys.append(np.full(idx.size, cls_id))
     X, y = np.concatenate(xs), np.concatenate(ys)
     log(f"training on {len(y)} px: conifer {np.sum(y == 1)}, broadleaf {np.sum(y == 2)}")
+    if min(np.sum(y == 1), np.sum(y == 2)) < MIN_TRAIN_PX:
+        # Без міток обох класів модель не навчити — карту не публікуємо.
+        report = {"bbox": bbox, "slug": a.slug, "labels": label_counts, "publishable": False,
+                  "publish_reason": f"замало навчальних міток OSM: хвойні {int(np.sum(y == 1))}, "
+                                    f"листяні {int(np.sum(y == 2))} пікселів",
+                  "minutes": round((time.time() - t0) / 60, 1)}
+        json.dump(report, open(os.path.join(a.out, "report.json"), "w"), indent=2, ensure_ascii=False)
+        log(report["publish_reason"])
+        return 0
     rf = RandomForestClassifier(n_estimators=150, max_depth=14, min_samples_leaf=20, class_weight="balanced",
                                 n_jobs=-1, random_state=0).fit(X, y)
     importances = dict(zip(names, (round(float(v), 3) for v in rf.feature_importances_)))
@@ -415,18 +436,30 @@ def main():
     poly_test = evaluate_polygons(test_shapes, prob8, transform)
     log(f"polygon-level test: {poly_test}")
 
+    # Запобіжник: карта йде в застосунок лише за достатньої перевіреної точності — інакше
+    # полігони області лишаються з типом лише з OSM (краще «невідомо», ніж вигадане).
+    n_test = {name: sum(poly_test["confusion_label_x_pred"][v - 1]) for v, name in ((1, "conifer"), (2, "broadleaf"))}
+    if min(n_test.values()) < MIN_TEST_POLYGONS:
+        publishable, publish_reason = False, f"замало перевірочних лісів OSM: {n_test}"
+    elif poly_test["balanced_accuracy"] < MIN_BALANCED_ACCURACY:
+        publishable, publish_reason = False, f"точність {poly_test['balanced_accuracy']:.0%} < {MIN_BALANCED_ACCURACY:.0%}"
+    else:
+        publishable, publish_reason = True, f"точність {poly_test['balanced_accuracy']:.0%}, перевірочних лісів {n_test}"
+    log(f"publishable: {publishable} — {publish_reason}")
+
     test = evaluate(cls, lab_test, forest)
     train = evaluate(cls, lab_train, forest)
     shares = {name: float(np.count_nonzero(cls == v) / max(1, np.count_nonzero(cls))) for v, name in
               ((1, "conifer"), (2, "broadleaf"), (3, "mixed"))}
     report = {
-        "bbox": bbox, "resolution_m": RES, "grid": [width, height],
+        "bbox": bbox, "slug": a.slug, "resolution_m": RES, "grid": [width, height],
         "scenes": {"leaf_on_dates": on_dates, "leaf_off_dates": off_dates},
         "forest_cells": int(forest.sum()), "classified_cells": int(np.count_nonzero(cls)),
         "coverage_of_forest": float(np.count_nonzero(cls) / max(1, forest.sum())),
         "model": "RandomForest", "feature_importances": importances,
         "mixed_band_prob_conifer": [t_lo, t_hi], "labels_max_ha": MAX_LABEL_HA, "labels": label_counts,
         "train": train, "test": test, "test_polygons": poly_test, "class_shares": shares,
+        "publishable": publishable, "publish_reason": publish_reason,
         "median_ndvi_by_label": {
             name: {"summer": float(np.nanmedian(on["ndvi"][lab_train == v])) if (lab_train == v).any() else None,
                    "leaf_off": float(np.nanmedian(off["ndvi"][lab_train == v])) if (lab_train == v).any() else None}

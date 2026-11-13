@@ -5,24 +5,32 @@ name: Forest type (Sentinel-2)
 # leaf_type / species. Карта потрібна збірці «Forests data»: полігонам без породи в OSM
 # вона ставить «хвойний / листяний / мішаний» з позначкою «за супутником».
 #
-#  * Вручну: Actions → Forest type → slug і bbox області, publish = true → карта йде в
-#    реліз «forest-type-data». Склад лісу за рік майже не змінюється — перераховувати
-#    досить раз на рік; після публікації перезапусти «Forests data» для області.
+#  * Вручну: Actions → Forest type → slug області або `all` (усі області паралельно; межі —
+#    з API регіонів), publish = true → карти в реліз «forest-type-data». Склад лісу за рік
+#    майже не змінюється — перераховувати досить раз на рік; після публікації перезапусти
+#    «Forests data».
+#  * Публікується лише карта, перевірена на лісах OSM, яких модель не бачила: точність
+#    ≥ 75% і досить перевірочних лісів (див. s2_leaf_type.py). Інакше область лишається з
+#    типом лише з OSM.
 #  * PR, що змінює скрипти: пробний прогін для Житомирщини → Artifacts (без публікації).
 # Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors.
 on:
   workflow_dispatch:
     inputs:
       slug:
-        description: 'slug області'
+        description: 'slug області або «all» — усі області'
         required: true
-        default: zhytomyrska
+        default: all
       bbox:
-        description: 'bbox області: west,south,east,north'
-        required: true
-        default: '27.19,49.58,29.74,51.69'
+        description: 'bbox west,south,east,north (необов''язково — інакше з API регіонів)'
+        required: false
+        default: ''
+      skip:
+        description: 'Пропустити області (через кому), напр. вже пораховані'
+        required: false
+        default: ''
       publish:
-        description: 'Опублікувати карту в реліз «forest-type-data»'
+        description: 'Опублікувати карти в реліз «forest-type-data»'
         type: boolean
         default: false
   pull_request:
@@ -34,20 +42,68 @@ permissions:
   contents: read
 
 concurrency:
-  group: forest-type-${{ github.event.inputs.slug || 'zhytomyrska' }}-${{ github.ref }}
+  group: forest-type-${{ github.event.inputs.slug || 'pr' }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  SLUG: ${{ github.event.inputs.slug || 'zhytomyrska' }}
-  BBOX: ${{ github.event.inputs.bbox || '27.19,49.58,29.74,51.69' }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
   PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
 
 jobs:
-  pilot:
+  regions:
+    name: Regions and bounds
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Supabase public config
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.bbox == ''
+        uses: ./.github/actions/supabase-public-config
+        with:
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      - name: List regions
+        id: list
+        env:
+          IN_SLUG: ${{ github.event.inputs.slug || 'zhytomyrska' }}
+          IN_BBOX: ${{ github.event_name == 'pull_request' && '27.19,49.58,29.74,51.69' || github.event.inputs.bbox }}
+          IN_SKIP: ${{ github.event.inputs.skip }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$IN_SLUG" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $IN_SLUG"; exit 1; }
+          if [ -n "$IN_BBOX" ]; then
+            printf '%s' "$IN_BBOX" | grep -Eq '^-?[0-9.]+,-?[0-9.]+,-?[0-9.]+,-?[0-9.]+$' || { echo "::error::Некоректний bbox"; exit 1; }
+            [ "$IN_SLUG" != "all" ] || { echo "::error::bbox — лише для однієї області"; exit 1; }
+            jq -cn --arg s "$IN_SLUG" --arg b "$IN_BBOX" '[{slug: $s, bbox: $b}]' > matrix.json
+          else
+            api() { curl -fsS --retry 4 --retry-delay 5 -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "$SUPABASE_URL/functions/v1/$1"; }
+            if [ "$IN_SLUG" = "all" ]; then slugs=$(api regions | jq -r '.data[].slug' | sort); else slugs="$IN_SLUG"; fi
+            echo '[]' > matrix.json
+            for s in $slugs; do
+              case ",$IN_SKIP," in *",$s,"*) echo "skip $s"; continue;; esac
+              b=$(api "v1-regions/$s/geometry?detail=low" | jq -r '.data.bbox | [(.[0] * 1000 | floor), (.[1] * 1000 | floor), (.[2] * 1000 | ceil), (.[3] * 1000 | ceil)] | map(. / 1000 | tostring) | join(",")')
+              jq -c --arg s "$s" --arg b "$b" '. + [{slug: $s, bbox: $b}]' matrix.json > m.tmp && mv m.tmp matrix.json
+            done
+          fi
+          cat matrix.json
+          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+
+  map:
+    name: Map ${{ matrix.region.slug }}
+    needs: regions
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        region: ${{ fromJson(needs.regions.outputs.matrix) }}
+    env:
+      SLUG: ${{ matrix.region.slug }}
+      BBOX: ${{ matrix.region.bbox }}
     steps:
       - uses: actions/checkout@v4
       - name: Check inputs
@@ -62,7 +118,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
           pip install -q rasterio pystac-client numpy pillow scikit-learn
 
-      # Мітки для перевірки — ліси OSM з породою / типом листя (той самий кеш, що й у Forests data).
+      # Мітки — ліси OSM з породою / типом листя (той самий кеш, що й у Forests data).
       - name: Cache key
         id: week
         run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
@@ -95,7 +151,7 @@ jobs:
         if: always()
         run: |
           if [ -f out/report.json ]; then
-            echo "### Тип лісу (Sentinel-2): $SLUG" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '"### \(.slug): \(if .publishable then "✅" else "⛔" end) \(.publish_reason)"' out/report.json >> "$GITHUB_STEP_SUMMARY"
             echo '```json' >> "$GITHUB_STEP_SUMMARY"; cat out/report.json >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -111,12 +167,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test -s "out/forest-type-$SLUG.tif"
           cp out/report.json "out/forest-type-$SLUG.report.json"
           gh release view forest-type-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create forest-type-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
               --title "Тип лісу за супутником (Sentinel-2)" \
               --notes "Карти ймовірності «хвойний ліс» (0–100 %, 255 — не ліс) для областей, 40 м. Генерує workflow «Forest type (Sentinel-2)»; використовує збірка «Forests data». Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors (ODbL)."
-          gh release upload forest-type-data "out/forest-type-$SLUG.tif" "out/forest-type-$SLUG.report.json" \
-            --clobber --repo "$GITHUB_REPOSITORY"
-          echo "Опубліковано карту: forest-type-$SLUG.tif. Далі — перезапусти «Forests data» для $SLUG." >> "$GITHUB_STEP_SUMMARY"
+          # Звіт — завжди (видно, чому область без карти); карта — лише якщо пройшла перевірку.
+          gh release upload forest-type-data "out/forest-type-$SLUG.report.json" --clobber --repo "$GITHUB_REPOSITORY"
+          if [ "$(jq -r .publishable out/report.json)" = "true" ]; then
+            gh release upload forest-type-data "out/forest-type-$SLUG.tif" --clobber --repo "$GITHUB_REPOSITORY"
+            echo "Опубліковано карту: forest-type-$SLUG.tif" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Стару карту, що вже не проходить перевірку, прибираємо, щоб збірка лісів її не взяла.
+            gh release delete-asset forest-type-data "forest-type-$SLUG.tif" --yes --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+            echo "Карту не опубліковано: $(jq -r .publish_reason out/report.json)" >> "$GITHUB_STEP_SUMMARY"
+          fi
