@@ -27,7 +27,8 @@ export const FOREST_TYPE_STYLE: Record<string, { label: string; color: string }>
   coniferous: { label: "Хвойний ліс", color: "#66bb6a" },
   mixed: { label: "Мішаний ліс", color: "#9e9e9e" },
 };
-export const UNKNOWN_FOREST_STYLE = { label: "Ліс (тип невідомий)", color: "#b0bec5" };
+/** Тип лісу невідомий — просто «Ліс», без «тип невідомий» (рішення PO 2026-11-14). */
+export const UNKNOWN_FOREST_STYLE = { label: "Ліс", color: "#b0bec5" };
 
 export function forestTypeStyle(type: unknown): { label: string; color: string } {
   return (typeof type === "string" && FOREST_TYPE_STYLE[type]) || UNKNOWN_FOREST_STYLE;

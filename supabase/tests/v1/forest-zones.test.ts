@@ -29,7 +29,7 @@ Deno.test("forest-zones: полігони тільки Home Region корист�
   assertEquals(body.data.features.length, 2);
   assertEquals(body.data.features[0].properties.type_label, "Сосновий ліс");
   assertEquals(body.data.features[0].properties.type_color, "#81c784");
-  assertEquals(body.data.features[1].properties.type_label, "Ліс (тип невідомий)");
+  assertEquals(body.data.features[1].properties.type_label, "Ліс");
 
   const rpc = db.calls.find((c) => c.key === "rpc.get_forest_zones_geojson_region")!;
   const p = rpc.args[0] as Record<string, unknown>;

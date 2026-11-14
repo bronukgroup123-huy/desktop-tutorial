@@ -50,13 +50,10 @@ Deno.test("forestFit: справді чужий ліс — вид не рост�
   assertEquals(forestFit(["grassland_only"], "mixed").score, 0);
 });
 
-Deno.test("forestFit: неповний збіг — обмежувальний фактор з підказкою «Уточніть ліс»", () => {
+Deno.test("forestFit: неповний збіг — рівень трохи нижчий, але без підпису «без породи»", () => {
   assert(isLimitingReason("forest group: mixed"));
   assert(isLimitingReason("forest group: coniferous"));
-  assertEquals(limitLabels(["forest group: mixed"], [], "high", null), [
-    "Ліс мішаний — невідомо, чи є тут потрібні дерева. Уточніть ліс",
-  ]);
-  assertEquals(limitLabels(["forest group: coniferous"], [], "high", null), [
-    "Хвойний ліс без відомої породи — уточніть ліс, щоб прогноз був точнішим",
-  ]);
+  // Порода невідома — не пишемо (рішення PO 2026-11-14); лише загальна підказка при «Середня» / «Низька».
+  assertEquals(limitLabels(["forest group: mixed"], [], "high", null), []);
+  assertEquals(limitLabels(["forest group: coniferous", "forest not confirmed — skip"], [], "high", null), []);
 });
