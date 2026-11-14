@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math' show Point;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -20,6 +22,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/map/basemap_style.dart';
+import 'package:flutter_client/features/map/offline_glyphs.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
@@ -80,15 +83,23 @@ class _OfflineMapGate extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (file == null) return _OfflineMapPrompt(geometry: geometry);
-    final tiles = ref.watch(_basemapTilesProvider(file.path));
-    return tiles.when(
+    final glyphs = ref.watch(_glyphsProvider);
+    return glyphs.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      // Файл не відкрився (пошкоджений) — видаляємо й пропонуємо завантажити знову.
-      error: (_, __) => _OfflineMapPrompt(geometry: geometry, broken: true),
-      data: (provider) => _RegionMap(
-        key: ValueKey(file.path),
+      error: (_, __) => Scaffold(
+        body: Center(
+          child: TextButton(
+            onPressed: () => ref.invalidate(_glyphsProvider),
+            child: const Text('Не вдалося підготувати карту. Повторити'),
+          ),
+        ),
+      ),
+      data: (glyphsDir) => _RegionMap(
+        // Нова версія файлу — нова карта (MapLibre перечитує файл і скидає кеш).
+        key: ValueKey('${file.path}@${file.meta.version}'),
         geometry: geometry,
-        basemap: provider,
+        pmtilesPath: file.path,
+        glyphsDir: glyphsDir,
         basemapVersion: file.meta.version,
       ),
     );
@@ -98,10 +109,9 @@ class _OfflineMapGate extends ConsumerWidget {
 /// «Офлайн карта»: по центру екрана — лише ця пропозиція; після завантаження з'являється
 /// карта разом з усім іншим.
 class _OfflineMapPrompt extends ConsumerStatefulWidget {
-  const _OfflineMapPrompt({required this.geometry, this.broken = false});
+  const _OfflineMapPrompt({required this.geometry});
 
   final RegionGeometry geometry;
-  final bool broken;
 
   @override
   ConsumerState<_OfflineMapPrompt> createState() => _OfflineMapPromptState();
@@ -122,7 +132,6 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
     });
     final repo = ref.read(basemapRepositoryProvider);
     try {
-      if (widget.broken) await repo.delete(_slug);
       await for (final p in repo.download(_slug, files)) {
         if (mounted) setState(() => _progress = p);
       }
@@ -195,10 +204,8 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  widget.broken
-                      ? 'Файл карти пошкоджено. Завантажте карту «${widget.geometry.name}» ще раз.'
-                      : 'Карта «${widget.geometry.name}» завантажується один раз і далі працює без '
-                          'інтернету — і в лісі теж. Краще через Wi-Fi.',
+                  'Карта «${widget.geometry.name}» завантажується один раз і далі працює без '
+                  'інтернету — і в лісі теж. Краще через Wi-Fi.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -217,12 +224,21 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
 }
 
 class _RegionMap extends ConsumerStatefulWidget {
-  const _RegionMap({super.key, required this.geometry, required this.basemap, required this.basemapVersion});
+  const _RegionMap({
+    super.key,
+    required this.geometry,
+    required this.pmtilesPath,
+    required this.glyphsDir,
+    required this.basemapVersion,
+  });
 
   final RegionGeometry geometry;
 
-  /// Офлайн карта області з телефону.
-  final VectorTileProvider basemap;
+  /// Файл офлайн карти області на телефоні (PMTiles: підкладка + ліси).
+  final String pmtilesPath;
+
+  /// Тека з гліфами шрифту підписів на телефоні.
+  final String glyphsDir;
 
   /// Версія офлайн карти на телефоні (для «Оновити офлайн карту»).
   final String basemapVersion;
@@ -232,7 +248,25 @@ class _RegionMap extends ConsumerStatefulWidget {
 }
 
 class _RegionMapState extends ConsumerState<_RegionMap> {
-  final MapController _mapController = MapController();
+  /// Карта MapLibre (малює відеокарта телефона); `null` — ще створюється.
+  ml.MapLibreMapController? _ml;
+
+  /// Стиль готовий — можна оновлювати шари застосунку (тук-туки, ділянки…).
+  bool _styleReady = false;
+
+  /// Стиль — один рядок на весь час життя карти (інакше MapLibre перезавантажує стиль).
+  late final String _style = jsonEncode(offlineMapStyle(
+    pmtilesPath: widget.pmtilesPath,
+    glyphsDir: widget.glyphsDir,
+    region: widget.geometry.polygons,
+  ));
+
+  // Що вже передано в шари карти — оновлюємо лише змінене.
+  Object? _pushedPicks;
+  Object? _pushedAreas;
+  Object? _pushedAnalysis;
+  Object? _pushedPin;
+  final Set<String> _icons = {};
   bool _locating = false;
   bool _startingPick = false;
 
@@ -248,13 +282,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   ({LatLng center, double zoom})? _fit;
   Size? _fitSize;
 
-  // Ліси МАЛЮЄ офлайн карта (шар `forests` у файлі карти — плитками, з кешем). Тут — лише
-  // ліси з файлу лісів і їхній індекс для визначника, аналізу ділянки й уточнення.
-  // Маска будується один раз — той самий віджет при кожній перебудові екрана.
+  // Ліси МАЛЮЄ офлайн карта (шар `forests` у файлі карти). Тут — лише ліси з файлу лісів
+  // і їхній індекс для визначника, аналізу ділянки й уточнення.
   List<ForestZone>? _lodFor;
   ForestLod? _lod;
-  RegionGeometry? _maskFor;
-  Widget _maskLayer = const SizedBox.shrink();
 
   /// Оновлення офлайн карти: частка 0…1; `null` — не качаємо.
   double? _updateProgress;
@@ -270,8 +301,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       await for (final p in ref.read(basemapRepositoryProvider).download(_g.slug, files)) {
         if (mounted) setState(() => _updateProgress = p);
       }
-      final local = await ref.read(basemapRepositoryProvider).local(_g.slug);
-      if (local != null) ref.invalidate(_basemapTilesProvider(local.path));
       ref.invalidate(localBasemapProvider(_g.slug));
       ref.invalidate(remoteBasemapProvider(_g.slug));
       if (mounted) showToast(context, 'Офлайн карту оновлено');
@@ -296,35 +325,22 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 
   /// Навести камеру на ділянку і скинути запит.
   void _focusArea(AnalysisArea area) {
-    final corners = squareAround(area.center, area.sizeKm);
-    _mapController.fitCamera(CameraFit.bounds(
-      bounds: LatLngBounds.fromPoints(corners),
-      padding: regionPadding + const EdgeInsets.only(bottom: 80),
+    final c = _ml;
+    if (c == null) return; // карта ще створюється — наведемо, коли буде готова
+    final b = LatLngBounds.fromPoints(squareAround(area.center, area.sizeKm));
+    c.animateCamera(ml.CameraUpdate.newLatLngBounds(
+      ml.LatLngBounds(southwest: _mlLatLng(b.southWest), northeast: _mlLatLng(b.northEast)),
+      left: regionPadding.left,
+      top: regionPadding.top,
+      right: regionPadding.right,
+      bottom: regionPadding.bottom + 80,
     ));
     ref.read(mapFocusAreaProvider.notifier).state = null;
   }
 
-  /// Світ із «дірками» на місці області — усе поза областю затемнене.
-  Polygon _maskPolygon() => Polygon(
-        points: const [
-          LatLng(-85, -180),
-          LatLng(-85, 180),
-          LatLng(85, 180),
-          LatLng(85, -180),
-        ],
-        holePointsList: [for (final p in _g.polygons) p.outer],
-        color: AppTheme.backgroundColor.withValues(alpha: 0.85),
-        borderColor: AppTheme.darkGreen,
-        borderStrokeWidth: 2,
-      );
+  static ml.LatLng _mlLatLng(LatLng p) => ml.LatLng(p.latitude, p.longitude);
 
-  Widget _mask() {
-    if (!identical(_maskFor, _g)) {
-      _maskFor = _g;
-      _maskLayer = PolygonLayer(polygons: [_maskPolygon()], simplificationTolerance: 0, polygonLabels: false);
-    }
-    return _maskLayer;
-  }
+  void _moveTo(LatLng p, double zoom) => _ml?.animateCamera(ml.CameraUpdate.newLatLngZoom(_mlLatLng(p), zoom));
 
   /// Індекс лісів для тапу (визначник лісу) — один раз на набір лісів. Повний файл області
   /// вже підготовлено в ізоляті; запасні плитки — тут.
@@ -333,6 +349,40 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     if (identical(zones, _lodFor)) return;
     _lodFor = zones;
     _lod = load?.lod ?? buildForestLod(zones);
+  }
+
+  /// Тап по карті MapLibre: спершу тук-тук чи підпис ділянки під пальцем, далі — як раніше.
+  Future<void> _onMapClick(Point<double> screen, ml.LatLng at) async {
+    final point = LatLng(at.latitude, at.longitude);
+    final c = _ml;
+    if (c != null && _styleReady && !_analysisMode) {
+      try {
+        final hits = await c.queryRenderedFeatures(screen, [MapLayers.picks, MapLayers.areaLabels], null);
+        for (final h in hits) {
+          final props = _propsOf(h);
+          final pickId = props['pick_id'];
+          if (pickId is String) {
+            if (mounted) showPickCard(context, pickId);
+            return;
+          }
+          final areaId = props['area_id'];
+          if (areaId is String) {
+            final area = ref.read(analysisOverviewProvider).valueOrNull?.areaById(areaId);
+            if (area != null) _openArea(area);
+            return;
+          }
+        }
+      } catch (_) {
+        // запит до карти не вдався — обробляємо тап як звичайний
+      }
+    }
+    if (mounted) _onMapTap(point);
+  }
+
+  static Map<String, dynamic> _propsOf(Object? feature) {
+    final f = feature is String ? jsonDecode(feature) : feature;
+    final props = f is Map ? f['properties'] : null;
+    return props is Map ? props.cast<String, dynamic>() : const {};
   }
 
   /// Тап по карті: у режимі аналізу — центр ділянки; інакше — визначник лісу
@@ -345,7 +395,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final zones = _lodFor;
     final hits = (zones == null || _lod == null)
         ? const <ForestZone>[]
-        : _lod!.zonesAt(point, zones, level: forestLodLevelFor(_mapController.camera.zoom));
+        : _lod!.zonesAt(point, zones, level: forestLodLevelFor(_ml?.cameraPosition?.zoom ?? 12));
     if (hits.isEmpty) {
       if (_forestLabel != null) setState(() => _forestLabel = null);
       return;
@@ -365,7 +415,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     if (rotated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        if (_mapController.camera.zoom < fit.zoom) _mapController.move(fit.center, fit.zoom);
+        if ((_ml?.cameraPosition?.zoom ?? fit.zoom) < fit.zoom) _moveTo(fit.center, fit.zoom);
       });
     }
     return fit;
@@ -374,7 +424,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   /// Кнопка «Вся область».
   void _showWholeRegion() {
     final fit = _fit;
-    if (fit != null) _mapController.move(fit.center, fit.zoom);
+    if (fit != null) _moveTo(fit.center, fit.zoom);
   }
 
   /// Місцезнаходження телефона. `null` — недоступне (пояснення вже показано).
@@ -408,7 +458,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         showToast(context, 'Ви поза своєю областю (${_g.name})');
         return;
       }
-      _mapController.move(here, 14);
+      _moveTo(here, 14);
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -508,117 +558,129 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     context.go('/forecast');
   }
 
-  List<Polygon> _areaSquares(List<AnalysisArea> areas) => [
-        for (final a in areas)
-          Polygon(
-            points: squareAround(a.center, a.sizeKm),
-            color: AppTheme.darkGreen.withValues(alpha: 0.06),
-            borderColor: AppTheme.darkGreen,
-            borderStrokeWidth: 2,
-            pattern: StrokePattern.dashed(segments: const [10, 6]),
-          ),
-      ];
+  // ─── Шари застосунку на карті (GeoJSON) ────────────────────────────────────
 
-  List<Marker> _areaLabels(List<AnalysisArea> areas) => [
-        for (final a in areas)
-          Marker(
-            point: squareAround(a.center, a.sizeKm)[3], // північно-західний кут
-            width: 150,
-            height: 34,
-            alignment: Alignment.bottomRight,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                color: AppTheme.darkGreen,
-                borderRadius: BorderRadius.circular(14),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () => _openArea(a),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    child: Text(
-                      'Ділянка ${a.slot} · прогноз',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ];
+  static List<List<double>> _ring(List<LatLng> corners) =>
+      [for (final p in [...corners, corners.first]) [p.longitude, p.latitude]];
 
-  /// Підпис визначника лісу над точкою дотику: тип (і вік), площа, звідки тип.
-  Marker _forestLabelMarker(LatLng point, ForestZone zone) {
-    final title = zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.';
-    final details = [if (zone.areaLabel != null) zone.areaLabel!, if (zone.typeSourceLabel != null) zone.typeSourceLabel!];
-    return Marker(
-      point: point,
-      width: 260,
-      height: details.isEmpty ? 56 : 92,
-      alignment: Alignment.topCenter,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: GestureDetector(
-          onTap: () => setState(() => _forestLabel = null),
-          child: Container(
-            key: const ValueKey('forest-label'),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: zone.typeColor, width: 2),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6)],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.forest_rounded, size: 16, color: zone.typeColor),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        title,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
-                      ),
-                    ),
-                  ],
-                ),
-                for (final d in details)
-                  Text(
-                    d,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.65)),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  static String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
+  Map<String, dynamic> _areasGeoJson(List<AnalysisArea> areas) => {
+        'type': 'FeatureCollection',
+        'features': [
+          for (final a in areas) ...[
+            {
+              'type': 'Feature',
+              'properties': {'area_id': a.id},
+              'geometry': {
+                'type': 'Polygon',
+                'coordinates': [_ring(squareAround(a.center, a.sizeKm))],
+              },
+            },
+            {
+              'type': 'Feature',
+              // північно-західний кут — підпис «Ділянка N · прогноз» (тап — відкрити прогноз)
+              'properties': {'area_id': a.id, 'label': 'Ділянка ${a.slot} · прогноз'},
+              'geometry': {
+                'type': 'Point',
+                'coordinates': [squareAround(a.center, a.sizeKm)[3].longitude, squareAround(a.center, a.sizeKm)[3].latitude],
+              },
+            },
+          ],
+        ],
+      };
+
+  Map<String, dynamic> _squareGeoJson(List<LatLng>? square) => square == null
+      ? emptyFeatureCollection
+      : {
+          'type': 'Feature',
+          'properties': <String, Object>{},
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [_ring(square)],
+          },
+        };
+
+  Map<String, dynamic> _pinGeoJson(({LatLng point, ForestZone zone})? label) => label == null
+      ? emptyFeatureCollection
+      : {
+          'type': 'Feature',
+          'properties': {'color': _hex(label.zone.typeColor)},
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [label.point.longitude, label.point.latitude],
+          },
+        };
+
+  static String _iconName(MapPick p) =>
+      'pick-${p.markerColor.toARGB32()}-${p.visibility == PickVisibility.private ? 1 : 0}';
+
+  Future<Map<String, dynamic>> _picksGeoJson(List<MapPick> picks) async {
+    final c = _ml!;
+    for (final p in picks) {
+      final name = _iconName(p);
+      if (_icons.add(name)) {
+        final png = await mushroomMarkerPng(color: p.markerColor, isPrivate: p.visibility == PickVisibility.private);
+        await c.addImage(name, png, false, 3);
+      }
+    }
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        for (final p in picks)
+          {
+            'type': 'Feature',
+            'properties': {'pick_id': p.id, 'icon': _iconName(p)},
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [p.point.longitude, p.point.latitude],
+            },
+          },
+      ],
+    };
   }
 
-  List<Marker> _pickMarkers(List<MapPick> picks) => [
-        for (final p in picks)
-          Marker(
-            point: p.point,
-            width: 40,
-            height: 44,
-            alignment: Alignment.topCenter, // ніжка гриба — у точці на карті
-            child: GestureDetector(
-              onTap: () => showPickCard(context, p.id),
-              child: MushroomMarker(
-                color: p.markerColor,
-                isPrivate: p.visibility == PickVisibility.private,
-                tooltip: '${p.nameLabel} · ${p.statusLabel}',
-              ),
-            ),
-          ),
-      ];
+  /// Передати в карту лише те, що змінилося (без перемальовування всього щокадру).
+  Future<void> _syncOverlays({
+    required List<MapPick> picks,
+    required List<AnalysisArea> areas,
+    required List<LatLng>? square,
+    required ({LatLng point, ForestZone zone})? pin,
+  }) async {
+    final c = _ml;
+    if (c == null || !_styleReady || !mounted) return;
+    try {
+      if (!identical(picks, _pushedPicks)) {
+        _pushedPicks = picks;
+        await c.setGeoJsonSource(MapSources.picks, await _picksGeoJson(picks));
+      }
+      if (!identical(areas, _pushedAreas)) {
+        _pushedAreas = areas;
+        await c.setGeoJsonSource(MapSources.areas, _areasGeoJson(areas));
+      }
+      final squareKey = square == null ? null : '${square.first}${square[2]}';
+      if (squareKey != _pushedAnalysis) {
+        _pushedAnalysis = squareKey;
+        await c.setGeoJsonSource(MapSources.analysis, _squareGeoJson(square));
+      }
+      if (!identical(pin, _pushedPin)) {
+        _pushedPin = pin;
+        await c.setGeoJsonSource(MapSources.forestPin, _pinGeoJson(pin));
+      }
+    } catch (e) {
+      debugPrint('[map] overlay sync failed: $e');
+    }
+  }
+
+  void _onStyleLoaded() {
+    _styleReady = true;
+    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = null;
+    _icons.clear();
+    if (!mounted) return;
+    setState(() {}); // перебудова передасть шари застосунку
+    final area = ref.read(mapFocusAreaProvider);
+    if (area != null) _focusArea(area);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -644,65 +706,45 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
+    // Шари застосунку на карті — після кадру й лише змінене.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel),
+    );
 
     return Scaffold(
       body: Stack(
         children: [
           LayoutBuilder(builder: (context, box) {
             final fit = _fitFor(box.biggest, bounds);
-            return FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: fit.center,
-              initialZoom: fit.zoom,
-              // Віддалитися далі, ніж уміщується вся область, не можна.
-              minZoom: fit.zoom,
-              // Ліси спрощені до ~20 м — далі наближати немає сенсу.
-              maxZoom: 17,
-              // «Острів»: за кордон видно лише невеликий відступ; камера не блокується.
-              cameraConstraint: RegionCameraConstraint(bounds: bounds),
-              // Без випадкового обертання двома пальцями — північ завжди вгорі.
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            return ml.MapLibreMap(
+              styleString: _style,
+              initialCameraPosition: ml.CameraPosition(target: _mlLatLng(fit.center), zoom: fit.zoom),
+              // Віддалитися далі, ніж уміщується вся область, не можна; ближче z17 — без сенсу.
+              minMaxZoomPreference: ml.MinMaxZoomPreference(fit.zoom, 17),
+              // «Острів»: центр карти не виходить за межі області.
+              cameraTargetBounds: ml.CameraTargetBounds(
+                ml.LatLngBounds(southwest: _mlLatLng(bounds.southWest), northeast: _mlLatLng(bounds.northEast)),
               ),
-              // У режимі аналізу дотик обирає центр ділянки; інакше — визначник лісу.
-              onTap: (tapPosition, point) => _onMapTap(point),
-            ),
-            children: [
-              // Офлайн карта області з телефону — без інтернету й без серверів плиток.
-              VectorTileLayer(
-                key: ValueKey(widget.basemapVersion),
-                tileProviders: TileProviders({'openmaptiles': widget.basemap}),
-                theme: basemapTheme,
-                maximumZoom: 17,
-                // Більший кеш намальованих плиток — повернення до вже переглянутого місця
-                // не перемальовує його заново.
-                memoryTileCacheMaxSize: 48 * 1024 * 1024,
-                memoryTileDataCacheMaxSize: 64,
-              ),
-              _mask(),
-              if (areas.isNotEmpty) PolygonLayer(polygons: _areaSquares(areas)),
-              if (square != null)
-                PolygonLayer(
-                  polygons: [
-                    Polygon(
-                      points: square,
-                      color: AppTheme.accentOrange.withValues(alpha: 0.18),
-                      borderColor: AppTheme.accentOrange,
-                      borderStrokeWidth: 2.5,
-                    ),
-                  ],
-                ),
-              MarkerLayer(markers: _pickMarkers(picks)),
-              if (areas.isNotEmpty) MarkerLayer(markers: _areaLabels(areas)),
-              if (forestLabel != null) MarkerLayer(markers: [_forestLabelMarker(forestLabel.point, forestLabel.zone)]),
-              const RichAttributionWidget(
-                alignment: AttributionAlignment.bottomLeft,
-                attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
-              ),
-            ],
-          );
+              // Без випадкового обертання й нахилу — північ завжди вгорі.
+              rotateGesturesEnabled: false,
+              tiltGesturesEnabled: false,
+              compassEnabled: false,
+              trackCameraPosition: true,
+              attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
+              attributionButtonMargins: const Point(12, 8),
+              onMapCreated: (c) => _ml = c,
+              onStyleLoadedCallback: _onStyleLoaded,
+              // У режимі аналізу дотик обирає центр ділянки; інакше — тук-тук, ділянка або ліс.
+              onMapClick: _onMapClick,
+            );
           }),
+          if (forestLabel != null)
+            Positioned(
+              left: 16,
+              right: 80,
+              top: MediaQuery.of(context).padding.top + (showError ? 136 : 76),
+              child: _ForestCard(zone: forestLabel.zone, onClose: () => setState(() => _forestLabel = null)),
+            ),
           _Header(title: _g.name, loading: loading, offline: offline),
           if (forests.hasError && !forests.isLoading)
             _ErrorBanner(
@@ -1115,8 +1157,60 @@ class _AnalysisPanel extends StatelessWidget {
   }
 }
 
-/// Відкрита офлайн карта області з телефону (PMTiles) — одна на шлях файлу.
-final _basemapTilesProvider = FutureProvider.family<VectorTileProvider, String>(
-  (ref, path) => PmTilesVectorTileProvider.fromSource(path),
-);
+/// Гліфи шрифту підписів офлайн карти — на диску (копіюються з ресурсів один раз).
+final _glyphsProvider = FutureProvider<String>((ref) => ensureOfflineGlyphs());
+
+/// Визначник лісу: тип (і вік), площа, звідки тип. Тап — закрити.
+class _ForestCard extends StatelessWidget {
+  const _ForestCard({required this.zone, required this.onClose});
+
+  final ForestZone zone;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.';
+    final details = [if (zone.areaLabel != null) zone.areaLabel!, if (zone.typeSourceLabel != null) zone.typeSourceLabel!];
+    return GestureDetector(
+      onTap: onClose,
+      child: Container(
+        key: const ValueKey('forest-label'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: zone.typeColor, width: 2),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6)],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.forest_rounded, size: 16, color: zone.typeColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+                  ),
+                ),
+                Icon(Icons.close_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.5)),
+              ],
+            ),
+            for (final d in details)
+              Text(
+                d,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 

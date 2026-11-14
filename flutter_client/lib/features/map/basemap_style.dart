@@ -1,27 +1,48 @@
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' show Theme, ThemeReader;
+import 'package:flutter_client/data/models/geo.dart';
 
-/// Стиль офлайн карти області (ADR-020) — власний, компактний, під грибника.
+/// Стиль офлайн карти області для MapLibre (ADR-020) — власний, компактний, під грибника.
 ///
-/// Чому не стандартний OSM Bright: у ньому десятки шарів (тунелі, POI, будівлі, стрілки
-/// одностороннього руху) — це гальмувало малювання; назви міст були англійською, а підписи
-/// річок і сіл з'являлися на будь-якому масштабі й захаращували карту.
+/// Карту малює MapLibre Native на відеокарті телефона (плавне наближення, підписи без
+/// накладань); дані — файл офлайн карти (PMTiles) і шрифт — з телефона, без інтернету.
 ///
 /// * Ліси OSM підкладки не малюються — замість них шар `forests`: наші ліси з типами й
-///   кольорами (ADR-015 §15.5), вбудовані у файл офлайн карти. Малюються плитками разом із
-///   картою — під дорогами й підписами, з кешем (раніше — тисячі контурів щокадру, лагало).
+///   кольорами (ADR-015 §15.5), вбудовані у файл офлайн карти; під дорогами й підписами.
 /// * Усі підписи в одному форматі: той самий шрифт, темний текст з білою обвідкою; річки —
 ///   тим самим шрифтом, лише синім. Назва — українська (`name:uk`), інакше `name`.
-/// * Підписи з'являються за масштабом: міста — з z6, селища — з z9, села — з z11,
-///   хутори — з z13; річки — з z11, струмки й канали — з z14; вулиці — з z14.
+/// * Підписи за масштабом: міста — з z6, селища — з z9, села — з z11, хутори — з z13;
+///   річки — з z11, струмки й канали — з z14; вулиці — з z14.
+/// * Поверх карти — шари застосунку (дані оновлює екран карти через GeoJSON-джерела):
+///   маска «поза областю», ділянки аналізу, квадрат нової ділянки, тук-туки, позначка
+///   визначника лісу.
 ///
-/// Дані: © OpenStreetMap contributors (ODbL); схема OpenMapTiles.
-final Theme basemapTheme = ThemeReader().read(basemapStyle());
+/// Дані: © OpenStreetMap contributors (ODbL); схема OpenMapTiles; шрифт Noto Sans (SIL OFL 1.1).
 
-const _source = 'openmaptiles';
-const _font = ['Roboto Regular'];
+const basemapSource = 'openmaptiles';
+
+/// Назва шрифту в стилі = назва теки з гліфами на телефоні (див. offline_glyphs.dart).
+const glyphFontStack = 'Noto';
+
+/// GeoJSON-джерела, які оновлює екран карти.
+abstract final class MapSources {
+  static const areas = 'app_areas';
+  static const analysis = 'app_analysis';
+  static const picks = 'app_picks';
+  static const forestPin = 'app_forest_pin';
+}
+
+/// Шари, по яких обробляється тап.
+abstract final class MapLayers {
+  static const picks = 'app_picks';
+  static const areaLabels = 'app_area_labels';
+}
+
+const _font = [glyphFontStack];
 const _textColor = '#2f3a33';
 const _waterText = '#3a6f96';
 const _halo = '#ffffff';
+const _darkGreen = '#14532d';
+const _orange = '#d97706';
+const _maskColor = '#f4f1e1';
 
 /// Назва українською; якщо її немає — назва з OpenStreetMap.
 const List<Object> _name = [
@@ -29,6 +50,8 @@ const List<Object> _name = [
   ['get', 'name:uk'],
   ['get', 'name'],
 ];
+
+const Map<String, dynamic> emptyFeatureCollection = {'type': 'FeatureCollection', 'features': <Object>[]};
 
 List<Object> _zoomSize(num z1, num s1, num z2, num s2) => [
       'interpolate',
@@ -52,7 +75,7 @@ Map<String, dynamic> _line(
     {
       'id': id,
       'type': 'line',
-      'source': _source,
+      'source': basemapSource,
       'source-layer': layer,
       'minzoom': minzoom,
       'filter': filter,
@@ -76,7 +99,7 @@ Map<String, dynamic> _label(
     {
       'id': id,
       'type': 'symbol',
-      'source': _source,
+      'source': basemapSource,
       'source-layer': layer,
       'minzoom': minzoom,
       'filter': filter,
@@ -90,121 +113,239 @@ Map<String, dynamic> _label(
       'paint': {'text-color': color, 'text-halo-color': _halo, 'text-halo-width': 1.4},
     };
 
-/// Стиль у форматі Mapbox GL Style (підмножина, яку підтримує vector_tile_renderer).
-Map<String, dynamic> basemapStyle() => {
+/// Світ із «дірками» на місці області — усе поза областю притінене.
+Map<String, dynamic> regionMaskGeoJson(List<GeoPolygon> region) => {
+      'type': 'Feature',
+      'properties': <String, Object>{},
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [
+          [
+            [-180, -85],
+            [180, -85],
+            [180, 85],
+            [-180, 85],
+            [-180, -85],
+          ],
+          for (final p in region) [for (final c in p.outer) [c.longitude, c.latitude]],
+        ],
+      },
+    };
+
+/// Стиль офлайн карти: [pmtilesPath] — файл карти області на телефоні, [glyphsDir] — тека
+/// з гліфами шрифту, [region] — кордон області (маска «поза областю»).
+Map<String, dynamic> offlineMapStyle({
+  required String pmtilesPath,
+  required String glyphsDir,
+  required List<GeoPolygon> region,
+}) =>
+    {
       'version': 8,
       'name': 'mushroom-radar-offline',
+      'glyphs': 'file://$glyphsDir/{fontstack}/{range}.pbf',
       'sources': {
-        _source: {'type': 'vector'},
+        basemapSource: {
+          'type': 'vector',
+          'url': 'pmtiles://file://$pmtilesPath',
+          'attribution': '© OpenStreetMap contributors',
+        },
+        'app_mask': {'type': 'geojson', 'data': regionMaskGeoJson(region)},
+        MapSources.areas: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.analysis: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.picks: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.forestPin: {'type': 'geojson', 'data': emptyFeatureCollection},
       },
       'layers': [
-        {
-          'id': 'background',
-          'type': 'background',
-          'paint': {'background-color': '#f3f1ec'},
-        },
-        // ─── Площі ───────────────────────────────────────────────────────────
-        {
-          'id': 'landcover_fields',
-          'type': 'fill',
-          'source': _source,
-          'source-layer': 'landcover',
-          'filter': ['in', 'class', 'farmland', 'grass'],
-          'paint': {'fill-color': '#eef0e2'},
-        },
-        {
-          'id': 'landcover_wetland',
-          'type': 'fill',
-          'source': _source,
-          'source-layer': 'landcover',
-          'minzoom': 9,
-          'filter': ['==', 'class', 'wetland'],
-          'paint': {'fill-color': '#e2ebe3'},
-        },
-        {
-          'id': 'landuse_residential',
-          'type': 'fill',
-          'source': _source,
-          'source-layer': 'landuse',
-          'minzoom': 8,
-          'filter': ['in', 'class', 'residential', 'suburb', 'neighbourhood', 'commercial', 'industrial'],
-          'paint': {'fill-color': '#e7e3dd'},
-        },
-        {
-          'id': 'water',
-          'type': 'fill',
-          'source': _source,
-          'source-layer': 'water',
-          'paint': {'fill-color': '#a9cbe0'},
-        },
-        // ─── Наші ліси з типами (колір — із файлу лісів) ───────────────────────
-        {
-          'id': 'forests',
-          'type': 'fill',
-          'source': _source,
-          'source-layer': 'forests',
-          'paint': {
-            'fill-color': ['coalesce', ['get', 'type_color'], '#b0bec5'],
-            'fill-opacity': 0.55,
-          },
-        },
-        {
-          'id': 'forests_outline',
-          'type': 'line',
-          'source': _source,
-          'source-layer': 'forests',
-          'minzoom': 12,
-          'paint': {
-            'line-color': ['coalesce', ['get', 'type_color'], '#b0bec5'],
-            'line-width': 0.8,
-          },
-        },
-        // ─── Річки ───────────────────────────────────────────────────────────
-        _line('waterway_river', 'waterway', ['==', 'class', 'river'],
-            minzoom: 8, color: '#8fbbd8', width: _zoomSize(8, 0.8, 14, 2.4)),
-        _line(
-            'waterway_other',
-            'waterway',
-            ['in', 'class', 'stream', 'canal', 'drain', 'ditch'],
-            minzoom: 12,
-            color: '#a3c7df',
-            width: _zoomSize(12, 0.5, 14, 1.0)),
-        // ─── Дороги ──────────────────────────────────────────────────────────
-        _line('rail', 'transportation', ['==', 'class', 'rail'],
-            minzoom: 10, color: '#b6b0a8', width: _zoomSize(10, 0.6, 14, 1.2)),
-        _line('road_track', 'transportation', ['in', 'class', 'track', 'path'],
-            minzoom: 13, color: '#a88f73', width: _zoomSize(13, 0.6, 15, 1.2), dash: [2, 1.5]),
-        _line('road_minor', 'transportation', ['in', 'class', 'minor', 'service'],
-            minzoom: 12, color: '#d6cfc4', width: _zoomSize(12, 0.6, 15, 2.5)),
-        _line('road_secondary', 'transportation', ['in', 'class', 'secondary', 'tertiary'],
-            minzoom: 9, color: '#f3dca3', width: _zoomSize(9, 0.7, 15, 3.5)),
-        _line('road_primary', 'transportation', ['==', 'class', 'primary'],
-            minzoom: 7, color: '#efc57c', width: _zoomSize(7, 0.8, 15, 4)),
-        _line('road_trunk', 'transportation', ['in', 'class', 'motorway', 'trunk'],
-            minzoom: 5, color: '#e9a95e', width: _zoomSize(5, 0.8, 15, 4.5)),
-        // ─── Кордон країни ───────────────────────────────────────────────────
-        _line('boundary_country', 'boundary', ['==', 'admin_level', 2],
-            minzoom: 0, color: '#8a8a8a', width: _zoomSize(5, 1, 12, 2), dash: [3, 2]),
-        // ─── Підписи (усі — одного формату) ──────────────────────────────────
-        _label('label_road', 'transportation_name', ['has', 'name'],
-            minzoom: 14, size: _zoomSize(14, 10, 17, 12), alongLine: true),
-        _label('label_river', 'waterway', ['==', 'class', 'river'],
-            minzoom: 11, size: _zoomSize(11, 10.5, 15, 12.5), color: _waterText, alongLine: true),
-        _label('label_stream', 'waterway', ['!=', 'class', 'river'],
-            minzoom: 14, size: _zoomSize(14, 10, 17, 11.5), color: _waterText, alongLine: true),
-        _label('label_lake', 'water_name', ['has', 'name'],
-            minzoom: 12, size: _zoomSize(12, 10.5, 16, 12.5), color: _waterText),
-        _label(
-            'label_hamlet',
-            'place',
-            ['in', 'class', 'hamlet', 'isolated_dwelling', 'locality', 'suburb', 'neighbourhood', 'quarter'],
-            minzoom: 13,
-            size: _zoomSize(13, 10.5, 16, 12.5)),
-        _label('label_village', 'place', ['==', 'class', 'village'],
-            minzoom: 11, size: _zoomSize(11, 11, 15, 13.5)),
-        _label('label_town', 'place', ['==', 'class', 'town'],
-            minzoom: 9, size: _zoomSize(9, 12, 14, 15)),
-        _label('label_city', 'place', ['==', 'class', 'city'],
-            minzoom: 6, size: _zoomSize(6, 13, 12, 17)),
+        ...basemapLayers(),
+        ...appLayers(),
       ],
     };
+
+/// Шари карти-підкладки (дані — з файлу офлайн карти).
+List<Map<String, dynamic>> basemapLayers() => [
+      {
+        'id': 'background',
+        'type': 'background',
+        'paint': {'background-color': '#f3f1ec'},
+      },
+      // ─── Площі ───────────────────────────────────────────────────────────
+      {
+        'id': 'landcover_fields',
+        'type': 'fill',
+        'source': basemapSource,
+        'source-layer': 'landcover',
+        'filter': ['in', 'class', 'farmland', 'grass'],
+        'paint': {'fill-color': '#eef0e2'},
+      },
+      {
+        'id': 'landcover_wetland',
+        'type': 'fill',
+        'source': basemapSource,
+        'source-layer': 'landcover',
+        'minzoom': 9,
+        'filter': ['==', 'class', 'wetland'],
+        'paint': {'fill-color': '#e2ebe3'},
+      },
+      {
+        'id': 'landuse_residential',
+        'type': 'fill',
+        'source': basemapSource,
+        'source-layer': 'landuse',
+        'minzoom': 8,
+        'filter': ['in', 'class', 'residential', 'suburb', 'neighbourhood', 'commercial', 'industrial'],
+        'paint': {'fill-color': '#e7e3dd'},
+      },
+      {
+        'id': 'water',
+        'type': 'fill',
+        'source': basemapSource,
+        'source-layer': 'water',
+        'paint': {'fill-color': '#a9cbe0'},
+      },
+      // ─── Наші ліси з типами (колір — із файлу лісів) ───────────────────────
+      {
+        'id': 'forests',
+        'type': 'fill',
+        'source': basemapSource,
+        'source-layer': 'forests',
+        'paint': {
+          'fill-color': ['coalesce', ['get', 'type_color'], '#b0bec5'],
+          'fill-opacity': 0.55,
+        },
+      },
+      {
+        'id': 'forests_outline',
+        'type': 'line',
+        'source': basemapSource,
+        'source-layer': 'forests',
+        'minzoom': 12,
+        'paint': {
+          'line-color': ['coalesce', ['get', 'type_color'], '#b0bec5'],
+          'line-width': 0.8,
+        },
+      },
+      // ─── Річки ───────────────────────────────────────────────────────────
+      _line('waterway_river', 'waterway', ['==', 'class', 'river'],
+          minzoom: 8, color: '#8fbbd8', width: _zoomSize(8, 0.8, 14, 2.4)),
+      _line('waterway_other', 'waterway', ['in', 'class', 'stream', 'canal', 'drain', 'ditch'],
+          minzoom: 12, color: '#a3c7df', width: _zoomSize(12, 0.5, 14, 1.0)),
+      // ─── Дороги ──────────────────────────────────────────────────────────
+      _line('rail', 'transportation', ['==', 'class', 'rail'],
+          minzoom: 10, color: '#b6b0a8', width: _zoomSize(10, 0.6, 14, 1.2)),
+      _line('road_track', 'transportation', ['in', 'class', 'track', 'path'],
+          minzoom: 13, color: '#a88f73', width: _zoomSize(13, 0.6, 15, 1.2), dash: [2, 1.5]),
+      _line('road_minor', 'transportation', ['in', 'class', 'minor', 'service'],
+          minzoom: 12, color: '#d6cfc4', width: _zoomSize(12, 0.6, 15, 2.5)),
+      _line('road_secondary', 'transportation', ['in', 'class', 'secondary', 'tertiary'],
+          minzoom: 9, color: '#f3dca3', width: _zoomSize(9, 0.7, 15, 3.5)),
+      _line('road_primary', 'transportation', ['==', 'class', 'primary'],
+          minzoom: 7, color: '#efc57c', width: _zoomSize(7, 0.8, 15, 4)),
+      _line('road_trunk', 'transportation', ['in', 'class', 'motorway', 'trunk'],
+          minzoom: 5, color: '#e9a95e', width: _zoomSize(5, 0.8, 15, 4.5)),
+      // ─── Кордон країни ───────────────────────────────────────────────────
+      _line('boundary_country', 'boundary', ['==', 'admin_level', 2],
+          minzoom: 0, color: '#8a8a8a', width: _zoomSize(5, 1, 12, 2), dash: [3, 2]),
+      // ─── Підписи (усі — одного формату) ──────────────────────────────────
+      _label('label_road', 'transportation_name', ['has', 'name'],
+          minzoom: 14, size: _zoomSize(14, 10, 17, 12), alongLine: true),
+      _label('label_river', 'waterway', ['==', 'class', 'river'],
+          minzoom: 11, size: _zoomSize(11, 10.5, 15, 12.5), color: _waterText, alongLine: true),
+      _label('label_stream', 'waterway', ['!=', 'class', 'river'],
+          minzoom: 14, size: _zoomSize(14, 10, 17, 11.5), color: _waterText, alongLine: true),
+      _label('label_lake', 'water_name', ['has', 'name'],
+          minzoom: 12, size: _zoomSize(12, 10.5, 16, 12.5), color: _waterText),
+      _label('label_hamlet', 'place',
+          ['in', 'class', 'hamlet', 'isolated_dwelling', 'locality', 'suburb', 'neighbourhood', 'quarter'],
+          minzoom: 13, size: _zoomSize(13, 10.5, 16, 12.5)),
+      _label('label_village', 'place', ['==', 'class', 'village'], minzoom: 11, size: _zoomSize(11, 11, 15, 13.5)),
+      _label('label_town', 'place', ['==', 'class', 'town'], minzoom: 9, size: _zoomSize(9, 12, 14, 15)),
+      _label('label_city', 'place', ['==', 'class', 'city'], minzoom: 6, size: _zoomSize(6, 13, 12, 17)),
+    ];
+
+/// Шари застосунку поверх карти.
+List<Map<String, dynamic>> appLayers() => [
+      // Поза областю — притінено; межа області — темно-зеленою лінією.
+      {
+        'id': 'app_mask',
+        'type': 'fill',
+        'source': 'app_mask',
+        'paint': {'fill-color': _maskColor, 'fill-opacity': 0.85},
+      },
+      {
+        'id': 'app_region_border',
+        'type': 'line',
+        'source': 'app_mask',
+        'paint': {'line-color': _darkGreen, 'line-width': 2},
+      },
+      // Ділянки аналізу — пунктирні квадрати з підписом «Ділянка N · прогноз».
+      {
+        'id': 'app_areas_fill',
+        'type': 'fill',
+        'source': MapSources.areas,
+        'filter': ['==', '\$type', 'Polygon'],
+        'paint': {'fill-color': _darkGreen, 'fill-opacity': 0.06},
+      },
+      {
+        'id': 'app_areas_line',
+        'type': 'line',
+        'source': MapSources.areas,
+        'filter': ['==', '\$type', 'Polygon'],
+        'paint': {
+          'line-color': _darkGreen,
+          'line-width': 2,
+          'line-dasharray': [3, 2],
+        },
+      },
+      {
+        'id': MapLayers.areaLabels,
+        'type': 'symbol',
+        'source': MapSources.areas,
+        'filter': ['==', '\$type', 'Point'],
+        'layout': {
+          'text-field': ['get', 'label'],
+          'text-font': _font,
+          'text-size': 13,
+          'text-anchor': 'bottom-left',
+          'text-offset': [0.3, -0.3],
+          'text-allow-overlap': true,
+        },
+        'paint': {'text-color': '#ffffff', 'text-halo-color': _darkGreen, 'text-halo-width': 3},
+      },
+      // Нова ділянка (режим «Аналіз ділянки»).
+      {
+        'id': 'app_analysis_fill',
+        'type': 'fill',
+        'source': MapSources.analysis,
+        'paint': {'fill-color': _orange, 'fill-opacity': 0.18},
+      },
+      {
+        'id': 'app_analysis_line',
+        'type': 'line',
+        'source': MapSources.analysis,
+        'paint': {'line-color': _orange, 'line-width': 2.5},
+      },
+      // Визначник лісу: позначка там, де торкнулися (колір — типу лісу).
+      {
+        'id': 'app_forest_pin',
+        'type': 'circle',
+        'source': MapSources.forestPin,
+        'paint': {
+          'circle-radius': 7,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2.5,
+        },
+      },
+      // Тук-туки: значок гриба (картинку додає екран карти; ім'я — у властивості `icon`).
+      {
+        'id': MapLayers.picks,
+        'type': 'symbol',
+        'source': MapSources.picks,
+        'layout': {
+          'icon-image': ['get', 'icon'],
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      },
+    ];

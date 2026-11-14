@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 /// Маркер тук-тука у вигляді гриба (ADR-018 §18.2).
@@ -99,4 +102,49 @@ class _MushroomPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MushroomPainter old) => old.capColor != capColor;
+}
+
+/// Маркер тук-тука картинкою (PNG) — для карти MapLibre, де значки малює відеокарта.
+/// Той самий гриб, що й у [MushroomMarker]; приватний — із замком. Ніжка — внизу по центру
+/// (точка на карті), запас по краях — під тінь і замок.
+Future<Uint8List> mushroomMarkerPng({
+  required Color color,
+  required bool isPrivate,
+  double size = 36,
+  double pixelRatio = 3,
+}) async {
+  const pad = 4.0;
+  final logical = Size(size + pad * 2, size + pad * 2);
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder)
+    ..scale(pixelRatio)
+    ..translate(pad, pad);
+  _MushroomPainter(capColor: color).paint(canvas, Size(size, size));
+  if (isPrivate) {
+    final r = size * 0.21;
+    final c = Offset(size + 2 - r, size + 2 - r);
+    canvas
+      ..drawCircle(c, r, Paint()..color = Colors.white)
+      ..drawCircle(
+          c,
+          r,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5);
+    const icon = Icons.lock_rounded;
+    final tp = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(fontFamily: icon.fontFamily, package: icon.fontPackage, fontSize: size * 0.26, color: color),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+  final image = await recorder
+      .endRecording()
+      .toImage((logical.width * pixelRatio).ceil(), (logical.height * pixelRatio).ceil());
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  return data!.buffer.asUint8List();
 }

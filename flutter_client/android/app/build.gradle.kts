@@ -31,7 +31,8 @@ android {
     defaultConfig {
         // Остаточний ID застосунку до першої публікації в Google Play.
         applicationId = "ua.mushroomradar.app"
-        minSdk = flutter.minSdkVersion
+        // MapLibre Native (офлайн карта, ADR-020) — Android 7.0+.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
