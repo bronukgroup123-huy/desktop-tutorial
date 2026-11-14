@@ -55,8 +55,8 @@ jobs:
           fi
           printf 'SUPABASE_URL=%s\nSUPABASE_PUBLISHABLE_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_PUBLISHABLE_KEY" > .env
 
-      # Постійний ключ підпису (необов'язково). Без нього — debug-ключ: кожна нова збірка
-      # може мати інший підпис, і для оновлення доведеться видалити попередню версію.
+      # Постійний ключ підпису (необов'язково). Без нього — тестовий ключ із репозиторію
+      # (android/app/test-signing.jks): підпис однаковий, оновлення ставляться поверх.
       - name: Release signing key (optional)
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -70,7 +70,7 @@ jobs:
               "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
             echo "Signing with the release key"
           else
-            echo "::notice::ANDROID_KEYSTORE_BASE64 not set — signing with a debug key"
+            echo "::notice::ANDROID_KEYSTORE_BASE64 not set — signing with the test key from the repository"
           fi
 
       - name: Dependencies

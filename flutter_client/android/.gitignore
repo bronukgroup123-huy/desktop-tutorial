@@ -12,3 +12,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# Тестовий ключ (публічний, лише для тестових APK) — щоб оновлення ставились поверх.
+!app/test-signing.jks
