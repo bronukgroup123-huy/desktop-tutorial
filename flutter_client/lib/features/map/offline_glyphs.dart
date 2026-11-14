@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter_client/features/map/basemap_style.dart' show glyphFontStack;
@@ -27,3 +28,6 @@ Future<String> ensureOfflineGlyphs({Future<Directory> Function()? directory}) as
   }
   return root.path;
 }
+
+/// Тека зі шрифтом для підписів карти (готується один раз; велика карта й мінікарта ділянки).
+final offlineGlyphsProvider = FutureProvider<String>((ref) => ensureOfflineGlyphs());

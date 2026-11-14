@@ -93,3 +93,19 @@ bool isInsideRegion(LatLng p, List<GeoPolygon> polygons) {
 
   return polygons.any((poly) => inRing(poly.outer) && !poly.holes.any(inRing));
 }
+
+/// Точка карти → позиція на екрані нерухомої карти з центром [center] і масштабом [zoom]
+/// (той самий Web Mercator, що в MapLibre, світ 512 px). Для мінікарти ділянки: гриби
+/// малюються поверх карти без запитів до неї — плавно й без затримок.
+Offset projectToScreen(LatLng p, LatLng center, double zoom, Size size, {double worldSize = mapLibreWorldSize}) {
+  final scale = worldSize * math.pow(2, zoom);
+  final a = _mercator(p), c = _mercator(center);
+  return Offset(size.width / 2 + (a.x - c.x) * scale, size.height / 2 + (a.y - c.y) * scale);
+}
+
+/// Зворотно: позиція на екрані → точка карти.
+LatLng screenToLatLng(Offset o, LatLng center, double zoom, Size size, {double worldSize = mapLibreWorldSize}) {
+  final scale = worldSize * math.pow(2, zoom);
+  final c = _mercator(center);
+  return _unmercator(c.x + (o.dx - size.width / 2) / scale, c.y + (o.dy - size.height / 2) / scale);
+}
