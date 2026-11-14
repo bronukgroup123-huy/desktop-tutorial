@@ -104,6 +104,10 @@ export function humanizeLimit(reason: string, w: WeatherData | null | undefined)
   if (reason.startsWith("dry →")) return "Сухий ґрунт";
   if (reason.startsWith("waterlogged →")) return "Ґрунт перезволожений";
   if (reason.startsWith("forest not confirmed")) return "Тип лісу не визначено";
+  if (reason === "forest group: mixed") return "Ліс мішаний — невідомо, чи є тут потрібні дерева. Уточніть ліс";
+  if ((m = reason.match(/^forest group: (\w+)/))) {
+    return `${forestName(m[1])} без відомої породи — уточніть ліс, щоб прогноз був точнішим`;
+  }
   if (reason === "temp in transition zone") {
     return weatherOk(w) ? `Температура ${deg(w.tempAvg7d)} — на межі сприятливої` : "Температура на межі сприятливої";
   }

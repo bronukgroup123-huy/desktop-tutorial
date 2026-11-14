@@ -157,7 +157,7 @@ export const TEMP_TRANSITION_REASON = "temp in transition zone";
 
 /** Технічні reasons матчерів, що ЗНИЖУЮТЬ скор (а не підтверджують умови). */
 export function isLimitingReason(reason: string): boolean {
-  return /^(humidity [\d.]+ <|rain3d [\d.]+ <|drought \d+d .* no trigger|daysAfterRain \d+ outside|stand age \d+y outside|relief soft-miss|dry →|waterlogged →|forest not confirmed)/
+  return /^(humidity [\d.]+ <|rain3d [\d.]+ <|drought \d+d .* no trigger|daysAfterRain \d+ outside|stand age \d+y outside|relief soft-miss|dry →|waterlogged →|forest not confirmed|forest group)/
     .test(reason);
 }
 

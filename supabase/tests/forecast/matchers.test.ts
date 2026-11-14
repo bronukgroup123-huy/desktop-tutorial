@@ -242,3 +242,11 @@ Deno.test('matchSoil: weather unavailable → 1.0 passthrough', () => {
   const r = matchSoil(makeRule(), makeWeather({ source: 'unavailable' }));
   assertEquals(r.score, 1.0);
 });
+
+Deno.test('matchGeo: мішаний ліс — вид не зникає, geo знижено', () => {
+  const ctx = makeCtx({ input: { ...makeCtx().input, forestType: 'mixed' } });
+  const r = matchGeo(makeRule(), ctx);
+  assertEquals(r.hardFail, false);
+  assert(r.score < 1 && r.score > 0);
+  assert(r.reasons.includes('forest group: mixed'));
+});
