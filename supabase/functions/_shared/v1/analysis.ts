@@ -57,6 +57,12 @@ export const PRO_DAILY_LIMIT = 10;
 export const FREE_HORIZON_DAYS = 3;
 export const PRO_HORIZON_DAYS = 7;
 export const horizonDays = (pro: boolean) => (pro ? PRO_HORIZON_DAYS : FREE_HORIZON_DAYS);
+/** Рейтинг рівня «Слідопит» (ADR-013): з нього — анімація тижня без Pro (рішення PO 2026-11-14). */
+export const TRACKER_RATING = 51;
+/** Скільки грибів кладемо в кошик мінікарти на день. */
+export const MAX_BASKET = 12;
+export const WEEK_ANIMATION_LOCKED_LABEL = "Анімація тижня — у Pro або з рівня «Слідопит»";
+
 /** З якого дня від сьогодні прогноз «орієнтовний» (дні 5–7: дощ так далеко прогнозують гірше). */
 export const APPROXIMATE_FROM_DAY = 4;
 /** Слот єдиної ділянки безкоштовного користувача. */
@@ -744,7 +750,8 @@ async function runAnalysis(
   }
 
   try {
-    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro }, input.forestRaw, override, usageBlock(used, limit));
+    const rating = await loadRating(deps.db, user.id);
+    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro, rating }, input.forestRaw, override, usageBlock(used, limit));
     // Останній результат — разом із ділянкою (вкладка «Прогноз», інші пристрої).
     const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: area.id, p_result: data });
     if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
@@ -771,7 +778,7 @@ async function analyzeArea(
   deps: AnalysisDeps,
   area: AreaRef,
   regionId: number,
-  when: { date: string; now: Date; pro: boolean },
+  when: { date: string; now: Date; pro: boolean; rating?: number },
   forestRaw: unknown,
   override: ForestOverride | null,
   usage: Record<string, unknown>,
@@ -830,13 +837,18 @@ async function analyzeArea(
     best_day: bestDay(days, today),
     locked_days: locked.map((date) => ({ date, day_label: dayLabel(date, today) })),
     locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
+    basket: selected.view.basket,
+    week_animation: weekAnimation(when.pro, when.rating ?? 0),
   };
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
 }
 
 interface AnalyzedDay {
-  view: Record<string, unknown> & { date: string; top1: unknown; alternative: unknown; weather: unknown; warnings: string[]; no_data_reason: string | null };
+  view: Record<string, unknown> & {
+    date: string; top1: unknown; alternative: unknown; weather: unknown; warnings: string[];
+    no_data_reason: string | null; basket: Array<Record<string, unknown>>;
+  };
   /** Внутрішній порядок для «найкращого дня» — у відповідь не йде. */
   bestScore: number | null;
   level: ProbabilityLevel;
@@ -881,6 +893,7 @@ function analyzeDay(
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
+      basket: hasForest ? basketOf(runs) : [],
       no_data_reason: !hasForest ? NO_FOREST_REASON : !best.top1 && first.noDataReason ? first.noDataReason : null,
     },
     bestScore: best.top1 ? best.top1.species.score : null,
@@ -895,6 +908,53 @@ const NO_FOREST_REASON = "У цій ділянці на карті немає л
 const LEVEL_SHORT_LABEL: Record<ProbabilityLevel, string> = {
   peak: "Пік", high: "Висока", medium: "Середня", low: "Низька", no_data: "—",
 };
+
+/**
+ * Кошик мінікарти: усі види зі шансом за день (найкращий рівень серед типів лісу ділянки),
+ * від кращого — до MAX_BASKET. Лише рівні й підписи, без чисел.
+ */
+export function basketOf(runs: Array<{ forestType: string | null; result: ForecastResult }>): Array<Record<string, unknown>> {
+  const best = new Map<string, { s: ScoredSpecies; weather: ForecastResult["weather"] }>();
+  for (const run of runs) {
+    for (const s of run.result.candidates ?? []) {
+      if (s.probability === "no_data") continue;
+      const prev = best.get(s.mushroom_type);
+      if (!prev || s.score > prev.s.score) best.set(s.mushroom_type, { s, weather: run.result.weather });
+    }
+  }
+  return [...best.values()]
+    .sort((a, b) => b.s.score - a.s.score)
+    .slice(0, MAX_BASKET)
+    .map(({ s, weather }) => {
+      const shaped = shapeSpecies(s, weather)!;
+      return {
+        mushroom_type: shaped.mushroom_type,
+        name_ua: shaped.name_ua,
+        level: shaped.level,
+        level_label: shaped.level_label,
+        level_color: shaped.level_color,
+        when_label: shaped.when_label,
+      };
+    });
+}
+
+/** Анімація тижня (▶): Pro або рівень «Слідопит»; інакше — пояснення при натисканні. */
+export function weekAnimation(pro: boolean, rating: number): Record<string, unknown> {
+  const allowed = pro || rating >= TRACKER_RATING;
+  return { allowed, locked_label: allowed ? null : WEEK_ANIMATION_LOCKED_LABEL };
+}
+
+/** Рейтинг користувача (для рівня «Слідопит»); немає даних — 0. */
+async function loadRating(db: AnalysisDb, userId: string): Promise<number> {
+  try {
+    const { data, error } = await db.from("users").select("rating").eq("id", userId).maybeSingle();
+    if (error || !data) return 0;
+    const r = Number((data as { rating?: unknown }).rating);
+    return Number.isFinite(r) ? r : 0;
+  } catch {
+    return 0;
+  }
+}
 
 const dayIcon = (rain: number, humidity: number) => (rain >= 1 ? "rain" : humidity >= 80 ? "cloud" : "sun");
 const dayRainLabel = (rain: number) => (rain >= 0.5 ? `опади ${Math.max(1, Math.round(rain))} мм` : "без опадів");
@@ -965,7 +1025,8 @@ async function editForest(
   try {
     const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
     const usage = usageBlock(await usedToday(deps.db, user.id, area.slot), limit);
-    const data = await analyzeArea(deps, area, regionId, { date, now, pro }, obj.forest, override, usage);
+    const rating = await loadRating(deps.db, user.id);
+    const data = await analyzeArea(deps, area, regionId, { date, now, pro, rating }, obj.forest, override, usage);
     const saved = await deps.db.rpc("save_forest_override", {
       p_user_id: user.id,
       p_area_id: area.id,

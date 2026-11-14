@@ -210,6 +210,7 @@ export class ForecastEngine {
       alternative,
       warnings,
       weather: ctx.weather,
+      candidates: sorted,
     };
   }
 }

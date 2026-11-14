@@ -1158,7 +1158,7 @@ class _AnalysisPanel extends StatelessWidget {
 }
 
 /// Гліфи шрифту підписів офлайн карти — на диску (копіюються з ресурсів один раз).
-final _glyphsProvider = FutureProvider<String>((ref) => ensureOfflineGlyphs());
+final _glyphsProvider = offlineGlyphsProvider;
 
 /// Визначник лісу: тип (і вік), площа, звідки тип. Тап — закрити.
 class _ForestCard extends StatelessWidget {

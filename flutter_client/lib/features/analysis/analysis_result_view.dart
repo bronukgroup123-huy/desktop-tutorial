@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
+import 'package:flutter_client/features/analysis/mushroom_stickers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 
 /// Результат аналізу ділянки (ADR-015): ліси в квадраті, погода, Top-1 / Top-2.
@@ -18,9 +21,13 @@ class AnalysisResultView extends StatefulWidget {
     this.scrollController,
     this.onRefineForest,
     this.refineHintLabel,
+    this.miniMapBuilder,
   });
 
   final AnalysisResult result;
+
+  /// Мінікарта ділянки з грибами обраного дня (ADR-015 §15.9); `null` — без мінікарти.
+  final Widget Function(List<StickerSpecies> species)? miniMapBuilder;
   final ScrollController? scrollController;
 
   /// «Уточнити ліс» (ADR-015 §15.6); `null` — кнопки немає (ліміт, офлайн, лісів немає).
@@ -35,6 +42,80 @@ class AnalysisResultView extends StatefulWidget {
 
 class _AnalysisResultViewState extends State<AnalysisResultView> {
   late String _selected = widget.result.date;
+
+  /// ▶ — прокрутити дні: на мінікарті видно, як росте й спадає хвиля.
+  Timer? _play;
+
+  @override
+  void dispose() {
+    _play?.cancel();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    if (_play != null) {
+      _play!.cancel();
+      setState(() => _play = null);
+      return;
+    }
+    final days = widget.result.days;
+    if (days.length < 2) return;
+    var i = 0;
+    setState(() => _selected = days.first.date);
+    _play = Timer.periodic(const Duration(milliseconds: 1300), (t) {
+      i++;
+      if (!mounted || i >= days.length) {
+        t.cancel();
+        if (mounted) setState(() => _play = null);
+        return;
+      }
+      setState(() => _selected = days[i].date);
+    });
+    setState(() {});
+  }
+
+  /// Гриби обраного дня для кошика мінікарти: усі зі шансом (старий результат — найкращий
+  /// і альтернатива).
+  List<StickerSpecies> _stickers(AnalysisResult r) {
+    final basket = r.basket;
+    if (basket != null) {
+      return [
+        for (final b in basket)
+          StickerSpecies(
+            type: b.type,
+            name: b.name,
+            level: b.level,
+            levelLabel: b.levelLabel,
+            color: b.levelColor,
+            whenLabel: b.whenLabel,
+          ),
+      ];
+    }
+    return [
+      for (final s in [r.top1, r.alternative])
+        if (s != null)
+          StickerSpecies(
+            type: s.species.mushroomType,
+            name: s.species.nameUa,
+            level: s.species.level,
+            levelLabel: s.species.levelLabel,
+            color: s.species.levelColor,
+            whenLabel: s.species.whenLabel,
+          ),
+    ];
+  }
+
+  /// ▶ натиснуто: є доступ (Pro / «Слідопит») — прокрутити дні; немає — пояснення.
+  void _onPlayPressed() {
+    final w = widget.result.weekAnimation;
+    if (w != null && !w.allowed) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(w.lockedLabel ?? 'Анімація тижня недоступна')));
+      return;
+    }
+    _togglePlay();
+  }
 
   AnalysisDay? get _day {
     for (final d in widget.result.days) {
@@ -78,7 +159,13 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
             days: widget.result.days,
             lockedDays: widget.result.lockedDays,
             selected: _selected,
-            onSelect: (date) => setState(() => _selected = date),
+            onSelect: (date) {
+              _play?.cancel();
+              setState(() {
+                _play = null;
+                _selected = date;
+              });
+            },
             onLocked: _showLocked,
           ),
           if (widget.result.bestDay case final best?)
@@ -102,6 +189,33 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(approx, style: TextStyle(fontSize: 12, color: muted)),
             ),
+        ],
+        if (widget.miniMapBuilder != null) ...[
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Ваші місця в ділянці',
+                  style: GoogleFonts.merriweather(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                ),
+              ),
+              // «Хвиля по днях» — один значок; доступ (Pro / «Слідопит») каже сервер.
+              if (widget.result.days.length > 1 && widget.result.weekAnimation != null)
+                IconButton(
+                  key: const ValueKey('play-days'),
+                  tooltip: _play == null ? 'Хвиля по днях' : 'Пауза',
+                  onPressed: _onPlayPressed,
+                  icon: Icon(
+                    _play == null ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded,
+                    color: AppTheme.darkGreen,
+                    size: 28,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          widget.miniMapBuilder!(_stickers(r)),
         ],
         const SizedBox(height: 16),
         _ForestCard(result: r, onRefine: widget.onRefineForest, refineHintLabel: widget.refineHintLabel),

@@ -330,6 +330,39 @@ class AnalysisWeather {
   final String rainLabel;
 }
 
+/// Гриб у кошику мінікарти: вид зі шансом на день (ADR-015 §15.9). Лише підписи із сервера.
+class AnalysisBasketSpecies {
+  const AnalysisBasketSpecies({
+    required this.type,
+    required this.name,
+    required this.level,
+    required this.levelLabel,
+    required this.levelColor,
+    required this.whenLabel,
+  });
+
+  factory AnalysisBasketSpecies.fromJson(Map<String, dynamic> json) => AnalysisBasketSpecies(
+        type: req<String>(json, 'mushroom_type'),
+        name: req<String>(json, 'name_ua'),
+        level: req<String>(json, 'level'),
+        levelLabel: req<String>(json, 'level_label'),
+        levelColor: parseHexColor(req<String>(json, 'level_color')),
+        whenLabel: opt<String>(json, 'when_label') ?? '',
+      );
+
+  final String type;
+  final String name;
+  final String level;
+  final String levelLabel;
+  final Color levelColor;
+  final String whenLabel;
+}
+
+List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
+      final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],
+      null => null,
+    };
+
 /// Один день смужки прогнозу ділянки (ADR-015 §15.7).
 class AnalysisDay {
   const AnalysisDay({
@@ -346,6 +379,7 @@ class AnalysisDay {
     required this.weather,
     required this.warnings,
     required this.noDataReason,
+    this.basket,
   });
 
   factory AnalysisDay.fromJson(Map<String, dynamic> json) {
@@ -366,8 +400,12 @@ class AnalysisDay {
       weather: weather == null ? null : AnalysisWeather.fromJson(weather),
       warnings: stringList(json, 'warnings'),
       noDataReason: opt<String>(json, 'no_data_reason'),
+      basket: _basket(json),
     );
   }
+
+  /// Усі гриби зі шансом цього дня; `null` — старий збережений результат.
+  final List<AnalysisBasketSpecies>? basket;
 
   final String date;
 
@@ -410,6 +448,8 @@ class AnalysisResult {
     this.bestDay,
     this.lockedDays = const [],
     this.lockedLabel,
+    this.basket,
+    this.weekAnimation,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -447,6 +487,11 @@ class AnalysisResult {
           (date: req<String>(d, 'date'), dayLabel: req<String>(d, 'day_label')),
       ],
       lockedLabel: opt<String>(json, 'locked_label'),
+      basket: _basket(json),
+      weekAnimation: switch (opt<Map<String, dynamic>>(json, 'week_animation')) {
+        final w? => (allowed: opt<bool>(w, 'allowed') ?? false, lockedLabel: opt<String>(w, 'locked_label')),
+        null => null,
+      },
     );
   }
 
@@ -470,6 +515,8 @@ class AnalysisResult {
         bestDay: bestDay,
         lockedDays: lockedDays,
         lockedLabel: lockedLabel,
+        basket: day.basket,
+        weekAnimation: weekAnimation,
       );
 
   final AnalysisArea area;
@@ -503,4 +550,10 @@ class AnalysisResult {
 
   /// «Ще 4 дні прогнозу — у Pro».
   final String? lockedLabel;
+
+  /// Гриби зі шансом обраного дня — кошик мінікарти; `null` — старий результат.
+  final List<AnalysisBasketSpecies>? basket;
+
+  /// ▶ «Хвиля по днях»: Pro або «Слідопит»; інакше — пояснення при натисканні.
+  final ({bool allowed, String? lockedLabel})? weekAnimation;
 }

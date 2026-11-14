@@ -9,6 +9,7 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/analysis_result_view.dart';
+import 'package:flutter_client/features/analysis/area_mini_map.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
@@ -277,6 +278,9 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   onRefresh: () => ref.refresh(analysisOverviewProvider.future),
                   child: AnalysisResultView(
                   result: result,
+                  miniMapBuilder: result.area.bounds == null
+                      ? null
+                      : (species) => AreaMiniMap(areaId: result.area.id, bounds: result.area.bounds!, species: species),
                   refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
                   // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
                   onRefineForest: o.forestEditOptions != null &&
