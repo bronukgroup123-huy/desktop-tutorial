@@ -53,8 +53,8 @@ function forestName(type: string): string {
 export function humanizeReason(reason: string, w: WeatherData | null | undefined): string | null {
   let m: RegExpMatchArray | null;
 
-  if ((m = reason.match(/^fruiting flush (\d+)\/(\d+) rain (\d+) ([\d.]+)/))) {
-    return `Хвиля плодоношення: ${m[1]}-й день з ${m[2]} — після дощу ${m[3]} мм (${m[4]})`;
+  if ((m = reason.match(/^fruiting flush (\d+)\/(\d+) (\w+) (\d+) ([\d.]+)/))) {
+    return `Хвиля плодоношення: ${m[1]}-й день з ${m[2]} — ${triggerPhrase(m[3], Number(m[4]), m[5])}`;
   }
   if ((m = reason.match(/^forest match: (\w+)/))) return `Підходящий ліс: ${forestName(m[1]).toLowerCase()}`;
   if ((m = reason.match(/^stand age (\d+)y in /))) return `Вік деревостану ${m[1]} р. — підходить`;
@@ -81,12 +81,29 @@ export function humanizeReason(reason: string, w: WeatherData | null | undefined
 /** «Чому»: перекладені причини без дублів, не більше [MAX_WHY]. */
 export function whyLabels(matched: string[], w: WeatherData | null | undefined): string[] {
   const out: string[] = [];
+  // «Температура в оптимумі» вже каже більше, ніж «температура підходить» — без дублю.
+  const inPeak = matched.some((r) => r.startsWith("in peak temp"));
   for (const r of matched) {
+    if (inPeak && /^temp (-?[\d.]+) within fruiting range/.test(r)) continue;
     const label = humanizeReason(r, w);
     if (label && !out.includes(label)) out.push(label);
     if (out.length >= MAX_WHY) break;
   }
   return out;
+}
+
+/** Що запустило хвилю — за видом поштовху: «після дощу 18 мм (12.09)», «після відлиги (10.11)». */
+export function triggerPhrase(kind: string, rain: number, date: string): string {
+  switch (kind) {
+    case "spring_warm":
+      return `після прогріву ґрунту (${date})`;
+    case "thaw":
+      return rain > 0 ? `після дощу ${rain} мм у холод (${date})` : `після відлиги (${date})`;
+    case "rain_cool":
+      return `після дощу ${rain} мм і похолодання (${date})`;
+    default:
+      return `після дощу ${rain} мм (${date})`;
+  }
 }
 
 /** Хвилі немає: чого чекаємо — за видом поштовху. */
@@ -119,9 +136,9 @@ export function fruitingWhenLabel(fr: FruitingState | undefined): string | null 
  */
 export function humanizeLimit(reason: string, w: WeatherData | null | undefined): string | null {
   let m: RegExpMatchArray | null;
-  if ((m = reason.match(/^fruiting maturing rain (\d+) ([\d.]+) until (\S+)/))) {
-    const when = m[3] === "?" ? "за кілька днів" : `орієнтовно з ${m[3]}`;
-    return `Грибниця дозріває після дощу ${m[1]} мм (${m[2]}) — гриби ${when}`;
+  if ((m = reason.match(/^fruiting maturing (\w+) (\d+) ([\d.]+) until (\S+)/))) {
+    const when = m[4] === "?" ? "за кілька днів" : `орієнтовно з ${m[4]}`;
+    return `Грибниця дозріває ${triggerPhrase(m[1], Number(m[2]), m[3])} — гриби ${when}`;
   }
   if ((m = reason.match(/^fruiting after (\S+)/))) return `Хвиля минула (до ${m[1]}) — потрібен новий дощ`;
   if ((m = reason.match(/^fruiting idle (\w+) ([\d.]+)/))) return IDLE_LABEL[m[1]]?.(m[2]) ?? null;

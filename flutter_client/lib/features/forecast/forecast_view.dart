@@ -154,49 +154,64 @@ class _WeatherCard extends StatelessWidget {
 }
 
 /// Картка виду: рівень, «коли / де / чому». Використовується і в аналізі ділянки.
-class ForecastSpeciesCard extends StatelessWidget {
+/// Картка виду. За замовчуванням — просто: рівень, «коли» (фаза хвилі) і «де шукати».
+/// Причини рівня (що підходить і що заважає) — під кнопкою «Розширені дані»: розрахунки
+/// лишаються всередині, грибнику не потрібно бути мікологом (рішення PO 2026-11-14).
+class ForecastSpeciesCard extends StatefulWidget {
   const ForecastSpeciesCard({super.key, required this.species, this.primary = false});
 
   final ForecastSpecies species;
   final bool primary;
 
   @override
-  Widget build(BuildContext context) => Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: species.levelColor.withValues(alpha: primary ? 0.8 : 0.35), width: primary ? 2 : 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      species.nameUa,
-                      style: GoogleFonts.merriweather(fontSize: primary ? 18 : 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
-                    ),
+  State<ForecastSpeciesCard> createState() => _ForecastSpeciesCardState();
+}
+
+class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
+  bool _advanced = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final species = widget.species;
+    final primary = widget.primary;
+    final hasDetails = species.whyLabels.isNotEmpty || species.limitLabels.isNotEmpty;
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: species.levelColor.withValues(alpha: primary ? 0.8 : 0.35), width: primary ? 2 : 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    species.nameUa,
+                    style: GoogleFonts.merriweather(fontSize: primary ? 18 : 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: species.levelColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      species.levelLabel,
-                      style: TextStyle(color: species.levelColor, fontWeight: FontWeight.w600, fontSize: 12),
-                    ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: species.levelColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _Line(icon: Icons.schedule_rounded, text: species.whenLabel),
-              _Line(icon: Icons.place_outlined, text: species.whereLabel),
+                  child: Text(
+                    species.levelLabel,
+                    style: TextStyle(color: species.levelColor, fontWeight: FontWeight.w600, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _Line(icon: Icons.schedule_rounded, text: species.whenLabel),
+            _Line(icon: Icons.place_outlined, text: species.whereLabel),
+            if (_advanced) ...[
               if (species.whyLabels.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, muted: true),
@@ -208,9 +223,24 @@ class ForecastSpeciesCard extends StatelessWidget {
                   _Line(icon: Icons.error_outline_rounded, text: limit, color: AppTheme.accentOrange),
               ],
             ],
-          ),
+            if (hasDetails)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const ValueKey('species-advanced'),
+                  onPressed: () => setState(() => _advanced = !_advanced),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppTheme.darkGreen),
+                  icon: Icon(_advanced ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
+                  label: Text(_advanced ? 'Сховати подробиці' : 'Розширені дані'),
+                ),
+              )
+            else
+              const SizedBox(height: 8),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _Line extends StatelessWidget {

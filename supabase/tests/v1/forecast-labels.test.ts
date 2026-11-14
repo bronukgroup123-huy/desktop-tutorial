@@ -3,6 +3,7 @@ import type { WeatherData } from "../../functions/_shared/forecast/types.ts";
 import {
   days,
   forestLabel,
+  humanizeLimit,
   humanizeReason,
   MAX_WHY,
   weatherBlock,
@@ -110,4 +111,16 @@ Deno.test("shapeSpecies: низький рівень без явних факт�
   assertEquals(low.limit_labels, ["Не пік сезону для цього виду"]);
   const high = shapeSpecies({ ...base, score: 0.8, probability: "high", matched: ["peak wave: autumn"] } as ScoredSpecies, W)!;
   assertEquals(high.limit_labels, []);
+});
+
+Deno.test("рушій плодоношення: поштовх за його видом — дощ, відлига, прогрів, похолодання", () => {
+  assertEquals(humanizeReason("fruiting flush 3/20 thaw 0 10.11", W), "Хвиля плодоношення: 3-й день з 20 — після відлиги (10.11)");
+  assertEquals(humanizeReason("fruiting flush 2/20 thaw 12 10.11", W), "Хвиля плодоношення: 2-й день з 20 — після дощу 12 мм у холод (10.11)");
+  assertEquals(humanizeReason("fruiting flush 5/10 rain 18 12.09", W), "Хвиля плодоношення: 5-й день з 10 — після дощу 18 мм (12.09)");
+  assertEquals(humanizeLimit("fruiting maturing spring_warm 14 15.04 until 28.04", W), "Грибниця дозріває після прогріву ґрунту (15.04) — гриби орієнтовно з 28.04");
+  assertEquals(humanizeLimit("fruiting maturing rain_cool 16 02.10 until ?", W), "Грибниця дозріває після дощу 16 мм і похолодання (02.10) — гриби за кілька днів");
+});
+
+Deno.test("whyLabels: «в оптимумі» без дублю «температура підходить»", () => {
+  assertEquals(whyLabels(["temp 6 within fruiting range", "in peak temp [5,12]"], W), ["Температура в оптимумі для виду"]);
 });
