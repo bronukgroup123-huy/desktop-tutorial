@@ -338,7 +338,7 @@ Deno.test('regression: golden dataset — ForecastEngine Precision/Recall', asyn
 
 // ─── Season-чек flammulina_velutipes (сезон через рік) ─────────
 
-Deno.test('regression: flammulina_velutipes — сезон через рік (10-01..03-31)', async () => {
+Deno.test('regression: flammulina_velutipes — сезон через рік (книга: вересень — січень)', async () => {
   const fixtures = await loadFixtures();
   if (!fixtures) return;
 
