@@ -48,7 +48,14 @@
     "region_ids": [],
     "weight": 1.0,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 15,
+    "maturation_dd": 80,
+    "dd_base": 4,
+    "flush_days": 10,
+    "soil_temp_min": 10,
+    "soil_temp_max": 20
   },
   {
     "id": "fx-chth",
@@ -99,7 +106,14 @@
     "region_ids": [],
     "weight": 0.95,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 20,
+    "maturation_dd": 110,
+    "dd_base": 4,
+    "flush_days": 18,
+    "soil_temp_min": 12,
+    "soil_temp_max": 22
   },
   {
     "id": "fx-fla",
@@ -150,7 +164,14 @@
     "region_ids": [],
     "weight": 0.6,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "thaw",
+    "trigger_rain_mm": 10,
+    "maturation_dd": 25,
+    "dd_base": 0,
+    "flush_days": 20,
+    "soil_temp_min": 0,
+    "soil_temp_max": 10
   },
   {
     "id": "fx-ami",
@@ -201,7 +222,14 @@
     "region_ids": [],
     "weight": 0.75,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain_cool",
+    "trigger_rain_mm": 15,
+    "maturation_dd": 70,
+    "dd_base": 4,
+    "flush_days": 12,
+    "soil_temp_min": 8,
+    "soil_temp_max": 16
   },
   {
     "id": "fx-rus",
@@ -252,7 +280,14 @@
     "region_ids": [],
     "weight": 0.7,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 10,
+    "maturation_dd": 50,
+    "dd_base": 4,
+    "flush_days": 7,
+    "soil_temp_min": 10,
+    "soil_temp_max": 22
   },
   {
     "id": "fx-lac",
@@ -303,7 +338,14 @@
     "region_ids": [],
     "weight": 0.85,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 20,
+    "maturation_dd": 100,
+    "dd_base": 4,
+    "flush_days": 12,
+    "soil_temp_min": 10,
+    "soil_temp_max": 20
   },
   {
     "id": "fx-sui",
@@ -354,7 +396,14 @@
     "region_ids": [],
     "weight": 0.7,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 10,
+    "maturation_dd": 50,
+    "dd_base": 4,
+    "flush_days": 7,
+    "soil_temp_min": 10,
+    "soil_temp_max": 22
   },
   {
     "id": "fx-lyc",
@@ -405,7 +454,14 @@
     "region_ids": [],
     "weight": 0.7,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 10,
+    "maturation_dd": 40,
+    "dd_base": 4,
+    "flush_days": 7,
+    "soil_temp_min": 12,
+    "soil_temp_max": 25
   },
   {
     "id": "fx-aga",
@@ -428,7 +484,7 @@
     "days_after_rain_max": 14,
     "waterlogged_penalty": 0.3,
     "drought_then_rain": false,
-    "forest_type": [],
+    "forest_type": ["meadow"],
     "habitat_type": ["meadow", "pasture", "grassland"],
     "relief_type": ["plain", "hill"],
     "altitude_min": 0,
@@ -456,6 +512,13 @@
     "region_ids": [],
     "weight": 0.8,
     "mvp_stage": "mvp",
-    "last_calibrated_at": null
+    "last_calibrated_at": null,
+    "fruiting_trigger": "rain",
+    "trigger_rain_mm": 10,
+    "maturation_dd": 40,
+    "dd_base": 4,
+    "flush_days": 6,
+    "soil_temp_min": 12,
+    "soil_temp_max": 25
   }
 ]

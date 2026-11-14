@@ -2,6 +2,7 @@
 // Forecast Engine — DB helpers (без бізнес-логіки, group 8.1)
 // ============================================================================
 
+import type { FruitingParams } from "./fruiting.ts";
 import type { SpeciesRule, ForestZoneRef, Wave } from "./types.ts";
 
 /**
@@ -173,6 +174,29 @@ export function rowToRule(row: Record<string, unknown>): SpeciesRule {
     weight: numOrNull(row.weight) ?? 1.0,
     mvpStage: (row.mvp_stage as SpeciesRule["mvpStage"]) ?? "mvp",
     lastCalibratedAt: strOrNull(row.last_calibrated_at),
+
+    fruiting: fruitingParams(row),
+  };
+}
+
+const TRIGGERS = ["rain", "rain_cool", "spring_warm", "thaw"] as const;
+
+/**
+ * Параметри плодоношення з рядка правил; без колонок (стара БД, тестові набори) — середні
+ * значення: дощ ≥ 15 мм за 3 дні, 70 градусо-днів, хвиля 9 днів, ґрунт — у межах плодоношення.
+ */
+export function fruitingParams(row: Record<string, unknown>): FruitingParams {
+  const trigger = String(row.fruiting_trigger ?? "rain");
+  const tMin = numOrNull(row.fruiting_temp_min);
+  const tMax = numOrNull(row.fruiting_temp_max);
+  return {
+    trigger: (TRIGGERS as readonly string[]).includes(trigger) ? trigger as FruitingParams["trigger"] : "rain",
+    triggerRainMm: numOrNull(row.trigger_rain_mm) ?? numOrNull(row.rain_3d_min) ?? 15,
+    maturationDd: numOrNull(row.maturation_dd) ?? 70,
+    ddBase: numOrNull(row.dd_base) ?? 4,
+    flushDays: numOrNull(row.flush_days) ?? 9,
+    soilTempMin: numOrNull(row.soil_temp_min) ?? (tMin !== null ? tMin + 2 : 8),
+    soilTempMax: numOrNull(row.soil_temp_max) ?? (tMax ?? 22),
   };
 }
 

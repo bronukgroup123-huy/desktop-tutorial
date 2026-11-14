@@ -18,6 +18,9 @@ export interface OpenMeteoResponse {
     precipitation: number[];
     pressure_msl: number[];
     soil_moisture_0_to_7cm: number[];
+    /** Температура ґрунту: прогноз — 6 см, архів (ERA5) — шар 0–7 см. */
+    soil_temperature_6cm?: number[];
+    soil_temperature_0_to_7cm?: number[];
   };
   daily: {
     time: string[];
@@ -42,6 +45,7 @@ async function fetchOpenMeteo(
       "precipitation",
       "pressure_msl",
       "soil_moisture_0_to_7cm",
+      "soil_temperature_6cm",
     ].join(","),
     daily: [
       "temperature_2m_max",
@@ -186,7 +190,7 @@ export function computeGDD(
  * день ряду — так прогноз на кілька днів рахується з ОДНОГО запиту до Open-Meteo.
  */
 export interface WeatherSeries {
-  version: 2;
+  version: 3;
   /** Дні ряду, "YYYY-MM-DD" за київським часом. */
   dates: string[];
   /** Сьогодні на момент запиту — перший день прогнозу. */
@@ -197,6 +201,8 @@ export interface WeatherSeries {
   tmean: number[];
   humidity: number[];
   soil: Array<number | null>;
+  /** Середня температура ґрунту за добу (°C) — для дозрівання грибниці; немає → середня повітря. */
+  soilT: number[];
   /** Тиск о першій і останній годині доби — для тренду тиску. */
   pressureStart: number[];
   pressureEnd: number[];
@@ -205,7 +211,7 @@ export interface WeatherSeries {
 
 export function isWeatherSeries(v: unknown): v is WeatherSeries {
   const s = v as WeatherSeries | null;
-  return !!s && s.version === 2 && Array.isArray(s.dates) && s.dates.length > 0 &&
+  return !!s && s.version === 3 && Array.isArray(s.dates) && s.dates.length > 0 &&
     typeof s.today === "string" && Array.isArray(s.precip) && s.precip.length === s.dates.length;
 }
 
@@ -229,7 +235,8 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
   const pick = (arr: number[] | undefined, idx: number[]) =>
     idx.map((i) => arr?.[i]).filter((x): x is number => typeof x === "number" && Number.isFinite(x));
 
-  const tmean: number[] = [], humidity: number[] = [], soil: Array<number | null> = [];
+  const tmean: number[] = [], humidity: number[] = [], soil: Array<number | null> = [], soilT: number[] = [];
+  const soilTemp = hourly?.soil_temperature_6cm ?? hourly?.soil_temperature_0_to_7cm;
   const pressureStart: number[] = [], pressureEnd: number[] = [];
   dates.forEach((d, k) => {
     const idx = byDay.get(d) ?? [];
@@ -238,6 +245,8 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
     humidity.push(avg(pick(hourly?.relative_humidity_2m, idx)));
     const sm = pick(hourly?.soil_moisture_0_to_7cm, idx);
     soil.push(sm.length ? avg(sm) : null);
+    const st = pick(soilTemp, idx);
+    soilT.push(st.length ? avg(st) : tmean[tmean.length - 1]);
     const p = pick(hourly?.pressure_msl, idx);
     pressureStart.push(p.length ? p[0] : 1013);
     pressureEnd.push(p.length ? p[p.length - 1] : 1013);
@@ -245,7 +254,7 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
 
   const todayIdx = Math.min(Math.max(pastDays, 0), dates.length - 1);
   return {
-    version: 2,
+    version: 3,
     dates: [...dates],
     today: dates[todayIdx],
     precip: dates.map((_, k) => num(data.daily.precipitation_sum?.[k])),
@@ -254,6 +263,7 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
     tmean,
     humidity,
     soil,
+    soilT,
     pressureStart,
     pressureEnd,
     fetchedAt: fetchedAt.toISOString(),

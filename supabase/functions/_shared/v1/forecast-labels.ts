@@ -12,6 +12,7 @@
 
 import type { Wave, WeatherData } from "../forecast/types.ts";
 import { FOREST_TYPE_STYLE } from "./forest-zones.ts";
+import type { FruitingState } from "../forecast/fruiting.ts";
 
 export const WAVE_LABEL: Record<Wave, string> = {
   spring: "Весняна хвиля",
@@ -52,6 +53,9 @@ function forestName(type: string): string {
 export function humanizeReason(reason: string, w: WeatherData | null | undefined): string | null {
   let m: RegExpMatchArray | null;
 
+  if ((m = reason.match(/^fruiting flush (\d+)\/(\d+) rain (\d+) ([\d.]+)/))) {
+    return `Хвиля плодоношення: ${m[1]}-й день з ${m[2]} — після дощу ${m[3]} мм (${m[4]})`;
+  }
   if ((m = reason.match(/^forest match: (\w+)/))) return `Підходящий ліс: ${forestName(m[1]).toLowerCase()}`;
   if ((m = reason.match(/^stand age (\d+)y in /))) return `Вік деревостану ${m[1]} р. — підходить`;
   if (reason.startsWith("relief match")) return "Підходящий рельєф";
@@ -85,12 +89,42 @@ export function whyLabels(matched: string[], w: WeatherData | null | undefined):
   return out;
 }
 
+/** Хвилі немає: чого чекаємо — за видом поштовху. */
+const IDLE_LABEL: Record<string, (mm: string) => string> = {
+  rain: (v) => `Хвилі зараз немає — потрібен дощ від ${v} мм`,
+  rain_cool: (v) => `Хвилі зараз немає — потрібні дощ від ${v} мм і похолодання`,
+  spring_warm: () => "Ґрунт ще не прогрівся до 8° — сморчки з'являться після прогріву",
+  thaw: () => "Чекаємо відлиги після заморозків",
+};
+
+/** «Коли» з рушія плодоношення — одне коротке речення для картки виду. */
+export function fruitingWhenLabel(fr: FruitingState | undefined): string | null {
+  if (!fr) return null;
+  const d = (x?: string) => (x ? `${x.slice(8, 10)}.${x.slice(5, 7)}` : "");
+  switch (fr.phase) {
+    case "flush":
+      return `Хвиля зараз — ${fr.flushDay}-й день з ${fr.flushDays}`;
+    case "maturing":
+      return fr.expectedStart ? `Хвиля орієнтовно з ${d(fr.expectedStart)}` : "Грибниця дозріває — хвиля за кілька днів";
+    case "after":
+      return "Хвиля минула — чекаємо нового дощу";
+    case "idle":
+      return "Хвилі зараз немає";
+  }
+}
+
 /**
  * Обмежувальний фактор рушія (`ScoredSpecies.missed`) → український підпис.
  * Показуються з іконкою-попередженням, щоб було видно, ЧОМУ рівень не вищий.
  */
 export function humanizeLimit(reason: string, w: WeatherData | null | undefined): string | null {
   let m: RegExpMatchArray | null;
+  if ((m = reason.match(/^fruiting maturing rain (\d+) ([\d.]+) until (\S+)/))) {
+    const when = m[3] === "?" ? "за кілька днів" : `орієнтовно з ${m[3]}`;
+    return `Грибниця дозріває після дощу ${m[1]} мм (${m[2]}) — гриби ${when}`;
+  }
+  if ((m = reason.match(/^fruiting after (\S+)/))) return `Хвиля минула (до ${m[1]}) — потрібен новий дощ`;
+  if ((m = reason.match(/^fruiting idle (\w+) ([\d.]+)/))) return IDLE_LABEL[m[1]]?.(m[2]) ?? null;
   if ((m = reason.match(/^humidity ([\d.]+) < ([\d.]+)/))) {
     return `Вологість ${Math.round(Number(m[1]))}% — замало (краще від ${Math.round(Number(m[2]))}%)`;
   }

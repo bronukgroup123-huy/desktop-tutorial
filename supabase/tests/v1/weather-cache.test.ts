@@ -15,7 +15,7 @@ function series(today = "2026-11-10"): WeatherSeries {
   const dates = ["2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12"];
   const n = dates.length;
   return {
-    version: 2,
+    version: 3,
     dates,
     today,
     precip: [0, 0, 12, 1, 30, 0],
@@ -24,6 +24,7 @@ function series(today = "2026-11-10"): WeatherSeries {
     tmean: Array(n).fill(13),
     humidity: Array(n).fill(78),
     soil: Array(n).fill(0.3),
+    soilT: Array(n).fill(12),
     pressureStart: Array(n).fill(1013),
     pressureEnd: Array(n).fill(1013),
     fetchedAt: NOW.toISOString(),

@@ -13,7 +13,7 @@
 
 import { z } from "npm:zod@3";
 import type { ScoredSpecies, WeatherData } from "../forecast/types.ts";
-import { limitLabels, whenLabel, whyLabels } from "./forecast-labels.ts";
+import { fruitingWhenLabel, limitLabels, whenLabel, whyLabels } from "./forecast-labels.ts";
 import { HttpError } from "../http.ts";
 
 export const ForecastInputSchema = z.object({
@@ -61,7 +61,7 @@ export function shapeSpecies(
     level,
     level_label: LEVEL_LABEL[level],
     level_color: LEVEL_COLOR[level],
-    when_label: whenLabel(s.wave, weather),
+    when_label: fruitingWhenLabel(s.fruiting) ?? whenLabel(s.wave, weather),
     where_label: s.where ?? "У лісі, де ростуть дерева-симбіонти цього виду",
     why_labels: whyLabels(s.matched, weather),
     // Що знижує рівень — щоб «✓» у why_labels не суперечили бейджу (напр. «Низька»).

@@ -17,7 +17,9 @@ import type {
   ProbabilityLevel,
 } from "./types.ts";
 import { matchGeo, matchWeather, matchSeason, matchSoil } from "./matchers.ts";
-import { MVP_RULES } from "./rules.ts";
+import { MVP_RULES, rule1_StandAge, rule3_MicrorefugiumBoletus, rule5_Indicators, rule6_MyceliumTemp, rule8_SeasonMicrorefugium } from "./rules.ts";
+import { type FruitingState, fruitingState } from "./fruiting.ts";
+import type { MatcherResult } from "./matchers.ts";
 
 /** Ваги адитивних сигналів (§11.2): погода важить найбільше */
 const W_GEO = 1.0;
@@ -82,6 +84,14 @@ export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpe
       ...noData(results.filter((r) => !r.hardFail).flatMap((r) => r.reasons)),
       missed: hardFails.flatMap((r) => r.reasons),
     };
+  }
+
+  // Рушій плодоношення: є ряд погоди — рівень визначає фаза (хвиля / дозрівання / …),
+  // а не календар (ADR-015 §15.8). Без ряду (старі виклики, тести) — попередня формула.
+  const series = ctx.weatherSeries?.series;
+  if (series && ctx.config.fruiting_model_enabled !== false) {
+    const fr = fruitingState(series, ctx.input.date.toISOString().slice(0, 10), rule.fruiting, rule.mushroomType);
+    if (fr) return scoreWithFruiting(rule, ctx, { geo, weather, season, soil }, fr);
   }
 
   // 1) Адитивна база
@@ -152,12 +162,82 @@ export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpe
   };
 }
 
+/** Базовий рівень поза хвилею: «Низька» — поодинокі гриби можливі. */
+const PHASE_BASE: Record<Exclude<FruitingState["phase"], "flush">, number> = { maturing: 0.36, after: 0.36, idle: 0.32 };
+/** Книжкове «наймасовіше …» — у ці місяці хвилі рясніші. */
+const PEAK_MONTH_BONUS = 0.05;
+/** Правила, що лишаються з рушієм плодоношення (календар хвиль і «дощ після посухи» — у ньому). */
+const FRUITING_RULES = [rule1_StandAge, rule3_MicrorefugiumBoletus, rule5_Indicators, rule6_MyceliumTemp, rule8_SeasonMicrorefugium];
+/** Причини матчерів, які рушій плодоношення замінює (вікна дощу й посухи). */
+const SUPERSEDED = /^(rain3d|drought|daysAfterRain)/;
+
+const fmt = (d?: string) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}` : "");
+
+/** Технічна причина про стан плодоношення (людський підпис — forecast-labels.ts). */
+export function fruitingReason(fr: FruitingState, rule: SpeciesRule): string {
+  switch (fr.phase) {
+    case "flush":
+      return `fruiting flush ${fr.flushDay}/${fr.flushDays} rain ${fr.triggerRain} ${fmt(fr.triggerDate)}`;
+    case "maturing":
+      return `fruiting maturing rain ${fr.triggerRain} ${fmt(fr.triggerDate)} until ${fmt(fr.expectedStart) || "?"}`;
+    case "after":
+      return `fruiting after ${fmt(fr.flushEnded)}`;
+    case "idle":
+      return `fruiting idle ${rule.fruiting.trigger} ${rule.fruiting.triggerRainMm}`;
+  }
+}
+
+function scoreWithFruiting(
+  rule: SpeciesRule,
+  ctx: ForecastContext,
+  m: { geo: MatcherResult; weather: MatcherResult; season: MatcherResult; soil: MatcherResult },
+  fr: FruitingState,
+): ScoredSpecies {
+  let score = fr.phase === "flush" ? 0.45 + 0.5 * fr.intensity : PHASE_BASE[fr.phase];
+  // Умови місця: тип і вік лісу (geo), стан ґрунту (сухо / перезволожено).
+  score *= m.geo.score * m.soil.score;
+  const month = ctx.input.date.getUTCMonth() + 1;
+  const peakMonth = rule.peakMonths.includes(month);
+  if (peakMonth && fr.phase === "flush") score += PEAK_MONTH_BONUS;
+
+  const ruleReasons: string[] = [];
+  const ruleLimits: string[] = [];
+  let overrideWhere: string | null | undefined;
+  for (const dynamicRule of FRUITING_RULES) {
+    const res = dynamicRule(rule, ctx);
+    if (res.skip) continue;
+    // Стабільна температура вже врахована хвилею; лишаємо тільки різкі перепади (мінус).
+    if (dynamicRule === rule6_MyceliumTemp && res.modifier > 0) continue;
+    score += res.modifier;
+    if (res.reason) (res.modifier < 0 ? ruleLimits : ruleReasons).push(res.reason);
+    if (res.overrideWhere) overrideWhere = res.overrideWhere;
+  }
+  score = Math.max(0, Math.min(1, score));
+
+  const reasons = [m.geo, m.weather, m.season, m.soil].flatMap((r) => r.reasons)
+    .filter((r) => !SUPERSEDED.test(r) && !r.startsWith("peak wave") && !(r.startsWith("peak month") && !peakMonth));
+  const frReason = fruitingReason(fr, rule);
+  const where = overrideWhere ??
+    (ctx.weather.soilState === "dry" ? rule.microrefugiumDry : rule.microrefugiumWet) ?? null;
+  return {
+    mushroom_type: rule.mushroomType,
+    name_ua: rule.nameUa,
+    score,
+    probability: scoreToLevel(score),
+    matched: [...(fr.phase === "flush" ? [frReason] : []), ...reasons.filter((r) => !isLimitingReason(r)), ...ruleReasons],
+    missed: [...(fr.phase === "flush" ? [] : [frReason]), ...reasons.filter(isLimitingReason), ...ruleLimits],
+    wave: ctx.wave,
+    where,
+    fruiting: fr,
+  };
+}
+
 /** Службовий reason: температура в перехідній зоні (скор ×0.7). */
 export const TEMP_TRANSITION_REASON = "temp in transition zone";
 
 /** Технічні reasons матчерів, що ЗНИЖУЮТЬ скор (а не підтверджують умови). */
 export function isLimitingReason(reason: string): boolean {
-  return /^(humidity [\d.]+ <|rain3d [\d.]+ <|drought \d+d .* no trigger|daysAfterRain \d+ outside|stand age \d+y outside|relief soft-miss|dry →|waterlogged →|forest not confirmed|forest group)/
+  return /^(humidity [\d.]+ <|rain3d [\d.]+ <|drought \d+d .* no trigger|daysAfterRain \d+ outside|stand age \d+y outside|relief soft-miss|dry →|waterlogged →|forest not confirmed|forest group|fruiting (maturing|after|idle))/
     .test(reason);
 }
 

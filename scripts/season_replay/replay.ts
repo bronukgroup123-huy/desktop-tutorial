@@ -31,7 +31,7 @@ async function archive(lat: number, lng: number): Promise<OpenMeteoResponse> {
     longitude: lng.toFixed(4),
     start_date: start,
     end_date: args.to,
-    hourly: "temperature_2m,relative_humidity_2m,precipitation,pressure_msl,soil_moisture_0_to_7cm",
+    hourly: "temperature_2m,relative_humidity_2m,precipitation,pressure_msl,soil_moisture_0_to_7cm,soil_temperature_0_to_7cm",
     daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
     timezone: "Europe/Kyiv",
   });
