@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:flutter_client/data/models/geo.dart';
@@ -9,78 +8,72 @@ import 'package:flutter_client/data/models/geo.dart';
 /// Поля навколо області на екрані (верх — під заголовок з назвою області).
 const EdgeInsets regionPadding = EdgeInsets.fromLTRB(16, 80, 16, 24);
 
-/// Невеликий відступ за кордоном, який дозволено бачити при прокручуванні, px.
-const double regionMarginPx = 16;
+/// Розмір світу на масштабі 0 у логічних пікселях — як у MapLibre (плитки 512 px).
+/// У растрових картах (flutter_map) — 256, тож той самий масштаб там на 1 «ближче».
+const double mapLibreWorldSize = 512;
 
-/// Камера, у яку вміщується вся область на ЦЬОМУ екрані (з полями [regionPadding]).
+/// Web Mercator: широта/довгота → частка світу 0…1 (x — на схід, y — на південь).
+({double x, double y}) _mercator(LatLng p) {
+  final lat = p.latitude.clamp(-85.05112878, 85.05112878) * math.pi / 180;
+  return (
+    x: (p.longitude + 180) / 360,
+    y: (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2,
+  );
+}
+
+LatLng _unmercator(double x, double y) {
+  final n = math.pi - 2 * math.pi * y;
+  return LatLng(180 / math.pi * math.atan(0.5 * (math.exp(n) - math.exp(-n))), x * 360 - 180);
+}
+
+/// Камера, у яку вміщується вся область на ЦЬОМУ екрані (з полями [padding]).
 ///
 /// Масштаб `zoom` із сервера розрахований без розміру екрана і на вузькому
 /// телефоні виходить замалим. Тому стартовий і мінімальний масштаб рахуємо на
 /// клієнті під реальний розмір карти — і заново при повороті екрана.
 ({LatLng center, double zoom}) fitRegion(
-  LatLngBounds bounds,
+  GeoBounds bounds,
   Size size, {
   EdgeInsets padding = regionPadding,
+  double worldSize = mapLibreWorldSize,
 }) {
-  final w = size.width > 0 ? size.width : 400.0;
-  final h = size.height > 0 ? size.height : 800.0;
-  final camera = MapCamera(
-    crs: const Epsg3857(),
-    center: bounds.center,
-    zoom: 5,
-    rotation: 0,
-    nonRotatedSize: Size(w, h),
-  );
-  final fitted = CameraFit.bounds(bounds: bounds, padding: padding).fit(camera);
-  return (center: fitted.center, zoom: fitted.zoom);
+  final w = (size.width > 0 ? size.width : 400.0) - padding.horizontal;
+  final h = (size.height > 0 ? size.height : 800.0) - padding.vertical;
+  final sw = _mercator(bounds.southWest);
+  final ne = _mercator(bounds.northEast);
+  final dx = (ne.x - sw.x).abs().clamp(1e-9, 1.0);
+  final dy = (sw.y - ne.y).abs().clamp(1e-9, 1.0);
+  final zoom = math.log(math.min(math.max(w, 1) / (dx * worldSize), math.max(h, 1) / (dy * worldSize))) / math.ln2;
+  // Центр — з урахуванням несиметричних полів (зверху заголовок).
+  final scale = worldSize * math.pow(2, zoom);
+  final cx = (sw.x + ne.x) / 2 + (padding.right - padding.left) / 2 / scale;
+  final cy = (sw.y + ne.y) / 2 + (padding.bottom - padding.top) / 2 / scale;
+  return (center: _unmercator(cx, cy), zoom: zoom);
 }
 
-/// Обмеження камери «острів області».
-///
-/// * Наближена область більша за екран → екран не виходить за кордон
-///   (дозволено лише [marginPx] за ним).
-/// * Область уміщується в екран → вона просто тримається по центру.
-///
-/// На відміну від `CameraConstraint.contain` ніколи не повертає null: той у
-/// другому випадку відхиляв БУДЬ-ЯКИЙ рух камери, і карта «застрягала».
-@immutable
-class RegionCameraConstraint extends CameraConstraint {
-  const RegionCameraConstraint({required this.bounds, this.marginPx = regionMarginPx});
+/// Що видно на екрані [size] з камерою [center]/[zoom] (для перевірок): пд-зх і пн-сх кути.
+({LatLng southWest, LatLng northEast}) visibleExtent(
+  LatLng center,
+  double zoom,
+  Size size, {
+  double worldSize = mapLibreWorldSize,
+}) {
+  final c = _mercator(center);
+  final scale = worldSize * math.pow(2, zoom);
+  final hw = size.width / 2 / scale, hh = size.height / 2 / scale;
+  return (southWest: _unmercator(c.x - hw, c.y + hh), northEast: _unmercator(c.x + hw, c.y - hh));
+}
 
-  final LatLngBounds bounds;
-  final double marginPx;
-
-  @override
-  MapCamera constrain(MapCamera camera) {
-    final zoom = camera.zoom;
-    final ne = camera.projectAtZoom(bounds.northEast, zoom);
-    final sw = camera.projectAtZoom(bounds.southWest, zoom);
-    final half = camera.size / 2;
-
-    final minX = math.min(sw.dx, ne.dx) - marginPx;
-    final maxX = math.max(sw.dx, ne.dx) + marginPx;
-    final minY = math.min(sw.dy, ne.dy) - marginPx;
-    final maxY = math.max(sw.dy, ne.dy) + marginPx;
-
-    double axis(double value, double lo, double hi, double halfSize) {
-      final okLo = lo + halfSize;
-      final okHi = hi - halfSize;
-      if (okLo > okHi) return (lo + hi) / 2; // область менша за екран — по центру
-      return value.clamp(okLo, okHi);
-    }
-
-    final c = camera.projectAtZoom(camera.center, zoom);
-    final constrained = Offset(axis(c.dx, minX, maxX, half.width), axis(c.dy, minY, maxY, half.height));
-    if (constrained == c) return camera;
-    return camera.withPosition(center: camera.unprojectAtZoom(constrained, zoom));
+/// Квадрат-обрис точок (для «Показати ділянку на карті»).
+GeoBounds boundsOf(Iterable<LatLng> points) {
+  var s = 90.0, w = 180.0, n = -90.0, e = -180.0;
+  for (final p in points) {
+    s = math.min(s, p.latitude);
+    n = math.max(n, p.latitude);
+    w = math.min(w, p.longitude);
+    e = math.max(e, p.longitude);
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is RegionCameraConstraint && other.bounds == bounds && other.marginPx == marginPx;
-
-  @override
-  int get hashCode => Object.hash(bounds, marginPx);
+  return GeoBounds(southWest: LatLng(s, w), northEast: LatLng(n, e));
 }
 
 /// Чи точка всередині області (по кордону з сервера, а не по прямокутнику bbox).

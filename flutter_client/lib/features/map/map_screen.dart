@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math' show Point;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +15,7 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/forest_lod.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
+import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
@@ -327,7 +327,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   void _focusArea(AnalysisArea area) {
     final c = _ml;
     if (c == null) return; // карта ще створюється — наведемо, коли буде готова
-    final b = LatLngBounds.fromPoints(squareAround(area.center, area.sizeKm));
+    final b = boundsOf(squareAround(area.center, area.sizeKm));
     c.animateCamera(ml.CameraUpdate.newLatLngBounds(
       ml.LatLngBounds(southwest: _mlLatLng(b.southWest), northeast: _mlLatLng(b.northEast)),
       left: regionPadding.left,
@@ -407,7 +407,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   /// Масштаб «вся область» під поточний розмір карти. При повороті екрана
   /// перераховується; поточне місце на карті зберігається, лише якщо воно
   /// стало далі за нову межу — повертаємо до всієї області.
-  ({LatLng center, double zoom}) _fitFor(Size size, LatLngBounds bounds) {
+  ({LatLng center, double zoom}) _fitFor(Size size, GeoBounds bounds) {
     if (_fit != null && _fitSize == size) return _fit!;
     final rotated = _fit != null;
     _fitSize = size;
@@ -695,7 +695,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final loading = forests.isLoading || (load != null && !load.complete);
     final showError = (forests.hasError && !forests.isLoading) ||
         (load != null && load.complete && load.failed > 0);
-    final bounds = LatLngBounds(_g.bounds.southWest, _g.bounds.northEast);
+    final bounds = _g.bounds;
     final picks = ref.watch(picksMapProvider).valueOrNull?.points ?? const <MapPick>[];
     final showPrivate = ref.watch(showPrivatePicksProvider);
     final center = _analysisCenter;
