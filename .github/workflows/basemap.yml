@@ -5,12 +5,15 @@ name: Basemap (offline region map)
 # немає: поки офлайн карту не завантажено, карта не показується.
 #
 # Дані — те саме вивантаження OpenStreetMap для України з Geofabrik, що й для лісів;
-# Planetiler (схема OpenMapTiles) будує один файл PMTiles на область, z0–14 (далі застосунок
-# наближає без нових даних). Без будівель, номерів будинків, POI й аеропортів — грибнику
+# Planetiler (схема OpenMapTiles) будує підкладку області, z0–14 (далі застосунок наближає
+# без нових даних). У той самий файл додається шар `forests` — ліси області з типами й
+# кольорами (файл «Forests data», нарізаний tippecanoe): так ліси малюються плитками разом
+# із картою (під дорогами й підписами, з кешем), а не тисячами контурів щокадру. Без будівель, номерів будинків, POI й аеропортів — грибнику
 # вони не потрібні, а файл і малювання стають легшими. Назви — з `name:uk` (у прикордонних
 # річок `name` двомовне: «Дністер / Nistru»).
 #
 #  * Вручну: Actions → Basemap → `all` або slug області → publish = true → реліз «basemap-data».
+#  * Щомісяця — після перебудови лісів (Forests data — 3-го числа о 01:17 UTC).
 # Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
 # дрібний масштаб — Natural Earth (public domain); вода — osmdata.openstreetmap.de (ODbL).
 on:
@@ -24,12 +27,14 @@ on:
         description: 'Опублікувати в реліз «basemap-data»'
         type: boolean
         default: false
+  schedule:
+    - cron: '47 4 3 * *' # 3-го числа щомісяця, після «Forests data»
 
 permissions:
   contents: read
 
 concurrency:
-  group: basemap-${{ github.event.inputs.region }}
+  group: basemap-${{ github.event.inputs.region || 'all' }}
   cancel-in-progress: true
 
 env:
@@ -52,7 +57,7 @@ jobs:
       - name: List regions
         id: list
         env:
-          IN_REGION: ${{ github.event.inputs.region }}
+          IN_REGION: ${{ github.event.inputs.region || 'all' }}
         run: |
           set -euo pipefail
           printf '%s' "$IN_REGION" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $IN_REGION"; exit 1; }
@@ -93,7 +98,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool tippecanoe
+          tippecanoe --version 2>&1 | head -1
 
       - name: Cache key
         id: week
@@ -123,20 +130,36 @@ jobs:
           osmium extract -p osm/region.geojson --strategy smart -o osm/region.osm.pbf --overwrite osm/ukraine-latest.osm.pbf
           ls -lh osm/region.osm.pbf
 
-      - name: Planetiler (OpenMapTiles) → PMTiles
+      - name: Planetiler (OpenMapTiles) → MBTiles
         run: |
           set -euo pipefail
           curl -fsSL -o planetiler.jar https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar
           START=$(date +%s)
           java -Xmx10g -jar planetiler.jar \
             --osm-path=osm/region.osm.pbf \
-            --output="dist/basemap-$REGION.pmtiles" \
+            --output=osm/base.mbtiles \
             --download --download-threads=4 \
             --maxzoom=14 --force \
             --languages=uk \
             --exclude-layers=building,housenumber,poi,aerodrome_label,aeroway,mountain_peak
           echo "BUILD_SECONDS=$(( $(date +%s) - START ))" >> "$GITHUB_ENV"
-          ls -lh dist/
+          ls -lh osm/base.mbtiles
+
+      # Ліси області (типи й кольори — з файлу «Forests data») → шар `forests` тієї ж карти.
+      - name: Forests layer (tippecanoe) + join → PMTiles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download forests-data --repo "$GITHUB_REPOSITORY" -p "forests-$REGION.geojson.gz" -D osm --clobber
+          gunzip -f "osm/forests-$REGION.geojson.gz"
+          # z6–14; на дрібних масштабах — без найменших гаїв (на екрані вони менші за піксель).
+          tippecanoe -o osm/forests.mbtiles -l forests -Z6 -z14 \
+            -y type_color -y forest_type \
+            --drop-smallest-as-needed --extend-zooms-if-still-dropping \
+            --no-tile-size-limit --force "osm/forests-$REGION.geojson"
+          tile-join -o "dist/basemap-$REGION.pmtiles" --no-tile-size-limit --force osm/base.mbtiles osm/forests.mbtiles
+          ls -lh osm/*.mbtiles dist/
 
       - name: Meta
         run: |
@@ -158,7 +181,7 @@ jobs:
           retention-days: 7
 
       - name: Publish to release «basemap-data»
-        if: github.event.inputs.publish == 'true'
+        if: github.event.inputs.publish == 'true' || github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
