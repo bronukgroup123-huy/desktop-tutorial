@@ -2,9 +2,10 @@
 // v1-analysis — машинний прогноз: аналіз ділянки (BACKEND_PLAN B2.9, ADR-015)
 //
 // GET    v1-analysis
-//   → 200 { data: { sizes, areas: [{ id, slot, lat, lng, size_km, size_label, bbox?,
+//   → 200 { data: { sizes, areas: [{ id, slot, lat, lng, size_km, size_label, label, title, bbox?,
 //            usage, last_result?, last_analyzed_at? }], can_create, create_hint_label,
-//            usage, hint_label } }
+//            slots: [{ slot, state: area|empty|locked, area_id, title, subtitle, locked_label? }],
+//            label_max, usage, hint_label } }
 // POST   v1-analysis  { lat, lng, size_km: 5 | 10, date?, forest? }   — НОВА ділянка + аналіз
 // POST   v1-analysis  { area_id, date?, forest? }                     — повторний аналіз тієї ж ділянки
 //   → 200 { data: { area, date, forest, top1, alternative, weather, warnings, usage,
@@ -13,6 +14,7 @@
 //   Один аналіз рахує ВСІ дні горизонту (безкоштовно 3, Pro 7, від сьогодні); top1/weather
 //   верхнього рівня — для `date` (за замовчуванням сьогодні). Перемикання днів — без запитів.
 // DELETE v1-analysis/areas/{id}  → 200 { data: { deleted: true } }
+// PUT    v1-analysis/areas/{id}  { label: «Біля Броників» | null }  → 200 { data: { id, label, title } }
 // PUT    v1-analysis/areas/{id}/forest  { override: { types, extra } | null, forest?, date? }
 //   → 200 { data: { ...як POST, forest_edit } } — уточнення лісу вручну + переаналіз (ADR-015 §15.6)
 //
@@ -530,12 +532,13 @@ export interface AreaRow {
   last_result?: unknown;
   last_analyzed_at?: string | null;
   forest_override?: unknown;
+  label?: string | null;
 }
 
 async function loadAreas(db: AnalysisDb, userId: string): Promise<AreaRow[]> {
   const { data, error } = await db
     .from("analysis_areas")
-    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override")
+    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override, label")
     .eq("user_id", userId);
   if (error) dbFail("analysis_areas select", error);
   return ((data ?? []) as AreaRow[]).sort((a, b) => a.slot - b.slot);
@@ -574,6 +577,67 @@ export function createHint(count: number, pro: boolean): { can_create: boolean; 
 
 // ─── GET: що доступно і що вже збережено ───────────────────────────────────
 
+/** Максимальна довжина назви ділянки (у клітинці «Прогнозу» вміщується ~24 символи). */
+export const AREA_LABEL_MAX = 24;
+
+/** Назва ділянки для клітинки: власна назва грибника або «Ділянка N». */
+export function areaTitle(slot: number, label?: string | null): string {
+  return label && label.trim() ? label.trim() : `Ділянка ${slot}`;
+}
+
+/** Назва від грибника: обрізати пробіли, без керівних символів; порожня або null — скинути. */
+export function validateAreaLabel(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") throw validationError("label — назва ділянки (рядок) або null");
+  // deno-lint-ignore no-control-regex
+  const v = raw.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
+  if (!v) return null;
+  if ([...v].length > AREA_LABEL_MAX) throw validationError(`Назва ділянки — до ${AREA_LABEL_MAX} символів`);
+  return v;
+}
+
+/** PUT v1-analysis/areas/{id} { label } — підписати ділянку («Біля Броників»). */
+async function renameArea(req: Request, user: AuthUser, deps: AnalysisDeps, areaId: string): Promise<Response> {
+  if (!UUID_RE.test(areaId)) throw new HttpError(404, "not_found", "Ділянку не знайдено");
+  const body = await readJson(req);
+  if (body === null || typeof body !== "object" || Array.isArray(body) || !("label" in body)) {
+    throw validationError("Очікується { label: «назва» | null }");
+  }
+  const label = validateAreaLabel((body as Record<string, unknown>).label);
+  const { data, error } = await deps.db
+    .from("analysis_areas")
+    .update({ label })
+    .eq("id", areaId)
+    .eq("user_id", user.id)
+    .select("id, slot")
+    .maybeSingle();
+  if (error) dbFail("analysis_areas update", error);
+  if (!data) throw new HttpError(404, "not_found", "Ділянку не знайдено. Можливо, її видалено.");
+  const row = data as { id: string; slot: number };
+  return ok({ id: row.id, label, title: areaTitle(Number(row.slot), label) }, req);
+}
+
+/** Клітинок ділянок у «Прогнозі» — стільки, скільки максимум у Pro. */
+export const AREA_SLOTS = PRO_MAX_AREAS;
+export const SLOT_LOCKED_LABEL = "Ще 2 ділянки — у Pro";
+export const SLOT_EMPTY_LABEL = "Нова ділянка";
+
+/** Три клітинки ділянок: зайнята / вільна / під замком Pro (ADR-015 §15.9). */
+export function slotsBlock(areas: Array<{ id: string; slot: number; label?: string | null; size_km: number }>, pro: boolean) {
+  const out = [];
+  for (let slot = 1; slot <= AREA_SLOTS; slot++) {
+    const a = areas.find((x) => x.slot === slot);
+    if (a) {
+      out.push({ slot, state: "area", area_id: a.id, title: areaTitle(slot, a.label), subtitle: sizeLabel(a.size_km) });
+    } else if (slot <= maxAreas(pro)) {
+      out.push({ slot, state: "empty", area_id: null, title: SLOT_EMPTY_LABEL, subtitle: null });
+    } else {
+      out.push({ slot, state: "locked", area_id: null, title: `Ділянка ${slot}`, subtitle: null, locked_label: SLOT_LOCKED_LABEL });
+    }
+  }
+  return out;
+}
+
 async function getOverview(req: Request, user: AuthUser, deps: AnalysisDeps): Promise<Response> {
   const pro = await hasPro(deps, user);
   const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
@@ -590,6 +654,8 @@ async function getOverview(req: Request, user: AuthUser, deps: AnalysisDeps): Pr
       lng: point.lng,
       size_km: a.size_km,
       size_label: sizeLabel(a.size_km),
+      label: a.label ?? null,
+      title: areaTitle(a.slot, a.label),
       usage: usageBlock(await usedToday(deps.db, user.id, a.slot), limit),
       last_result: a.last_result ?? null,
       last_analyzed_at: a.last_analyzed_at ?? null,
@@ -605,6 +671,8 @@ async function getOverview(req: Request, user: AuthUser, deps: AnalysisDeps): Pr
     sizes: sizeOptions(pro),
     areas: shaped,
     ...createHint(areas.length, pro),
+    slots: slotsBlock(areas, pro),
+    label_max: AREA_LABEL_MAX,
     // Зворотна сумісність: ліміт першої ділянки (старі збірки застосунку).
     usage: shaped[0]?.usage ?? usageBlock(0, limit),
     hint_label: "Торкніться карти, щоб обрати центр ділянки",
@@ -1104,9 +1172,12 @@ export async function handleAnalysis(req: Request, deps: AnalysisDeps): Promise<
   const now = deps.now ? deps.now() : new Date();
 
   if (req.method === "PUT") {
-    const id = forestAreaIdFromPath(new URL(req.url));
-    if (!id) throw new HttpError(404, "not_found", "Очікується /v1-analysis/areas/{id}/forest");
-    return await editForest(req, user, deps, id, now);
+    const url = new URL(req.url);
+    const forestId = forestAreaIdFromPath(url);
+    if (forestId) return await editForest(req, user, deps, forestId, now);
+    const areaId = areaIdFromPath(url);
+    if (areaId) return await renameArea(req, user, deps, areaId);
+    throw new HttpError(404, "not_found", "Очікується /v1-analysis/areas/{id} або /v1-analysis/areas/{id}/forest");
   }
   if (req.method === "DELETE") {
     const id = areaIdFromPath(new URL(req.url));

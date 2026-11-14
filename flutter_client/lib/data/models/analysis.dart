@@ -65,6 +65,8 @@ class AnalysisArea {
     this.lastAnalyzedAt,
     this.forestOverride,
     this.forestEdit,
+    this.label,
+    this.serverTitle,
   });
 
   factory AnalysisArea.fromJson(Map<String, dynamic> json) {
@@ -86,6 +88,8 @@ class AnalysisArea {
       lastAnalyzedAt: lastAt == null ? null : DateTime.tryParse(lastAt),
       forestOverride: override == null ? null : ForestOverride.fromJson(override),
       forestEdit: edit == null ? null : ForestEditUsage.fromJson(edit),
+      label: opt<String>(json, 'label'),
+      serverTitle: opt<String>(json, 'title'),
     );
   }
 
@@ -111,8 +115,54 @@ class AnalysisArea {
   /// Скільки уточнень лісу ще можна сьогодні — вирішує сервер.
   final ForestEditUsage? forestEdit;
 
-  /// «Ділянка 1 · 5×5 км»
-  String get title => 'Ділянка $slot · $sizeLabel';
+  /// Власна назва від грибника («Біля Броників»); `null` — «Ділянка N».
+  final String? label;
+
+  /// Готовий підпис клітинки із сервера.
+  final String? serverTitle;
+
+  /// «Біля Броників» або «Ділянка 1».
+  String get title => serverTitle ?? ((label?.trim().isNotEmpty ?? false) ? label!.trim() : 'Ділянка $slot');
+}
+
+/// Клітинка ділянки у «Прогнозі» (ADR-015 §15.9): зайнята, вільна (Pro) або під замком.
+enum AnalysisSlotState { area, empty, locked }
+
+class AnalysisSlot {
+  const AnalysisSlot({
+    required this.slot,
+    required this.state,
+    required this.title,
+    this.areaId,
+    this.subtitle,
+    this.lockedLabel,
+  });
+
+  factory AnalysisSlot.fromJson(Map<String, dynamic> json) => AnalysisSlot(
+        slot: req<num>(json, 'slot').toInt(),
+        state: switch (opt<String>(json, 'state')) {
+          'area' => AnalysisSlotState.area,
+          'empty' => AnalysisSlotState.empty,
+          _ => AnalysisSlotState.locked,
+        },
+        title: req<String>(json, 'title'),
+        areaId: opt<String>(json, 'area_id'),
+        subtitle: opt<String>(json, 'subtitle'),
+        lockedLabel: opt<String>(json, 'locked_label'),
+      );
+
+  final int slot;
+  final AnalysisSlotState state;
+
+  /// «Ділянка 1» / «Біля Броників» / «Нова ділянка».
+  final String title;
+  final String? areaId;
+
+  /// «5×5 км».
+  final String? subtitle;
+
+  /// «Ще 2 ділянки — у Pro».
+  final String? lockedLabel;
 }
 
 /// Відповідь `GET /v1-analysis`: що доступно і що вже збережено.
@@ -126,9 +176,16 @@ class AnalysisOverview {
     this.createHintLabel,
     this.offlineSince,
     this.forestEditOptions,
-  });
+    List<AnalysisSlot>? slots,
+    this.labelMax = 24,
+  }) : _slots = slots;
 
   factory AnalysisOverview.fromJson(Map<String, dynamic> json, {DateTime? offlineSince}) => AnalysisOverview(
+        slots: switch (opt<List<dynamic>>(json, 'slots')) {
+          final list? => [for (final s in list.cast<Map<String, dynamic>>()) AnalysisSlot.fromJson(s)],
+          null => null,
+        },
+        labelMax: opt<num>(json, 'label_max')?.toInt() ?? 24,
         sizes: (opt<List<dynamic>>(json, 'sizes') ?? const [])
             .map((s) => AnalysisSizeOption.fromJson(s as Map<String, dynamic>))
             .toList(growable: false),
@@ -162,6 +219,30 @@ class AnalysisOverview {
 
   /// Породи для «Уточнити ліс» — лише зі списку сервера.
   final ForestEditOptions? forestEditOptions;
+
+  /// Найдовша назва ділянки (символів) — каже сервер.
+  final int labelMax;
+
+  final List<AnalysisSlot>? _slots;
+
+  /// Три клітинки ділянок. Старий збережений офлайн-знімок без `slots` — збираємо з ділянок.
+  List<AnalysisSlot> get slots {
+    if (_slots case final s? when s.isNotEmpty) return s;
+    return [
+      for (var slot = 1; slot <= 3; slot++)
+        switch (areas.where((a) => a.slot == slot).firstOrNull) {
+          final a? => AnalysisSlot(
+              slot: slot, state: AnalysisSlotState.area, areaId: a.id, title: a.title, subtitle: a.sizeLabel),
+          null when canCreate => AnalysisSlot(slot: slot, state: AnalysisSlotState.empty, title: 'Нова ділянка'),
+          null => AnalysisSlot(
+              slot: slot,
+              state: AnalysisSlotState.locked,
+              title: 'Ділянка $slot',
+              lockedLabel: 'Ще 2 ділянки — у Pro',
+            ),
+        },
+    ];
+  }
 
   AnalysisArea? areaById(String? id) {
     for (final a in areas) {

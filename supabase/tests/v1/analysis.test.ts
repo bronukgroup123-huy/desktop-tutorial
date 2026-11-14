@@ -127,7 +127,7 @@ Deno.test("analysis GET: збережена ділянка і використа
   const { json } = await run(d, req("GET", URL_));
   const usage = { used: 3, limit: 5, label: "Сьогодні: 3 з 5 аналізів" };
   assertEquals(json.data.areas, [{
-    id: AREA, slot: 1, lat: 50.4, lng: 30.5, size_km: 5, size_label: "5×5 км", usage,
+    id: AREA, slot: 1, lat: 50.4, lng: 30.5, size_km: 5, size_label: "5×5 км", label: null, title: "Ділянка 1", usage,
     last_result: null, last_analyzed_at: null, forest_override: null,
     forest_edit: { used: 0, limit: 2, can_edit: true, label: "Уточнити ліс сьогодні можна ще 2 рази" },
   }]);
@@ -138,6 +138,13 @@ Deno.test("analysis GET: збережена ділянка і використа
   // безкоштовно ділянка одна — нову створити не можна, доки не видалити стару
   assertEquals(json.data.can_create, false);
   assert(json.data.create_hint_label.includes("видаліть стару"));
+  // три клітинки: перша — ділянка, дві інші під замком Pro
+  assertEquals(json.data.slots, [
+    { slot: 1, state: "area", area_id: AREA, title: "Ділянка 1", subtitle: "5×5 км" },
+    { slot: 2, state: "locked", area_id: null, title: "Ділянка 2", subtitle: null, locked_label: "Ще 2 ділянки — у Pro" },
+    { slot: 3, state: "locked", area_id: null, title: "Ділянка 3", subtitle: null, locked_label: "Ще 2 ділянки — у Pro" },
+  ]);
+  assertEquals(json.data.label_max, 24);
   assertEquals(find(d, "rpc.analysis_used_today")!.args[0], { p_user_id: USER, p_slot: 1 });
   assertEquals(find(d, "analysis_areas.select")!.filters, [["user_id", USER]]);
 });
@@ -643,4 +650,54 @@ Deno.test("analysis POST: анімація тижня — Pro або «Слід�
   assertEquals(pro.json.data.week_animation, { allowed: true, locked_label: null });
   const tracker = await run(db({ "users.select": { data: { home_region_id: 10, rating: 51 }, error: null } }), req("POST", URL_, body()));
   assertEquals(tracker.json.data.week_animation.allowed, true);
+});
+
+// ─── PUT: назва ділянки (ADR-015 §15.9) ────────────────────────────────────
+
+const AREA_URL = `${URL_}/areas/${AREA}`;
+
+Deno.test("analysis PUT area: назва ділянки — обрізана, до 24 символів; у Pro порожні клітинки «Нова ділянка»", async () => {
+  const d = db({ "analysis_areas.update": { data: { id: AREA, slot: 1 }, error: null } });
+  const { res, json } = await run(d, req("PUT", AREA_URL, { label: "  Біля   Броників \n" }));
+  assertEquals(res.status, 200);
+  assertEquals(json.data, { id: AREA, label: "Біля Броників", title: "Біля Броників" });
+  const upd = find(d, "analysis_areas.update")!;
+  assertEquals(upd.args[0], { label: "Біля Броників" });
+  assertEquals(upd.filters, [["id", AREA], ["user_id", USER]]);
+  // ліміт аналізів не чіпаємо
+  assertEquals(find(d, "rpc.consume_analysis"), undefined);
+
+  // порожня або null — повернути «Ділянка N»
+  for (const label of ["   ", null]) {
+    const r = await run(db({ "analysis_areas.update": { data: { id: AREA, slot: 2 }, error: null } }), req("PUT", AREA_URL, { label }));
+    assertEquals(r.json.data, { id: AREA, label: null, title: "Ділянка 2" });
+  }
+
+  // назва з overview: власна назва в title; у Pro вільні клітинки — «Нова ділянка»
+  const g = await run(db({
+    "analysis_areas.select": { data: [{ id: AREA, slot: 2, size_km: 10, center: EWKB, label: "Дача" }], error: null },
+  }), req("GET", URL_), { pro: true });
+  assertEquals([g.json.data.areas[0].label, g.json.data.areas[0].title], ["Дача", "Дача"]);
+  assertEquals(g.json.data.slots.map((s: { state: string; title: string }) => `${s.state}:${s.title}`), [
+    "empty:Нова ділянка", "area:Дача", "empty:Нова ділянка",
+  ]);
+  assertEquals(g.json.data.slots[1].subtitle, "10×10 км");
+});
+
+Deno.test("analysis PUT area: задовга або не рядок → 422; чужа ділянка → 404", async () => {
+  for (const body of [{ label: "а".repeat(25) }, { label: 5 }, {}, "назва"]) {
+    const d = db({ "analysis_areas.update": { data: { id: AREA, slot: 1 }, error: null } });
+    const { res, json } = await run(d, req("PUT", AREA_URL, body));
+    assertEquals([res.status, json.error], [422, "validation_error"], JSON.stringify(body));
+    assertEquals(find(d, "analysis_areas.update"), undefined);
+  }
+  // рівно 24 символи (з емодзі як одним символом) — можна
+  const ok24 = await run(db({ "analysis_areas.update": { data: { id: AREA, slot: 1 }, error: null } }),
+    req("PUT", AREA_URL, { label: "🍄" + "б".repeat(23) }));
+  assertEquals(ok24.res.status, 200);
+
+  const none = await run(db(), req("PUT", AREA_URL, { label: "Ліс" }));
+  assertEquals([none.res.status, none.json.error], [404, "not_found"]);
+  const bad = await run(db(), req("PUT", `${URL_}/areas/not-a-uuid`, { label: "Ліс" }));
+  assertEquals(bad.res.status, 404);
 });

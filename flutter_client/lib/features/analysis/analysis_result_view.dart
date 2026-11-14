@@ -8,6 +8,28 @@ import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 
+/// ▶ «Хвиля по днях» ззовні: значок стоїть у верхньому рядку «Прогнозу» поруч з
+/// оновленням, картою й видаленням (ADR-015 §15.9).
+class WeekPlayController extends ChangeNotifier {
+  bool _playing = false;
+  VoidCallback? _onPress;
+
+  /// Зараз прокручуються дні.
+  bool get playing => _playing;
+
+  /// Натиснули ▶ / ⏸.
+  void press() => _onPress?.call();
+
+  void _set(bool v) {
+    if (_playing == v) return;
+    _playing = v;
+    notifyListeners();
+  }
+}
+
+/// Аналіз зроблено до появи анімації тижня — підказати оновити.
+const kWeekAnimationStaleLabel = 'Анімація тижня з\'явиться після оновлення аналізу — натисніть ⟳ угорі.';
+
 /// Результат аналізу ділянки (ADR-015): ліси в квадраті, погода, Top-1 / Top-2.
 /// Лише рівні з готовими підписами із сервера — без відсотків.
 /// Показується повноцінним екраном у вкладці «Прогноз» (див. ForecastScreen).
@@ -22,9 +44,13 @@ class AnalysisResultView extends StatefulWidget {
     this.onRefineForest,
     this.refineHintLabel,
     this.miniMapBuilder,
+    this.playController,
   });
 
   final AnalysisResult result;
+
+  /// ▶ у верхньому рядку екрана; `null` — значок стоїть над мінікартою.
+  final WeekPlayController? playController;
 
   /// Мінікарта ділянки з грибами обраного дня (ADR-015 §15.9); `null` — без мінікарти.
   final Widget Function(List<StickerSpecies> species)? miniMapBuilder;
@@ -47,15 +73,31 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
   Timer? _play;
 
   @override
+  void initState() {
+    super.initState();
+    widget.playController?._onPress = _onPlayPressed;
+  }
+
+  @override
   void dispose() {
     _play?.cancel();
+    final c = widget.playController;
+    if (c != null && c._onPress == _onPlayPressed) {
+      c._onPress = null;
+      c._playing = false; // без notify: екран теж може саме розбиратися
+    }
     super.dispose();
+  }
+
+  void _stopPlay() {
+    _play?.cancel();
+    _play = null;
+    widget.playController?._set(false);
   }
 
   void _togglePlay() {
     if (_play != null) {
-      _play!.cancel();
-      setState(() => _play = null);
+      setState(_stopPlay);
       return;
     }
     final days = widget.result.days;
@@ -66,11 +108,12 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
       i++;
       if (!mounted || i >= days.length) {
         t.cancel();
-        if (mounted) setState(() => _play = null);
+        if (mounted) setState(_stopPlay);
         return;
       }
       setState(() => _selected = days[i].date);
     });
+    widget.playController?._set(true);
     setState(() {});
   }
 
@@ -108,10 +151,13 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
   /// ▶ натиснуто: є доступ (Pro / «Слідопит») — прокрутити дні; немає — пояснення.
   void _onPlayPressed() {
     final w = widget.result.weekAnimation;
-    if (w != null && !w.allowed) {
+    final String? message = w == null || widget.result.days.length < 2
+        ? kWeekAnimationStaleLabel
+        : (!w.allowed ? (w.lockedLabel ?? 'Анімація тижня недоступна') : null);
+    if (message != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(w.lockedLabel ?? 'Анімація тижня недоступна')));
+        ..showSnackBar(SnackBar(content: Text(message)));
       return;
     }
     _togglePlay();
@@ -127,6 +173,11 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
   @override
   void didUpdateWidget(AnalysisResultView old) {
     super.didUpdateWidget(old);
+    if (old.playController != widget.playController) {
+      if (old.playController?._onPress == _onPlayPressed) old.playController!._onPress = null;
+      widget.playController?._onPress = _onPlayPressed;
+      widget.playController?._set(_play != null);
+    }
     // Новий аналіз — обраний день лишається, якщо він є серед нових днів.
     if (!widget.result.days.any((d) => d.date == _selected)) _selected = widget.result.date;
   }
@@ -148,50 +199,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
       controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        Text(
-          day == null ? 'Прогноз на ${r.date}' : 'Прогноз ділянки',
-          style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
-        ),
-        Text('Ділянка ${r.area.sizeLabel}', style: TextStyle(color: muted)),
-        if (widget.result.days.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          AnalysisDayStrip(
-            days: widget.result.days,
-            lockedDays: widget.result.lockedDays,
-            selected: _selected,
-            onSelect: (date) {
-              _play?.cancel();
-              setState(() {
-                _play = null;
-                _selected = date;
-              });
-            },
-            onLocked: _showLocked,
-          ),
-          if (widget.result.bestDay case final best?)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: InkWell(
-                key: const ValueKey('best-day'),
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => setState(() => _selected = best.date),
-                child: Row(
-                  children: [
-                    const Icon(Icons.star_rounded, size: 18, color: AppTheme.accentOrange),
-                    const SizedBox(width: 6),
-                    Text(best.label, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
-                  ],
-                ),
-              ),
-            ),
-          if (day?.approximateLabel case final approx?)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(approx, style: TextStyle(fontSize: 12, color: muted)),
-            ),
-        ],
         if (widget.miniMapBuilder != null) ...[
-          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -200,8 +208,12 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
                   style: GoogleFonts.merriweather(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                 ),
               ),
+              // День, який зараз на мінікарті (видно під час «хвилі по днях»).
+              if (day != null)
+                Text(day.dayLabel, key: const ValueKey('minimap-day'), style: TextStyle(fontSize: 13, color: muted)),
               // «Хвиля по днях» — один значок; доступ (Pro / «Слідопит») каже сервер.
-              if (widget.result.days.length > 1 && widget.result.weekAnimation != null)
+              // Зазвичай значок у верхньому рядку екрана ([playController]).
+              if (widget.playController == null)
                 IconButton(
                   key: const ValueKey('play-days'),
                   tooltip: _play == null ? 'Хвиля по днях' : 'Пауза',
@@ -217,9 +229,51 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           const SizedBox(height: 6),
           widget.miniMapBuilder!(_stickers(r)),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _ForestCard(result: r, onRefine: widget.onRefineForest, refineHintLabel: widget.refineHintLabel),
-        if (r.weather != null) ...[const SizedBox(height: 12), _WeatherCard(weather: r.weather!)],
+        if (widget.result.days.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          AnalysisDayStrip(
+            days: widget.result.days,
+            lockedDays: widget.result.lockedDays,
+            selected: _selected,
+            onSelect: (date) => setState(() {
+              _stopPlay();
+              _selected = date;
+            }),
+            onLocked: _showLocked,
+          ),
+          if (widget.result.bestDay case final best?)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: InkWell(
+                key: const ValueKey('best-day'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() {
+                  _stopPlay();
+                  _selected = best.date;
+                }),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_rounded, size: 18, color: AppTheme.accentOrange),
+                    const SizedBox(width: 6),
+                    Text(best.label, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                  ],
+                ),
+              ),
+            ),
+          if (day?.approximateLabel case final approx?)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(approx, style: TextStyle(fontSize: 12, color: muted)),
+            ),
+        ],
+        // Старий результат без днів — лише дата прогнозу.
+        if (widget.result.days.isEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Прогноз на ${r.date}', style: TextStyle(fontSize: 13, color: muted)),
+        ],
+        if (r.weather != null) ...[const SizedBox(height: 10), _WeatherCard(weather: r.weather!)],
         const SizedBox(height: 16),
         if (r.top1 == null)
           ForecastInfoCard(
