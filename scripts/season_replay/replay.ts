@@ -6,7 +6,7 @@ import { parseArgs } from "jsr:@std/cli@1/parse-args";
 import type { ForestType } from "../../supabase/functions/_shared/forecast/types.ts";
 import { buildSeries, type OpenMeteoResponse } from "../../supabase/functions/_shared/forecast/weather.ts";
 import { dateRange, replay, type ReplayRun } from "./core.ts";
-import { forestUa, renderReport, textGrid } from "./report.ts";
+import { compactRun, forestUa, renderReport, textGrid } from "./report.ts";
 import { loadRules } from "./rules.ts";
 
 const args = parseArgs(Deno.args, {
@@ -55,6 +55,7 @@ for (const p of points) {
   }
 }
 for (const r of runs) console.log(textGrid(r) + "\n");
+for (const r of runs) console.log(`REPLAY_COMPACT ${compactRun(r)}`);
 
 await Deno.mkdir(args.out, { recursive: true });
 await Deno.writeTextFile(`${args.out}/replay.json`, JSON.stringify({ from: args.from, to: args.to, source, runs }));

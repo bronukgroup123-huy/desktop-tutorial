@@ -29,9 +29,43 @@ export function textGrid(run: ReplayRun): string {
   const lines = [`== ${run.title} (${forestUa(run.forestType)} ліс, ${run.days[0]?.date}…${run.days.at(-1)?.date})`];
   lines.push("дощ    " + run.days.map((d) => (d.weather.rain >= 10 ? "R" : d.weather.rain >= 3 ? "r" : d.weather.rain > 0.5 ? "," : " ")).join(""));
   for (const k of Object.keys(run.names)) {
-    lines.push(k.slice(0, 6).padEnd(7) + run.days.map((d) => LEVEL_CHAR[d.species[k]?.level ?? "no_data"]).join(""));
+    lines.push(k.slice(0, 6).padEnd(7) + run.days.map((d) => LEVEL_CHAR[d.species[k]?.level ?? "no_data"]).join("") + `  ${k}`);
   }
   return lines.join("\n");
+}
+
+/** Компактний запис прогону (рядок JSON для логів) — щоб відновити повний звіт без артефакту. */
+export function compactRun(run: ReplayRun): string {
+  const keys = Object.keys(run.names);
+  return JSON.stringify({
+    t: run.title, la: run.lat, ln: run.lng, f: run.forestType, n: run.names, d0: run.days[0]?.date, note: run.note,
+    lv: Object.fromEntries(keys.map((k) => [k, run.days.map((d) => LEVEL_CHAR[d.species[k]?.level ?? "no_data"]).join("")])),
+    top: run.days.map((d) => d.top1 ?? ""),
+    w: run.days.map((d) => [d.weather.tmin, d.weather.tmax, d.weather.rain]),
+  });
+}
+
+/** Зворотно до ReplayRun (рівні, найкращий вид, погода дня; причини не зберігаються). */
+export function expandRun(line: string): ReplayRun {
+  const c = JSON.parse(line);
+  const FROM: Record<string, ProbabilityLevel> = { ".": "no_data", l: "low", M: "medium", H: "high", P: "peak" };
+  const start = Date.parse(`${c.d0}T00:00:00Z`);
+  const days = (c.w as number[][]).map(([tmin, tmax, rain], i) => {
+    const species = Object.fromEntries(
+      Object.entries(c.lv as Record<string, string>).map(([k, v]) => [k, { level: FROM[v[i]] ?? "no_data", score: 0, matched: [], missed: [] }]),
+    );
+    const top = c.top[i] || null;
+    return {
+      date: new Date(start + i * 86_400_000).toISOString().slice(0, 10),
+      wave: "",
+      weather: { tmean: (tmin + tmax) / 2, tmin, tmax, rain, rain7d: 0, daysAfterRain: 0, droughtDays: 0, soil: "", humidity: 0 },
+      top1: top,
+      top1Level: top ? species[top]?.level ?? null : null,
+      alternative: null,
+      species,
+    };
+  });
+  return { title: c.t, lat: c.la, lng: c.ln, forestType: c.f, names: c.n, days, note: c.note };
 }
 
 interface SpeciesSummary {

@@ -46,9 +46,19 @@ Deno.test("season replay: звіт і сітка для логів", () => {
   const run = runScenario(SCENARIOS[0], rules);
   const grid = textGrid(run).split("\n");
   assertEquals(grid.length, 2 + rules.length);
-  assertEquals(grid[2].length, 7 + run.days.length);
+  assert(grid[2].startsWith("boletu ") && grid[2].endsWith("  boletus_edulis"));
   const html = renderReport("Сценарії сезону", "тест", [run], ["знахідка"]);
   assert(html.startsWith("<!doctype html>"));
   assert(html.includes("<title>Сценарії сезону</title>"));
   assert(html.includes("Білий гриб"));
+});
+
+Deno.test("season replay: компактний запис для логу → той самий прогін", async () => {
+  const { compactRun, expandRun } = await import("../../../scripts/season_replay/report.ts");
+  const run = runScenario(SCENARIOS[0], rules);
+  const back = expandRun(compactRun(run));
+  assertEquals(back.days.length, run.days.length);
+  assertEquals(back.days.map((d) => d.species.boletus_edulis.level), run.days.map((d) => d.species.boletus_edulis.level));
+  assertEquals(back.days.map((d) => d.top1), run.days.map((d) => d.top1));
+  assertEquals(back.days[5].weather.rain, run.days[5].weather.rain);
 });
