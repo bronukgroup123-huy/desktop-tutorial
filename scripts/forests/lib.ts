@@ -31,7 +31,7 @@ export const TYPE_SOURCE_LABEL: Record<ForestTypeSource | "none", string> = {
   osm_species: "Порода вказана в OpenStreetMap",
   osm_leaf_type: "У OpenStreetMap вказано лише хвойний / листяний",
   osm_name: "Визначено за назвою урочища — може бути неточно",
-  satellite: "Визначено за супутниковими знімками (Sentinel-2) — без породи",
+  satellite: "Визначено за супутниковими знімками (Sentinel-2)",
   none: "Порода в OpenStreetMap не вказана",
 };
 

@@ -1170,7 +1170,8 @@ class _ForestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = zone.standAgeYears == null ? zone.typeLabel : '${zone.typeLabel}, ~${zone.standAgeYears} р.';
-    final details = [if (zone.areaLabel != null) zone.areaLabel!, if (zone.typeSourceLabel != null) zone.typeSourceLabel!];
+    // Джерело типу (OSM / супутник) користувачу не показуємо — рішення PO 2026-11-14.
+    final details = [if (zone.areaLabel != null) zone.areaLabel!];
     return GestureDetector(
       onTap: onClose,
       child: Container(

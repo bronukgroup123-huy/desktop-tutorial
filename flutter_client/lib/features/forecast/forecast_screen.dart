@@ -34,13 +34,6 @@ class ForecastScreen extends ConsumerWidget {
         title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: 'Оновити',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.invalidate(analysisOverviewProvider),
-          ),
-        ],
       ),
       body: data == null
           ? (overview.hasError
@@ -223,6 +216,20 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   ],
                 ),
               ),
+              // «Оновити аналіз» — компактний значок замість великої кнопки (рішення PO 2026-11-14).
+              if (result != null)
+                IconButton(
+                  key: const ValueKey('reanalyze'),
+                  tooltip: 'Оновити аналіз',
+                  onPressed: _busy || offline ? null : _reanalyze,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.4, color: AppTheme.darkGreen),
+                        )
+                      : const Icon(Icons.refresh_rounded, color: AppTheme.darkGreen),
+                ),
               IconButton(
                 tooltip: 'Показати на карті',
                 onPressed: _showOnMap,
@@ -245,32 +252,30 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
               text: 'Немає інтернету — показано збережений результат.',
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: FilledButton.icon(
-            onPressed: _busy || offline ? null : _reanalyze,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.darkGreen,
-              minimumSize: const Size.fromHeight(46),
-            ),
-            icon: _busy
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.insights_rounded),
-            label: Text(_busy ? 'Аналізуємо…' : (result == null ? 'Аналізувати ділянку' : 'Оновити аналіз')),
-          ),
-        ),
         Expanded(
           child: result == null
               ? _Message(
                   icon: Icons.insights_rounded,
                   title: 'Аналізу ще немає',
                   text: 'Натисніть «Аналізувати ділянку», щоб отримати прогноз.',
+                  action: FilledButton.icon(
+                    onPressed: _busy || offline ? null : _reanalyze,
+                    style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, minimumSize: const Size(220, 46)),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.insights_rounded),
+                    label: Text(_busy ? 'Аналізуємо…' : 'Аналізувати ділянку'),
+                  ),
                 )
-              : AnalysisResultView(
+              : RefreshIndicator(
+                  // Потягнути вниз — оновити ділянки з сервера (без нового аналізу).
+                  color: AppTheme.darkGreen,
+                  onRefresh: () => ref.refresh(analysisOverviewProvider.future),
+                  child: AnalysisResultView(
                   result: result,
                   refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
                   // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
@@ -281,6 +286,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                           !offline
                       ? () => _refineForest(result, o.forestEditOptions!)
                       : null,
+                  ),
                 ),
         ),
       ],

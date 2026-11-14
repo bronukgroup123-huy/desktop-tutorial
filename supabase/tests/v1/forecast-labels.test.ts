@@ -76,7 +76,7 @@ Deno.test("weather: блок з готовими рядками; недосту�
 Deno.test("forest label", () => {
   assertEquals(forestLabel("pine", 50), "Сосновий ліс, ~50 р.");
   assertEquals(forestLabel("oak", null), "Дубовий ліс");
-  assertEquals(forestLabel(null, null), "Тип лісу невідомий — прогноз базовий");
+  assertEquals(forestLabel(null, null), "Ліс");
 });
 
 Deno.test("shapeSpecies: людські підписи і жодних чисел", () => {

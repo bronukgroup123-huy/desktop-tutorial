@@ -154,11 +154,9 @@ export function humanizeLimit(reason: string, w: WeatherData | null | undefined)
   if (reason.startsWith("relief soft-miss")) return "Рельєф не найкращий для виду";
   if (reason.startsWith("dry →")) return "Сухий ґрунт";
   if (reason.startsWith("waterlogged →")) return "Ґрунт перезволожений";
-  if (reason.startsWith("forest not confirmed")) return "Тип лісу не визначено";
-  if (reason === "forest group: mixed") return "Ліс мішаний — невідомо, чи є тут потрібні дерева. Уточніть ліс";
-  if ((m = reason.match(/^forest group: (\w+)/))) {
-    return `${forestName(m[1])} без відомої породи — уточніть ліс, щоб прогноз був точнішим`;
-  }
+  // Порода невідома (загальний чи мішаний ліс, тип не визначено) — не пишемо: ліс називаємо
+  // тим, що відомо («Хвойний ліс»), без «без породи» / «тип невідомий» (рішення PO 2026-11-14).
+  if (reason.startsWith("forest not confirmed") || reason.startsWith("forest group")) return null;
   if (reason === "temp in transition zone") {
     return weatherOk(w) ? `Температура ${deg(w.tempAvg7d)} — на межі сприятливої` : "Температура на межі сприятливої";
   }
@@ -202,7 +200,7 @@ export function whenLabel(wave: Wave | null, w: WeatherData | null | undefined):
 
 /** Тип і вік лісу для заголовка прогнозу. */
 export function forestLabel(forestType: string | null | undefined, standAge: number | null | undefined): string {
-  if (!forestType) return "Тип лісу невідомий — прогноз базовий";
+  if (!forestType) return "Ліс";
   const name = forestName(forestType);
   return standAge ? `${name}, ~${standAge} р.` : name;
 }

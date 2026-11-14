@@ -204,6 +204,6 @@ Deno.test("forests: супутник заповнює лише ліси без �
     ["w4", null, null],
   ]);
   assertEquals(props[0].type_label, "Хвойний ліс");
-  assertEquals(props[0].type_source_label, "Визначено за супутниковими знімками (Sentinel-2) — без породи");
+  assertEquals(props[0].type_source_label, "Визначено за супутниковими знімками (Sentinel-2)");
   assertEquals([stats.typed, stats.satellite], [3, 2]);
 });
