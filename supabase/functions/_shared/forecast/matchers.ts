@@ -23,26 +23,83 @@ function intersects(a: string[] | null | undefined, b: string[] | null | undefin
   return a.some(x => setB.has(x));
 }
 
+// ─── Тип лісу: зв'язки між типами ───────────────────────────
+/** Породи хвойних і листяних (типи лісу з порідним складом). */
+export const CONIFER_TYPES = ['pine', 'spruce'] as const;
+export const BROADLEAF_TYPES = ['oak', 'birch', 'aspen', 'alder', 'beech', 'hornbeam'] as const;
+
+/**
+ * Ліс загального типу без породи (за супутником або «хвойний» в OSM): вид із конкретною
+ * породою тут, найімовірніше, є, але певності немає — трохи нижче.
+ */
+export const GROUP_FIT = 0.85;
+/** Мішаний ліс: невідомо, чи є саме потрібна порода. */
+export const MIXED_FIT = 0.8;
+
+const isConifer = (t: string) => (CONIFER_TYPES as readonly string[]).includes(t);
+const isBroadleaf = (t: string) => (BROADLEAF_TYPES as readonly string[]).includes(t);
+
+/**
+ * Наскільки тип лісу ділянки [forest] підходить виду зі списком типів [ruleTypes]:
+ * 1 — підходить, 0 — ні (вид у цьому лісі не росте), між — загальний або мішаний ліс без
+ * відомої породи. Раніше потрібен був точний збіг слова, і вид зникав, напр., у мішаному лісі
+ * (немає в списку білого) або в «хвойному» лісі за супутником (у маслюка в списку лише сосна).
+ */
+export function forestFit(ruleTypes: string[], forest: string): { score: number; reason: string } {
+  const has = (t: string) => ruleTypes.includes(t);
+  const anyConifer = ruleTypes.some(isConifer) || has('coniferous');
+  const anyBroadleaf = ruleTypes.some(isBroadleaf) || has('deciduous');
+  const match = { score: 1, reason: `forest match: ${forest}` };
+
+  if (has(forest) || has('any') || forest === 'any') return match;
+  // Ліс конкретної породи: якщо у виду перелічені породи — головні вони (березняк не підходить
+  // білому, у якого в списку сосна, ялина, дуб). Загальний тип виду («листяний», «мішаний»)
+  // діє, лише коли порід у списку немає.
+  if (isConifer(forest) || isBroadleaf(forest)) {
+    const listsSpecies = ruleTypes.some((t) => isConifer(t) || isBroadleaf(t));
+    const group = isConifer(forest) ? 'coniferous' : 'deciduous';
+    if (!listsSpecies && (has(group) || has('mixed'))) return match;
+    return { score: 0, reason: `forest mismatch: ${forest}` };
+  }
+
+  if (forest === 'coniferous') {
+    if (ruleTypes.some(isConifer)) return { score: GROUP_FIT, reason: 'forest group: coniferous' };
+    if (has('mixed')) return { score: GROUP_FIT, reason: 'forest group: coniferous' };
+  }
+  if (forest === 'deciduous') {
+    if (ruleTypes.some(isBroadleaf)) return { score: GROUP_FIT, reason: 'forest group: deciduous' };
+    if (has('mixed')) return { score: GROUP_FIT, reason: 'forest group: deciduous' };
+  }
+  if (forest === 'mixed' && (anyConifer || anyBroadleaf)) {
+    return { score: MIXED_FIT, reason: 'forest group: mixed' };
+  }
+  return { score: 0, reason: `forest mismatch: ${forest}` };
+}
+
 // ─── matchGeo ────────────────────────────────────────────────
 export function matchGeo(rule: SpeciesRule, ctx: ForecastContext): MatcherResult {
   const reasons: string[] = [];
   const input = ctx.input;
 
-  // HARD: forest type (тільки якщо підтверджено і є обмеження)
+  // HARD: forest type (тільки якщо підтверджено і є обмеження). Типи пов'язані між собою:
+  // «хвойний» ⊃ сосна, ялина; «листяний» ⊃ дуб, береза…; «мішаний» = хвойні + листяні.
+  let forestScore = 1.0;
   if (input.forestConfirmed && input.forestType && rule.forestType.length > 0) {
-    if (!intersects(rule.forestType, [input.forestType])) {
+    const fit = forestFit(rule.forestType, input.forestType);
+    if (fit.score === 0) {
       return {
         score: 0,
         reasons: [`forest mismatch: need ${rule.forestType.join('|')}, got ${input.forestType}`],
         hardFail: true,
       };
     }
-    reasons.push(`forest match: ${input.forestType}`);
+    forestScore = fit.score;
+    reasons.push(fit.reason);
   } else if (!input.forestConfirmed) {
     reasons.push('forest not confirmed — skip');
   }
 
-  let score = 1.0;
+  let score = forestScore;
 
   // SOFT: relief (тільки якщо flag enabled і є дані)
   if (ctx.config.relief_enabled && ctx.reliefType && rule.reliefType.length > 0) {
