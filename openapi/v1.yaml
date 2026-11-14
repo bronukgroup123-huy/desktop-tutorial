@@ -992,6 +992,29 @@ components:
               date: { type: string, format: date }
               day_label: { type: string, example: Сб 14 }
         locked_label: { type: [string, 'null'], example: 'Ще 4 дні прогнозу — у Pro' }
+        basket:
+          description: Кошик мінікарти — гриби зі шансом обраного дня (ADR-015 §15.9)
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/AnalysisBasketSpecies' }
+        week_animation:
+          type: object
+          required: [allowed]
+          description: «Хвиля по днях» — Pro або рівень «Слідопит»; інакше locked_label при натисканні
+          properties:
+            allowed: { type: boolean }
+            locked_label: { type: [string, 'null'], example: 'Анімація тижня — у Pro або з рівня «Слідопит»' }
+
+    AnalysisBasketSpecies:
+      type: object
+      required: [mushroom_type, name_ua, level, level_label, level_color]
+      properties:
+        mushroom_type: { type: string }
+        name_ua: { type: string, example: Білий гриб }
+        level: { type: string, enum: [peak, high, medium, low] }
+        level_label: { type: string }
+        level_color: { type: string, pattern: '^#[0-9a-f]{6}$' }
+        when_label: { type: string, example: 'Хвиля зараз — 3-й день з 10' }
 
     AnalysisDayWeather:
       type: object
@@ -1029,6 +1052,10 @@ components:
             - type: 'null'
         warnings: { type: array, items: { type: string } }
         no_data_reason: { type: [string, 'null'] }
+        basket:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/AnalysisBasketSpecies' }
 
     RegionGeometry:
       type: object

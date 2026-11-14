@@ -46,94 +46,104 @@ void main() {
     }
   });
 
-  testWidgets('Мінікарта: гриби в лотку, перетягування на карту, пересування, «Прибрати»', (tester) async {
-    var positions = <String, LatLng>{};
-    final moved = <String, LatLng>{};
-    final removed = <String>[];
-    Widget board() => MaterialApp(
-          home: Scaffold(
-            body: Padding(
-              padding: const EdgeInsets.all(16),
-              child: StatefulBuilder(
-                builder: (context, setState) => StickerBoard(
-                  camera: camera(),
-                  species: const [boletus, chanterelle],
-                  positions: positions,
-                  map: Container(key: const ValueKey('mini-map'), color: Colors.green.shade100),
-                  onMove: (t, p) => setState(() {
-                    moved[t] = p;
-                    positions = {...positions, t: p};
-                  }),
-                  onRemove: (t) => setState(() {
-                    removed.add(t);
-                    positions = {...positions}..remove(t);
-                  }),
-                ),
+  Widget boardApp(Map<String, LatLng> Function() get, void Function(Map<String, LatLng>) set,
+          {List<StickerSpecies> species = const [boletus, chanterelle], List<String>? removed}) =>
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: StatefulBuilder(
+              builder: (context, setState) => StickerBoard(
+                camera: camera(),
+                species: species,
+                positions: get(),
+                map: Container(key: const ValueKey('mini-map'), color: Colors.green.shade100),
+                onMove: (t, p) => setState(() => set({...get(), t: p})),
+                onRemove: (t) => setState(() {
+                  removed?.add(t);
+                  set({...get()}..remove(t));
+                }),
               ),
             ),
           ),
-        );
-    await tester.pumpWidget(board());
-    // система гриби не розставляє — обидва в лотку
-    expect(find.byKey(const ValueKey('tray-boletus_edulis')), findsOneWidget);
-    expect(find.text('Перетягніть гриб на своє місце в лісі'), findsOneWidget);
+        ),
+      );
 
-    // перетягнути білий з лотка в центр мінікарти
-    final mapCenter = tester.getCenter(find.byKey(const ValueKey('mini-map')));
-    final gesture = await tester.startGesture(tester.getCenter(find.byKey(const ValueKey('tray-boletus_edulis'))));
-    await tester.pump(const Duration(milliseconds: 50));
-    await gesture.moveTo(mapCenter);
-    await tester.pump();
-    await gesture.up();
-    await tester.pump();
-    expect(moved.keys, ['boletus_edulis']);
-    final p = moved['boletus_edulis']!;
-    expect(p.latitude, inInclusiveRange(bounds.southWest.latitude - 0.01, bounds.northEast.latitude + 0.01));
-    expect(p.longitude, inInclusiveRange(bounds.southWest.longitude - 0.01, bounds.northEast.longitude + 0.01));
-    expect(find.byKey(const ValueKey('placed-boletus_edulis')), findsOneWidget);
-    expect(find.byKey(const ValueKey('tray-boletus_edulis')), findsNothing);
-
-    // затиснути й пересунути
-    final before = moved['boletus_edulis']!;
-    final g2 = await tester.startGesture(tester.getCenter(find.byKey(const ValueKey('placed-boletus_edulis'))));
+  Future<void> longDrag(WidgetTester tester, Finder from, Offset to) async {
+    final g = await tester.startGesture(tester.getCenter(from));
     await tester.pump(const Duration(milliseconds: 600)); // довге натискання
-    await g2.moveBy(const Offset(40, 20));
+    await g.moveTo(to);
     await tester.pump();
-    await g2.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 600)); // кошик стискається
+    await g.up();
     await tester.pump();
-    final after = moved['boletus_edulis']!;
-    expect(after.longitude, greaterThan(before.longitude)); // праворуч → на схід
-    expect(after.latitude, lessThan(before.latitude)); // нижче → на південь
+  }
 
-    // торкнутися — підказка з рівнем дня, «Прибрати» повертає в лоток
+  testWidgets('Кошик: спочатку карта порожня, гриби в кошику; заглянути, назва, перенести на карту', (tester) async {
+    var positions = <String, LatLng>{};
+    await tester.pumpWidget(boardApp(() => positions, (p) => positions = p));
+    // система гриби не розставляє — карта порожня, кошик у кутку
+    expect(find.byKey(const ValueKey('placed-boletus_edulis')), findsNothing);
+    expect(find.byKey(const ValueKey('basket')), findsOneWidget);
+    expect(find.byKey(const ValueKey('basket-boletus_edulis')), findsNothing);
+
+    // заглянути в кошик — вигляд згори з грибами
+    await tester.tap(find.byKey(const ValueKey('basket')));
+    await tester.pump(); // старт анімації «заглядання»
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const ValueKey('basket-open')), findsOneWidget);
+    expect(find.byKey(const ValueKey('basket-boletus_edulis')), findsOneWidget);
+    expect(find.byKey(const ValueKey('basket-cantharellus_cibarius')), findsOneWidget);
+
+    // торкнутися гриба — маленька назва
+    await tester.tap(find.byKey(const ValueKey('basket-boletus_edulis')));
+    await tester.pump();
+    expect(find.text('Білий гриб'), findsOneWidget);
+
+    // затиснути й перенести на карту (у лівий верхній квадрант)
+    final mapBox = tester.getRect(find.byKey(const ValueKey('mini-map')));
+    final target = mapBox.topLeft + Offset(mapBox.width * 0.3, mapBox.height * 0.4);
+    await longDrag(tester, find.byKey(const ValueKey('basket-boletus_edulis')), target);
+    expect(positions.keys, ['boletus_edulis']);
+    final placed = camera().toScreen(positions['boletus_edulis']!);
+    expect((placed - (target - mapBox.topLeft)).distance, lessThan(1.5)); // «ніжка» — під пальцем
+    expect(find.byKey(const ValueKey('placed-boletus_edulis')), findsOneWidget);
+    expect(find.byKey(const ValueKey('basket-open')), findsNothing); // кошик стиснувся в куток
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Кошик: пересунути гриб на карті, перенести назад у кошик — прибрати', (tester) async {
+    var positions = <String, LatLng>{'boletus_edulis': const LatLng(50.215, 28.62)};
+    final removed = <String>[];
+    await tester.pumpWidget(boardApp(() => positions, (p) => positions = p, removed: removed));
+    final before = positions['boletus_edulis']!;
+    final from = find.byKey(const ValueKey('placed-boletus_edulis'));
+    await longDrag(tester, from, tester.getCenter(from) + const Offset(40, 20));
+    final after = positions['boletus_edulis']!;
+    expect(after.longitude, greaterThan(before.longitude));
+    expect(after.latitude, lessThan(before.latitude));
+
+    // торкнутися — підказка з рівнем дня
     await tester.tap(find.byKey(const ValueKey('placed-boletus_edulis')));
     await tester.pump();
     expect(find.text('Білий гриб · Пікова ймовірність'), findsOneWidget);
-    expect(find.text('Хвиля зараз — 5-й день з 10'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('remove-boletus_edulis')));
-    await tester.pump();
+
+    // назад у кошик
+    await longDrag(tester, find.byKey(const ValueKey('placed-boletus_edulis')),
+        tester.getCenter(find.byKey(const ValueKey('basket'))));
     expect(removed, ['boletus_edulis']);
-    expect(find.byKey(const ValueKey('tray-boletus_edulis')), findsOneWidget);
-    await tester.pumpWidget(const SizedBox()); // зупинити анімацію
+    expect(positions, isEmpty);
+    await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('Гриб, якого цього дня немає серед найкращих, лишається на місці сірим', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: StickerBoard(
-          camera: camera(),
-          species: const [chanterelle],
-          positions: const {'boletus_edulis': LatLng(50.22, 28.63)},
-          map: const SizedBox.expand(),
-          onMove: (_, __) {},
-          onRemove: (_) {},
-        ),
-      ),
-    ));
-    expect(find.byKey(const ValueKey('placed-boletus_edulis')), findsOneWidget);
+  testWidgets('Гриб, якого цього дня немає серед грибів зі шансом, лишається на місці сірим', (tester) async {
+    var positions = <String, LatLng>{'boletus_edulis': const LatLng(50.22, 28.63)};
+    await tester.pumpWidget(boardApp(() => positions, (p) => positions = p, species: const [chanterelle]));
     await tester.tap(find.byKey(const ValueKey('placed-boletus_edulis')));
     await tester.pump();
-    expect(find.textContaining('Цього дня не серед найкращих'), findsOneWidget);
+    expect(find.textContaining('Цього дня шансу немає'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   test('Місця грибів зберігаються на телефоні за ділянкою', () async {
@@ -145,12 +155,16 @@ void main() {
     expect(await store.load('area-2'), isEmpty);
   });
 
-  testWidgets('«Хвиля по днях» прокручує дні — гриби на мінікарті змінюються', (tester) async {
+  testWidgets('«Хвиля по днях» — один значок: є доступ — прокручує дні з грибами кошика', (tester) async {
     final seen = <List<String?>>[];
+    final json = {
+      ...daysJson(),
+      'week_animation': {'allowed': true, 'locked_label': null},
+    };
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: AnalysisResultView(
-          result: AnalysisResult.fromJson(daysJson()),
+          result: AnalysisResult.fromJson(json),
           miniMapBuilder: (species) {
             seen.add([for (final s in species) '${s.name}:${s.level}']);
             return const SizedBox(height: 50);
@@ -158,15 +172,49 @@ void main() {
         ),
       ),
     ));
-    expect(seen.last, ['Опеньок:low']); // сьогодні
+    expect(seen.last, ['Опеньок:low']); // сьогодні (без кошика в даних — найкращий вид)
     await tester.tap(find.byKey(const ValueKey('play-days')));
     await tester.pump();
-    expect(find.text('Пауза'), findsOneWidget);
+    expect(find.byTooltip('Пауза'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1300));
-    expect(seen.last, ['Лисичка:medium']); // завтра
+    expect(seen.last, ['Лисичка:medium']);
     await tester.pump(const Duration(milliseconds: 1300));
-    expect(seen.last, isEmpty); // Пт 13 — видів немає
+    expect(seen.last, isEmpty);
     await tester.pump(const Duration(milliseconds: 1300));
-    expect(find.text('Хвиля по днях'), findsOneWidget); // дійшли до кінця
+    expect(find.byTooltip('Хвиля по днях'), findsOneWidget);
+  });
+
+  testWidgets('«Хвиля по днях» без доступу — той самий значок, натискання пояснює (Pro / «Слідопит»)', (tester) async {
+    final base = daysJson();
+    final days = [for (final d in base['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['basket'] = [
+      {'mushroom_type': 'boletus_edulis', 'name_ua': 'Білий гриб', 'level': 'high', 'level_label': 'Висока ймовірність',
+       'level_color': '#22c55e', 'when_label': 'Хвиля зараз — 2-й день з 10'},
+    ];
+    final json = {
+      ...base,
+      'days': days,
+      'week_animation': {'allowed': false, 'locked_label': 'Анімація тижня — у Pro або з рівня «Слідопит»'},
+    };
+    final seen = <List<String>>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: AnalysisResultView(
+          result: AnalysisResult.fromJson(json),
+          miniMapBuilder: (species) {
+            seen.add([for (final s in species) s.name]);
+            return const SizedBox(height: 50);
+          },
+        ),
+      ),
+    ));
+    expect(seen.last, ['Білий гриб']); // кошик — з повного списку дня
+    // без замка на самому значку (замки в смужці — це дні 4–7)
+    expect(find.descendant(of: find.byKey(const ValueKey('play-days')), matching: find.byIcon(Icons.lock_outline_rounded)), findsNothing);
+    expect(find.descendant(of: find.byKey(const ValueKey('play-days')), matching: find.byIcon(Icons.play_circle_outline_rounded)), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('play-days')));
+    await tester.pump();
+    expect(find.text('Анімація тижня — у Pro або з рівня «Слідопит»'), findsOneWidget);
+    expect(find.byTooltip('Пауза'), findsNothing);
   });
 }

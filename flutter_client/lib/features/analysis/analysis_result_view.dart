@@ -74,19 +74,48 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
     setState(() {});
   }
 
-  /// Гриби обраного дня для мінікарти: найкращий і альтернатива.
-  List<StickerSpecies> _stickers(AnalysisResult r) => [
-        for (final s in [r.top1, r.alternative])
-          if (s != null)
-            StickerSpecies(
-              type: s.species.mushroomType,
-              name: s.species.nameUa,
-              level: s.species.level,
-              levelLabel: s.species.levelLabel,
-              color: s.species.levelColor,
-              whenLabel: s.species.whenLabel,
-            ),
+  /// Гриби обраного дня для кошика мінікарти: усі зі шансом (старий результат — найкращий
+  /// і альтернатива).
+  List<StickerSpecies> _stickers(AnalysisResult r) {
+    final basket = r.basket;
+    if (basket != null) {
+      return [
+        for (final b in basket)
+          StickerSpecies(
+            type: b.type,
+            name: b.name,
+            level: b.level,
+            levelLabel: b.levelLabel,
+            color: b.levelColor,
+            whenLabel: b.whenLabel,
+          ),
       ];
+    }
+    return [
+      for (final s in [r.top1, r.alternative])
+        if (s != null)
+          StickerSpecies(
+            type: s.species.mushroomType,
+            name: s.species.nameUa,
+            level: s.species.level,
+            levelLabel: s.species.levelLabel,
+            color: s.species.levelColor,
+            whenLabel: s.species.whenLabel,
+          ),
+    ];
+  }
+
+  /// ▶ натиснуто: є доступ (Pro / «Слідопит») — прокрутити дні; немає — пояснення.
+  void _onPlayPressed() {
+    final w = widget.result.weekAnimation;
+    if (w != null && !w.allowed) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(w.lockedLabel ?? 'Анімація тижня недоступна')));
+      return;
+    }
+    _togglePlay();
+  }
 
   AnalysisDay? get _day {
     for (final d in widget.result.days) {
@@ -171,12 +200,17 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
                   style: GoogleFonts.merriweather(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                 ),
               ),
-              if (widget.result.days.length > 1)
-                TextButton.icon(
+              // «Хвиля по днях» — один значок; доступ (Pro / «Слідопит») каже сервер.
+              if (widget.result.days.length > 1 && widget.result.weekAnimation != null)
+                IconButton(
                   key: const ValueKey('play-days'),
-                  onPressed: _togglePlay,
-                  icon: Icon(_play == null ? Icons.play_arrow_rounded : Icons.pause_rounded),
-                  label: Text(_play == null ? 'Хвиля по днях' : 'Пауза'),
+                  tooltip: _play == null ? 'Хвиля по днях' : 'Пауза',
+                  onPressed: _onPlayPressed,
+                  icon: Icon(
+                    _play == null ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded,
+                    color: AppTheme.darkGreen,
+                    size: 28,
+                  ),
                 ),
             ],
           ),

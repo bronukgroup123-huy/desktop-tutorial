@@ -618,3 +618,29 @@ Deno.test("analysis POST area_id: збережене уточнення діє �
   assertEquals(inputs.map((i) => i.forestType), ["pine", "deciduous", "mixed"]);
   assertEquals(json.data.forest.types[0].species_label, "сосна · уточнено вами");
 });
+
+Deno.test("analysis POST: кошик мінікарти — усі види зі шансом за день, найкращий рівень серед лісів, від кращого", async () => {
+  const forecast = (input: DayInput) => {
+    const c = input.forestType === "pine"
+      ? [species({ score: 0.9, probability: "peak" }), species({ mushroom_type: "suillus_luteus", name_ua: "Маслюк", score: 0.45, probability: "low" })]
+      : [species({ score: 0.6, probability: "medium" }), species({ mushroom_type: "russula_vesca", name_ua: "Сироїжка", score: 0.7, probability: "high" })];
+    return Promise.resolve(result({ candidates: c }));
+  };
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  const basket = json.data.basket as Array<{ mushroom_type: string; level: string }>;
+  assertEquals(basket.map((b) => [b.mushroom_type, b.level]), [
+    ["boletus_edulis", "peak"], ["russula_vesca", "high"], ["suillus_luteus", "low"],
+  ]);
+  assertEquals(json.data.days[0].basket, json.data.basket);
+  assertEquals(Object.keys(basket[0]).sort(), ["level", "level_color", "level_label", "mushroom_type", "name_ua", "when_label"]);
+  assertEquals(/score|probability|0\.9/.test(JSON.stringify(json.data.basket)), false);
+});
+
+Deno.test("analysis POST: анімація тижня — Pro або «Слідопит» (рейтинг ≥ 51), інакше пояснення", async () => {
+  const free = await run(db(), req("POST", URL_, body()));
+  assertEquals(free.json.data.week_animation, { allowed: false, locked_label: "Анімація тижня — у Pro або з рівня «Слідопит»" });
+  const pro = await run(db(), req("POST", URL_, body()), { pro: true });
+  assertEquals(pro.json.data.week_animation, { allowed: true, locked_label: null });
+  const tracker = await run(db({ "users.select": { data: { home_region_id: 10, rating: 51 }, error: null } }), req("POST", URL_, body()));
+  assertEquals(tracker.json.data.week_animation.allowed, true);
+});
