@@ -155,15 +155,19 @@ export function renderReport(title: string, intro: string, runs: ReplayRun[], fi
   return `<!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <style>
 :root{--bg:#f6f4ea;--card:#fff;--ink:#1c2b22;--muted:#5f6f64;--line:#d9d6c8;--rain:#5b8fd6;--temp:#d97706;
 --l-no_data:#e7e5dc;--l-low:#f3b27a;--l-medium:#eccb4a;--l-high:#5fbf6a;--l-peak:#1f8a4c}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a16;--card:#1d2520;--ink:#e6ece7;--muted:#9aa89e;--line:#2f3a33;
---l-no_data:#2a322d;--l-low:#a8683a;--l-medium:#b39a2c;--l-high:#3f9a4b;--l-peak:#5fd08a}}
+--l-no_data:#2a322d;--l-low:#a8683a;--l-medium:#b39a2c;--l-high:#3f9a4b;--l-peak:#5fd08a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#141a16;--card:#1d2520;--ink:#e6ece7;--muted:#9aa89e;--line:#2f3a33;
---l-no_data:#2a322d;--l-low:#a8683a;--l-medium:#b39a2c;--l-high:#3f9a4b;--l-peak:#5fd08a}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}h1{font-size:22px;margin:0 0 6px}h2{font-size:17px;margin:0 0 4px}
+--l-no_data:#2a322d;--l-low:#a8683a;--l-medium:#b39a2c;--l-high:#3f9a4b;--l-peak:#5fd08a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2{font-family:"Bitter",Georgia,serif;text-wrap:balance}h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:0 0 4px}
+table{font-variant-numeric:tabular-nums}
 .meta{color:var(--muted);font-size:13px;margin:2px 0 8px}.note{font-size:14px;margin:6px 0 10px}
 section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted);margin:10px 0}
