@@ -19,7 +19,7 @@ dependencies:
   crypto: ^3.0.6
   maplibre_gl: ^0.28.0
   latlong2: ^0.9.1
-  geolocator: ^13.0.2
+  geolocator: ^14.1.2
   path_provider: ^2.1.5
   image_picker: ^1.1.2
 
