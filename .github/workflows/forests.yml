@@ -155,7 +155,7 @@ jobs:
             jq -r '"| \(.slug) | \(.features) | \(.stats.small) | \(.stats.typed) | \(.stats.satellite // 0) | \((.bytes/1048576*10|round)/10) МБ |"' "$m" >> "$GITHUB_STEP_SUMMARY"
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: forests-${{ env.REGION }}
           path: dist/
