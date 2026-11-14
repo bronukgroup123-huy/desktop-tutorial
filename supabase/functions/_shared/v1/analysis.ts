@@ -7,7 +7,11 @@
 //            usage, hint_label } }
 // POST   v1-analysis  { lat, lng, size_km: 5 | 10, date?, forest? }   — НОВА ділянка + аналіз
 // POST   v1-analysis  { area_id, date?, forest? }                     — повторний аналіз тієї ж ділянки
-//   → 200 { data: { area, date, forest, top1, alternative, weather, warnings, usage } }
+//   → 200 { data: { area, date, forest, top1, alternative, weather, warnings, usage,
+//            days: [{ date, day_label, approximate, level…, top1, alternative, weather }],
+//            horizon_days, best_day?, locked_days, locked_label? } }
+//   Один аналіз рахує ВСІ дні горизонту (безкоштовно 3, Pro 7, від сьогодні); top1/weather
+//   верхнього рівня — для `date` (за замовчуванням сьогодні). Перемикання днів — без запитів.
 // DELETE v1-analysis/areas/{id}  → 200 { data: { deleted: true } }
 // PUT    v1-analysis/areas/{id}/forest  { override: { types, extra } | null, forest?, date? }
 //   → 200 { data: { ...як POST, forest_edit } } — уточнення лісу вручну + переаналіз (ADR-015 §15.6)
@@ -17,7 +21,7 @@
 //   * ділянку НЕ пересувають: створюють у вільний слот або видаляють і створюють нову.
 //     Вільного слоту немає → `409 area_limit_reached`;
 //   * безкоштовно: 1 ділянка 5×5 км, базова погода, 5 аналізів на добу;
-//   * 10×10 км, до 3 ділянок і горизонт далі 3 днів — Pro (`403 pro_required`);
+//   * 10×10 км, до 3 ділянок і дні 4–7 — Pro (`403 pro_required`); далі 7 днів — 422;
 //   * ліміт — на слот за добу: «видалити → створити» його не обнуляє;
 //     перевищення — `429 analysis_limit_reached` з часом скидання;
 //   * останній результат зберігається з ділянкою — вкладка «Прогноз» показує його без
@@ -41,7 +45,7 @@ import {
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
 import { weatherBlock } from "./forecast-labels.ts";
-import { shapeSpecies } from "./forecast.ts";
+import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
 export type AnalysisSize = (typeof ANALYSIS_SIZES)[number];
@@ -49,8 +53,12 @@ export type AnalysisSize = (typeof ANALYSIS_SIZES)[number];
 export const PRO_SIZE_KM = 10;
 export const FREE_DAILY_LIMIT = 5;
 export const PRO_DAILY_LIMIT = 10;
-/** Горизонт прогнозу без Pro, днів від сьогодні (ADR-010). */
+/** Горизонт прогнозу, днів разом із сьогодні (ADR-010): безкоштовно 3, Pro 7. */
 export const FREE_HORIZON_DAYS = 3;
+export const PRO_HORIZON_DAYS = 7;
+export const horizonDays = (pro: boolean) => (pro ? PRO_HORIZON_DAYS : FREE_HORIZON_DAYS);
+/** З якого дня від сьогодні прогноз «орієнтовний» (дні 5–7: дощ так далеко прогнозують гірше). */
+export const APPROXIMATE_FROM_DAY = 4;
 /** Слот єдиної ділянки безкоштовного користувача. */
 export const FREE_SLOT = 1;
 /** Скільки переважних типів лісу проганяється через рушій прогнозу. */
@@ -236,7 +244,8 @@ export interface AnalysisDb {
 export interface AreaForecastInput {
   lat: number;
   lng: number;
-  date: Date;
+  /** Дні прогнозу "YYYY-MM-DD" (сьогодні…горизонт) — один прогін рушія на тип лісу. */
+  dates: string[];
   forestType: string | null;
   homeRegionId: number;
 }
@@ -244,8 +253,8 @@ export interface AreaForecastInput {
 export interface AnalysisDeps {
   db: AnalysisDb;
   verify: TokenVerifier;
-  /** Прогноз для центру ділянки з заданим типом лісу (обгортка над ForecastEngine). */
-  forecast: (input: AreaForecastInput) => Promise<ForecastResult>;
+  /** Прогноз для центру ділянки з заданим типом лісу на кожен день `dates` (у тому ж порядку). */
+  forecast: (input: AreaForecastInput) => Promise<ForecastResult[]>;
   /** Чи є в користувача Pro-аналіз (entitlements, B6.3). До запуску Pro — немає ні в кого. */
   hasAnalysisPro?: (userId: string) => Promise<boolean>;
   now?: () => Date;
@@ -397,6 +406,32 @@ export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
 /** На скільки днів `date` пізніше за `today` (обидві — "YYYY-MM-DD"). */
 export function daysAhead(date: string, today: string): number {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS);
+}
+
+/** Дні горизонту від [today]: ["YYYY-MM-DD", …]. */
+export function horizonDates(today: string, count: number): string[] {
+  const start = Date.parse(`${today}T00:00:00Z`);
+  return Array.from({ length: count }, (_, i) => new Date(start + i * DAY_MS).toISOString().slice(0, 10));
+}
+
+const WEEKDAY_SHORT = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const WEEKDAY_FULL = ["неділя", "понеділок", "вівторок", "середа", "четвер", "пʼятниця", "субота"];
+
+/** «Сьогодні», «Завтра», «Сб 16». */
+export function dayLabel(date: string, today: string): string {
+  const ahead = daysAhead(date, today);
+  if (ahead === 0) return "Сьогодні";
+  if (ahead === 1) return "Завтра";
+  const d = new Date(`${date}T00:00:00Z`);
+  return `${WEEKDAY_SHORT[d.getUTCDay()]} ${d.getUTCDate()}`;
+}
+
+/** «сьогодні», «завтра», «субота» — для «Найкращий день: …». */
+function dayName(date: string, today: string): string {
+  const ahead = daysAhead(date, today);
+  if (ahead === 0) return "сьогодні";
+  if (ahead === 1) return "завтра";
+  return WEEKDAY_FULL[new Date(`${date}T00:00:00Z`).getUTCDay()];
 }
 
 // ─── Підписи ───────────────────────────────────────────────────────────────
@@ -614,6 +649,17 @@ function shapeCandidate(c: Candidate | null, result: ForecastResult): Record<str
 }
 
 
+/** День у межах горизонту: безкоштовно — сьогодні + 2 дні, Pro — сьогодні + 6 днів. */
+function assertInHorizon(date: string, today: string, pro: boolean): void {
+  const ahead = daysAhead(date, today);
+  if (ahead >= PRO_HORIZON_DAYS) {
+    throw validationError(`Прогноз доступний на ${PRO_HORIZON_DAYS} днів, від сьогодні`);
+  }
+  if (!pro && ahead >= FREE_HORIZON_DAYS) {
+    throw new HttpError(403, "pro_required", `Прогноз далі ніж на ${FREE_HORIZON_DAYS} дні доступний у Pro.`);
+  }
+}
+
 async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regionId: number): Promise<void> {
   const inRegion = await deps.db.rpc("point_in_region", { lat, lng, region_id: regionId });
   if (inRegion.error) dbFail("point_in_region", inRegion.error);
@@ -637,9 +683,7 @@ async function runAnalysis(
   // Тільки у своїй області (ADR-015 §15.2) — і в Pro також.
   const regionId = requireHomeRegion(await loadHomeRegionId(deps.db, user.id));
   const pro = await hasPro(deps, user);
-  if (!pro && daysAhead(input.date, kyivToday(now)) > FREE_HORIZON_DAYS) {
-    throw new HttpError(403, "pro_required", "Прогноз далі ніж на 3 дні доступний у Pro.");
-  }
+  assertInHorizon(input.date, kyivToday(now), pro);
   const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
   const areas = await loadAreas(deps.db, user.id);
 
@@ -700,7 +744,7 @@ async function runAnalysis(
   }
 
   try {
-    const data = await analyzeArea(deps, area, regionId, input.date, input.forestRaw, override, usageBlock(used, limit));
+    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro }, input.forestRaw, override, usageBlock(used, limit));
     // Останній результат — разом із ділянкою (вкладка «Прогноз», інші пристрої).
     const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: area.id, p_result: data });
     if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
@@ -727,7 +771,7 @@ async function analyzeArea(
   deps: AnalysisDeps,
   area: AreaRef,
   regionId: number,
-  dateStr: string,
+  when: { date: string; now: Date; pro: boolean },
   forestRaw: unknown,
   override: ForestOverride | null,
   usage: Record<string, unknown>,
@@ -743,21 +787,26 @@ async function analyzeArea(
   const forest = applyForestHint(forestRes.data as ForestSummary, forestHint);
   const hasForest = forest.forest_km2 >= MIN_FOREST_KM2;
 
+  // Дні горизонту від сьогодні: один прогін рушія на тип лісу рахує всі дні.
+  const today = kyivToday(when.now);
+  const dates = horizonDates(today, horizonDays(when.pro));
+  const locked = when.pro ? [] : horizonDates(today, PRO_HORIZON_DAYS).slice(dates.length);
+
   // Прогноз для переважних типів лісу (з уточненням — для обраних порід); лісів немає — лише погода.
   const forestTypes = forestRunTypes(forest, override);
   const runTypes: Array<string | null> = forestTypes.length > 0 ? forestTypes : [null];
-  const date = new Date(`${dateStr}T00:00:00Z`);
-  const runs = [];
+  const runs: Array<{ forestType: string | null; results: ForecastResult[] }> = [];
   for (const forestType of runTypes) {
-    runs.push({
-      forestType,
-      result: await deps.forecast({ lat: area.lat, lng: area.lng, date, forestType, homeRegionId: regionId }),
-    });
+    const results = await deps.forecast({ lat: area.lat, lng: area.lng, dates, forestType, homeRegionId: regionId });
+    if (results.length !== dates.length) throw new Error(`forecast returned ${results.length} days, expected ${dates.length}`);
+    runs.push({ forestType, results });
   }
-  const first = runs[0].result;
-  // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
-  const best = hasForest ? pickBest(runs) : { top1: null, alternative: null };
-  const weather = weatherBlock(first.weather);
+
+  const days = dates.map((date, i) => {
+    const dayRuns = runs.map((r) => ({ forestType: r.forestType, result: r.results[i] }));
+    return analyzeDay(date, today, dayRuns, hasForest);
+  });
+  const selected = days[Math.max(0, dates.indexOf(when.date))];
 
   const data: Record<string, unknown> = {
     area: {
@@ -769,24 +818,99 @@ async function analyzeArea(
       size_label: sizeLabel(area.sizeKm),
       bbox: forest.bbox,
     },
-    date: dateStr,
+    date: selected.view.date,
     forest: shapeForest(forest, override),
-    top1: shapeCandidate(best.top1, first),
-    alternative: shapeCandidate(best.alternative, first),
-    // Безкоштовно — базова погода: температура, вологість, опади (ADR-015 §15.1).
-    weather: weather
-      ? { icon: weather.icon, temp_label: weather.temp_label, humidity_label: weather.humidity_label, rain_label: weather.rain_label }
-      : null,
-    warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
+    top1: selected.view.top1,
+    alternative: selected.view.alternative,
+    weather: selected.view.weather,
+    warnings: selected.view.warnings,
     usage,
+    days: days.map((d) => d.view),
+    horizon_days: dates.length,
+    best_day: bestDay(days, today),
+    locked_days: locked.map((date) => ({ date, day_label: dayLabel(date, today) })),
+    locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
   };
-  if (!hasForest) {
-    data.no_data_reason = "У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо. " +
-      "Видаліть ділянку й оберіть місце, де є ліс.";
-  } else if (!best.top1 && first.noDataReason) {
-    data.no_data_reason = first.noDataReason;
-  }
+  if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
+}
+
+interface AnalyzedDay {
+  view: Record<string, unknown> & { date: string; top1: unknown; alternative: unknown; weather: unknown; warnings: string[]; no_data_reason: string | null };
+  /** Внутрішній порядок для «найкращого дня» — у відповідь не йде. */
+  bestScore: number | null;
+  level: ProbabilityLevel;
+}
+
+/** Один день смужки: найкращий вид і альтернатива серед типів лісу, погода дня. */
+function analyzeDay(
+  date: string,
+  today: string,
+  runs: Array<{ forestType: string | null; result: ForecastResult }>,
+  hasForest: boolean,
+): AnalyzedDay {
+  const first = runs[0].result;
+  // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
+  const best = hasForest ? pickBest(runs) : { top1: null, alternative: null };
+  const top1 = shapeCandidate(best.top1, first);
+  const level = top1 ? normalizeLevel(String(top1.level)) : "no_data";
+  const ahead = daysAhead(date, today);
+  const approximate = ahead >= APPROXIMATE_FROM_DAY;
+  const w = weatherBlock(first.weather);
+  const dayW = first.weather?.day;
+  return {
+    view: {
+      date,
+      day_label: dayLabel(date, today),
+      approximate,
+      approximate_label: approximate ? "Орієнтовно: погоду так далеко прогнозують менш точно" : null,
+      level,
+      level_label: LEVEL_LABEL[level],
+      level_short_label: LEVEL_SHORT_LABEL[level],
+      level_color: LEVEL_COLOR[level],
+      top1,
+      alternative: shapeCandidate(best.alternative, first),
+      // Безкоштовно — базова погода: температура, вологість, опади (ADR-015 §15.1).
+      weather: w
+        ? {
+          icon: dayW ? dayIcon(dayW.rain, dayW.humidity) : w.icon,
+          day_label: dayW ? `${Math.round(dayW.tempMin)}…${Math.round(dayW.tempMax)}°, ${dayRainLabel(dayW.rain)}` : null,
+          temp_label: w.temp_label,
+          humidity_label: w.humidity_label,
+          rain_label: w.rain_label,
+        }
+        : null,
+      warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
+      no_data_reason: !hasForest ? NO_FOREST_REASON : !best.top1 && first.noDataReason ? first.noDataReason : null,
+    },
+    bestScore: best.top1 ? best.top1.species.score : null,
+    level,
+  };
+}
+
+const NO_FOREST_REASON = "У цій ділянці на карті немає лісу, тож лісові гриби тут не прогнозуємо. " +
+  "Видаліть ділянку й оберіть місце, де є ліс.";
+
+/** Коротко для смужки днів. */
+const LEVEL_SHORT_LABEL: Record<ProbabilityLevel, string> = {
+  peak: "Пік", high: "Висока", medium: "Середня", low: "Низька", no_data: "—",
+};
+
+const dayIcon = (rain: number, humidity: number) => (rain >= 1 ? "rain" : humidity >= 80 ? "cloud" : "sun");
+const dayRainLabel = (rain: number) => (rain >= 0.5 ? `опади ${Math.max(1, Math.round(rain))} мм` : "без опадів");
+
+/** Найкращий день горизонту: найвищий рівень (від середнього), за рівності — раніший. */
+export function bestDay(days: AnalyzedDay[], today: string): Record<string, unknown> | null {
+  const RANK: Record<ProbabilityLevel, number> = { peak: 4, high: 3, medium: 2, low: 1, no_data: 0 };
+  let best: AnalyzedDay | null = null;
+  for (const d of days) {
+    if (d.bestScore === null || RANK[d.level] < RANK.medium) continue;
+    if (!best || RANK[d.level] > RANK[best.level] || (RANK[d.level] === RANK[best.level] && d.bestScore > best.bestScore! + 0.05)) {
+      best = d;
+    }
+  }
+  if (!best || days.length < 2) return null;
+  return { date: best.view.date, label: `Найкращий день: ${dayName(best.view.date, today)}` };
 }
 
 // ─── PUT: уточнити ліс ділянки вручну (ADR-015 §15.6) ─────────────────────
@@ -810,9 +934,7 @@ async function editForest(
 
   const regionId = requireHomeRegion(await loadHomeRegionId(deps.db, user.id));
   const pro = await hasPro(deps, user);
-  if (!pro && daysAhead(date, kyivToday(now)) > FREE_HORIZON_DAYS) {
-    throw new HttpError(403, "pro_required", "Прогноз далі ніж на 3 дні доступний у Pro.");
-  }
+  assertInHorizon(date, kyivToday(now), pro);
   const areas = await loadAreas(deps.db, user.id);
   const row = areas.find((a) => a.id === areaId);
   const point = row ? areaCenter(row) : null;
@@ -843,7 +965,7 @@ async function editForest(
   try {
     const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
     const usage = usageBlock(await usedToday(deps.db, user.id, area.slot), limit);
-    const data = await analyzeArea(deps, area, regionId, date, obj.forest, override, usage);
+    const data = await analyzeArea(deps, area, regionId, { date, now, pro }, obj.forest, override, usage);
     const saved = await deps.db.rpc("save_forest_override", {
       p_user_id: user.id,
       p_area_id: area.id,

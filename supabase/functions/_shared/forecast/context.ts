@@ -10,7 +10,7 @@ import type {
   ForestZoneData,
   CrowdData,
 } from "./types.ts";
-import { fetchWeatherCached } from "./weather-cache.ts";
+import { fetchWeatherSeriesCached, weatherForDate } from "./weather-cache.ts";
 import { detectWave } from "./wave.ts";
 
 // Реекспорт для зручності
@@ -135,14 +135,17 @@ export class ContextBuilder {
       : null;
 
     // 2. Weather (паралельно з crowd)
-    const [weather, crowd] = await Promise.all([
+    const [weatherSeries, crowd] = await Promise.all([
       // B2.6: погода з кешу по сітці (≤ 1 запит до Open-Meteo на клітинку за 3 год)
-      fetchWeatherCached(db, input.lat, input.lng),
+      fetchWeatherSeriesCached(db, input.lat, input.lng),
       fetchCrowd(db, input),
     ]);
 
-    // 3. Кумулятивний GDD (CT-11) — з таблиці gdd_state, а не ковзне вікно
+    // Стан погоди саме на день прогнозу: вікна закінчуються цим днем.
     const dateStr = input.date.toISOString().slice(0, 10);
+    const weather = weatherForDate(weatherSeries, dateStr);
+
+    // 3. Кумулятивний GDD (CT-11) — з таблиці gdd_state, а не ковзне вікно
     const cumulativeGdd = input.homeRegionId
       ? await fetchCumulativeGdd(db, input.homeRegionId, dateStr)
       : 0;
@@ -184,6 +187,7 @@ export class ContextBuilder {
       config,
       regionName,
       computedAt: new Date().toISOString(),
+      weatherSeries,
     };
   }
 }

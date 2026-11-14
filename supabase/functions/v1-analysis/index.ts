@@ -1,7 +1,7 @@
 // ============================================================================
 // Edge Function: v1-analysis — машинний прогноз, аналіз ділянки (B2.9, ADR-015)
 // GET  /functions/v1/v1-analysis    доступні розміри, збережена ділянка, ліміт на сьогодні
-// POST /functions/v1/v1-analysis    { lat, lng, size_km: 5 | 10, date? }
+// POST /functions/v1/v1-analysis    { lat, lng, size_km: 5 | 10, date? } → аналіз на всі дні горизонту
 //
 // JWT обов'язковий (гість теж має JWT — ADR-001). Ділянка — тільки у своїй області.
 // Відповідь — рівні з готовими підписами, без числових ймовірностей.
@@ -26,14 +26,16 @@ Deno.serve(handle((req) => {
       const engineInput: ForecastInput = {
         lat: input.lat,
         lng: input.lng,
-        date: input.date,
+        date: new Date(`${input.dates[0]}T00:00:00Z`),
         forestType: input.forestType as ForecastInput["forestType"],
         forestConfirmed: input.forestType !== null,
         homeRegionId: input.homeRegionId,
       };
-      return ForecastEngine.forecast(
+      // Контекст (ліс, правила, ряд погоди) — один раз; дні — з того самого ряду погоди.
+      return ForecastEngine.forecastDays(
         engineInput,
-        db as unknown as Parameters<typeof ForecastEngine.forecast>[1],
+        input.dates,
+        db as unknown as Parameters<typeof ForecastEngine.forecastDays>[2],
         await flags,
       );
     },

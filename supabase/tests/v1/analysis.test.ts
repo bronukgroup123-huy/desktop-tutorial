@@ -73,8 +73,11 @@ function db(extra: Results = {}) {
   });
 }
 
+/** Прогноз одного дня (тести задають результат по днях; рушій рахує всі дні за раз). */
+type DayInput = Omit<AreaForecastInput, "dates"> & { date: Date };
+
 interface Opts {
-  forecast?: (input: AreaForecastInput) => Promise<ForecastResult>;
+  forecast?: (input: DayInput) => Promise<ForecastResult>;
   pro?: boolean;
   isAnonymous?: boolean;
 }
@@ -89,7 +92,9 @@ async function run(d: ReturnType<typeof mockDb>, r: Request, opts: Opts = {}) {
       hasAnalysisPro: () => Promise.resolve(opts.pro ?? false),
       forecast: (input) => {
         inputs.push(input);
-        return (opts.forecast ?? (() => Promise.resolve(result())))(input);
+        const { dates, ...rest } = input;
+        const one = opts.forecast ?? (() => Promise.resolve(result()));
+        return Promise.all(dates.map((d) => one({ ...rest, date: new Date(`${d}T00:00:00Z`) })));
       },
     })
   )(r);
@@ -180,7 +185,8 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
   // прогноз — для двох переважних типів лісу, в центрі ділянки, у своїй області
   assertEquals(inputs.map((i) => i.forestType), ["pine", "oak"]);
   assertEquals([inputs[0].lat, inputs[0].lng, inputs[0].homeRegionId], [KYIV.lat, KYIV.lng, 10]);
-  assertEquals(inputs[0].date.toISOString(), "2026-11-11T00:00:00.000Z");
+  // один прогін на тип лісу — усі 3 дні безкоштовного горизонту від сьогодні
+  assertEquals(inputs[0].dates, ["2026-11-11", "2026-11-12", "2026-11-13"]);
 
   assertEquals(find(d, "rpc.create_analysis_area")!.args[0], {
     p_user_id: USER, p_max_slots: 1, p_lat: KYIV.lat, p_lng: KYIV.lng, p_size_km: 5, p_region_id: 10,
@@ -360,7 +366,24 @@ Deno.test("analysis POST: базова погода — температура, 
   };
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
-  assertEquals(Object.keys(json.data.weather ?? {}).sort(), ["humidity_label", "icon", "rain_label", "temp_label"]);
+  assertEquals(Object.keys(json.data.weather ?? {}).sort(), ["day_label", "humidity_label", "icon", "rain_label", "temp_label"]);
+});
+
+Deno.test("analysis POST: погода дня — температура й опади саме цього дня", async () => {
+  const forecast = (input: DayInput) => {
+    const date = input.date.toISOString().slice(0, 10);
+    const rain = date === "2026-11-12" ? 7.6 : 0;
+    const weather = {
+      tempMin: 5, tempMax: 12, tempAvg7d: 9, humidity: 70, rain1d: rain, rain3d: 6, rain7d: 14,
+      daysAfterRain: 2, pressure: 1012, pressureTrend: "stable",
+      day: { date, tempMin: 3.6, tempMax: 11.4, rain, humidity: 70, daysAhead: 0 },
+    };
+    return Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
+  };
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  const days = json.data.days as Array<{ weather: { icon: string; day_label: string } }>;
+  assertEquals(days.map((d) => d.weather.icon), ["sun", "rain", "sun"]);
+  assertEquals(days.map((d) => d.weather.day_label), ["4…11°, без опадів", "4…11°, опади 8 мм", "4…11°, без опадів"]);
 });
 
 Deno.test("analysis POST: розрахунок упав → 500 і списаний аналіз повернуто", async () => {
@@ -379,17 +402,62 @@ Deno.test("analysis POST: розрахунок упав → 500 і списан�
   assert(find(d2, "rpc.refund_analysis") !== undefined);
 });
 
-Deno.test("analysis POST: дата — сьогодні…+3 дні безкоштовно; далі → 403 pro_required; минуле → 422", async () => {
-  assertEquals((await run(db(), req("POST", URL_, body({ date: "2026-11-14" })))).res.status, 200);
+Deno.test("analysis POST: дата — сьогодні…+2 дні безкоштовно, …+6 у Pro; далі → 403/422; минуле → 422", async () => {
+  assertEquals((await run(db(), req("POST", URL_, body({ date: "2026-11-13" })))).res.status, 200);
 
-  const far = await run(db(), req("POST", URL_, body({ date: "2026-11-15" })));
+  const far = await run(db(), req("POST", URL_, body({ date: "2026-11-14" })));
   assertEquals(far.res.status, 403);
   assertEquals(far.json.error, "pro_required");
-  assertEquals((await run(db(), req("POST", URL_, body({ date: "2026-11-20" })), { pro: true })).res.status, 200);
+  assertEquals((await run(db(), req("POST", URL_, body({ date: "2026-11-17" })), { pro: true })).res.status, 200);
+  const beyond = await run(db(), req("POST", URL_, body({ date: "2026-11-18" })), { pro: true });
+  assertEquals([beyond.res.status, beyond.json.error], [422, "validation_error"]);
 
   const past = await run(db(), req("POST", URL_, body({ date: "2026-11-10" })));
   assertEquals(past.res.status, 422);
   assertEquals(past.json.error, "validation_error");
+});
+
+Deno.test("analysis POST: дні — безкоштовно 3 (сьогодні, завтра, Пт 13) і 4 дні під замком Pro", async () => {
+  const { json } = await run(db(), req("POST", URL_, body()));
+  const a = json.data;
+  assertEquals(a.horizon_days, 3);
+  assertEquals(a.days.map((d: { day_label: string }) => d.day_label), ["Сьогодні", "Завтра", "Пт 13"]);
+  assertEquals(a.days.map((d: { approximate: boolean }) => d.approximate), [false, false, false]);
+  assertEquals(a.days[0].top1, a.top1); // верхній рівень — обраний день (сьогодні)
+  assertEquals([a.days[1].level_label, a.days[1].level_short_label], ["Висока ймовірність", "Висока"]);
+  assertEquals(a.locked_days.map((d: { day_label: string }) => d.day_label), ["Сб 14", "Нд 15", "Пн 16", "Вт 17"]);
+  assertEquals(a.locked_label, "Ще 4 дні прогнозу — у Pro");
+  // дні під замком — без прогнозу (лише дата й підпис)
+  assertEquals(Object.keys(a.locked_days[0]).sort(), ["date", "day_label"]);
+});
+
+Deno.test("analysis POST: Pro — 7 днів, дні 5–7 «орієнтовно», найкращий день — з найвищим рівнем", async () => {
+  const levels: Record<string, ["high" | "medium" | "low", number]> = {
+    "2026-11-11": ["low", 0.4], "2026-11-12": ["medium", 0.6], "2026-11-13": ["high", 0.75],
+    "2026-11-14": ["high", 0.86], "2026-11-15": ["medium", 0.6], "2026-11-16": ["low", 0.4], "2026-11-17": ["low", 0.35],
+  };
+  const forecast = (input: DayInput) => {
+    const [probability, score] = levels[input.date.toISOString().slice(0, 10)];
+    return Promise.resolve(result({ top1: species({ probability, score }), alternative: null }));
+  };
+  const { json } = await run(db(), req("POST", URL_, body({ date: "2026-11-13" })), { pro: true, forecast });
+  const a = json.data;
+  assertEquals(a.horizon_days, 7);
+  assertEquals(a.locked_days, []);
+  assertEquals(a.locked_label, null);
+  assertEquals(a.days.map((d: { level: string }) => d.level), ["low", "medium", "high", "high", "medium", "low", "low"]);
+  assertEquals(a.days.map((d: { approximate: boolean }) => d.approximate), [false, false, false, false, true, true, true]);
+  assert(a.days[4].approximate_label.startsWith("Орієнтовно"));
+  // верхній рівень — обраний день
+  assertEquals([a.date, a.top1.level], ["2026-11-13", "high"]);
+  assertEquals(a.best_day, { date: "2026-11-14", label: "Найкращий день: субота" });
+  assertEquals(/score|probability|0\.86|%/.test(JSON.stringify(json)), false);
+});
+
+Deno.test("analysis POST: усі дні низькі → найкращого дня немає", async () => {
+  const forecast = () => Promise.resolve(result({ top1: species({ probability: "low", score: 0.4 }), alternative: null }));
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  assertEquals(json.data.best_day, null);
 });
 
 Deno.test("analysis POST: валідація тіла → 422 validation_error українською", async () => {

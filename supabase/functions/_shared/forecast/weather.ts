@@ -10,7 +10,7 @@ import type { WeatherData, PressureTrend, SoilMoistureState } from "./types.ts";
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
-interface OpenMeteoResponse {
+export interface OpenMeteoResponse {
   hourly: {
     time: string[];
     temperature_2m: number[];
@@ -50,7 +50,9 @@ async function fetchOpenMeteo(
     ].join(","),
     past_days: String(pastDays),
     forecast_days: String(forecastDays),
-    timezone: "UTC",
+    // Доба — за київським часом: «сьогодні», опади за день і дні прогнозу збігаються з
+    // тим, що бачить користувач.
+    timezone: "Europe/Kyiv",
   });
 
   const url = `${OPEN_METEO_URL}?${params}`;
@@ -121,26 +123,21 @@ export function computeDaysAfterRain(dailyPrecip: number[]): number {
 }
 
 /**
- * Тренд тиску за останні 24 години.
+ * Тренд тиску за добу: [diff] — різниця тиску в кінці й на початку доби, гПа.
+ * Плавне зниження (−1…−4 гПа) — ознака наближення дощу.
  */
-export function computePressureTrend(hourlyPressure: number[]): PressureTrend {
-  if (hourlyPressure.length < 24) return "stable";
-
-  const recent = hourlyPressure.slice(-24);
-  const first = recent[0];
-  const last = recent[recent.length - 1];
-  const diff = last - first;
-
+export function pressureTrendFromDiff(diff: number): PressureTrend {
   if (diff > 2) return "rising";
   if (diff < -4) return "falling";
-
-  // Плавне зниження перед дощем
-  if (diff < -1 && diff > -4) {
-    const hasRainRecently = true; // приблизно: тиск знизився, дощ буде
-    if (hasRainRecently) return "smooth_decline_before_rain";
-  }
-
+  if (diff < -1) return "smooth_decline_before_rain";
   return "stable";
+}
+
+/** Тренд тиску за останні 24 години погодинного ряду. */
+export function computePressureTrend(hourlyPressure: number[]): PressureTrend {
+  if (hourlyPressure.length < 24) return "stable";
+  const recent = hourlyPressure.slice(-24);
+  return pressureTrendFromDiff(recent[recent.length - 1] - recent[0]);
 }
 
 /**
@@ -180,89 +177,183 @@ export function computeGDD(
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Головна функція
+// Ряд погоди по днях і стан «на день D»
 // ────────────────────────────────────────────────────────────────────
 
 /**
- * Отримати погоду для точки.
- * Повертає WeatherData з source = 'unavailable' при невдачі
- * (замість помилки — graceful degradation).
+ * Погода ділянки по днях: 30 минулих днів + 7 днів прогнозу (доба — за Києвом).
+ * Зберігається в кеші погоди (компактно, денні значення) і дає стан лісу на будь-який
+ * день ряду — так прогноз на кілька днів рахується з ОДНОГО запиту до Open-Meteo.
  */
-export async function fetchWeather(
-  lat: number,
-  lng: number
-): Promise<WeatherData> {
-  const data = await fetchOpenMeteo(lat, lng);
+export interface WeatherSeries {
+  version: 2;
+  /** Дні ряду, "YYYY-MM-DD" за київським часом. */
+  dates: string[];
+  /** Сьогодні на момент запиту — перший день прогнозу. */
+  today: string;
+  precip: number[];
+  tmax: number[];
+  tmin: number[];
+  tmean: number[];
+  humidity: number[];
+  soil: Array<number | null>;
+  /** Тиск о першій і останній годині доби — для тренду тиску. */
+  pressureStart: number[];
+  pressureEnd: number[];
+  fetchedAt: string;
+}
 
-  if (!data) {
-    // Graceful degradation — повертаємо "пусту" погоду
-    return {
-      tempAvg7d: 0, tempAvg14d: 0, tempAvg20d: 0,
-      tempMin: 0, tempMax: 0,
-      humidity: 0,
-      rain1d: 0, rain2d: 0, rain3d: 0,
-      rain7d: 0, rain14d: 0, rain30d: 0,
-      droughtDays: 0, daysAfterRain: 999,
-      pressure: 1013, pressureTrend: "stable",
-      soilState: "normal",
-      gdd: null,
-      fetchedAt: new Date().toISOString(),
-      source: "unavailable",
-    };
-  }
+export function isWeatherSeries(v: unknown): v is WeatherSeries {
+  const s = v as WeatherSeries | null;
+  return !!s && s.version === 2 && Array.isArray(s.dates) && s.dates.length > 0 &&
+    typeof s.today === "string" && Array.isArray(s.precip) && s.precip.length === s.dates.length;
+}
 
-  const { hourly, daily } = data;
+const num = (v: unknown, fallback = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
 
-  // Температура (останні N годин)
-  const temp7d = hourly.temperature_2m.slice(-7 * 24);
-  const temp14d = hourly.temperature_2m.slice(-14 * 24);
-  const temp20d = hourly.temperature_2m.slice(-20 * 24);
+/**
+ * Відповідь Open-Meteo → ряд по днях. Години групуються за датою (у дні переходу на
+ * літній/зимовий час їх 23 або 25). [pastDays] — скільки днів ряду минулі.
+ */
+export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt: Date): WeatherSeries | null {
+  const dates = data.daily?.time ?? [];
+  if (dates.length === 0) return null;
+  const byDay = new Map<string, number[]>();
+  const hourly = data.hourly;
+  (hourly?.time ?? []).forEach((t, i) => {
+    const d = String(t).slice(0, 10);
+    const list = byDay.get(d);
+    if (list) list.push(i);
+    else byDay.set(d, [i]);
+  });
+  const pick = (arr: number[] | undefined, idx: number[]) =>
+    idx.map((i) => arr?.[i]).filter((x): x is number => typeof x === "number" && Number.isFinite(x));
 
-  // Денні дані
-  const dailyPrecip = daily.precipitation_sum ?? [];
-  const dailyMax = daily.temperature_2m_max ?? [];
-  const dailyMin = daily.temperature_2m_min ?? [];
+  const tmean: number[] = [], humidity: number[] = [], soil: Array<number | null> = [];
+  const pressureStart: number[] = [], pressureEnd: number[] = [];
+  dates.forEach((d, k) => {
+    const idx = byDay.get(d) ?? [];
+    const t = pick(hourly?.temperature_2m, idx);
+    tmean.push(t.length ? avg(t) : (num(data.daily.temperature_2m_max[k]) + num(data.daily.temperature_2m_min[k])) / 2);
+    humidity.push(avg(pick(hourly?.relative_humidity_2m, idx)));
+    const sm = pick(hourly?.soil_moisture_0_to_7cm, idx);
+    soil.push(sm.length ? avg(sm) : null);
+    const p = pick(hourly?.pressure_msl, idx);
+    pressureStart.push(p.length ? p[0] : 1013);
+    pressureEnd.push(p.length ? p[p.length - 1] : 1013);
+  });
 
-  // Опади
-  const rain1d = sumLast(dailyPrecip, 1);
-  const rain2d = sumLast(dailyPrecip, 2);
-  const rain3d = sumLast(dailyPrecip, 3);
-  const rain7d = sumLast(dailyPrecip, 7);
-  const rain14d = sumLast(dailyPrecip, 14);
-  const rain30d = sumLast(dailyPrecip, 30);
+  const todayIdx = Math.min(Math.max(pastDays, 0), dates.length - 1);
+  return {
+    version: 2,
+    dates: [...dates],
+    today: dates[todayIdx],
+    precip: dates.map((_, k) => num(data.daily.precipitation_sum?.[k])),
+    tmax: dates.map((_, k) => num(data.daily.temperature_2m_max?.[k])),
+    tmin: dates.map((_, k) => num(data.daily.temperature_2m_min?.[k])),
+    tmean,
+    humidity,
+    soil,
+    pressureStart,
+    pressureEnd,
+    fetchedAt: fetchedAt.toISOString(),
+  };
+}
 
-  const droughtDays = computeDroughtDays(dailyPrecip);
-  const daysAfterRain = computeDaysAfterRain(dailyPrecip);
+/** Погода недоступна (збій Open-Meteo або день поза рядом). */
+export function unavailableWeather(): WeatherData {
+  return {
+    tempAvg7d: 0, tempAvg14d: 0, tempAvg20d: 0,
+    tempMin: 0, tempMax: 0,
+    humidity: 0,
+    rain1d: 0, rain2d: 0, rain3d: 0,
+    rain7d: 0, rain14d: 0, rain30d: 0,
+    droughtDays: 0, daysAfterRain: 999,
+    pressure: 1013, pressureTrend: "stable",
+    soilState: "normal",
+    gdd: null,
+    fetchedAt: new Date().toISOString(),
+    source: "unavailable",
+  };
+}
 
-  // Тиск і soil_moisture (середнє останніх 7 днів для ґрунту)
-  const pressure = hourly.pressure_msl.slice(-1)[0] ?? 1013;
-  const pressureTrend = computePressureTrend(hourly.pressure_msl);
+/** На скільки днів [date] пізніше за [from] (обидві — "YYYY-MM-DD"). */
+export function dayOffset(date: string, from: string): number {
+  return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+}
 
-  const soilMoisture7d = avg(
-    hourly.soil_moisture_0_to_7cm.slice(-7 * 24).filter((x) => x != null)
-  );
+/**
+ * Стан погоди НА ДЕНЬ [date]: усі вікна (опади за 1/3/7/14/30 днів, температура за
+ * 7/14/20 днів, посуха, днів після дощу, ґрунт, тиск) закінчуються цим днем — фактична
+ * погода до сьогодні + прогноз до [date]. Раніше вікна закінчувались останнім днем
+ * прогнозу, і «сьогоднішній» аналіз бачив дощі наступного тижня.
+ * День поза рядом → погода недоступна.
+ */
+export function weatherAsOf(series: WeatherSeries, date: string, source: WeatherData["source"] = "open-meteo"): WeatherData {
+  const i = series.dates.indexOf(date);
+  if (i < 0) return unavailableWeather();
+  const upTo = <T>(arr: T[]) => arr.slice(0, i + 1);
+  const last = <T>(arr: T[], n: number) => upTo(arr).slice(-n);
 
-  const soilState = computeSoilState(
-    rain7d, rain14d, droughtDays,
-    soilMoisture7d || null
-  );
-
-  const gdd = computeGDD(dailyMax, dailyMin);
+  const precip = upTo(series.precip);
+  const rain7d = sumLast(precip, 7);
+  const rain14d = sumLast(precip, 14);
+  const droughtDays = computeDroughtDays(precip);
+  const soil7 = last(series.soil, 7).filter((x): x is number => x !== null);
+  const soilMoisture7d = soil7.length ? avg(soil7) : null;
 
   return {
-    tempAvg7d: avg(temp7d),
-    tempAvg14d: avg(temp14d),
-    tempAvg20d: avg(temp20d),
-    tempMin: Math.min(...dailyMin.slice(-7)) || 0,
-    tempMax: Math.max(...dailyMax.slice(-7)) || 0,
-    humidity: avg(hourly.relative_humidity_2m.slice(-7 * 24)),
-    rain1d, rain2d, rain3d,
-    rain7d, rain14d, rain30d,
-    droughtDays, daysAfterRain,
-    pressure, pressureTrend,
-    soilState,
-    gdd,
-    fetchedAt: new Date().toISOString(),
-    source: "open-meteo",
+    tempAvg7d: avg(last(series.tmean, 7)),
+    tempAvg14d: avg(last(series.tmean, 14)),
+    tempAvg20d: avg(last(series.tmean, 20)),
+    tempMin: Math.min(...last(series.tmin, 7)),
+    tempMax: Math.max(...last(series.tmax, 7)),
+    humidity: avg(last(series.humidity, 7)),
+    rain1d: sumLast(precip, 1),
+    rain2d: sumLast(precip, 2),
+    rain3d: sumLast(precip, 3),
+    rain7d,
+    rain14d,
+    rain30d: sumLast(precip, 30),
+    droughtDays,
+    daysAfterRain: computeDaysAfterRain(precip),
+    pressure: series.pressureEnd[i],
+    pressureTrend: pressureTrendFromDiff(series.pressureEnd[i] - series.pressureStart[i]),
+    soilState: computeSoilState(rain7d, rain14d, droughtDays, soilMoisture7d || null),
+    gdd: computeGDD(upTo(series.tmax), upTo(series.tmin)),
+    day: {
+      date,
+      tempMin: series.tmin[i],
+      tempMax: series.tmax[i],
+      rain: series.precip[i],
+      humidity: series.humidity[i],
+      daysAhead: dayOffset(date, series.today),
+    },
+    fetchedAt: series.fetchedAt,
+    source,
   };
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Головні функції
+// ────────────────────────────────────────────────────────────────────
+
+/** Минулі дні ряду: опади за 30 днів, посуха, сума тепла. */
+export const PAST_DAYS = 30;
+/** Дні прогнозу (сьогодні + 6): горизонт Pro — 7 днів (ADR-010). */
+export const FORECAST_DAYS = 7;
+
+/** Ряд погоди для точки; `null` — Open-Meteo недоступний. */
+export async function fetchWeatherSeries(lat: number, lng: number): Promise<WeatherSeries | null> {
+  const data = await fetchOpenMeteo(lat, lng, PAST_DAYS, FORECAST_DAYS);
+  return data ? buildSeries(data, PAST_DAYS, new Date()) : null;
+}
+
+/**
+ * Погода для точки на сьогодні (з вікнами, що закінчуються сьогодні).
+ * Повертає WeatherData з source = 'unavailable' при невдачі (graceful degradation).
+ */
+export async function fetchWeather(lat: number, lng: number): Promise<WeatherData> {
+  const series = await fetchWeatherSeries(lat, lng);
+  return series ? weatherAsOf(series, series.today) : unavailableWeather();
 }

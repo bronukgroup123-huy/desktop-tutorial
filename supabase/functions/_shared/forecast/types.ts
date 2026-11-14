@@ -68,6 +68,15 @@ export type PressureTrend =
 /** Стан ґрунту за вологістю (§13) — не плутати з SoilState (текстура) */
 export type SoilMoistureState = "dry" | "normal" | "wet" | "waterlogged";
 
+export interface DayWeather {
+  date: string;           // "YYYY-MM-DD", доба за Києвом
+  tempMin: number;
+  tempMax: number;
+  rain: number;           // мм за добу
+  humidity: number;       // середня за добу, %
+  daysAhead: number;      // 0 — сьогодні, 1 — завтра…
+}
+
 export interface WeatherData {
   // Температура
   tempAvg7d: number;
@@ -96,6 +105,9 @@ export interface WeatherData {
 
   // Додаткові (для GDD)
   gdd: number | null;     // Growing Degree Days, або null якщо недоступно
+
+  /** Погода самого дня, на який рахується стан (смужка днів у прогнозі ділянки). */
+  day?: DayWeather;
 
   // Метадані
   fetchedAt: string;      // ISO timestamp
@@ -168,6 +180,9 @@ export interface ForecastContext {
 
   // Метадані
   computedAt: string;
+
+  /** Ряд погоди по днях (контекст на інший день горизонту — без нових запитів). */
+  weatherSeries?: import("./weather-cache.ts").CachedSeries;
 }
 
 // ============================================================================

@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
     const targetDate = typeof dateRaw === "string" && dateRaw
       ? new Date(dateRaw)
       : new Date();
-    const wave = detectWave(targetDate, lat, weather.gdd);
+    const wave = detectWave(targetDate, lat, weather.gdd ?? 0);
 
     return new Response(
       JSON.stringify({
