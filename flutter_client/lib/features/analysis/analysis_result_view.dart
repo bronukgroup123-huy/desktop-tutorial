@@ -8,7 +8,10 @@ import 'package:flutter_client/features/forecast/forecast_view.dart';
 /// Результат аналізу ділянки (ADR-015): ліси в квадраті, погода, Top-1 / Top-2.
 /// Лише рівні з готовими підписами із сервера — без відсотків.
 /// Показується повноцінним екраном у вкладці «Прогноз» (див. ForecastScreen).
-class AnalysisResultView extends StatelessWidget {
+///
+/// Смужка днів (ADR-015 §15.7): усі дні вже у відповіді — перемикання без запитів і без
+/// списання аналізів, працює й без інтернету.
+class AnalysisResultView extends StatefulWidget {
   const AnalysisResultView({
     super.key,
     required this.result,
@@ -27,26 +30,87 @@ class AnalysisResultView extends StatelessWidget {
   final String? refineHintLabel;
 
   @override
+  State<AnalysisResultView> createState() => _AnalysisResultViewState();
+}
+
+class _AnalysisResultViewState extends State<AnalysisResultView> {
+  late String _selected = widget.result.date;
+
+  AnalysisDay? get _day {
+    for (final d in widget.result.days) {
+      if (d.date == _selected) return d;
+    }
+    return null;
+  }
+
+  @override
+  void didUpdateWidget(AnalysisResultView old) {
+    super.didUpdateWidget(old);
+    // Новий аналіз — обраний день лишається, якщо він є серед нових днів.
+    if (!widget.result.days.any((d) => d.date == _selected)) _selected = widget.result.date;
+  }
+
+  void _showLocked() {
+    final label = widget.result.lockedLabel;
+    if (label == null) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(label)));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final r = result;
+    final day = _day;
+    final r = day == null ? widget.result : widget.result.forDay(day);
     final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
     return ListView(
-      controller: scrollController,
+      controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
         Text(
-          'Прогноз на ${r.date}',
+          day == null ? 'Прогноз на ${r.date}' : 'Прогноз ділянки',
           style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
         ),
         Text('Ділянка ${r.area.sizeLabel}', style: TextStyle(color: muted)),
+        if (widget.result.days.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          AnalysisDayStrip(
+            days: widget.result.days,
+            lockedDays: widget.result.lockedDays,
+            selected: _selected,
+            onSelect: (date) => setState(() => _selected = date),
+            onLocked: _showLocked,
+          ),
+          if (widget.result.bestDay case final best?)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: InkWell(
+                key: const ValueKey('best-day'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() => _selected = best.date),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_rounded, size: 18, color: AppTheme.accentOrange),
+                    const SizedBox(width: 6),
+                    Text(best.label, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                  ],
+                ),
+              ),
+            ),
+          if (day?.approximateLabel case final approx?)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(approx, style: TextStyle(fontSize: 12, color: muted)),
+            ),
+        ],
         const SizedBox(height: 16),
-        _ForestCard(result: r, onRefine: onRefineForest, refineHintLabel: refineHintLabel),
+        _ForestCard(result: r, onRefine: widget.onRefineForest, refineHintLabel: widget.refineHintLabel),
         if (r.weather != null) ...[const SizedBox(height: 12), _WeatherCard(weather: r.weather!)],
         const SizedBox(height: 16),
         if (r.top1 == null)
           ForecastInfoCard(
             icon: Icons.eco_outlined,
-            text: r.noDataReason ?? 'Зараз немає видів, для яких склалися умови.',
+            text: r.noDataReason ?? 'Цього дня немає видів, для яких склалися умови.',
           )
         else ...[
           _SpeciesBlock(item: r.top1!, primary: true),
@@ -58,13 +122,143 @@ class AnalysisResultView extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         Text(
-          'Прогноз — це ймовірність, а не гарантія. Збирайте лише гриби, які точно знаєте.',
+          'Рівень показує, наскільки сприятливі умови для гриба цього дня, а не гарантію знахідки. '
+          'Збирайте лише гриби, які точно знаєте.',
           style: TextStyle(fontSize: 12, color: muted),
         ),
       ],
     );
   }
 }
+
+/// Смужка днів: день, рівень кольором, погода. Дні під замком Pro — сірі з 🔒.
+class AnalysisDayStrip extends StatelessWidget {
+  const AnalysisDayStrip({
+    super.key,
+    required this.days,
+    required this.lockedDays,
+    required this.selected,
+    required this.onSelect,
+    required this.onLocked,
+  });
+
+  final List<AnalysisDay> days;
+  final List<({String date, String dayLabel})> lockedDays;
+  final String selected;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onLocked;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 104,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (final d in days)
+              _DayTile(
+                key: ValueKey('day-${d.date}'),
+                label: d.dayLabel,
+                selected: d.date == selected,
+                onTap: () => onSelect(d.date),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: d.levelColor, borderRadius: BorderRadius.circular(8)),
+                      child: Text(
+                        d.levelShortLabel,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(weatherIcon(d.weather?.icon), size: 16, color: AppTheme.accentOrange),
+                        if (d.approximate)
+                          Text(' ≈', style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            for (final l in lockedDays)
+              _DayTile(
+                key: ValueKey('locked-${l.date}'),
+                label: l.dayLabel,
+                selected: false,
+                locked: true,
+                onTap: onLocked,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_outline_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.45)),
+                    Text('Pro', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.45))),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
+class _DayTile extends StatelessWidget {
+  const _DayTile({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.child,
+    this.locked = false,
+  });
+
+  final String label;
+  final bool selected;
+  final bool locked;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Material(
+          color: locked ? Colors.white.withValues(alpha: 0.5) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: selected ? AppTheme.darkGreen : Colors.transparent, width: 2),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: SizedBox(
+              width: 76,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: AppTheme.darkGreen.withValues(alpha: locked ? 0.45 : 1),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  child,
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+IconData weatherIcon(String? icon) => switch (icon) {
+      'rain' => Icons.water_drop_rounded,
+      'cloud' => Icons.cloud_rounded,
+      'sun' => Icons.wb_sunny_rounded,
+      _ => Icons.thermostat_rounded,
+    };
 
 class _SpeciesBlock extends StatelessWidget {
   const _SpeciesBlock({required this.item, this.primary = false});
@@ -193,12 +387,7 @@ class _WeatherCard extends StatelessWidget {
 
   final AnalysisWeather weather;
 
-  IconData get _icon => switch (weather.icon) {
-        'rain' => Icons.water_drop_rounded,
-        'cloud' => Icons.cloud_rounded,
-        'sun' => Icons.wb_sunny_rounded,
-        _ => Icons.thermostat_rounded,
-      };
+  IconData get _icon => weatherIcon(weather.icon);
 
   @override
   Widget build(BuildContext context) => Card(
@@ -216,7 +405,12 @@ class _WeatherCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(weather.tempLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    if (weather.dayLabel != null) ...[
+                      Text(weather.dayLabel!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text(weather.tempLabel),
+                    ] else
+                      Text(weather.tempLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(weather.rainLabel),
                     Text(weather.humidityLabel),

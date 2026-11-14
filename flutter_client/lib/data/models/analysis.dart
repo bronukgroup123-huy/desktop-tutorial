@@ -311,6 +311,7 @@ class AnalysisWeather {
     required this.tempLabel,
     required this.humidityLabel,
     required this.rainLabel,
+    this.dayLabel,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -318,12 +319,75 @@ class AnalysisWeather {
         tempLabel: req<String>(json, 'temp_label'),
         humidityLabel: req<String>(json, 'humidity_label'),
         rainLabel: req<String>(json, 'rain_label'),
+        dayLabel: opt<String>(json, 'day_label'),
       );
 
+  /// Погода самого дня: «4…11°, опади 8 мм».
+  final String? dayLabel;
   final String icon;
   final String tempLabel;
   final String humidityLabel;
   final String rainLabel;
+}
+
+/// Один день смужки прогнозу ділянки (ADR-015 §15.7).
+class AnalysisDay {
+  const AnalysisDay({
+    required this.date,
+    required this.dayLabel,
+    required this.approximate,
+    required this.approximateLabel,
+    required this.level,
+    required this.levelLabel,
+    required this.levelShortLabel,
+    required this.levelColor,
+    required this.top1,
+    required this.alternative,
+    required this.weather,
+    required this.warnings,
+    required this.noDataReason,
+  });
+
+  factory AnalysisDay.fromJson(Map<String, dynamic> json) {
+    final top1 = opt<Map<String, dynamic>>(json, 'top1');
+    final alt = opt<Map<String, dynamic>>(json, 'alternative');
+    final weather = opt<Map<String, dynamic>>(json, 'weather');
+    return AnalysisDay(
+      date: req<String>(json, 'date'),
+      dayLabel: req<String>(json, 'day_label'),
+      approximate: opt<bool>(json, 'approximate') ?? false,
+      approximateLabel: opt<String>(json, 'approximate_label'),
+      level: req<String>(json, 'level'),
+      levelLabel: req<String>(json, 'level_label'),
+      levelShortLabel: opt<String>(json, 'level_short_label') ?? req<String>(json, 'level_label'),
+      levelColor: parseHexColor(req<String>(json, 'level_color')),
+      top1: top1 == null ? null : AnalysisSpecies.fromJson(top1),
+      alternative: alt == null ? null : AnalysisSpecies.fromJson(alt),
+      weather: weather == null ? null : AnalysisWeather.fromJson(weather),
+      warnings: stringList(json, 'warnings'),
+      noDataReason: opt<String>(json, 'no_data_reason'),
+    );
+  }
+
+  final String date;
+
+  /// «Сьогодні», «Завтра», «Сб 16».
+  final String dayLabel;
+
+  /// Дні 5–7: прогноз погоди менш точний.
+  final bool approximate;
+  final String? approximateLabel;
+  final String level;
+  final String levelLabel;
+
+  /// «Висока» — для смужки днів.
+  final String levelShortLabel;
+  final Color levelColor;
+  final AnalysisSpecies? top1;
+  final AnalysisSpecies? alternative;
+  final AnalysisWeather? weather;
+  final List<String> warnings;
+  final String? noDataReason;
 }
 
 /// Відповідь `POST /v1-analysis`. Лише рівні з готовими підписами — без відсотків.
@@ -342,6 +406,10 @@ class AnalysisResult {
     this.forestExtra = const [],
     this.forestRefined = false,
     this.refineNoteLabel,
+    this.days = const [],
+    this.bestDay,
+    this.lockedDays = const [],
+    this.lockedLabel,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -367,8 +435,42 @@ class AnalysisResult {
       warnings: stringList(json, 'warnings'),
       usage: AnalysisUsage.fromJson(req<Map<String, dynamic>>(json, 'usage')),
       noDataReason: opt<String>(json, 'no_data_reason'),
+      days: (opt<List<dynamic>>(json, 'days') ?? const [])
+          .map((d) => AnalysisDay.fromJson(d as Map<String, dynamic>))
+          .toList(growable: false),
+      bestDay: switch (opt<Map<String, dynamic>>(json, 'best_day')) {
+        final b? => (date: req<String>(b, 'date'), label: req<String>(b, 'label')),
+        null => null,
+      },
+      lockedDays: [
+        for (final d in (opt<List<dynamic>>(json, 'locked_days') ?? const []).cast<Map<String, dynamic>>())
+          (date: req<String>(d, 'date'), dayLabel: req<String>(d, 'day_label')),
+      ],
+      lockedLabel: opt<String>(json, 'locked_label'),
     );
   }
+
+  /// Результат для іншого дня смужки — ліс і ділянка ті самі, змінюються вид, погода,
+  /// застереження. Без запитів: усі дні вже у відповіді.
+  AnalysisResult forDay(AnalysisDay day) => AnalysisResult(
+        area: area,
+        date: day.date,
+        forestSummaryLabel: forestSummaryLabel,
+        forestTypes: forestTypes,
+        forestExtra: forestExtra,
+        forestRefined: forestRefined,
+        refineNoteLabel: refineNoteLabel,
+        top1: day.top1,
+        alternative: day.alternative,
+        weather: day.weather,
+        warnings: day.warnings,
+        usage: usage,
+        noDataReason: day.noDataReason,
+        days: days,
+        bestDay: bestDay,
+        lockedDays: lockedDays,
+        lockedLabel: lockedLabel,
+      );
 
   final AnalysisArea area;
   final String date;
@@ -389,4 +491,16 @@ class AnalysisResult {
   final List<String> warnings;
   final AnalysisUsage usage;
   final String? noDataReason;
+
+  /// Дні горизонту (безкоштовно 3, Pro 7); порожньо — старий збережений результат.
+  final List<AnalysisDay> days;
+
+  /// «Найкращий день: субота».
+  final ({String date, String label})? bestDay;
+
+  /// Дні 4–7 без Pro — лише підписи під замком.
+  final List<({String date, String dayLabel})> lockedDays;
+
+  /// «Ще 4 дні прогнозу — у Pro».
+  final String? lockedLabel;
 }

@@ -169,9 +169,18 @@ const DAILY_PRECIP = [
   4, 3, 5,                                      // 12 → last3=12, last7=20
 ];
 
-function makeWeatherPayload() {
-  const hourlyTime = Array.from({ length: HOURLY }, (_, i) => `h${i}`);
-  const dailyTime = Array.from({ length: DAILY }, (_, i) => `d${i}`);
+
+/** Дні ряду, що закінчуються днем прогнозу [end] ("YYYY-MM-DD"), і години (24 на день). */
+function seriesTimes(end: string, days: number): { daily: string[]; hourly: string[] } {
+  const endMs = Date.parse(`${end}T00:00:00Z`);
+  const daily = Array.from({ length: days }, (_, i) =>
+    new Date(endMs - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10));
+  const hourly = daily.flatMap((d) => Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, "0")}:00`));
+  return { daily, hourly };
+}
+
+function makeWeatherPayload(date = '2026-10-11') {
+  const { hourly: hourlyTime, daily: dailyTime } = seriesTimes(date, DAILY);
   return {
     hourly: {
       time: hourlyTime,
@@ -206,7 +215,7 @@ async function runForecast(
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (() =>
     Promise.resolve(
-      new Response(JSON.stringify(makeWeatherPayload()), {
+      new Response(JSON.stringify(makeWeatherPayload(input.date.toISOString().slice(0, 10))), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),

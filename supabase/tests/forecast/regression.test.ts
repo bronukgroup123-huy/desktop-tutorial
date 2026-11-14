@@ -87,8 +87,18 @@ async function loadFixtures(): Promise<Fixtures | null> {
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-/** Скаляр → масив заповнення; масив → як є. Час — умовні індекси. */
-function expandPayload(p: GoldenRecord['weather_payload']): Record<string, unknown> {
+/** Скаляр → масив заповнення; масив → як є. Дні закінчуються днем прогнозу. */
+
+/** Дні ряду, що закінчуються днем прогнозу [end] ("YYYY-MM-DD"), і години (24 на день). */
+function seriesTimes(end: string, days: number): { daily: string[]; hourly: string[] } {
+  const endMs = Date.parse(`${end}T00:00:00Z`);
+  const daily = Array.from({ length: days }, (_, i) =>
+    new Date(endMs - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10));
+  const hourly = daily.flatMap((d) => Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, "0")}:00`));
+  return { daily, hourly };
+}
+
+function expandPayload(p: GoldenRecord['weather_payload'], date: string): Record<string, unknown> {
   const hourly: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(p.hourly)) {
     hourly[key] = Array.isArray(val) ? val : Array(HOURLY_LEN).fill(val);
@@ -97,9 +107,10 @@ function expandPayload(p: GoldenRecord['weather_payload']): Record<string, unkno
   for (const [key, val] of Object.entries(p.daily)) {
     daily[key] = Array.isArray(val) ? val : Array(DAILY_LEN).fill(val);
   }
+  const t = seriesTimes(date.slice(0, 10), DAILY_LEN);
   return {
-    hourly: { time: Array.from({ length: HOURLY_LEN }, (_, i) => `h${i}`), ...hourly },
-    daily: { time: Array.from({ length: DAILY_LEN }, (_, i) => `d${i}`), ...daily },
+    hourly: { time: t.hourly, ...hourly },
+    daily: { time: t.daily, ...daily },
   };
 }
 
@@ -174,7 +185,7 @@ async function runRecord(
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (() =>
     Promise.resolve(
-      new Response(JSON.stringify(expandPayload(rec.weather_payload)), {
+      new Response(JSON.stringify(expandPayload(rec.weather_payload, rec.input.date)), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),

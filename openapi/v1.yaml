@@ -407,7 +407,9 @@ paths:
         * Безкоштовно: 1 ділянка 5×5 км, базова погода, 5 аналізів на добу на ділянку (доба — за
           київським часом). Ліміт рахується на слот: «видалити → створити» його не обнуляє.
           Перевищення — `429 analysis_limit_reached` + `Retry-After`.
-        * 10×10 км, до 3 ділянок і дата далі ніж +3 дні — Pro (`403 pro_required`, текст у `message`).
+        * 10×10 км, до 3 ділянок і дні 4–7 — Pro (`403 pro_required`, текст у `message`); далі 7 днів — 422.
+        * Один аналіз рахує всі дні горизонту (`days[]`: безкоштовно 3, Pro 7, від сьогодні; дні 5–7 —
+          «орієнтовно»), `best_day` і дні під замком Pro (`locked_days`). ADR-015 §15.7.
       requestBody:
         required: true
         content:
@@ -956,19 +958,77 @@ components:
             - $ref: '#/components/schemas/AnalysisSpecies'
             - type: 'null'
         weather:
-          description: Базова погода (безкоштовно) — температура, вологість, опади
+          description: Погода обраного дня (базова, безкоштовно) — температура, вологість, опади
           oneOf:
-            - type: object
-              required: [icon, temp_label, humidity_label, rain_label]
-              properties:
-                icon: { type: string, enum: [sun, cloud, rain, unknown] }
-                temp_label: { type: string }
-                humidity_label: { type: string }
-                rain_label: { type: string }
+            - $ref: '#/components/schemas/AnalysisDayWeather'
             - type: 'null'
         warnings: { type: array, items: { type: string } }
         usage: { $ref: '#/components/schemas/AnalysisUsage' }
         no_data_reason: { type: string }
+        days:
+          type: array
+          description: >-
+            ADR-015 §15.7: усі дні горизонту від сьогодні (безкоштовно 3, Pro 7) з одного аналізу.
+            Поля верхнього рівня (top1, weather…) — для `date`.
+          maxItems: 7
+          items: { $ref: '#/components/schemas/AnalysisDay' }
+        horizon_days: { type: integer, enum: [3, 7] }
+        best_day:
+          description: Найвищий рівень (від «Середньої»); `null` — немає дня, вартого виїзду
+          oneOf:
+            - type: object
+              required: [date, label]
+              properties:
+                date: { type: string, format: date }
+                label: { type: string, example: 'Найкращий день: субота' }
+            - type: 'null'
+        locked_days:
+          type: array
+          description: Дні 4–7 у безкоштовній версії — лише дата й підпис, без прогнозу
+          items:
+            type: object
+            required: [date, day_label]
+            properties:
+              date: { type: string, format: date }
+              day_label: { type: string, example: Сб 14 }
+        locked_label: { type: [string, 'null'], example: 'Ще 4 дні прогнозу — у Pro' }
+
+    AnalysisDayWeather:
+      type: object
+      required: [icon, temp_label, humidity_label, rain_label]
+      properties:
+        icon: { type: string, enum: [sun, cloud, rain, unknown], description: За погодою самого дня }
+        day_label: { type: [string, 'null'], example: '4…11°, опади 8 мм', description: Погода самого дня }
+        temp_label: { type: string }
+        humidity_label: { type: string }
+        rain_label: { type: string }
+
+    AnalysisDay:
+      type: object
+      required: [date, day_label, approximate, level, level_label, level_short_label, level_color, warnings]
+      properties:
+        date: { type: string, format: date }
+        day_label: { type: string, example: Сьогодні }
+        approximate: { type: boolean, description: Дні 5–7 — прогноз погоди менш точний }
+        approximate_label: { type: [string, 'null'] }
+        level: { type: string, enum: [peak, high, medium, low, no_data], description: Рівень найкращого виду дня }
+        level_label: { type: string, example: Висока ймовірність }
+        level_short_label: { type: string, example: Висока, description: Для смужки днів }
+        level_color: { type: string, pattern: '^#[0-9a-f]{6}$' }
+        top1:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisSpecies'
+            - type: 'null'
+        alternative:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisSpecies'
+            - type: 'null'
+        weather:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisDayWeather'
+            - type: 'null'
+        warnings: { type: array, items: { type: string } }
+        no_data_reason: { type: [string, 'null'] }
 
     RegionGeometry:
       type: object
