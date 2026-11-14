@@ -1,0 +1,119 @@
+name: Season replay (forecast engine)
+
+# Повтор сезону (BACKEND_PLAN B2.15, ADR-015 §15.7 п.6): справжній рушій прогнозу день за днем
+# на фактичній погоді минулого сезону (архів Open-Meteo, ERA5) і на штучних сценаріях.
+# Звіт «вид × день» — щоб бачити, чи рушій ловить відомі грибні хвилі, і порівнювати «до / після»
+# кожної зміни рушія.
+#
+#  * Вручну: Actions → Season replay → точки, період, типи лісу → Artifacts «season-replay».
+#  * PR, що змінює рушій прогнозу або цей інструмент: той самий прогін (Житомирщина, сезон 2025).
+# Правила видів і прапорці — з бази (лише читання через Management API); без доступу —
+# тестовий набір із 9 видів. Дані погоди: Open-Meteo (CC BY 4.0), ERA5 (Copernicus).
+on:
+  workflow_dispatch:
+    inputs:
+      points:
+        description: 'Точки «Назва:lat:lng» через пробіл'
+        required: true
+        default: 'Житомир:50.30:28.62 Овруч:51.30:28.85 Звягель:50.60:27.62'
+      from:
+        description: 'Початок (РРРР-ММ-ДД)'
+        required: true
+        default: '2025-04-01'
+      to:
+        description: 'Кінець (РРРР-ММ-ДД)'
+        required: true
+        default: '2025-11-15'
+      forest:
+        description: 'Типи лісу через кому'
+        required: true
+        default: 'pine,deciduous,mixed'
+  pull_request:
+    paths:
+      - 'scripts/season_replay/**'
+      - 'supabase/functions/_shared/forecast/**'
+      - '.github/workflows/season-replay.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: season-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+jobs:
+  replay:
+    name: Replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IN_POINTS: ${{ github.event.inputs.points || 'Житомир:50.30:28.62 Овруч:51.30:28.85 Звягель:50.60:27.62' }}
+      IN_FROM: ${{ github.event.inputs.from || '2025-04-01' }}
+      IN_TO: ${{ github.event.inputs.to || '2025-11-15' }}
+      IN_FOREST: ${{ github.event.inputs.forest || 'pine,deciduous,mixed' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check inputs
+        run: |
+          set -euo pipefail
+          for d in "$IN_FROM" "$IN_TO"; do
+            printf '%s' "$d" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' || { echo "::error::Некоректна дата: $d"; exit 1; }
+          done
+          printf '%s' "$IN_FOREST" | grep -Eq '^[a-z,]{3,80}$' || { echo "::error::Некоректні типи лісу"; exit 1; }
+          for p in $IN_POINTS; do
+            printf '%s' "$p" | grep -Eq '^[^:]{1,40}:-?[0-9.]+:-?[0-9.]+$' || { echo "::error::Некоректна точка: $p"; exit 1; }
+          done
+
+      # Лише SELECT: правила видів і прапорці рушія, як у продакшені.
+      - name: Rules from database
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$PROJECT_ID" ]; then echo "Немає доступу до бази — тестовий набір"; exit 0; fi
+          q() {
+            jq -n --arg q "$1" '{query: $q}' | curl -fsS --retry 3 -X POST \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+              --data-binary @- "https://api.supabase.com/v1/projects/$PROJECT_ID/database/query"
+          }
+          if rules=$(q "select * from public.expert_rules where mvp_stage = 'mvp' order by legacy_id") \
+             && flags=$(q "select key, enabled, value from public.feature_flags"); then
+            jq -n --argjson r "$rules" --argjson f "$flags" '{rules: $r, flags: $f}' > out/rules.json
+            echo "Правил видів: $(jq '.rules | length' out/rules.json)"
+          else
+            echo "::warning::Не вдалося прочитати правила з бази — тестовий набір"
+            rm -f out/rules.json
+          fi
+
+      - name: Scenarios
+        run: |
+          RULES=""; [ -s out/rules.json ] && RULES="--rules out/rules.json"
+          deno run --node-modules-dir=none -A scripts/season_replay/scenarios.ts $RULES --out out/scenarios.html | tee out/scenarios.txt
+
+      - name: Season replay
+        run: |
+          set -euo pipefail
+          RULES=""; [ -s out/rules.json ] && RULES="--rules out/rules.json"
+          PTS=(); for p in $IN_POINTS; do PTS+=(--point "$p"); done
+          deno run --node-modules-dir=none -A scripts/season_replay/replay.ts \
+            --from "$IN_FROM" --to "$IN_TO" --forest "$IN_FOREST" "${PTS[@]}" $RULES --out out | tee out/replay.txt
+          { echo '### Повтор сезону'; echo '`.` недостатньо даних · `l` низька · `M` середня · `H` висока · `P` пік · `R` дощ ≥ 10 мм';
+            echo '```'; cat out/replay.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: season-replay
+          path: |
+            out/*.html
+            out/*.json
+            out/*.txt
+            !out/rules.json
+          retention-days: 30

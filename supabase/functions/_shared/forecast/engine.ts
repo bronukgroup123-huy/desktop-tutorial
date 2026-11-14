@@ -146,6 +146,15 @@ export class ForecastEngine {
     return { warnings };
   }
 
+  /**
+   * Прогноз з готового контексту — без БД і мережі (повтор сезону, сценарії).
+   * Та сама логіка, що й у застосунку: кроки 4–10 для одного дня.
+   */
+  static forecastFromContext(ctx: ForecastContext, rules: SpeciesRule[], warnings: string[] = []): ForecastResult {
+    const rulesMap = new Map<string, SpeciesRule>(rules.map((r) => [r.mushroomType, r]));
+    return ForecastEngine.scoreDay(ctx, rules, rulesMap, [...warnings]);
+  }
+
   /** Кроки 4–10 для одного дня. */
   private static scoreDay(
     ctx: ForecastContext,
