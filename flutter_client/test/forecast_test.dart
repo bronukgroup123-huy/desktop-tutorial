@@ -132,7 +132,9 @@ void main() {
     expect(find.text('Сьогодні: 1 з 5 аналізів'), findsOneWidget);
     expect(find.text('Прогноз на 2026-11-12'), findsOneWidget);
     expect(find.textContaining('немає лісу'), findsOneWidget);
-    expect(find.text('Оновити аналіз'), findsOneWidget);
+    // «Оновити аналіз» — компактний значок у рядку ділянки, без великої кнопки
+    expect(find.byTooltip('Оновити аналіз'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Оновити аналіз'), findsNothing);
     expect(find.byTooltip('Показати на карті'), findsOneWidget);
     expect(find.byTooltip('Видалити ділянку'), findsOneWidget);
     // безкоштовно вже є ділянка → «Нова ділянка» не пропонується
