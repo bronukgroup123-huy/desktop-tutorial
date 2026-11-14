@@ -245,6 +245,9 @@ export interface SpeciesRule {
   weight: number;
   mvpStage: "mvp" | "v2" | "future";
   lastCalibratedAt: string | null;
+
+  /** Плодоношення: поштовх, дозрівання, хвиля (ADR-015 §15.8). */
+  fruiting: import("./fruiting.ts").FruitingParams;
 }
 
 // ============================================================================
@@ -260,6 +263,8 @@ export interface ScoredSpecies {
   missed: string[];             // які ні
   wave: Wave | null;
   where?: string | null;        // overrideWhere від Rule 3 / Rule 8 (мікрорефугіум)
+  /** Стан плодоношення на день прогнозу (немає ряду погоди — немає). */
+  fruiting?: import("./fruiting.ts").FruitingState;
 }
 
 export interface ForecastResult {

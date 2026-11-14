@@ -50,7 +50,7 @@ FORESTS: dict[str, tuple[list[str] | None, str]] = {
     "xerocomus_subtomentosus": (["coniferous", "deciduous", "mixed", "pine", "oak", "beech"],
                                 "«У хвойних, листяних і мішаних лісах… під соснами, дубами, буками»"),
     "armillaria_mellea": (["coniferous", "deciduous", "mixed"], "«У хвойних, листяних і мішаних лісах. На пнях, стовбурах, корінні дерев»"),
-    "agaricus_campestris": (None, "«На луках, полях, у цілинних степах, на пасовиськах» — без дерев"),
+    "agaricus_campestris": (["meadow"], "«На луках, полях, у цілинних степах, на пасовиськах» — не лісовий вид"),
     "leccinum_scabrum": (["birch", "mixed"], "«У березових або мішаних із березою лісах… під березами»"),
     "leccinum_aurantiacum": (["aspen", "mixed"], "«У листяних та мішаних лісах, переважно під осиками, рідше під тополями, вербами»"),
     "imleria_badia": (["coniferous", "mixed", "pine"], "«У хвойних і мішаних (з сосною) лісах»"),
@@ -139,6 +139,8 @@ def main(write: bool) -> None:
 
     if not write:
         return
+    if MIGRATION.exists() and "--force" not in sys.argv:
+        raise SystemExit(f"{MIGRATION.name} уже є (можливо, застосована): для нових змін — нова міграція або --force")
 
     # ── Міграція ──
     lines = [

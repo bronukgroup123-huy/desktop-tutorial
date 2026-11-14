@@ -35,6 +35,8 @@ export interface FeatureFlags {
   relief_enabled: boolean;
   gdd_enabled: boolean;
   peak_wave_bonus_enabled: boolean;
+  /** Рушій плодоношення (поштовх → дозрівання → хвиля) замість календарних бонусів. */
+  fruiting_model_enabled: boolean;
 }
 
 export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
@@ -48,6 +50,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   relief_enabled: false,
   gdd_enabled: true,
   peak_wave_bonus_enabled: true,
+  fruiting_model_enabled: true,
 };
 
 export async function loadFeatureFlags(

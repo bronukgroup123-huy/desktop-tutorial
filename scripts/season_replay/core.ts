@@ -81,6 +81,8 @@ export function contextFor(
     config: flags,
     regionName: null,
     computedAt: new Date(0).toISOString(),
+    // Ряд погоди — для рушія плодоношення (поштовх → дозрівання → хвиля).
+    weatherSeries: { series, cached: false },
   };
 }
 
@@ -156,7 +158,7 @@ export function scenarioSeries(start: string, segments: Segment[]): WeatherSerie
   const n = tmean.length;
   const dates = dateRange(start, new Date(Date.parse(`${start}T00:00:00Z`) + (n - 1) * 86_400_000).toISOString().slice(0, 10));
   return {
-    version: 2,
+    version: 3,
     dates,
     today: dates[0],
     precip,
@@ -165,6 +167,7 @@ export function scenarioSeries(start: string, segments: Segment[]): WeatherSerie
     tmean,
     humidity,
     soil,
+    soilT: tmean.map((t) => t - 1), // ґрунт трохи прохолодніший за повітря
     pressureStart: Array(n).fill(1013),
     pressureEnd: Array(n).fill(1013),
     fetchedAt: new Date(0).toISOString(),
