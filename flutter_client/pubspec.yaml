@@ -18,9 +18,7 @@ dependencies:
   dio: ^5.7.0
   crypto: ^3.0.6
   flutter_map: ^8.3.2
-  vector_map_tiles: 9.0.0-beta.9
-  vector_map_tiles_pmtiles: ^1.5.2
-  vector_tile_renderer: ^6.1.0
+  maplibre_gl: ^0.28.0
   latlong2: ^0.9.1
   geolocator: ^13.0.2
   path_provider: ^2.1.5
@@ -37,3 +35,4 @@ flutter:
     - assets/images/onboarding/
     - assets/images/loading/
     - assets/icons/
+    - assets/map/glyphs/noto_sans_regular/

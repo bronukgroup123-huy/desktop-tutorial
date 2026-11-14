@@ -6,10 +6,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Підпис релізу (необов'язково): android/key.properties створює CI із секретів
+// Підпис релізу: android/key.properties створює CI із секретів
 // ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD.
-// Без нього release підписується debug-ключем — APK для тестування встановлюється,
-// але для Google Play потрібен постійний ключ.
+// Без них — ТЕСТОВИЙ ключ app/test-signing.jks (рішення PO 2026-11-14): він у репозиторії,
+// тож усі тестові APK мають однаковий підпис і ставляться поверх попередніх (раніше CI щоразу
+// створював новий debug-ключ — «пакет недійсний»). Ключ публічний: для Google Play — лише
+// справжній ключ із секретів.
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) file.inputStream().use { load(it) }
@@ -29,13 +31,20 @@ android {
     defaultConfig {
         // Остаточний ID застосунку до першої публікації в Google Play.
         applicationId = "ua.mushroomradar.app"
-        minSdk = flutter.minSdkVersion
+        // MapLibre Native (офлайн карта, ADR-020) — Android 7.0+.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     signingConfigs {
+        create("testing") {
+            storeFile = file("test-signing.jks")
+            storePassword = "mushroom-radar-test"
+            keyAlias = "mushroom-radar-test"
+            keyPassword = "mushroom-radar-test"
+        }
         if (hasReleaseKey) {
             create("release") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
@@ -49,7 +58,7 @@ android {
     buildTypes {
         release {
             signingConfig = if (hasReleaseKey) signingConfigs.getByName("release")
-                            else signingConfigs.getByName("debug")
+                            else signingConfigs.getByName("testing")
         }
     }
 }
