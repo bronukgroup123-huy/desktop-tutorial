@@ -14,13 +14,20 @@ Deno.test("forestFit: точний збіг і «any» — повністю", ()
   assertEquals(forestFit(["mixed", "oak"], "mixed").score, 1);
 });
 
-Deno.test("forestFit: порода ділянки і загальний тип виду — лише коли порід у списку немає", () => {
+Deno.test("forestFit: загальний тип у списку виду («у листяних лісах») — будь-який ліс групи", () => {
   assertEquals(forestFit(["coniferous"], "pine").score, 1);
   assertEquals(forestFit(["deciduous"], "birch").score, 1);
   assertEquals(forestFit(["mixed"], "spruce").score, 1);
-  // білий: породи перелічені (сосна, ялина, дуб) — березняк не підходить, хоч є «листяний»
-  assertEquals(forestFit(["pine", "spruce", "oak", "deciduous", "coniferous"], "birch").score, 0);
+  // лисичка за книгою: «у хвойних, листяних і мішаних лісах… під соснами, ялинами, дубами, буками»
+  assertEquals(forestFit(["coniferous", "deciduous", "mixed", "pine", "spruce", "oak", "beech"], "birch").score, 1);
+});
+
+Deno.test("forestFit: вид з обмеженням (лише свої дерева) — чужа порода не підходить", () => {
+  // підосичник: «переважно під осиками» → осика, мішаний
+  assertEquals(forestFit(["aspen", "mixed"], "oak").score, 0);
+  // маслюк: «у соснових та мішаних із сосною лісах»
   assertEquals(forestFit(["pine", "mixed"], "birch").score, 0);
+  assertEquals(forestFit(["pine", "mixed"], "spruce").score, 0);
 });
 
 Deno.test("forestFit: мішаний ліс — види і хвойних, і листяних, трохи нижче", () => {

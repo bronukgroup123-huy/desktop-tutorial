@@ -44,6 +44,7 @@ const isBroadleaf = (t: string) => (BROADLEAF_TYPES as readonly string[]).includ
  * 1 — підходить, 0 — ні (вид у цьому лісі не росте), між — загальний або мішаний ліс без
  * відомої породи. Раніше потрібен був точний збіг слова, і вид зникав, напр., у мішаному лісі
  * (немає в списку білого) або в «хвойному» лісі за супутником (у маслюка в списку лише сосна).
+ * Списки типів видів — за книжковими описами (scripts/catalog_sync, docs/CATALOG_SYNC.md).
  */
 export function forestFit(ruleTypes: string[], forest: string): { score: number; reason: string } {
   const has = (t: string) => ruleTypes.includes(t);
@@ -52,13 +53,14 @@ export function forestFit(ruleTypes: string[], forest: string): { score: number;
   const match = { score: 1, reason: `forest match: ${forest}` };
 
   if (has(forest) || has('any') || forest === 'any') return match;
-  // Ліс конкретної породи: якщо у виду перелічені породи — головні вони (березняк не підходить
-  // білому, у якого в списку сосна, ялина, дуб). Загальний тип виду («листяний», «мішаний»)
-  // діє, лише коли порід у списку немає.
+  // Ліс конкретної породи. Загальний тип у списку виду — як у книзі «у листяних лісах» — означає
+  // будь-який ліс цієї групи (названі дерева — лише приклади). Види з обмеженням («переважно під
+  // осиками», «у березових лісах») загального типу в списку не мають — лише свої дерева.
+  // «Мішаний» у списку без порід — вид мішаних лісів, росте і в чистих.
   if (isConifer(forest) || isBroadleaf(forest)) {
-    const listsSpecies = ruleTypes.some((t) => isConifer(t) || isBroadleaf(t));
     const group = isConifer(forest) ? 'coniferous' : 'deciduous';
-    if (!listsSpecies && (has(group) || has('mixed'))) return match;
+    const listsSpecies = ruleTypes.some((t) => isConifer(t) || isBroadleaf(t));
+    if (has(group) || (!listsSpecies && has('mixed'))) return match;
     return { score: 0, reason: `forest mismatch: ${forest}` };
   }
 
