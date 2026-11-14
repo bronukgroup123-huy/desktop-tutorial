@@ -85,7 +85,12 @@ class _OfflineMapGate extends ConsumerWidget {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       // Файл не відкрився (пошкоджений) — видаляємо й пропонуємо завантажити знову.
       error: (_, __) => _OfflineMapPrompt(geometry: geometry, broken: true),
-      data: (provider) => _RegionMap(key: ValueKey(file.path), geometry: geometry, basemap: provider),
+      data: (provider) => _RegionMap(
+        key: ValueKey(file.path),
+        geometry: geometry,
+        basemap: provider,
+        basemapVersion: file.meta.version,
+      ),
     );
   }
 }
@@ -212,12 +217,15 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
 }
 
 class _RegionMap extends ConsumerStatefulWidget {
-  const _RegionMap({super.key, required this.geometry, required this.basemap});
+  const _RegionMap({super.key, required this.geometry, required this.basemap, required this.basemapVersion});
 
   final RegionGeometry geometry;
 
   /// Офлайн карта області з телефону.
   final VectorTileProvider basemap;
+
+  /// Версія офлайн карти на телефоні (для «Оновити офлайн карту»).
+  final String basemapVersion;
 
   @override
   ConsumerState<_RegionMap> createState() => _RegionMapState();
@@ -240,16 +248,41 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   ({LatLng center, double zoom})? _fit;
   Size? _fitSize;
 
-  // Шари лісів (за рівнями деталізації) і маска будуються один раз на набір даних.
-  // Ті самі екземпляри віджетів при кожній перебудові екрана — інакше flutter_map
-  // скидає кеш проєкцій і перераховує всі ~13 тис. контурів.
+  // Ліси МАЛЮЄ офлайн карта (шар `forests` у файлі карти — плитками, з кешем). Тут — лише
+  // ліси з файлу лісів і їхній індекс для визначника, аналізу ділянки й уточнення.
+  // Маска будується один раз — той самий віджет при кожній перебудові екрана.
   List<ForestZone>? _lodFor;
   ForestLod? _lod;
-  List<Widget> _forestLayers = const [];
   RegionGeometry? _maskFor;
   Widget _maskLayer = const SizedBox.shrink();
 
+  /// Оновлення офлайн карти: частка 0…1; `null` — не качаємо.
+  double? _updateProgress;
+
   RegionGeometry get _g => widget.geometry;
+
+  /// «Оновити офлайн карту»: нова версія (щомісяця — нові ліси й дороги) замінює стару.
+  Future<void> _updateBasemap() async {
+    final files = _g.basemap;
+    if (files == null || _updateProgress != null) return;
+    setState(() => _updateProgress = 0);
+    try {
+      await for (final p in ref.read(basemapRepositoryProvider).download(_g.slug, files)) {
+        if (mounted) setState(() => _updateProgress = p);
+      }
+      final local = await ref.read(basemapRepositoryProvider).local(_g.slug);
+      if (local != null) ref.invalidate(_basemapTilesProvider(local.path));
+      ref.invalidate(localBasemapProvider(_g.slug));
+      ref.invalidate(remoteBasemapProvider(_g.slug));
+      if (mounted) showToast(context, 'Офлайн карту оновлено');
+    } catch (e) {
+      if (mounted) {
+        showToast(context, e is FormatException ? e.message : 'Не вдалося оновити карту. Спробуйте пізніше.', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _updateProgress = null);
+    }
+  }
 
   @override
   void initState() {
@@ -293,48 +326,13 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     return _maskLayer;
   }
 
-  /// Шари лісів для кожного рівня деталізації — будуються один раз на набір лісів.
-  List<Widget> _forestLayersFor(ForestLoad? load) {
+  /// Індекс лісів для тапу (визначник лісу) — один раз на набір лісів. Повний файл області
+  /// вже підготовлено в ізоляті; запасні плитки — тут.
+  void _ensureLod(ForestLoad? load) {
     final zones = load?.zones ?? const <ForestZone>[];
-    if (identical(zones, _lodFor)) return _forestLayers;
+    if (identical(zones, _lodFor)) return;
     _lodFor = zones;
-    // Повний файл області — уже підготовлений в ізоляті; запасні плитки — тут.
-    final lod = _lod = load?.lod ?? buildForestLod(zones);
-    return _forestLayers = [
-      for (var l = 0; l < forestLodLevels.length; l++) _forestLevelLayer(zones, lod.levels[l], forestLodLevels[l]),
-    ];
-  }
-
-  /// Один рівень лісів. Кольори непрозорі, а прозорість — у всього шару одразу:
-  /// flutter_map малює напівпрозорі полігони кожен окремо (тисячі викликів на кадр),
-  /// а непрозорі однакового кольору — одним шляхом.
-  static Widget _forestLevelLayer(List<ForestZone> zones, List<LodPolygon> polys, ForestLodLevel level) => Opacity(
-        opacity: 0.5,
-        child: PolygonLayer(
-          polygons: [
-            for (var i = 0; i < polys.length; i++)
-              Polygon(
-                points: polys[i].outer,
-                holePointsList: polys[i].holes,
-                // Ліс із дірками малюється окремо (інакше дірки «вирізають» сусідні ліси
-                // в спільному шляху) — для цього колір на 1–2 одиниці синього інший.
-                color: polys[i].holes.isEmpty
-                    ? zones[polys[i].zone].typeColor
-                    : _nudge(zones[polys[i].zone].typeColor, 1 + (i & 1)),
-                borderColor: zones[polys[i].zone].typeColor,
-                borderStrokeWidth: level.borders ? 1 : 0,
-              ),
-          ],
-          // Контури вже спрощені під рівень; вбудоване спрощення flutter_map 7 перераховує
-          // всі контури щокадру (лінивий кеш) — вимкнено.
-          simplificationTolerance: 0,
-          polygonLabels: false,
-        ),
-      );
-
-  static Color _nudge(Color c, int delta) {
-    final argb = c.toARGB32();
-    return Color((argb & 0xFFFFFF00) | ((argb & 0xFF) ^ delta));
+    _lod = load?.lod ?? buildForestLod(zones);
   }
 
   /// Тап по карті: у режимі аналізу — центр ділянки; інакше — визначник лісу
@@ -627,6 +625,10 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     // Ліси всієї області — з телефону; мережа лише раз на добу (офлайн-карта).
     final forests = ref.watch(regionForestsProvider(_g.slug));
     final load = forests.valueOrNull;
+    _ensureLod(load);
+    // Нова версія офлайн карти (щомісяця) — пропонуємо оновити; без мережі — нічого.
+    final remoteMap = ref.watch(remoteBasemapProvider(_g.slug)).valueOrNull;
+    final mapUpdate = remoteMap != null && remoteMap.version != widget.basemapVersion ? remoteMap : null;
     final offline = load?.offline ?? false;
     final loading = forests.isLoading || (load != null && !load.complete);
     final showError = (forests.hasError && !forests.isLoading) ||
@@ -669,6 +671,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
             children: [
               // Офлайн карта області з телефону — без інтернету й без серверів плиток.
               VectorTileLayer(
+                key: ValueKey(widget.basemapVersion),
                 tileProviders: TileProviders({'openmaptiles': widget.basemap}),
                 theme: basemapTheme,
                 maximumZoom: 17,
@@ -677,7 +680,6 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 memoryTileCacheMaxSize: 48 * 1024 * 1024,
                 memoryTileDataCacheMaxSize: 64,
               ),
-              _ForestLodView(layers: _forestLayersFor(load)),
               _mask(),
               if (areas.isNotEmpty) PolygonLayer(polygons: _areaSquares(areas)),
               if (square != null)
@@ -767,6 +769,16 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (mapUpdate != null) ...[
+                    _MapPill(
+                      icon: Icons.system_update_alt_rounded,
+                      label: _updateProgress == null
+                          ? 'Оновити офлайн карту · ${mapUpdate.sizeLabel}'
+                          : 'Оновлення карти… ${(_updateProgress! * 100).round()}%',
+                      onPressed: _updateBasemap,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   _MapPill(
                     icon: Icons.crop_free_rounded,
                     label: 'Аналіз ділянки',
@@ -1108,22 +1120,3 @@ final _basemapTilesProvider = FutureProvider.family<VectorTileProvider, String>(
   (ref, path) => PmTilesVectorTileProvider.fromSource(path),
 );
 
-/// Ліси на карті: показує шар рівня деталізації для поточного масштабу. Решта рівнів
-/// лишаються в дереві (Offstage) — зі своїм кешем проєкцій, тож перемикання масштабу
-/// не перераховує контури заново.
-class _ForestLodView extends StatelessWidget {
-  const _ForestLodView({required this.layers});
-
-  final List<Widget> layers;
-
-  @override
-  Widget build(BuildContext context) {
-    final level = forestLodLevelFor(MapCamera.of(context).zoom);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var i = 0; i < layers.length; i++) Offstage(offstage: i != level, child: layers[i]),
-      ],
-    );
-  }
-}

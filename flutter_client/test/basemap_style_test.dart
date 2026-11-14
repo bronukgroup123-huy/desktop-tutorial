@@ -38,7 +38,13 @@ void main() {
     expect(layer('label_road')['minzoom'], 14);
   });
 
-  test('ліси OSM у підкладці не малюються — їх показує наш шар лісів із типами', () {
+  test('ліси OSM не малюються — замість них наш шар forests з кольором типу, під дорогами', () {
     expect(layers.where((l) => jsonEncode(l['filter'] ?? []).contains('wood')), isEmpty);
+    final forests = layer('forests');
+    expect(forests['source-layer'], 'forests');
+    expect((forests['paint'] as Map)['fill-color'], ['coalesce', ['get', 'type_color'], '#b0bec5']);
+    final ids = layers.map((l) => l['id']).toList();
+    expect(ids.indexOf('forests'), lessThan(ids.indexOf('road_primary')));
+    expect(ids.indexOf('forests'), lessThan(ids.indexOf('label_village')));
   });
 }
