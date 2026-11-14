@@ -454,6 +454,46 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
 
   /v1-analysis/areas/{id}:
+    put:
+      operationId: renameAnalysisArea
+      summary: Назва ділянки
+      description: |
+        ADR-015 §15.9. Грибник підписує ділянку («Біля Броників»): до 24 символів, пробіли
+        обрізаються; порожньо або null — знову «Ділянка N». Ліміт аналізів не витрачається.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label]
+              properties:
+                label: { type: [string, 'null'], maxLength: 24 }
+      responses:
+        '200':
+          description: Назву збережено
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [id, label, title]
+                    properties:
+                      id: { type: string, format: uuid }
+                      label: { type: [string, 'null'] }
+                      title: { type: string, example: Біля Броників }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
     delete:
       operationId: deleteAnalysisArea
       summary: Видалити ділянку аналізу
@@ -768,6 +808,8 @@ components:
         lng: { type: number }
         size_km: { type: integer, enum: [5, 10] }
         size_label: { type: string, example: 5×5 км }
+        label: { type: [string, 'null'], maxLength: 24, description: Назва від грибника (у GET); null — «Ділянка N» }
+        title: { type: string, example: Біля Броників, description: Готовий підпис клітинки (у GET) }
         bbox:
           type: array
           items: { type: number }
@@ -852,6 +894,22 @@ components:
         create_hint_label:
           type: string
           example: 'У вас уже є ділянка. Щоб створити нову, видаліть стару у вкладці «Прогноз».'
+        slots:
+          type: array
+          description: Три клітинки ділянок у «Прогнозі» (ADR-015 §15.9)
+          minItems: 3
+          maxItems: 3
+          items:
+            type: object
+            required: [slot, state, area_id, title, subtitle]
+            properties:
+              slot: { type: integer, minimum: 1, maximum: 3 }
+              state: { type: string, enum: [area, empty, locked], description: 'зайнята / вільна (Pro) / під замком Pro' }
+              area_id: { type: [string, 'null'], format: uuid }
+              title: { type: string, example: Ділянка 1 }
+              subtitle: { type: [string, 'null'], example: 5×5 км }
+              locked_label: { type: string, example: Ще 2 ділянки — у Pro }
+        label_max: { type: integer, example: 24, description: Найдовша назва ділянки, символів }
         forest_edit_options:
           type: object
           description: Список для «Уточнити ліс» (лише вибір зі списку)

@@ -36,6 +36,7 @@ LatLng _unmercator(double x, double y) {
   Size size, {
   EdgeInsets padding = regionPadding,
   double worldSize = mapLibreWorldSize,
+  bool cover = false,
 }) {
   final w = (size.width > 0 ? size.width : 400.0) - padding.horizontal;
   final h = (size.height > 0 ? size.height : 800.0) - padding.vertical;
@@ -43,7 +44,9 @@ LatLng _unmercator(double x, double y) {
   final ne = _mercator(bounds.northEast);
   final dx = (ne.x - sw.x).abs().clamp(1e-9, 1.0);
   final dy = (sw.y - ne.y).abs().clamp(1e-9, 1.0);
-  final zoom = math.log(math.min(math.max(w, 1) / (dx * worldSize), math.max(h, 1) / (dy * worldSize))) / math.ln2;
+  // [cover] — заповнити екран межами повністю (зайве по одній осі обрізається), інакше вмістити.
+  final zx = math.max(w, 1) / (dx * worldSize), zy = math.max(h, 1) / (dy * worldSize);
+  final zoom = math.log(cover ? math.max(zx, zy) : math.min(zx, zy)) / math.ln2;
   // Центр — з урахуванням несиметричних полів (зверху заголовок).
   final scale = worldSize * math.pow(2, zoom);
   final cx = (sw.x + ne.x) / 2 + (padding.right - padding.left) / 2 / scale;

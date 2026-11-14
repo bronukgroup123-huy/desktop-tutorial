@@ -67,6 +67,13 @@ class AnalysisRepository {
         if (forest != null) 'forest': forest,
       }) as Map<String, dynamic>);
 
+  /// Підписати ділянку («Біля Броників», до 24 символів); `null` або порожньо — «Ділянка N».
+  /// Повертає готову назву клітинки із сервера.
+  Future<String> renameArea(String areaId, String? label) async {
+    final data = await _api.put('/v1-analysis/areas/$areaId', body: {'label': label}) as Map<String, dynamic>;
+    return data['title'] as String? ?? label ?? '';
+  }
+
   Future<void> deleteArea(String areaId) async {
     await _api.delete('/v1-analysis/areas/$areaId');
   }

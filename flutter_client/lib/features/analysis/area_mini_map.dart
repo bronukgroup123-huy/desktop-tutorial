@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:math' show Point;
+import 'dart:math' show Point, min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,8 +88,11 @@ class _AreaMiniMapState extends ConsumerState<AreaMiniMap> {
     final glyphs = ref.watch(offlineGlyphsProvider).valueOrNull;
 
     return LayoutBuilder(builder: (context, box) {
-      final size = Size(box.maxWidth, (box.maxWidth * 0.62).clamp(180.0, 300.0));
-      final fit = fitRegion(widget.bounds, size, padding: const EdgeInsets.all(10));
+      // Рівно квадрат ділянки (рішення PO 2026-11-14): квадратна мінікарта, ділянка на весь
+      // розмір — більший масштаб, видно лише ліс ділянки.
+      final side = min(box.maxWidth, 440.0);
+      final size = Size(side, side);
+      final fit = fitRegion(widget.bounds, size, padding: EdgeInsets.zero, cover: true);
       final camera = StickerCamera(center: fit.center, zoom: fit.zoom, size: size);
       final map = basemap != null && glyphs != null
           ? _MiniMapLibre(

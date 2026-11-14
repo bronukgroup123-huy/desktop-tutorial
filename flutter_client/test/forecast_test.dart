@@ -3,11 +3,14 @@ import 'package:flutter_client/data/local/offline_result.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/forecast.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/data/repositories/analysis_repository.dart';
 import 'package:flutter_client/features/forecast/forecast_screen.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'data/fake_adapter.dart';
 
 Map<String, dynamic> forecastJson({bool withWeather = true}) => {
       'regionName': 'Житомирська',
@@ -128,8 +131,14 @@ void main() {
       child: const MaterialApp(home: ForecastScreen()),
     ));
     await tester.pump();
-    expect(find.text('Ділянка 1 · 5×5 км'), findsOneWidget);
+    // три клітинки: «Ділянка 1 · 5×5 км», дві інші під замком Pro
+    expect(find.descendant(of: find.byKey(const ValueKey('slot-1')), matching: find.text('Ділянка 1')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('slot-1')), matching: find.text('5×5 км')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('slot-2')), matching: find.byIcon(Icons.lock_outline_rounded)),
+        findsOneWidget);
     expect(find.text('Сьогодні: 1 з 5 аналізів'), findsOneWidget);
+    // ▶ «Хвиля по днях» — завжди у рядку значків
+    expect(find.byKey(const ValueKey('play-days')), findsOneWidget);
     expect(find.text('Прогноз на 2026-11-12'), findsOneWidget);
     expect(find.textContaining('немає лісу'), findsOneWidget);
     // «Оновити аналіз» — компактний значок у рядку ділянки, без великої кнопки
@@ -153,9 +162,55 @@ void main() {
     await tester.pump();
     expect(find.text('Аналізу ще немає'), findsOneWidget);
     expect(find.textContaining('Немає інтернету'), findsOneWidget);
-    expect(find.text('Нова ділянка'), findsOneWidget);
+    expect(find.text('Нова ділянка'), findsWidgets);
     final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Аналізувати ділянку'));
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('Клітинки ділянок: замок Pro, назва через олівець, ▶ на старому аналізі підказує оновити', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {
+          'data': {'id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'label': 'Біля Броників', 'title': 'Біля Броників'},
+        }));
+    var loads = 0;
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) {
+          loads++;
+          return overview(areas: [areaJson(withResult: true)], slots: [
+            {'slot': 1, 'state': 'area', 'area_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'title': 'Ділянка 1', 'subtitle': '5×5 км'},
+            {'slot': 2, 'state': 'locked', 'title': 'Ділянка 2', 'locked_label': 'Ще 2 ділянки — у Pro'},
+            {'slot': 3, 'state': 'locked', 'title': 'Ділянка 3', 'locked_label': 'Ще 2 ділянки — у Pro'},
+          ]);
+        }),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('slot-2')));
+    await tester.pump();
+    expect(find.text('Ще 2 ділянки — у Pro'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('play-days')));
+    await tester.pump();
+    expect(find.textContaining('після оновлення аналізу'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('rename-slot-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Назва ділянки'), findsWidgets);
+    await tester.enterText(find.byKey(const ValueKey('area-label-field')), '  Біля Броників ');
+    await tester.tap(find.byKey(const ValueKey('area-label-save')));
+    await tester.pumpAndSettle();
+    expect([adapter.requests.single.method, adapter.requests.single.path],
+        ['PUT', '/v1-analysis/areas/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']);
+    expect(adapter.requests.single.data, {'label': 'Біля Броників'});
+    expect(loads, 2); // список ділянок оновлено з сервера
+
+    // довге натискання на клітинку — той самий діалог
+    await tester.longPress(find.byKey(const ValueKey('slot-1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('area-label-field')), findsOneWidget);
   });
 }
 
@@ -187,8 +242,10 @@ AnalysisOverview overview({
   required List<Map<String, dynamic>> areas,
   bool canCreate = false,
   DateTime? offlineSince,
+  List<Map<String, dynamic>>? slots,
 }) =>
     AnalysisOverview.fromJson({
+      if (slots != null) 'slots': slots,
       'sizes': [
         {'size_km': 5, 'label': '5×5 км', 'available': true, 'lock_label': null},
       ],

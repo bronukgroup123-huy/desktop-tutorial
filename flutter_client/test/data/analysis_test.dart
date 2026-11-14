@@ -174,9 +174,36 @@ void main() {
     json['create_hint_label'] = 'Видаліть стару';
     final o = AnalysisOverview.fromJson(json);
     final a = o.areas.single;
-    expect([a.title, a.usage!.used, a.lastResult!.top1!.species.nameUa], ['Ділянка 1 · 5×5 км', 2, 'Білий гриб']);
+    expect([a.title, a.usage!.used, a.lastResult!.top1!.species.nameUa], ['Ділянка 1', 2, 'Білий гриб']);
     expect([o.canCreate, o.createHintLabel], [false, 'Видаліть стару']);
     expect(o.areaById('area-1'), same(a));
+    // без `slots` у відповіді (старий офлайн-знімок) — клітинки з ділянок: решта під замком
+    expect(o.slots.map((s) => '${s.state.name}:${s.title}'), ['area:Ділянка 1', 'locked:Ділянка 2', 'locked:Ділянка 3']);
+    expect(o.labelMax, 24);
+  });
+
+  test('Назва ділянки: власна назва з сервера, клітинки, перейменування', () async {
+    final json = overviewJson();
+    json['areas'] = <dynamic>[
+      {...(json['areas'] as List)[0] as Map<String, dynamic>, 'label': 'Біля Броників', 'title': 'Біля Броників'},
+    ];
+    json['slots'] = [
+      {'slot': 1, 'state': 'area', 'area_id': 'area-1', 'title': 'Біля Броників', 'subtitle': '5×5 км'},
+      {'slot': 2, 'state': 'empty', 'area_id': null, 'title': 'Нова ділянка', 'subtitle': null},
+      {'slot': 3, 'state': 'locked', 'area_id': null, 'title': 'Ділянка 3', 'locked_label': 'Ще 2 ділянки — у Pro'},
+    ];
+    json['label_max'] = 24;
+    final o = AnalysisOverview.fromJson(json);
+    expect([o.areas.single.label, o.areas.single.title], ['Біля Броників', 'Біля Броників']);
+    expect(o.slots.map((s) => s.state), [AnalysisSlotState.area, AnalysisSlotState.empty, AnalysisSlotState.locked]);
+    expect([o.slots[0].areaId, o.slots[0].subtitle, o.slots[2].lockedLabel], ['area-1', '5×5 км', 'Ще 2 ділянки — у Pro']);
+
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {
+          'data': {'id': 'area-1', 'label': null, 'title': 'Ділянка 1'},
+        }));
+    expect(await AnalysisRepository(api).renameArea('area-1', null), 'Ділянка 1');
+    expect([adapter.requests.single.method, adapter.requests.single.path, adapter.requests.single.data],
+        ['PUT', '/v1-analysis/areas/area-1', {'label': null}]);
   });
 
   test('AnalysisRepository: без інтернету — збережені ділянки з часом збереження', () async {

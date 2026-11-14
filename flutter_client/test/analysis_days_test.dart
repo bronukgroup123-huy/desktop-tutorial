@@ -55,8 +55,8 @@ Map<String, dynamic> daysJson() => {
       'locked_label': 'Ще 4 дні прогнозу — у Pro',
     };
 
-Future<void> _pump(WidgetTester tester, AnalysisResult r) => tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: AnalysisResultView(result: r))),
+Future<void> _pump(WidgetTester tester, AnalysisResult r, {WeekPlayController? play}) => tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: AnalysisResultView(result: r, playController: play))),
     );
 
 void main() {
@@ -82,7 +82,10 @@ void main() {
 
   testWidgets('Смужка днів: перемикання дня без запитів, найкращий день, 🔒 Pro', (tester) async {
     await _pump(tester, AnalysisResult.fromJson(daysJson()));
-    expect(find.text('Прогноз ділянки'), findsOneWidget);
+    // Заголовка «Прогноз ділянки» більше немає (рішення PO 2026-11-14): смужка днів — біля погоди.
+    expect(find.text('Прогноз ділянки'), findsNothing);
+    final stripY = tester.getTopLeft(find.byType(AnalysisDayStrip)).dy;
+    expect(tester.getTopLeft(find.text('Погода Сьогодні')).dy, greaterThan(stripY));
     expect(find.text('Опеньок'), findsWidgets); // сьогодні
     expect(find.text('Погода Сьогодні'), findsOneWidget);
 
@@ -109,5 +112,31 @@ void main() {
     await _pump(tester, AnalysisResult.fromJson(resultJson()));
     expect(find.byType(AnalysisDayStrip), findsNothing);
     expect(find.text('Прогноз на 2026-11-11'), findsOneWidget);
+  });
+
+  testWidgets('▶ у верхньому рядку керує анімацією; старий аналіз — підказка оновити', (tester) async {
+    final play = WeekPlayController();
+    addTearDown(play.dispose);
+    await _pump(tester, AnalysisResult.fromJson({...daysJson(), 'week_animation': {'allowed': true}}), play: play);
+    expect(find.byKey(const ValueKey('play-days')), findsNothing); // значок — у рядку екрана
+    play.press();
+    await tester.pump();
+    expect(play.playing, isTrue);
+    expect(find.text('Погода Сьогодні'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1300));
+    expect(find.text('Погода Завтра'), findsOneWidget);
+    play.press(); // пауза
+    await tester.pump();
+    expect(play.playing, isFalse);
+
+    // аналіз до появи анімації (без week_animation) — натискання підказує оновити
+    final stale = WeekPlayController();
+    addTearDown(stale.dispose);
+    await _pump(tester, AnalysisResult.fromJson(daysJson()), play: stale);
+    await tester.pump();
+    stale.press();
+    await tester.pump();
+    expect(find.text(kWeekAnimationStaleLabel), findsOneWidget);
+    expect(stale.playing, isFalse);
   });
 }

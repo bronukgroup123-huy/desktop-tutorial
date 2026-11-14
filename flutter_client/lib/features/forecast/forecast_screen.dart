@@ -80,6 +80,49 @@ class _AreaPage extends ConsumerStatefulWidget {
 class _AreaPageState extends ConsumerState<_AreaPage> {
   bool _busy = false;
 
+  /// ▶ «Хвиля по днях» у верхньому рядку значків (ADR-015 §15.9).
+  final _play = WeekPlayController();
+
+  @override
+  void dispose() {
+    _play.dispose();
+    super.dispose();
+  }
+
+  void _snack(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  /// Підписати ділянку: «Назва ділянки», до [AnalysisOverview.labelMax] символів, зберігається на сервері.
+  Future<void> _rename(AnalysisArea area) async {
+    if (widget.overview.offlineSince != null) {
+      _snack('Без інтернету назву змінити не можна.');
+      return;
+    }
+    final label = await showDialog<_RenameResult>(
+      context: context,
+      builder: (_) => _RenameDialog(initial: area.label ?? '', maxLength: widget.overview.labelMax, slot: area.slot),
+    );
+    if (label == null || !mounted) return;
+    try {
+      await ref.read(analysisRepositoryProvider).renameArea(area.id, label.value);
+      ref.invalidate(analysisOverviewProvider);
+    } on ApiException catch (e) {
+      if (mounted) showToast(context, e.userMessage, isError: true);
+    }
+  }
+
+  void _onSlotTap(AnalysisSlot slot) {
+    switch (slot.state) {
+      case AnalysisSlotState.area:
+        ref.read(selectedAreaIdProvider.notifier).state = slot.areaId;
+      case AnalysisSlotState.empty:
+        context.go('/map');
+      case AnalysisSlotState.locked:
+        _snack(slot.lockedLabel ?? 'Доступно в Pro');
+    }
+  }
+
   AnalysisArea get _area => widget.area;
 
   /// Ліс у квадраті — з полігонів, які видно на карті (сервер має не всі області).
@@ -179,43 +222,23 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
 
     return Column(
       children: [
-        if (o.areas.length > 1 || o.canCreate)
-          SizedBox(
-            height: 52,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              children: [
-                for (final a in o.areas)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(a.title),
-                      selected: a.id == _area.id,
-                      onSelected: (_) => ref.read(selectedAreaIdProvider.notifier).state = a.id,
-                    ),
-                  ),
-                if (o.canCreate)
-                  ActionChip(
-                    avatar: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Нова ділянка'),
-                    onPressed: () => context.go('/map'),
-                  ),
-              ],
-            ),
-          ),
+        AreaSlotsRow(
+          slots: o.slots,
+          selectedAreaId: _area.id,
+          onTap: _onSlotTap,
+          onRename: (slot) {
+            final a = o.areaById(slot.areaId);
+            if (a != null) _rename(a);
+          },
+        ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_area.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    if (_area.usage != null) Text(_area.usage!.label, style: TextStyle(fontSize: 12, color: muted)),
-                  ],
-                ),
+                child: _area.usage == null
+                    ? const SizedBox.shrink()
+                    : Text(_area.usage!.label, style: TextStyle(fontSize: 13, color: muted)),
               ),
               // «Оновити аналіз» — компактний значок замість великої кнопки (рішення PO 2026-11-14).
               if (result != null)
@@ -230,6 +253,20 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                           child: CircularProgressIndicator(strokeWidth: 2.4, color: AppTheme.darkGreen),
                         )
                       : const Icon(Icons.refresh_rounded, color: AppTheme.darkGreen),
+                ),
+              // «Хвиля по днях» — завжди тут; доступ і старий аналіз пояснює натискання.
+              if (result != null)
+                ListenableBuilder(
+                  listenable: _play,
+                  builder: (context, _) => IconButton(
+                    key: const ValueKey('play-days'),
+                    tooltip: _play.playing ? 'Пауза' : 'Хвиля по днях',
+                    onPressed: _play.press,
+                    icon: Icon(
+                      _play.playing ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+                      color: AppTheme.darkGreen,
+                    ),
+                  ),
                 ),
               IconButton(
                 tooltip: 'Показати на карті',
@@ -277,7 +314,9 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   color: AppTheme.darkGreen,
                   onRefresh: () => ref.refresh(analysisOverviewProvider.future),
                   child: AnalysisResultView(
+                  key: ValueKey('result-${_area.id}'),
                   result: result,
+                  playController: _play,
                   miniMapBuilder: result.area.bounds == null
                       ? null
                       : (species) => AreaMiniMap(areaId: result.area.id, bounds: result.area.bounds!, species: species),
@@ -326,5 +365,193 @@ class _Message extends StatelessWidget {
             ],
           ),
         ),
+      );
+}
+
+/// Три клітинки ділянок у стилі смужки днів (ADR-015 §15.9): зайнята — назва й розмір,
+/// олівець і довге натискання — «Назва ділянки»; вільна (Pro) — «+ Нова ділянка»;
+/// під замком — «Ще 2 ділянки — у Pro».
+class AreaSlotsRow extends StatelessWidget {
+  const AreaSlotsRow({
+    super.key,
+    required this.slots,
+    required this.selectedAreaId,
+    required this.onTap,
+    required this.onRename,
+  });
+
+  final List<AnalysisSlot> slots;
+  final String? selectedAreaId;
+  final ValueChanged<AnalysisSlot> onTap;
+  final ValueChanged<AnalysisSlot> onRename;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            children: [
+              for (var i = 0; i < slots.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(child: _SlotTile(
+                  slot: slots[i],
+                  selected: slots[i].areaId != null && slots[i].areaId == selectedAreaId,
+                  onTap: () => onTap(slots[i]),
+                  onRename: () => onRename(slots[i]),
+                )),
+              ],
+            ],
+          ),
+        ),
+      );
+}
+
+class _SlotTile extends StatelessWidget {
+  const _SlotTile({required this.slot, required this.selected, required this.onTap, required this.onRename});
+
+  final AnalysisSlot slot;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onRename;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = slot.state == AnalysisSlotState.locked;
+    final dim = AppTheme.darkGreen.withValues(alpha: 0.45);
+    final Widget body = switch (slot.state) {
+      AnalysisSlotState.area => Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 24, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    slot.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.15,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      color: AppTheme.darkGreen,
+                    ),
+                  ),
+                  if (slot.subtitle != null)
+                    Text(slot.subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                key: ValueKey('rename-slot-${slot.slot}'),
+                tooltip: 'Назва ділянки',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                iconSize: 16,
+                onPressed: onRename,
+                icon: Icon(Icons.edit_outlined, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+              ),
+            ),
+          ],
+        ),
+      AnalysisSlotState.empty => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded, size: 18, color: AppTheme.darkGreen),
+            const SizedBox(width: 2),
+            Flexible(
+              child: Text(
+                slot.title,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+              ),
+            ),
+          ],
+        ),
+      AnalysisSlotState.locked => Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 18, color: dim),
+            const SizedBox(height: 2),
+            Text(slot.title, style: TextStyle(fontSize: 12, color: dim)),
+          ],
+        ),
+    };
+    return Material(
+      key: ValueKey('slot-${slot.slot}'),
+      color: locked ? Colors.white.withValues(alpha: 0.5) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: selected ? AppTheme.darkGreen : Colors.transparent, width: 2),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        onLongPress: slot.state == AnalysisSlotState.area ? onRename : null,
+        child: SizedBox.expand(child: body),
+      ),
+    );
+  }
+}
+
+/// Результат діалогу назви: [value] `null` — повернути «Ділянка N».
+class _RenameResult {
+  const _RenameResult(this.value);
+  final String? value;
+}
+
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.initial, required this.maxLength, required this.slot});
+
+  final String initial;
+  final int maxLength;
+  final int slot;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final _text = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final v = _text.text.trim();
+    Navigator.pop(context, _RenameResult(v.isEmpty ? null : v));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Назва ділянки'),
+        content: TextField(
+          key: const ValueKey('area-label-field'),
+          controller: _text,
+          autofocus: true,
+          maxLength: widget.maxLength,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: 'Наприклад: Біля Броників', helperText: 'Порожньо — «Ділянка ${widget.slot}»'),
+          onSubmitted: (_) => _save(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Скасувати')),
+          FilledButton(
+            key: const ValueKey('area-label-save'),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen),
+            onPressed: _save,
+            child: const Text('Зберегти'),
+          ),
+        ],
       );
 }
