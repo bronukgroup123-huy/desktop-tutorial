@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io' show Directory;
 
 import 'package:dio/dio.dart';
@@ -49,7 +51,10 @@ final localStoreProvider = Provider<LocalStore>(
   (ref) => throw UnimplementedError('localStoreProvider must be overridden in main()'),
 );
 
-final meRepositoryProvider = Provider((ref) => MeRepository(ref.watch(apiClientProvider)));
+final meRepositoryProvider = Provider((ref) {
+  final auth = ref.watch(authRepositoryProvider);
+  return MeRepository(ref.watch(apiClientProvider), store: ref.watch(localStoreProvider), userId: () => auth.userId);
+});
 final regionsRepositoryProvider = Provider(
   (ref) => RegionsRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
 );
@@ -114,7 +119,24 @@ class MeNotifier extends AsyncNotifier<Me?> {
   Future<Me?> build() async {
     ref.watch(authStateProvider.select((s) => s.valueOrNull?.session?.user.id));
     if (!ref.read(authRepositoryProvider).isSignedIn) return null;
-    return ref.read(meRepositoryProvider).fetchMe();
+    final repo = ref.read(meRepositoryProvider);
+
+    // Збережений профіль — одразу (застосунок відкривається і без інтернету),
+    // а свіжий із сервера підміняє його у фоні, коли з'явиться зв'язок.
+    final cached = await repo.cached();
+    if (cached == null) return repo.fetchMe();
+    var alive = true;
+    ref.onDispose(() => alive = false);
+    unawaited(Future(() async {
+      try {
+        final fresh = await repo.fetchMe();
+        await future;
+        if (alive) state = AsyncData(fresh);
+      } catch (_) {
+        // немає мережі — лишається збережений профіль
+      }
+    }));
+    return cached;
   }
 
   /// Область + згода з умовами одним запитом. Помилку сервера передаємо в UI.
@@ -128,9 +150,13 @@ class MeNotifier extends AsyncNotifier<Me?> {
     state = AsyncData(updated);
   }
 
+  /// «Повторити» на заставці: з сервера, а без інтернету — збережений профіль.
   Future<void> refresh() async {
     state = const AsyncLoading<Me?>().copyWithPrevious(state);
-    state = await AsyncValue.guard(build);
+    state = await AsyncValue.guard(() async {
+      if (!ref.read(authRepositoryProvider).isSignedIn) return null;
+      return ref.read(meRepositoryProvider).fetchMeOrCached();
+    });
   }
 }
 
