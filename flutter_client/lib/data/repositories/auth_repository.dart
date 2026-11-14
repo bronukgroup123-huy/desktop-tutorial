@@ -12,6 +12,7 @@ class AuthRepository {
   Session? get currentSession => _auth.currentSession;
   String? get accessToken => _auth.currentSession?.accessToken;
   bool get isSignedIn => _auth.currentSession != null;
+  String? get userId => _auth.currentSession?.user.id;
   bool get isGuest => _auth.currentUser?.isAnonymous ?? false;
 
   Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
