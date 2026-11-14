@@ -177,9 +177,9 @@ const fmt = (d?: string) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}` : "");
 export function fruitingReason(fr: FruitingState, rule: SpeciesRule): string {
   switch (fr.phase) {
     case "flush":
-      return `fruiting flush ${fr.flushDay}/${fr.flushDays} rain ${fr.triggerRain} ${fmt(fr.triggerDate)}`;
+      return `fruiting flush ${fr.flushDay}/${fr.flushDays} ${rule.fruiting.trigger} ${fr.triggerRain} ${fmt(fr.triggerDate)}`;
     case "maturing":
-      return `fruiting maturing rain ${fr.triggerRain} ${fmt(fr.triggerDate)} until ${fmt(fr.expectedStart) || "?"}`;
+      return `fruiting maturing ${rule.fruiting.trigger} ${fr.triggerRain} ${fmt(fr.triggerDate)} until ${fmt(fr.expectedStart) || "?"}`;
     case "after":
       return `fruiting after ${fmt(fr.flushEnded)}`;
     case "idle":
@@ -208,6 +208,8 @@ function scoreWithFruiting(
     if (res.skip) continue;
     // Стабільна температура вже врахована хвилею; лишаємо тільки різкі перепади (мінус).
     if (dynamicRule === rule6_MyceliumTemp && res.modifier > 0) continue;
+    // Зимовому опеньку мороз не шкодить — відлига після нього якраз запускає хвилю.
+    if (dynamicRule === rule6_MyceliumTemp && rule.fruiting.trigger === "thaw" && ctx.weather.tempMax <= 28) continue;
     score += res.modifier;
     if (res.reason) (res.modifier < 0 ? ruleLimits : ruleReasons).push(res.reason);
     if (res.overrideWhere) overrideWhere = res.overrideWhere;

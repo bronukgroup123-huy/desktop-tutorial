@@ -65,6 +65,10 @@ void main() {
     expect(find.text('Білий гриб'), findsOneWidget);
     expect(find.text('Висока ймовірність'), findsOneWidget);
     expect(find.text('Зараз — 3 дні після дощу · Осіння хвиля'), findsOneWidget);
+    // Причини рівня — під «Розширені дані»
+    expect(find.text('Дощ 16 мм за останні 3 дні'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('species-advanced')).first);
+    await tester.pumpAndSettle();
     expect(find.text('Дощ 16 мм за останні 3 дні'), findsOneWidget);
     expect(find.text('Сильний дощ 3 дні тому'), findsOneWidget);
     expect(find.text('Уточніть тип лісу на місці'), findsOneWidget);
@@ -95,7 +99,7 @@ void main() {
     expect(find.text('Білий гриб'), findsOneWidget);
   });
 
-  testWidgets('Картка виду: обмежувальні фактори видно поруч із «Низька ймовірність»', (tester) async {
+  testWidgets('Картка виду: просто за замовчуванням, причини й обмеження — у «Розширені дані»', (tester) async {
     final species = ForecastSpecies.fromJson({
       ...(forecastJson()['top1'] as Map<String, dynamic>),
       'level': 'low',
@@ -106,6 +110,12 @@ void main() {
     });
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: ForecastSpeciesCard(species: species))));
     expect(find.text('Низька ймовірність'), findsOneWidget);
+    // Просто за замовчуванням: рівень, «коли», «де»; причини — під «Розширені дані»
+    expect(find.byIcon(Icons.check_rounded), findsNothing);
+    expect(find.text('Розширені дані'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('species-advanced')));
+    await tester.pump();
+    expect(find.text('Сховати подробиці'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
     expect(find.text('Вологість 55% — замало (краще від 70%)'), findsOneWidget);
