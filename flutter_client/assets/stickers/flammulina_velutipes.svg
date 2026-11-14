@@ -1,0 +1,13 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="32" cy="58" rx="16" ry="4" fill="#000000" fill-opacity="0.1" />
+      <path d="M20 56 L44 56 L40 61 L24 61 Z" fill="#5C4033" stroke="#333" stroke-width="2" />
+      <g id="small-mushroom">
+        <path d="M40 40 L38 56 L44 56 L42 40 Z" fill="#4A2F24" stroke="#333" stroke-width="1.5" />
+        <path id="small-cap" d="M32 36 C32 26 54 26 54 36 C54 40 44 42 40 40 C36 38 32 38 32 36 Z" fill="#FFA500" stroke="#333" stroke-width="2" />
+      </g>
+      <g id="large-mushroom">
+        <path d="M28 36 L26 56 L34 56 L32 36 Z" fill="#4A2F24" stroke="#333" stroke-width="2" />
+        <path id="large-cap" d="M14 32 C14 20 46 20 46 32 C46 36 36 40 30 38 C24 36 14 36 14 32 Z" fill="#FFA500" stroke="#333" stroke-width="2.5" />
+        <path d="M22 26 Q30 22 38 26" stroke="#FFF" stroke-width="2" fill="none" opacity="0.4" stroke-linecap="round"/>
+      </g>
+    </svg>

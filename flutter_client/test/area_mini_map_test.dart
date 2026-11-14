@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -216,5 +218,33 @@ void main() {
     await tester.pump();
     expect(find.text('Анімація тижня — у Pro або з рівня «Слідопит»'), findsOneWidget);
     expect(find.byTooltip('Пауза'), findsNothing);
+  });
+
+  testWidgets('Кожен гриб рушія має власну іконку, і вона малюється (20 SVG із книжкових описів)', (tester) async {
+    for (final type in speciesWithIcon) {
+      final svg = await rootBundle.loadString('assets/stickers/$type.svg');
+      final info = await vg.loadPicture(SvgStringLoader(svg), null);
+      expect(info.size.width, greaterThan(0), reason: type);
+      info.picture.dispose();
+    }
+    expect(speciesWithIcon.length, 20);
+  });
+
+  testWidgets('Стікер: іконка саме цього гриба + мітка рівня; без шансу — сірий без мітки', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: Row(children: [
+          MushroomSticker(species: chanterelle),
+          MushroomSticker(
+            species: StickerSpecies(type: 'boletus_edulis', name: 'Білий гриб', level: null, levelLabel: '',
+                color: Color(0xff94a3b8), whenLabel: ''),
+          ),
+        ]),
+      ),
+    ));
+    expect(find.byType(SvgPicture), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('level-dot-cantharellus_cibarius')), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-dot-boletus_edulis')), findsNothing);
+    expect(find.byType(ColorFiltered), findsOneWidget); // сірий — лише той, що без шансу
   });
 }

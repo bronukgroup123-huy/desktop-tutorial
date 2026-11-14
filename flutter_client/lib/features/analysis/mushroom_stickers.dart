@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import 'package:flutter_client/core/app_theme.dart';
@@ -326,7 +327,7 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
                     Positioned(
                       left: 8 + i * 15.0,
                       top: 2 - _peekJump(i, peek.length),
-                      child: MushroomMarker(color: peek[i].color, isPrivate: false, size: 22),
+                      child: SpeciesIcon(type: peek[i].type, fallbackColor: peek[i].color, size: 24),
                     ),
                   Positioned.fill(child: CustomPaint(painter: _BasketPainter(glow: hover))),
                 ],
@@ -599,7 +600,7 @@ class _MushroomStickerState extends State<MushroomSticker> with SingleTickerProv
           _ => 0.0,
         };
         final breathe = _level == 'medium' ? 1 + 0.05 * wave : 1.0;
-        final glow = (_level == 'peak' || _level == 'high') ? 0.35 + 0.25 * wave.abs() : 0.0;
+        final glow = (_level == 'peak' || _level == 'high') ? 0.18 + 0.17 * wave.abs() : 0.0;
         return Transform.translate(
           offset: Offset(0, -jump),
           child: Transform.scale(
@@ -609,7 +610,7 @@ class _MushroomStickerState extends State<MushroomSticker> with SingleTickerProv
               decoration: glow > 0
                   ? BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: color.withValues(alpha: glow), blurRadius: 14, spreadRadius: 2)],
+                      boxShadow: [BoxShadow(color: color.withValues(alpha: glow), blurRadius: 18)],
                     )
                   : null,
               child: child,
@@ -618,9 +619,73 @@ class _MushroomStickerState extends State<MushroomSticker> with SingleTickerProv
         );
       },
       child: Opacity(
-        opacity: _level == null ? 0.55 : 1,
-        child: MushroomMarker(color: color, isPrivate: false, size: widget.size, tooltip: null),
+        opacity: _level == null ? 0.6 : 1,
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SpeciesIcon(
+                type: s.type,
+                fallbackColor: color,
+                size: widget.size,
+                grey: _level == null || _level == 'no_data',
+              ),
+              // Рівень дня — маленька кольорова мітка (колір — з сервера).
+              if (_level != null && _level != 'no_data')
+                Positioned(
+                  right: -1,
+                  bottom: 1,
+                  child: Container(
+                    key: ValueKey('level-dot-${s.type}'),
+                    width: widget.size * 0.28,
+                    height: widget.size * 0.28,
+                    decoration: BoxDecoration(
+                      color: s.color,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+}
+
+/// Види, для яких є власна іконка (assets/stickers, з книжкових описів — scripts/stickers).
+const speciesWithIcon = {
+  'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
+  'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
+  'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
+  'pleurotus_ostreatus', 'russula_vesca', 'suillus_bovinus', 'suillus_luteus', 'xerocomus_subtomentosus',
+};
+
+/// Іконка саме цього гриба (білий — як білий, лисичка — як лисичка); без іконки — загальний гриб
+/// кольору рівня. [grey] — виду цього дня немає серед грибів зі шансом.
+class SpeciesIcon extends StatelessWidget {
+  const SpeciesIcon({super.key, required this.type, required this.fallbackColor, this.size = 38, this.grey = false});
+
+  final String type;
+  final Color fallbackColor;
+  final double size;
+  final bool grey;
+
+  static const _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0, 0, 0, 1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget icon = speciesWithIcon.contains(type)
+        ? SvgPicture.asset('assets/stickers/$type.svg', width: size, height: size)
+        : MushroomMarker(color: fallbackColor, isPrivate: false, size: size);
+    return grey ? ColorFiltered(colorFilter: _greyscale, child: icon) : icon;
   }
 }
