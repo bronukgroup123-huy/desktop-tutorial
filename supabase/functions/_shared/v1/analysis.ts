@@ -834,7 +834,7 @@ async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regi
  * Версія результату аналізу: змінюється, коли у відповіді з'являються нові дані (сцена погоди,
  * «як відрізнити»…). Збережений результат старішої версії оновлюється безкоштовно.
  */
-export const RESULT_VERSION = 3;
+export const RESULT_VERSION = 4;
 
 /**
  * Щоденне оновлення збереженої ділянки — без списання аналізу (рішення PO 2026-11-15): раз
@@ -1218,18 +1218,59 @@ export function identifyFor(views: Array<{ top1: unknown; alternative: unknown }
  */
 export function othersOf(runs: Array<{ forestType: string | null; result: ForecastResult }>): Array<Record<string, unknown>> {
   const withChance = new Set(runs.flatMap((r) => (r.result.candidates ?? []).map((s) => s.mushroom_type)));
-  const seen = new Map<string, Record<string, unknown>>();
+  // Для кожного виду — найдоречніше пояснення серед лісів ділянки: ліс, де його дерева є
+  // (тоді причина — холод, сезон, хвиля), а не «немає дерев» з першого-ліпшого лісу.
+  const best = new Map<string, { s: ScoredSpecies; weather: ForecastResult["weather"]; date: string; rank: number }>();
   for (const run of runs) {
     for (const s of run.result.others ?? []) {
-      if (withChance.has(s.mushroom_type) || seen.has(s.mushroom_type)) continue;
-      seen.set(s.mushroom_type, {
-        mushroom_type: s.mushroom_type,
-        name_ua: s.name_ua,
-        reason_label: otherReasonLabel(s.missed, run.result.weather),
-      });
+      if (withChance.has(s.mushroom_type)) continue;
+      const forestMiss = s.missed.some((r) => r.startsWith("forest mismatch"));
+      const rank = forestMiss ? 0 : 1;
+      const prev = best.get(s.mushroom_type);
+      if (!prev || rank > prev.rank) best.set(s.mushroom_type, { s, weather: run.result.weather, date: run.result.date, rank });
     }
   }
-  return [...seen.values()].sort((a, b) => String(a.name_ua).localeCompare(String(b.name_ua), "uk"));
+  const out: Array<Record<string, unknown>> = [];
+  for (const { s, weather, date, rank } of best.values()) {
+    const season = seasonReason(s.missed, date);
+    if (season) {
+      // Сезон минув / ще не почався — лише для грибів, чиї дерева є в ділянці.
+      if (rank === 0) continue;
+      out.push({ mushroom_type: s.mushroom_type, name_ua: s.name_ua, reason_label: season, group: "season" });
+    } else {
+      out.push({ mushroom_type: s.mushroom_type, name_ua: s.name_ua, reason_label: otherReasonLabel(s.missed, weather), group: "today" });
+    }
+  }
+  const order = (g: unknown) => (g === "today" ? 0 : 1);
+  return out.sort((a, b) => order(a.group) - order(b.group) || String(a.name_ua).localeCompare(String(b.name_ua), "uk"));
+}
+
+const dm2 = (mmdd: string) => `${mmdd.slice(3, 5)}.${mmdd.slice(0, 2)}`;
+const dayOfYear = (mmdd: string) => {
+  const d = new Date(`2001-${mmdd}T00:00:00Z`);
+  return Math.round((d.getTime() - Date.UTC(2001, 0, 1)) / 86_400_000);
+};
+
+/**
+ * Поза сезоном: «Сезон 01.07–31.10 уже минув» або «Сезон з 15.04 — ще не почався» (що ближче
+ * за календарем). Не поза сезоном — null.
+ */
+export function seasonReason(missed: string[], date: string): string | null {
+  const today = date.slice(5, 10);
+  for (const r of missed) {
+    const m = r.match(/outside season \[(\d\d-\d\d)\.\.(\d\d-\d\d)\]/);
+    if (m) {
+      const [start, end] = [m[1], m[2]];
+      const t = dayOfYear(today);
+      const sinceEnd = (t - dayOfYear(end) + 365) % 365;
+      const untilStart = (dayOfYear(start) - t + 365) % 365;
+      return sinceEnd <= untilStart
+        ? `Сезон ${dm2(start)}–${dm2(end)} уже минув`
+        : `Сезон з ${dm2(start)} — ще не почався`;
+    }
+    if (/^wave ".*" not allowed/.test(r)) return "Зараз не його хвиля — сезон ще не настав або минув";
+  }
+  return null;
 }
 
 /**

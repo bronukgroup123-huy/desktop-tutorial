@@ -614,11 +614,17 @@ class AnalysisBasketSpecies {
 }
 
 /// «Інші гриби сезону»: вид без шансу цього дня і чому (рішення PO 2026-11-15).
-typedef OtherSpecies = ({String type, String name, String reason});
+/// [group]: `today` — у сезоні, але сьогодні без шансу; `season` — сезон минув / ще не почався.
+typedef OtherSpecies = ({String type, String name, String reason, String group});
 
 List<OtherSpecies> _others(Map<String, dynamic> json) => [
       for (final o in (opt<List<dynamic>>(json, 'others') ?? const []).cast<Map<String, dynamic>>())
-        (type: req<String>(o, 'mushroom_type'), name: req<String>(o, 'name_ua'), reason: opt<String>(o, 'reason_label') ?? ''),
+        (
+          type: req<String>(o, 'mushroom_type'),
+          name: req<String>(o, 'name_ua'),
+          reason: opt<String>(o, 'reason_label') ?? '',
+          group: opt<String>(o, 'group') ?? 'today',
+        ),
     ];
 
 /// Знахідки в ділянці: звірка ваших тук-туків із прогнозом і ваші знахідки торік у ці тижні.
@@ -650,7 +656,7 @@ class AreaFinds {
 typedef PastFind = ({LatLng point, String type, String name, String dateLabel});
 
 /// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
-const kExpectedResultVersion = 3;
+const kExpectedResultVersion = 4;
 
 List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
       final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],

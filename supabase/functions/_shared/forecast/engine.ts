@@ -39,11 +39,6 @@ const ANTI_DOUBLE_TOP1 = "cantharellus_cibarius";
 const ANTI_DOUBLE_TARGET = "boletus_edulis";
 const ANTI_DOUBLE_PENALTY = 0.1;
 
-/** Вид поза сезоном (межі сезону чи хвилі) — у «інших грибах сезону» не показується. */
-export function isOutOfSeason(s: ScoredSpecies): boolean {
-  return s.missed.some((r) => /outside season|not allowed \(wave_/.test(r));
-}
-
 export class ForecastEngine {
   /**
    * Повний прогноз для точки.
@@ -174,8 +169,9 @@ export class ForecastEngine {
     const candidates = scored.filter(
       (s) => s.probability !== "no_data",
     );
-    // «Інші гриби сезону»: у сезоні, але без шансу (холодно, немає його дерев…) — з причиною.
-    const others = scored.filter((s) => s.probability === "no_data" && !isOutOfSeason(s));
+    // «Інші гриби»: без шансу сьогодні (холодно, немає його дерев, сезон минув…) — з причиною.
+    // Хто з них показується і з яким поясненням — вирішує аналіз ділянки (othersOf).
+    const others = scored.filter((s) => s.probability === "no_data");
 
     // ─── 5. Fallback при 0 кандидатів (сезонний, канонічні ID) ───
     if (candidates.length === 0) {
