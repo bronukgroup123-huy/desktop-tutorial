@@ -395,6 +395,9 @@ class AnalysisWeather {
     this.dayLabel,
     this.verdictLabel,
     this.verdictTone,
+    this.scene,
+    this.sceneLabel,
+    this.sprouts,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -405,7 +408,19 @@ class AnalysisWeather {
         dayLabel: opt<String>(json, 'day_label'),
         verdictLabel: opt<String>(json, 'verdict_label'),
         verdictTone: opt<String>(json, 'verdict_tone'),
+        scene: opt<String>(json, 'scene'),
+        sceneLabel: opt<String>(json, 'scene_label'),
+        sprouts: opt<String>(json, 'sprouts'),
       );
+
+  /// Сцена з грибом-маскотом: `sunny | partly_cloudy | cloudy | rain | heavy_rain | fog | frost | snow | heat`.
+  final String? scene;
+
+  /// «Мінлива хмарність».
+  final String? sceneLabel;
+
+  /// Молоді гриби в сцені: `none | few | many`.
+  final String? sprouts;
 
   /// Що погода означає для грибів: «Ґрунт вологий після дощів — добре для грибів».
   final String? verdictLabel;

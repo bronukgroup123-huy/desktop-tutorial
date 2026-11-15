@@ -46,7 +46,7 @@ import {
   type TokenVerifier,
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
-import { weatherBlock, weatherVerdict } from "./forecast-labels.ts";
+import { SCENE_LABEL, sceneSprouts, weatherBlock, weatherScene, weatherVerdict } from "./forecast-labels.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -970,6 +970,7 @@ function analyzeDay(
   const w = weatherBlock(first.weather);
   const verdict = weatherVerdict(first.weather);
   const dayW = first.weather?.day;
+  const scene = dayW ? weatherScene(dayW, first.weather) : null;
   return {
     view: {
       date,
@@ -985,7 +986,7 @@ function analyzeDay(
       // Безкоштовно — базова погода: температура, вологість, опади (ADR-015 §15.1).
       weather: w
         ? {
-          icon: dayW ? dayIcon(dayW.rain, dayW.humidity) : w.icon,
+          icon: scene ? sceneIcon(scene) : w.icon,
           day_label: dayW ? `${Math.round(dayW.tempMin)}…${Math.round(dayW.tempMax)}°, ${dayRainLabel(dayW.rain)}` : null,
           temp_label: w.temp_label,
           humidity_label: w.humidity_label,
@@ -993,6 +994,10 @@ function analyzeDay(
           // Що це означає для грибів — одне речення й тон.
           verdict_label: verdict?.label ?? null,
           verdict_tone: verdict?.tone ?? null,
+          // Анімована сцена з грибом-маскотом: погода дня + молоді гриби за стадією хвилі.
+          scene,
+          scene_label: scene ? SCENE_LABEL[scene] : null,
+          sprouts: sceneSprouts(best.top1?.species.fruiting),
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
@@ -1059,7 +1064,14 @@ async function loadRating(db: AnalysisDb, userId: string): Promise<number> {
   }
 }
 
-const dayIcon = (rain: number, humidity: number) => (rain >= 1 ? "rain" : humidity >= 80 ? "cloud" : "sun");
+/** Іконка смужки днів — узгоджена зі сценою погоди. */
+function sceneIcon(scene: string): string {
+  if (scene === "rain" || scene === "heavy_rain") return "rain";
+  if (scene === "snow") return "snow";
+  if (scene === "fog") return "fog";
+  if (scene === "sunny" || scene === "heat") return "sun";
+  return "cloud";
+}
 const dayRainLabel = (rain: number) => (rain >= 0.5 ? `опади ${Math.max(1, Math.round(rain))} мм` : "без опадів");
 
 /** Найкращий день горизонту: найвищий рівень (від середнього), за рівності — раніший. */

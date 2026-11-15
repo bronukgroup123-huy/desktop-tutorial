@@ -75,6 +75,8 @@ export interface DayWeather {
   rain: number;           // мм за добу
   humidity: number;       // середня за добу, %
   daysAhead: number;      // 0 — сьогодні, 1 — завтра…
+  /** Код погоди WMO за добу; `null` — невідомо. */
+  code?: number | null;
 }
 
 export interface WeatherData {

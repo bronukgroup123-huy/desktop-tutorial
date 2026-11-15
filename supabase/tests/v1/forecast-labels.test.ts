@@ -9,7 +9,9 @@ import {
   levelReasonLabel,
   waveBlock,
   weatherBlock,
+  weatherScene,
   weatherVerdict,
+  sceneSprouts,
   whenLabel,
   whyLabels,
 } from "../../functions/_shared/v1/forecast-labels.ts";
@@ -173,4 +175,30 @@ Deno.test("Висновок погоди для грибів: сухо / хол�
   assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 18 })!.label, "Ґрунт вологий після дощів — добре для грибів");
   assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 6, rain14d: 10 })!.tone, "neutral");
   assertEquals(weatherVerdict({ ...W, source: "unavailable" }), null);
+});
+
+Deno.test("Сцена погоди: за кодом WMO, без коду — за опадами й вологістю; спека лише з посухою", () => {
+  const day = (o: Partial<{ tempMin: number; tempMax: number; rain: number; humidity: number; code: number | null }> = {}) => ({
+    tempMin: 5, tempMax: 15, rain: 0, humidity: 70, code: null, ...o,
+  });
+  assertEquals(weatherScene(day({ code: 0 }), W), "sunny");
+  assertEquals(weatherScene(day({ code: 2 }), W), "partly_cloudy");
+  assertEquals(weatherScene(day({ code: 3 }), W), "cloudy");
+  assertEquals(weatherScene(day({ code: 45 }), W), "fog");
+  assertEquals(weatherScene(day({ code: 61, rain: 3 }), W), "rain");
+  assertEquals(weatherScene(day({ code: 95, rain: 8 }), W), "heavy_rain");
+  assertEquals(weatherScene(day({ code: 73, rain: 2, tempMax: 0 }), W), "snow");
+  assertEquals(weatherScene(day({ code: 0, tempMin: -3 }), W), "frost");
+  assertEquals(weatherScene(day({ code: 0, tempMax: 31 }), W), "sunny"); // волого — не спека
+  assertEquals(weatherScene(day({ code: 0, tempMax: 31 }), { ...W, droughtDays: 9 }), "heat");
+  // без коду (старий кеш)
+  assertEquals(weatherScene(day({ rain: 20 }), W), "heavy_rain");
+  assertEquals(weatherScene(day({ rain: 2, tempMax: 0.5 }), W), "snow");
+  assertEquals(weatherScene(day({ humidity: 98 }), W), "fog");
+  assertEquals(weatherScene(day({ humidity: 88 }), W), "cloudy");
+  assertEquals(weatherScene(day({ humidity: 60 }), W), "sunny");
+  assertEquals(sceneSprouts({ phase: "flush", intensity: 1, stage: "peak" }), "many");
+  assertEquals(sceneSprouts({ phase: "flush", intensity: 0.7, stage: "rise" }), "few");
+  assertEquals(sceneSprouts({ phase: "maturing", intensity: 0 }), "none");
+  assertEquals(sceneSprouts(undefined), "none");
 });

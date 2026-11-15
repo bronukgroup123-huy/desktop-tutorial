@@ -7,6 +7,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart';
 import 'package:flutter_client/features/analysis/weather_chart_view.dart';
+import 'package:flutter_client/features/analysis/weather_scene.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 
 /// ▶ «Хвиля по днях» ззовні: значок стоїть у верхньому рядку «Прогнозу» поруч з
@@ -438,6 +439,8 @@ IconData weatherIcon(String? icon) => switch (icon) {
       'rain' => Icons.water_drop_rounded,
       'cloud' => Icons.cloud_rounded,
       'sun' => Icons.wb_sunny_rounded,
+      'snow' => Icons.ac_unit_rounded,
+      'fog' => Icons.foggy,
       _ => Icons.thermostat_rounded,
     };
 
@@ -549,8 +552,9 @@ class _ForestCard extends StatelessWidget {
       );
 }
 
-/// Погода дня: велика температура й опади, що це означає для грибів, графік тижня.
-class _WeatherCard extends StatelessWidget {
+/// Погода дня (рішення PO 2026-11-15): просто — анімована сцена з грибом-маскотом,
+/// температура й одне речення для грибів; графік і цифри тижня — у «Розширені дані погоди».
+class _WeatherCard extends StatefulWidget {
   const _WeatherCard({
     required this.weather,
     required this.selected,
@@ -565,6 +569,13 @@ class _WeatherCard extends StatelessWidget {
   final Set<String> selectable;
   final ValueChanged<String> onSelect;
 
+  @override
+  State<_WeatherCard> createState() => _WeatherCardState();
+}
+
+class _WeatherCardState extends State<_WeatherCard> {
+  bool _advanced = false;
+
   static const _tone = {
     'good': (Color(0xff2e7d32), Icons.check_circle_rounded),
     'bad': (Color(0xffd9480f), Icons.warning_amber_rounded),
@@ -573,37 +584,62 @@ class _WeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final weather = widget.weather;
+    final chart = widget.chart;
     final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
     final tone = _tone[weather.verdictTone] ?? _tone['neutral']!;
+    final scene = parseWeatherScene(weather.scene);
+    final title = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          weather.dayLabel ?? weather.tempLabel,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen),
+        ),
+        if (weather.sceneLabel != null)
+          Text(weather.sceneLabel!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+      ],
+    );
     return Card(
       key: const ValueKey('weather-card'),
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(color: AppTheme.accentOrange.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: Icon(weatherIcon(weather.icon), size: 30, color: AppTheme.accentOrange),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    weather.dayLabel ?? weather.tempLabel,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: AppTheme.darkGreen),
+            if (scene != null)
+              WeatherScene(
+                kind: scene,
+                sprouts: sproutCount(weather.sprouts),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: title,
                 ),
-              ],
-            ),
+              )
+            else
+              // Старий результат без сцени — іконка й температура.
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(color: AppTheme.accentOrange.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: Icon(weatherIcon(weather.icon), size: 28, color: AppTheme.accentOrange),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: title),
+                ],
+              ),
             if (weather.verdictLabel != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Container(
                 key: const ValueKey('weather-verdict'),
                 width: double.infinity,
@@ -621,20 +657,31 @@ class _WeatherCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (chart != null && chart!.days.length > 1) ...[
-              const SizedBox(height: 14),
-              if (chart!.titleLabel != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(chart!.titleLabel!, style: TextStyle(fontSize: 12, color: muted)),
-                ),
-              WeatherChartView(chart: chart!, selected: selected, selectable: selectable, onSelect: onSelect),
+            if (_advanced) ...[
+              if (chart != null && chart.days.length > 1) ...[
+                const SizedBox(height: 14),
+                if (chart.titleLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6, left: 4),
+                    child: Text(chart.titleLabel!, style: TextStyle(fontSize: 12, color: muted)),
+                  ),
+                WeatherChartView(chart: chart, selected: widget.selected, selectable: widget.selectable, onSelect: widget.onSelect),
+              ],
+              const SizedBox(height: 10),
+              _WeatherDetail(icon: Icons.thermostat_rounded, text: weather.tempLabel),
+              _WeatherDetail(icon: Icons.water_drop_outlined, text: weather.rainLabel),
+              _WeatherDetail(icon: Icons.opacity_rounded, text: weather.humidityLabel),
             ],
-            const SizedBox(height: 10),
-            // Деталі за тиждень — дрібно: головне вже на графіку.
-            _WeatherDetail(icon: Icons.thermostat_rounded, text: weather.tempLabel),
-            _WeatherDetail(icon: Icons.water_drop_outlined, text: weather.rainLabel),
-            _WeatherDetail(icon: Icons.opacity_rounded, text: weather.humidityLabel),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const ValueKey('weather-advanced'),
+                onPressed: () => setState(() => _advanced = !_advanced),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
+                icon: Icon(_advanced ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
+                label: Text(_advanced ? 'Сховати подробиці' : 'Розширені дані погоди'),
+              ),
+            ),
           ],
         ),
       ),

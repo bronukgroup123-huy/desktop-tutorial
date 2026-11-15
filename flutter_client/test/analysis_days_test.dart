@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/features/analysis/analysis_result_view.dart';
+import 'package:flutter_client/features/analysis/weather_scene.dart';
 
 import 'data/analysis_test.dart' show resultJson;
 
@@ -165,7 +166,14 @@ void main() {
     await _pump(tester, AnalysisResult.fromJson(json));
     expect(find.byKey(const ValueKey('weather-verdict')), findsOneWidget);
     expect(find.text('Ґрунт вологий після дощів — добре для грибів'), findsOneWidget);
+    // простий вигляд: графік — у «Розширені дані погоди»
+    expect(find.byKey(const ValueKey('weather-chart')), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-advanced')));
+    await tester.tap(find.byKey(const ValueKey('weather-advanced')));
+    await tester.pump();
     expect(find.byKey(const ValueKey('weather-chart')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-chart')));
+    await tester.pump();
     expect(find.text('Погода Сьогодні'), findsOneWidget);
     // остання колонка графіка — 13.11 (день смужки) → обирається
     final chart = tester.getRect(find.byKey(const ValueKey('weather-chart')));
@@ -176,6 +184,35 @@ void main() {
     await tester.tapAt(Offset(chart.left + 4, chart.center.dy));
     await tester.pump();
     expect(find.text('Погода Пт 13'), findsOneWidget);
+  });
+
+  testWidgets('Погода: анімована сцена з грибом-маскотом за погодою дня, молоді гриби за хвилею', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    final scenes = ['sunny', 'heavy_rain', 'snow'];
+    for (final (i, d) in days.indexed) {
+      d['weather'] = <String, dynamic>{
+        ...(d['weather'] as Map),
+        'scene': scenes[i],
+        'scene_label': ['Сонячно', 'Злива', 'Сніг'][i],
+        'sprouts': 'many',
+      };
+    }
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('weather-scene-sunny')), findsOneWidget);
+    expect(find.text('Сонячно'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2)); // анімація йде без помилок
+    await tester.tap(find.byKey(const ValueKey('day-2026-11-12')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('weather-scene-heavyRain')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const ValueKey('day-2026-11-13')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('weather-scene-snow')), findsOneWidget);
+    expect(parseWeatherScene('partly_cloudy'), WeatherSceneKind.partlyCloudy);
+    expect(parseWeatherScene(null), isNull);
+    expect([sproutCount('none'), sproutCount('few'), sproutCount('many')], [0, 2, 5]);
   });
 
   testWidgets('Картка гриба: «Чому середня» і смужка хвилі; подробиці — «Сприяє» / «Не вистачає»', (tester) async {

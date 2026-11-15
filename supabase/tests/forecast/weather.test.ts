@@ -65,6 +65,14 @@ function openMeteo(): OpenMeteoResponse {
   };
 }
 
+Deno.test("buildSeries: код погоди WMO за добу — у погоду дня (сцена з грибом)", () => {
+  const data = openMeteo();
+  data.daily.weather_code = data.daily.time.map((_, k) => (k === 30 ? 61 : 0));
+  const s = buildSeries(data, 30, new Date("2026-08-31T09:00:00Z"))!;
+  assertEquals(weatherAsOf(s, "2026-08-31").day?.code, 61);
+  assertEquals(weatherAsOf(s, "2026-09-01").day?.code, 0);
+});
+
 Deno.test("weatherAsOf: «сьогодні» не бачить дощів наступних днів прогнозу", () => {
   const s = buildSeries(openMeteo(), 30, new Date("2026-08-31T09:00:00Z"))!;
   assertEquals(s.today, "2026-08-31");
@@ -73,7 +81,7 @@ Deno.test("weatherAsOf: «сьогодні» не бачить дощів нас
   assertEquals(today.droughtDays, 31);
   assertEquals(today.daysAfterRain, 999);
   assertEquals(today.tempAvg7d, 15 + 5 / 7); // 6 минулих днів по 15° + сьогодні 20°
-  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0 });
+  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null });
 });
 
 Deno.test("weatherAsOf: день прогнозу бачить дощ, що випав до нього", () => {
