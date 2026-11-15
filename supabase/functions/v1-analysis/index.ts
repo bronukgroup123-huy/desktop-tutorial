@@ -13,6 +13,8 @@ import { type FeatureFlags, loadFeatureFlags } from "../_shared/forecast/flags.t
 import type { ForecastInput } from "../_shared/forecast/types.ts";
 import { handle, serviceClient, supabaseTokenVerifier } from "../_shared/http.ts";
 import { handleAnalysis } from "../_shared/v1/analysis.ts";
+import { fetchTerrain } from "../_shared/forecast/terrain.ts";
+import { fetchEnsembleRanges } from "../_shared/forecast/weather.ts";
 
 Deno.serve(handle((req) => {
   const db = serviceClient();
@@ -21,6 +23,8 @@ Deno.serve(handle((req) => {
   return handleAnalysis(req, {
     db,
     verify: supabaseTokenVerifier,
+    terrain: (lat, lng, sizeKm) => fetchTerrain(lat, lng, sizeKm),
+    ensemble: (lat, lng) => fetchEnsembleRanges(lat, lng),
     forecast: async (input) => {
       flags ??= loadFeatureFlags(db as unknown as Parameters<typeof loadFeatureFlags>[0]);
       const engineInput: ForecastInput = {
@@ -30,6 +34,7 @@ Deno.serve(handle((req) => {
         forestType: input.forestType as ForecastInput["forestType"],
         forestConfirmed: input.forestType !== null,
         homeRegionId: input.homeRegionId,
+        terrain: input.terrain ?? null,
       };
       // Контекст (ліс, правила, ряд погоди) — один раз; дні — з того самого ряду погоди.
       return ForecastEngine.forecastDays(

@@ -29,6 +29,10 @@ export interface OpenMeteoResponse {
     precipitation_sum: number[];
     /** Код погоди WMO за добу (ясно / хмарно / туман / дощ / сніг / гроза) — для сцени погоди. */
     weather_code?: Array<number | null>;
+    /** Схід / захід сонця (місцевий час ISO) і тривалість світлого дня, с — «коли їхати». */
+    sunrise?: string[];
+    sunset?: string[];
+    daylight_duration?: Array<number | null>;
   };
 }
 
@@ -54,6 +58,9 @@ async function fetchOpenMeteo(
       "temperature_2m_min",
       "precipitation_sum",
       "weather_code",
+      "sunrise",
+      "sunset",
+      "daylight_duration",
     ].join(","),
     past_days: String(pastDays),
     forecast_days: String(forecastDays),
@@ -208,6 +215,10 @@ export interface WeatherSeries {
   soilT: number[];
   /** Код погоди WMO за добу; немає (старий кеш) — сцена визначається за опадами й вологістю. */
   wcode?: Array<number | null>;
+  /** Схід і захід сонця «HH:MM», світлий день, хв (немає — старий кеш). */
+  sunrise?: Array<string | null>;
+  sunset?: Array<string | null>;
+  daylightMin?: Array<number | null>;
   /** Тиск о першій і останній годині доби — для тренду тиску. */
   pressureStart: number[];
   pressureEnd: number[];
@@ -219,6 +230,9 @@ export function isWeatherSeries(v: unknown): v is WeatherSeries {
   return !!s && s.version === 3 && Array.isArray(s.dates) && s.dates.length > 0 &&
     typeof s.today === "string" && Array.isArray(s.precip) && s.precip.length === s.dates.length;
 }
+
+/** "2026-11-15T07:12" → "07:12". */
+const hhmm = (v: unknown): string | null => (typeof v === "string" && /T\d\d:\d\d/.test(v) ? v.slice(11, 16) : null);
 
 const num = (v: unknown, fallback = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
 
@@ -268,6 +282,12 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
     wcode: dates.map((_, k) => {
       const c = data.daily.weather_code?.[k];
       return typeof c === "number" && Number.isFinite(c) ? c : null;
+    }),
+    sunrise: dates.map((_, k) => hhmm(data.daily.sunrise?.[k])),
+    sunset: dates.map((_, k) => hhmm(data.daily.sunset?.[k])),
+    daylightMin: dates.map((_, k) => {
+      const v = data.daily.daylight_duration?.[k];
+      return typeof v === "number" && Number.isFinite(v) ? Math.round(v / 60) : null;
     }),
     tmean,
     humidity,
@@ -348,6 +368,9 @@ export function weatherAsOf(series: WeatherSeries, date: string, source: Weather
       humidity: series.humidity[i],
       daysAhead: dayOffset(date, series.today),
       code: series.wcode?.[i] ?? null,
+      sunrise: series.sunrise?.[i] ?? null,
+      sunset: series.sunset?.[i] ?? null,
+      daylightMin: series.daylightMin?.[i] ?? null,
     },
     recent: series.dates.slice(Math.max(0, i - 13), i + 1).map((d, k) => {
       const j = Math.max(0, i - 13) + k;
@@ -388,3 +411,73 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
   const series = await fetchWeatherSeries(lat, lng);
   return series ? weatherAsOf(series, series.today) : unavailableWeather();
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Ансамбль для днів 4–7 (рішення PO 2026-11-15, ADR-015 §15.8 п.16)
+// ────────────────────────────────────────────────────────────────────
+
+/** Діапазон погоди дня за ансамблем моделей: 10-й і 90-й перцентилі учасників. */
+export interface DayRange {
+  rainMin: number;
+  rainMax: number;
+  tMin: number;
+  tMax: number;
+}
+
+function percentile(xs: number[], q: number): number {
+  const v = [...xs].sort((a, b) => a - b);
+  if (v.length === 0) return NaN;
+  const i = (v.length - 1) * q;
+  const lo = Math.floor(i), hi = Math.ceil(i);
+  return v[lo] + (v[hi] - v[lo]) * (i - lo);
+}
+
+/** Відповідь Ensemble API (daily, учасники `*_memberNN`) → діапазони по днях. */
+export function parseEnsemble(json: unknown): Record<string, DayRange> {
+  const daily = (json as { daily?: Record<string, unknown> })?.daily;
+  const time = daily?.time;
+  if (!daily || !Array.isArray(time)) return {};
+  const members = (prefix: string) =>
+    Object.entries(daily)
+      .filter(([k, v]) => (k === prefix || k.startsWith(`${prefix}_member`)) && Array.isArray(v))
+      .map(([, v]) => v as Array<number | null>);
+  const rain = members("precipitation_sum"), tmax = members("temperature_2m_max"), tmin = members("temperature_2m_min");
+  const out: Record<string, DayRange> = {};
+  time.forEach((d, i) => {
+    const col = (ms: Array<Array<number | null>>) =>
+      ms.map((m) => m[i]).filter((x): x is number => typeof x === "number" && Number.isFinite(x));
+    const r = col(rain), hi = col(tmax), lo = col(tmin);
+    if (r.length < 3 || hi.length < 3 || lo.length < 3) return;
+    out[String(d)] = {
+      rainMin: Math.round(percentile(r, 0.1)),
+      rainMax: Math.round(percentile(r, 0.9)),
+      tMin: Math.round(percentile(lo, 0.1)),
+      tMax: Math.round(percentile(hi, 0.9)),
+    };
+  });
+  return out;
+}
+
+/** Діапазони погоди на 7 днів за ансамблем ICON (Open-Meteo); збій — порожньо. */
+export async function fetchEnsembleRanges(
+  lat: number,
+  lng: number,
+  fetchFn: (url: string) => Promise<Response> = fetch,
+): Promise<Record<string, DayRange>> {
+  const url = "https://ensemble-api.open-meteo.com/v1/ensemble?" + new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lng.toFixed(4),
+    daily: "precipitation_sum,temperature_2m_max,temperature_2m_min",
+    models: "icon_seamless",
+    forecast_days: "7",
+    timezone: "Europe/Kyiv",
+  });
+  try {
+    const res = await fetchFn(url);
+    if (!res.ok) return {};
+    return parseEnsemble(await res.json());
+  } catch {
+    return {};
+  }
+}
+

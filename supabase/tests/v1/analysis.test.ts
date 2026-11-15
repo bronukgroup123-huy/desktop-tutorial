@@ -80,6 +80,8 @@ interface Opts {
   forecast?: (input: DayInput) => Promise<ForecastResult>;
   pro?: boolean;
   isAnonymous?: boolean;
+  /** Додаткові залежності (рельєф тощо). */
+  deps?: Record<string, unknown>;
 }
 
 async function run(d: ReturnType<typeof mockDb>, r: Request, opts: Opts = {}) {
@@ -96,6 +98,7 @@ async function run(d: ReturnType<typeof mockDb>, r: Request, opts: Opts = {}) {
         const one = opts.forecast ?? (() => Promise.resolve(result()));
         return Promise.all(dates.map((d) => one({ ...rest, date: new Date(`${d}T00:00:00Z`) })));
       },
+      ...(opts.deps ?? {}),
     })
   )(r);
   return { res, json: await res.json(), inputs };
@@ -176,6 +179,7 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
     extra: [],
     refined: false,
     refine_note_label: "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх.",
+    terrain_label: null,
   });
   assertEquals(a.top1.name_ua, "Білий гриб");
   assertEquals(a.top1.level, "high");
@@ -374,8 +378,8 @@ Deno.test("analysis POST: базова погода — температура, 
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
   assertEquals(Object.keys(json.data.weather ?? {}).sort(), [
-    "day_label", "humidity_label", "icon", "rain_label", "scene", "scene_label", "sprouts", "temp_label",
-    "verdict_label", "verdict_tone",
+    "day_label", "humidity_label", "icon", "rain_label", "range_label", "scene", "scene_label", "sprouts", "sun_label",
+    "take_label", "temp_label", "verdict_label", "verdict_tone",
   ]);
 });
 
@@ -739,4 +743,166 @@ Deno.test("analysis PUT area: задовга або не рядок → 422; ч�
   assertEquals([none.res.status, none.json.error], [404, "not_found"]);
   const bad = await run(db(), req("PUT", `${URL_}/areas/not-a-uuid`, { label: "Ліс" }));
   assertEquals(bad.res.status, 404);
+});
+
+// ─── Щоденне безкоштовне оновлення, «інші гриби сезону», «як відрізнити» один раз ─────────
+
+Deno.test("analysis POST refresh=daily: раз на добу без списання; вдруге — 409 already_fresh", async () => {
+  const yesterday = "2026-11-10T18:00:00Z"; // NOW — 2026-11-11 12:00 за Києвом
+  const d = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 3 } }],
+      error: null,
+    },
+    "rpc.analysis_used_today": { data: 5, error: null },
+  });
+  const { res, json } = await run(d, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals(res.status, 200);
+  assertEquals(find(d, "rpc.consume_analysis"), undefined); // ліміт не витрачено
+  assertEquals(json.data.usage.used, 5); // навіть коли ліміт вичерпано
+  assertEquals(json.data.result_version, 3);
+
+  // сьогодні вже оновлено і версія свіжа → 409
+  const fresh = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 3 } }],
+      error: null,
+    },
+  });
+  const r2 = await run(fresh, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals([r2.res.status, r2.json.error], [409, "already_fresh"]);
+
+  // сьогодні оновлено, але результат старої версії (до оновлення застосунку) → знову безкоштовно
+  const old = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 1 } }],
+      error: null,
+    },
+  });
+  const r3 = await run(old, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals(r3.res.status, 200);
+  assertEquals(find(old, "rpc.consume_analysis"), undefined);
+
+  const bad = await run(db(), req("POST", URL_, { area_id: AREA, refresh: "always" }));
+  assertEquals(bad.res.status, 422);
+});
+
+Deno.test("analysis POST: «інші гриби сезону» з причиною; «як відрізнити» — один раз у result.identify", async () => {
+  const cold = { ...species({ mushroom_type: "boletus_edulis", name_ua: "Білий гриб", probability: "no_data", score: 0 }), missed: ["temp 3.4 < min 10"] };
+  const forest = { ...species({ mushroom_type: "suillus_bovinus", name_ua: "Козляк", probability: "no_data", score: 0 }), missed: ["forest mismatch: need pine, got oak"] };
+  const flam = species({ mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", probability: "high" });
+  const forecast = () => Promise.resolve(result({
+    top1: flam, alternative: null, candidates: [flam], others: [cold, forest],
+  }));
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  assertEquals(json.data.others, [
+    { mushroom_type: "boletus_edulis", name_ua: "Білий гриб", reason_label: "Холодно: 3° за тиждень, потрібно від 10°" },
+    { mushroom_type: "suillus_bovinus", name_ua: "Козляк", reason_label: "У лісах ділянки немає його дерев (сосна)" },
+  ]);
+  assertEquals(json.data.days[0].others.length, 2);
+  // identify — не в кожному виді, а один раз на результат
+  assertEquals(json.data.top1.identify, undefined);
+  assertEquals(Object.keys(json.data.identify), ["flammulina_velutipes"]);
+});
+
+Deno.test("analysis POST: знахідки — прогноз дня в історію, звірка тук-туків, торішні знахідки", async () => {
+  const flam = species({ mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", probability: "high" });
+  const forecast = () => Promise.resolve(result({ top1: flam, alternative: null, candidates: [flam] }));
+  const d = db({
+    "rpc.area_finds": (call) => {
+      const p = call.args[0] as { p_from: string };
+      return p.p_from.startsWith("2025")
+        ? { data: [{ lat: 50.41, lng: 30.51, species_id: "flammulina_velutipes", name_ua: "Зимовий опеньок", day: "2025-11-12", matched: null }], error: null }
+        : {
+          data: [
+            { lat: 50.41, lng: 30.51, species_id: "flammulina_velutipes", name_ua: "Зимовий опеньок", day: "2026-11-09", matched: true },
+            { lat: 50.42, lng: 30.52, species_id: "pleurotus_ostreatus", name_ua: "Глива", day: "2026-11-08", matched: false },
+            { lat: 50.42, lng: 30.52, species_id: "boletus_edulis", name_ua: "Білий гриб", day: "2026-09-20", matched: null },
+          ],
+          error: null,
+        };
+    },
+  });
+  const { json } = await run(d, req("POST", URL_, body()), { forecast });
+  // прогноз сьогоднішнього дня збережено
+  const hist = find(d, "rpc.save_analysis_history")!.args[0] as Record<string, unknown>;
+  assertEquals([hist.p_user_id, hist.p_day, hist.p_species], [USER, "2026-11-11", ["flammulina_velutipes"]]);
+  const f = json.data.finds;
+  assertEquals(f.verification, { matched: 1, total: 2 }); // без прогнозу на той день — не рахується
+  assertEquals(f.verification_label, "Ваші знахідки тут збіглися з прогнозом: 1 з 2");
+  assertEquals(f.last_year, [{ lat: 50.41, lng: 30.51, mushroom_type: "flammulina_velutipes", name: "Зимовий опеньок", date_label: "12.11.2025" }]);
+  assertEquals(f.last_year_label, "Торік у ці тижні: 1 знахідка");
+  // торішнє вікно — навколо цих самих тижнів
+  const calls = d.calls.filter((c) => c.key === "rpc.area_finds").map((c) => c.args[0] as { p_from: string; p_to: string });
+  assertEquals([calls[0].p_from, calls[0].p_to], ["2026-09-12", "2026-11-11"]); // 60 днів назад
+  assertEquals([calls[1].p_from, calls[1].p_to], ["2025-11-04", "2025-11-21"]);
+});
+
+Deno.test("analysis POST: рельєф і ґрунт — один раз на ділянку, у рушій і підпис у блоці лісу", async () => {
+  const inputs: Array<{ terrain?: unknown }> = [];
+  const forecast = (input: { terrain?: unknown }) => {
+    inputs.push(input);
+    return Promise.resolve(result());
+  };
+  let fetched = 0;
+  const terrain = () => {
+    fetched++;
+    return Promise.resolve({ elevation: 160, relief: "valley" as const, reliefRange: 24, sand: 78, clay: 6, soil: "sandy" as const, fetchedAt: "x" });
+  };
+  const d = db();
+  const { json } = await run(d, req("POST", URL_, body()), { forecast: forecast as never, deps: { terrain } });
+  assertEquals(fetched, 1);
+  assertEquals((inputs[0].terrain as { soil: string }).soil, "sandy");
+  assertEquals((find(d, "rpc.save_area_terrain")!.args[0] as { p_terrain: { relief: string } }).p_terrain.relief, "valley");
+  assertEquals(json.data.forest.terrain_label,
+    "Рельєф: низина — вологіше й прохолодніше, вранці заморозки · Ґрунт: піщаний — після дощу пересихає швидше");
+
+  // збережений рельєф — без нового запиту
+  const d2 = db({
+    "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, terrain: { relief: "hill", soil: null } }], error: null },
+    "rpc.consume_analysis": { data: 1, error: null },
+  });
+  fetched = 0;
+  const r2 = await run(d2, req("POST", URL_, { area_id: AREA }), { forecast: forecast as never, deps: { terrain } });
+  assertEquals(fetched, 0);
+  assertEquals(r2.json.data.forest.terrain_label, "Рельєф: підвищення — сухіше, ґрунт прогрівається краще");
+});
+
+Deno.test("analysis POST (Pro): дні 5–7 — діапазон погоди за кількома моделями", async () => {
+  const forecast = (input: DayInput) => {
+    const date = input.date.toISOString().slice(0, 10);
+    const weather = {
+      tempMin: 1, tempMax: 8, tempAvg7d: 4, humidity: 85, rain1d: 0, rain3d: 2, rain7d: 5, rain14d: 10,
+      droughtDays: 0, daysAfterRain: 2, pressure: 1012, pressureTrend: "stable", source: "open-meteo",
+      day: { date, tempMin: 1, tempMax: 8, rain: 0, humidity: 80, daysAhead: 0 },
+    };
+    return Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
+  };
+  let called = 0;
+  const ensemble = () => {
+    called++;
+    return Promise.resolve({ "2026-11-16": { rainMin: 2, rainMax: 11, tMin: 3, tMax: 10 } });
+  };
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast, pro: true, deps: { ensemble } });
+  assertEquals(called, 1);
+  const days = json.data.days as Array<{ date: string; weather: { range_label: string | null } }>;
+  assertEquals(days.find((d) => d.date === "2026-11-16")!.weather.range_label, "Різні моделі: опади 2–11 мм, 3…10°");
+  assertEquals(days[0].weather.range_label, null); // близькі дні — без діапазону
+  // безкоштовно (3 дні) ансамбль не запитується
+  called = 0;
+  await run(db(), req("POST", URL_, body()), { forecast, deps: { ensemble } });
+  assertEquals(called, 0);
+});
+
+Deno.test("analysis PUT push: пристрій для сповіщень про хвилі; доступ — Pro або «Слідопит»", async () => {
+  const d = db({ "users.select": { data: { home_region_id: 10, rating: 12 }, error: null } });
+  const token = "fcm-token-" + "x".repeat(30);
+  const { res, json } = await run(d, req("PUT", `${URL_}/push`, { token, platform: "android" }));
+  assertEquals(res.status, 200);
+  assertEquals(json.data, { registered: true, wave_alerts: true, allowed: false, locked_label: "Сповіщення про хвилі — у Pro або з рівня «Слідопит»" });
+  assertEquals(find(d, "rpc.register_push_device")!.args[0], { p_user_id: USER, p_token: token, p_platform: "android", p_wave_alerts: true });
+  const bad = await run(db(), req("PUT", `${URL_}/push`, { token: "short", platform: "android" }));
+  assertEquals(bad.res.status, 422);
+  const pro = await run(db(), req("PUT", `${URL_}/push`, { token, platform: "ios", wave_alerts: false }), { pro: true });
+  assertEquals([pro.json.data.allowed, pro.json.data.wave_alerts], [true, false]);
 });

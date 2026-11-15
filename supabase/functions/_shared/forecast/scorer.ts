@@ -19,6 +19,7 @@ import type {
 import { matchGeo, matchWeather, matchSeason, matchSoil } from "./matchers.ts";
 import { MVP_RULES, rule1_StandAge, rule3_MicrorefugiumBoletus, rule5_Indicators, rule6_MyceliumTemp, rule8_SeasonMicrorefugium } from "./rules.ts";
 import { type FruitingState, fruitingState } from "./fruiting.ts";
+import { terrainAdjust, terrainKey } from "./terrain.ts";
 import type { MatcherResult } from "./matchers.ts";
 
 /** Ваги адитивних сигналів (§11.2): погода важить найбільше */
@@ -90,7 +91,14 @@ export function scoreSpecies(rule: SpeciesRule, ctx: ForecastContext): ScoredSpe
   // а не календар (ADR-015 §15.8). Без ряду (старі виклики, тести) — попередня формула.
   const series = ctx.weatherSeries?.series;
   if (series && ctx.config.fruiting_model_enabled !== false) {
-    const fr = fruitingState(series, ctx.input.date.toISOString().slice(0, 10), rule.fruiting, rule.mushroomType);
+    // Поправки на рельєф і ґрунт ділянки (пісок пересихає швидше, низина — холодніше).
+    const terrain = ctx.input.terrain;
+    const fr = fruitingState(
+      series,
+      ctx.input.date.toISOString().slice(0, 10),
+      terrainAdjust(rule.fruiting, terrain),
+      rule.mushroomType + terrainKey(terrain),
+    );
     if (fr) return scoreWithFruiting(rule, ctx, { geo, weather, season, soil }, fr);
   }
 

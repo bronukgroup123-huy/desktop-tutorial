@@ -77,6 +77,10 @@ export interface DayWeather {
   daysAhead: number;      // 0 — сьогодні, 1 — завтра…
   /** Код погоди WMO за добу; `null` — невідомо. */
   code?: number | null;
+  /** Схід / захід сонця «HH:MM», світлий день, хв. */
+  sunrise?: string | null;
+  sunset?: string | null;
+  daylightMin?: number | null;
 }
 
 export interface WeatherData {
@@ -142,6 +146,8 @@ export interface ForecastInput {
   homeRegionId: number | null;
   userId?: string;
   mushroomTypes?: string[];    // filter (optional)
+  /** Рельєф і ґрунт ділянки (terrain.ts) — поправки рушія плодоношення. */
+  terrain?: import("./terrain.ts").Terrain | null;
 }
 
 export interface ForestZoneRef {
@@ -284,6 +290,8 @@ export interface ForecastResult {
   weather?: WeatherData | null;
   /** Усі види зі шансом (без «недостатньо даних»), від кращого — кошик мінікарти (ADR-015 §15.9). */
   candidates?: ScoredSpecies[];
+  /** Види в сезоні, але без шансу цього дня (холодно, немає їхніх дерев…) — «Інші гриби сезону». */
+  others?: ScoredSpecies[];
 }
 
 // ============================================================================

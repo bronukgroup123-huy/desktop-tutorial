@@ -438,7 +438,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: '`area_limit_reached` — немає вільного слоту (текст у `message`), `home_region_required`'
+          description: '`area_limit_reached` — немає вільного слоту (текст у `message`), `home_region_required`, `already_fresh` — щоденне оновлення вже було сьогодні'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -452,6 +452,40 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /v1-analysis/push:
+    put:
+      operationId: registerPushDevice
+      summary: Пристрій для сповіщень «Почалась хвиля»
+      description: ADR-015 §15.8 п.19. Сповіщення надсилаються лише в Pro або з рівня «Слідопит» — відповідь каже, чи доступні.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, platform]
+              properties:
+                token: { type: string, minLength: 20, maxLength: 4096 }
+                platform: { type: string, enum: [android, ios] }
+                wave_alerts: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Зареєстровано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      registered: { type: boolean }
+                      wave_alerts: { type: boolean }
+                      allowed: { type: boolean }
+                      locked_label: { type: [string, 'null'], example: 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»' }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
 
   /v1-analysis/areas/{id}:
     put:
@@ -936,6 +970,12 @@ components:
       description: Або `area_id` (повторний аналіз), або `lat` + `lng` + `size_km` (нова ділянка).
       properties:
         area_id: { type: string, format: uuid }
+        refresh:
+          type: string
+          enum: [daily]
+          description: >-
+            З `area_id`: щоденне оновлення без списання аналізу — раз на київську добу або коли
+            збережений результат старішої версії (`result_version`); інакше `409 already_fresh`.
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }
         size_km: { type: integer, enum: [5, 10] }
@@ -1062,6 +1102,38 @@ components:
           properties:
             allowed: { type: boolean }
             locked_label: { type: [string, 'null'], example: 'Анімація тижня — у Pro або з рівня «Слідопит»' }
+        result_version: { type: integer, example: 3, description: Старіший збережений результат оновлюється безкоштовно }
+        identify:
+          type: object
+          description: «Як відрізнити» — один раз на вид (ключ — mushroom_type), не в кожному дні
+          additionalProperties: { type: object }
+        others:
+          type: array
+          description: «Інші гриби сезону» обраного дня (у days[] — для кожного дня)
+          items:
+            type: object
+            properties:
+              mushroom_type: { type: string }
+              name_ua: { type: string }
+              reason_label: { type: string, example: 'Холодно: 3° за тиждень, потрібно від 10°' }
+        finds:
+          type: [object, 'null']
+          description: Знахідки в ділянці — звірка ваших тук-туків за 60 днів із прогнозом того дня і ваші знахідки торік у ці тижні (лише власні)
+          properties:
+            verification: { type: [object, 'null'], properties: { matched: { type: integer }, total: { type: integer } } }
+            verification_label: { type: [string, 'null'], example: 'Ваші знахідки тут збіглися з прогнозом: 2 з 3' }
+            last_year:
+              type: array
+              maxItems: 30
+              items:
+                type: object
+                properties:
+                  lat: { type: number }
+                  lng: { type: number }
+                  mushroom_type: { type: string }
+                  name: { type: string }
+                  date_label: { type: string, example: '12.11.2025' }
+            last_year_label: { type: [string, 'null'], example: 'Торік у ці тижні: 3 знахідки' }
         weather_insight:
           type: [object, 'null']
           description: «Розширені дані погоди» — дощ → гриби, що сталося, шкали, що далі (ADR-015 §15.8 п.9)
@@ -1145,6 +1217,9 @@ components:
           description: Анімована сцена з грибом-маскотом (код погоди WMO дня; без нього — за опадами й вологістю)
         scene_label: { type: [string, 'null'], example: Мінлива хмарність }
         sprouts: { type: string, enum: [none, few, many], description: Молоді гриби в сцені — за стадією хвилі найкращого виду }
+        range_label: { type: [string, 'null'], example: 'Різні моделі: опади 2–11 мм, 3…10°', description: Дні 5–7 (Pro) — діапазон за ансамблем моделей }
+        sun_label: { type: [string, 'null'], example: 'Схід 07:12 · захід 16:08 · світла 8 год 56 хв' }
+        take_label: { type: [string, 'null'], example: 'Візьміть: дощовик, гумові чоботи' }
 
     AnalysisDay:
       type: object

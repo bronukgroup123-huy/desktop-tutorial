@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
+import 'package:flutter_client/data/models/forecast.dart' show IdentifyCard;
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart';
 import 'package:flutter_client/features/analysis/weather_insight_view.dart';
 import 'package:flutter_client/features/analysis/weather_scene.dart';
@@ -230,6 +231,23 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           ),
           const SizedBox(height: 6),
           widget.miniMapBuilder!(_stickers(r)),
+          // Звірка з вашими знахідками і торішні знахідки (рішення PO 2026-11-15).
+          for (final label in [r.finds?.verificationLabel, r.finds?.lastYearLabel])
+            if (label != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      label == r.finds?.verificationLabel ? Icons.verified_outlined : Icons.history_rounded,
+                      size: 16,
+                      color: AppTheme.darkGreen.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.8)))),
+                  ],
+                ),
+              ),
         ],
         const SizedBox(height: 14),
         _ForestCard(result: r, onRefine: widget.onRefineForest, refineHintLabel: widget.refineHintLabel),
@@ -295,9 +313,14 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
             text: r.noDataReason ?? 'Цього дня немає видів, для яких склалися умови.',
           )
         else ...[
-          _SpeciesBlock(item: r.top1!, primary: true),
-          if (r.alternative != null) ...[const SizedBox(height: 12), _SpeciesBlock(item: r.alternative!)],
+          _SpeciesBlock(item: r.top1!, primary: true, identify: r.identify[r.top1!.species.mushroomType]),
+          if (r.alternative != null) ...[
+            const SizedBox(height: 12),
+            _SpeciesBlock(item: r.alternative!, identify: r.identify[r.alternative!.species.mushroomType]),
+          ],
         ],
+        // «Інші гриби сезону» — лише після натискання (рішення PO 2026-11-15).
+        if (r.others.isNotEmpty) ...[const SizedBox(height: 8), OtherSpeciesBlock(others: r.others)],
         for (final w in r.warnings) ...[
           const SizedBox(height: 8),
           ForecastInfoCard(icon: Icons.warning_amber_rounded, text: w, color: AppTheme.accentOrange),
@@ -348,9 +371,20 @@ class AnalysisDayStrip extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: d.levelColor, borderRadius: BorderRadius.circular(8)),
-                      child: Text(
-                        d.levelShortLabel,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      // Рівень — не лише кольором, а й значком (для тих, хто погано розрізняє кольори).
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(levelIcon(d.level), size: 11, color: Colors.white),
+                            const SizedBox(width: 2),
+                            Text(
+                              d.levelShortLabel,
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -435,6 +469,15 @@ class _DayTile extends StatelessWidget {
       );
 }
 
+/// Значок рівня — щоб рівень було видно не лише кольором.
+IconData levelIcon(String? level) => switch (level) {
+      'peak' => Icons.keyboard_double_arrow_up_rounded,
+      'high' => Icons.keyboard_arrow_up_rounded,
+      'medium' => Icons.remove_rounded,
+      'low' => Icons.keyboard_arrow_down_rounded,
+      _ => Icons.help_outline_rounded,
+    };
+
 IconData weatherIcon(String? icon) => switch (icon) {
       'rain' => Icons.water_drop_rounded,
       'cloud' => Icons.cloud_rounded,
@@ -444,17 +487,110 @@ IconData weatherIcon(String? icon) => switch (icon) {
       _ => Icons.thermostat_rounded,
     };
 
+/// «Інші гриби сезону»: кнопка, під нею — види в сезоні без шансу цього дня і чому.
+class OtherSpeciesBlock extends StatefulWidget {
+  const OtherSpeciesBlock({super.key, required this.others});
+
+  final List<OtherSpecies> others;
+
+  @override
+  State<OtherSpeciesBlock> createState() => _OtherSpeciesBlockState();
+}
+
+class _OtherSpeciesBlockState extends State<OtherSpeciesBlock> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          key: const ValueKey('other-species'),
+          onPressed: () => setState(() => _open = !_open),
+          style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
+          icon: Icon(_open ? Icons.expand_less_rounded : Icons.spa_outlined, size: 20),
+          label: Text(_open ? 'Сховати інші гриби' : 'Інші гриби сезону (${widget.others.length})'),
+        ),
+        if (_open)
+          Container(
+            key: const ValueKey('other-species-list'),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 2),
+                  child: Text('У сезоні, але сьогодні без шансу:', style: TextStyle(fontSize: 12, color: muted)),
+                ),
+                for (final o in widget.others)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Сірий стікер — шансу цього дня немає.
+                        ColorFiltered(
+                          colorFilter: const ColorFilter.matrix(<double>[
+                            0.33,
+                            0.33,
+                            0.33,
+                            0,
+                            0,
+                            0.33,
+                            0.33,
+                            0.33,
+                            0,
+                            0,
+                            0.33,
+                            0.33,
+                            0.33,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                          ]),
+                          child: SpeciesIcon(type: o.type, fallbackColor: const Color(0xff94a3b8), size: 30),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(o.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                              Text(o.reason, style: TextStyle(fontSize: 13, color: muted)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _SpeciesBlock extends StatelessWidget {
-  const _SpeciesBlock({required this.item, this.primary = false});
+  const _SpeciesBlock({required this.item, this.primary = false, this.identify});
 
   final AnalysisSpecies item;
   final bool primary;
+  final IdentifyCard? identify;
 
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ForecastSpeciesCard(species: item.species, primary: primary),
+          ForecastSpeciesCard(species: item.species, primary: primary, identify: identify),
           if (item.forestLabel != null)
             Padding(
               padding: const EdgeInsets.only(left: 16, top: 4),
@@ -491,6 +627,25 @@ class _ForestCard extends StatelessWidget {
                   Expanded(child: Text(result.forestSummaryLabel, style: const TextStyle(fontWeight: FontWeight.w600))),
                 ],
               ),
+              // Рельєф і ґрунт ділянки — коротко, дрібно.
+              if (result.terrainLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.terrain_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          result.terrainLabel!,
+                          key: const ValueKey('terrain-label'),
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               for (final t in result.forestTypes)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -630,7 +785,8 @@ class _WeatherCardState extends State<_WeatherCard> {
                   Container(
                     width: 48,
                     height: 48,
-                    decoration: BoxDecoration(color: AppTheme.accentOrange.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    decoration:
+                        BoxDecoration(color: AppTheme.accentOrange.withValues(alpha: 0.12), shape: BoxShape.circle),
                     child: Icon(weatherIcon(weather.icon), size: 28, color: AppTheme.accentOrange),
                   ),
                   const SizedBox(width: 12),
@@ -643,7 +799,8 @@ class _WeatherCardState extends State<_WeatherCard> {
                 key: const ValueKey('weather-verdict'),
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(color: tone.$1.withValues(alpha: 0.09), borderRadius: BorderRadius.circular(12)),
+                decoration:
+                    BoxDecoration(color: tone.$1.withValues(alpha: 0.09), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -656,7 +813,42 @@ class _WeatherCardState extends State<_WeatherCard> {
                 ),
               ),
             ],
+            // Дні 5–7 — діапазон за кількома моделями погоди.
+            if (weather.rangeLabel != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.stacked_line_chart_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        weather.rangeLabel!,
+                        key: const ValueKey('weather-range'),
+                        style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (_advanced) ...[
+              // «Коли їхати»: світловий день і що взяти (рішення PO 2026-11-15).
+              if (weather.sunLabel != null || weather.takeLabel != null) ...[
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    key: const ValueKey('weather-when'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Коли їхати',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.85))),
+                      if (weather.sunLabel != null) _WeatherDetail(icon: Icons.wb_twilight_rounded, text: weather.sunLabel!),
+                      if (weather.takeLabel != null) _WeatherDetail(icon: Icons.backpack_outlined, text: weather.takeLabel!),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               if (insight != null)
                 Padding(
@@ -706,7 +898,8 @@ class _WeatherDetail extends StatelessWidget {
           children: [
             Icon(icon, size: 15, color: AppTheme.darkGreen.withValues(alpha: 0.5)),
             const SizedBox(width: 6),
-            Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.7)))),
+            Expanded(
+                child: Text(text, style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.7)))),
           ],
         ),
       );

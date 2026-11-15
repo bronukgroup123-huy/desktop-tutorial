@@ -81,7 +81,7 @@ Deno.test("weatherAsOf: «сьогодні» не бачить дощів нас
   assertEquals(today.droughtDays, 31);
   assertEquals(today.daysAfterRain, 999);
   assertEquals(today.tempAvg7d, 15 + 5 / 7); // 6 минулих днів по 15° + сьогодні 20°
-  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null });
+  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null, sunrise: null, sunset: null, daylightMin: null });
 });
 
 Deno.test("weatherAsOf: день прогнозу бачить дощ, що випав до нього", () => {
@@ -119,4 +119,22 @@ Deno.test("buildSeries: доба переходу на зимовий час (25
   const s = buildSeries(r, 30, new Date())!;
   assertEquals(s.dates.length, 37);
   assertEquals(s.tmean[30], 20);
+});
+
+Deno.test("parseEnsemble: діапазон 10–90 перцентилів учасників по днях", async () => {
+  const { parseEnsemble } = await import("../../functions/_shared/forecast/weather.ts");
+  const members = (base: number[]) => Object.fromEntries(base.map((v, i) => [`precipitation_sum_member${String(i + 1).padStart(2, "0")}`, [v]]));
+  const json = {
+    daily: {
+      time: ["2026-11-20"],
+      precipitation_sum: [4],
+      ...members([0, 1, 2, 3, 5, 8, 12, 20]),
+      temperature_2m_max: [8], temperature_2m_max_member01: [6], temperature_2m_max_member02: [10], temperature_2m_max_member03: [9],
+      temperature_2m_min: [2], temperature_2m_min_member01: [0], temperature_2m_min_member02: [3], temperature_2m_min_member03: [1],
+    },
+  };
+  const r = parseEnsemble(json)["2026-11-20"];
+  assertEquals([r.rainMin, r.rainMax], [1, 14]);
+  assertEquals([r.tMin, r.tMax], [0, 10]);
+  assertEquals(parseEnsemble({}), {});
 });

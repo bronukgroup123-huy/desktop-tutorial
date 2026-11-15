@@ -183,6 +183,32 @@ export function fruitingLimitLabels(fr: FruitingState | undefined): string[] {
 }
 
 /**
+ * «Інші гриби сезону»: чому виду в сезоні сьогодні немає серед грибів зі шансом — одне речення.
+ */
+export function otherReasonLabel(missed: string[], w: WeatherData | null | undefined): string {
+  for (const r of missed) {
+    let m: RegExpMatchArray | null;
+    if ((m = r.match(/^temp (-?[\d.]+) < min (-?[\d.]+)/))) {
+      return `Холодно: ${deg(Number(m[1]))} за тиждень, потрібно від ${deg(Number(m[2]))}`;
+    }
+    if ((m = r.match(/^temp (-?[\d.]+) > max (-?[\d.]+)/))) {
+      return `Затепло: ${deg(Number(m[1]))} за тиждень, потрібно до ${deg(Number(m[2]))}`;
+    }
+    if ((m = r.match(/^forest mismatch: need ([\w|]+)/))) {
+      const TREE: Record<string, string> = {
+        pine: "сосна", spruce: "ялина", oak: "дуб", birch: "береза", aspen: "осика",
+        beech: "бук", hornbeam: "граб", alder: "вільха",
+      };
+      const names = m[1].split("|").map((t) => TREE[t]).filter((t): t is string => !!t).slice(0, 3);
+      return names.length ? `У лісах ділянки немає його дерев (${names.join(", ")})` : "У лісах ділянки немає його дерев";
+    }
+    const label = humanizeLimit(r, w);
+    if (label) return label;
+  }
+  return "Умови для нього поки не склалися";
+}
+
+/**
  * «Що заважає»: перекладені обмежувальні фактори. Якщо рівень нижчий за «високий», а
  * явних факторів немає — пояснюємо сезон, щоб «✓» не суперечили бейджу рівня.
  */
@@ -311,6 +337,34 @@ export function weatherScene(
 export function sceneSprouts(fr: FruitingState | undefined): "none" | "few" | "many" {
   if (fr?.phase !== "flush") return "none";
   return fr.stage === "peak" ? "many" : "few";
+}
+
+/** «Схід 07:12 · захід 16:08 · світла 8 год 56 хв»; немає даних — null. */
+export function sunLabel(day: { sunrise?: string | null; sunset?: string | null; daylightMin?: number | null }): string | null {
+  if (!day.sunrise || !day.sunset) return null;
+  const light = typeof day.daylightMin === "number"
+    ? ` · світла ${Math.floor(day.daylightMin / 60)} год${day.daylightMin % 60 ? ` ${day.daylightMin % 60} хв` : ""}`
+    : "";
+  return `Схід ${day.sunrise} · захід ${day.sunset}${light}`;
+}
+
+/**
+ * Що взяти в ліс за погодою дня — коротко: дощовик, гумові чоботи, тепле, вода, ліхтарик
+ * (короткий день). Нічого особливого — null.
+ */
+export function takeLabel(
+  day: { tempMin: number; tempMax: number; rain: number; daylightMin?: number | null },
+  w: WeatherData | null | undefined,
+): string | null {
+  const items: string[] = [];
+  if (day.rain >= 1) items.push("дощовик");
+  if (day.rain >= 3 || (weatherOk(w) && (w.rain3d >= 10 || w.soilState === "wet" || w.soilState === "waterlogged"))) {
+    items.push("гумові чоботи");
+  }
+  if (day.tempMin <= 2) items.push("тепла куртка й рукавиці");
+  if (day.tempMax >= 26) items.push("вода й кепка");
+  if (typeof day.daylightMin === "number" && day.daylightMin < 600) items.push("ліхтарик — день короткий");
+  return items.length ? `Візьміть: ${items.join(", ")}` : null;
 }
 
 export type WeatherTone = "good" | "neutral" | "bad";

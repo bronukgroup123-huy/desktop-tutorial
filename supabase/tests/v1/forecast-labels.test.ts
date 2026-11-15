@@ -12,6 +12,8 @@ import {
   weatherScene,
   weatherVerdict,
   sceneSprouts,
+  sunLabel,
+  takeLabel,
   whenLabel,
   whyLabels,
 } from "../../functions/_shared/v1/forecast-labels.ts";
@@ -250,4 +252,14 @@ Deno.test("Як відрізнити: картка з довідника для 
     matched: [], missed: [], wave: null,
   } as unknown as ScoredSpecies, W)!;
   assertEquals((shaped.identify as { twin: { name: string } }).twin.name, "Галерина облямована");
+});
+
+Deno.test("Коли їхати: схід / захід сонця, світлий день, що взяти", () => {
+  assertEquals(sunLabel({ sunrise: "07:12", sunset: "16:08", daylightMin: 536 }), "Схід 07:12 · захід 16:08 · світла 8 год 56 хв");
+  assertEquals(sunLabel({ sunrise: null, sunset: "16:08" }), null);
+  assertEquals(
+    takeLabel({ tempMin: -1, tempMax: 5, rain: 4, daylightMin: 536 }, W),
+    "Візьміть: дощовик, гумові чоботи, тепла куртка й рукавиці, ліхтарик — день короткий",
+  );
+  assertEquals(takeLabel({ tempMin: 12, tempMax: 22, rain: 0, daylightMin: 900 }, { ...W, rain3d: 2, soilState: "normal" }), null);
 });

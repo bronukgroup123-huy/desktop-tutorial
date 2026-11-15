@@ -14,6 +14,9 @@ import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart' show ForecastInfoCard;
+import 'package:flutter_client/core/push.dart';
+import 'package:flutter_client/features/forecast/home_widget_sync.dart';
+import 'package:flutter_client/features/forecast/share_forecast.dart';
 
 /// Вкладка «Прогноз» — робота з ділянками аналізу (ADR-015 §15.4).
 ///
@@ -35,6 +38,16 @@ class ForecastScreen extends ConsumerWidget {
         title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          // «Поділитися прогнозом» — картинка для Viber / Telegram (рішення PO 2026-11-15).
+          if (area?.lastResult != null)
+            IconButton(
+              key: const ValueKey('share-forecast'),
+              tooltip: 'Поділитися прогнозом',
+              icon: const Icon(Icons.ios_share_rounded, color: AppTheme.darkGreen),
+              onPressed: () => showShareForecast(context, areaTitle: area!.title, result: area.lastResult!),
+            ),
+        ],
       ),
       body: data == null
           ? (overview.hasError
@@ -82,6 +95,75 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
 
   /// ▶ «Хвиля по днях» у верхньому рядку значків (ADR-015 §15.9).
   final _play = WeekPlayController();
+
+  /// Щоденне безкоштовне оновлення: для яких ділянок уже пробували в цій сесії.
+  final Set<String> _autoTried = {};
+  bool _autoRefreshing = false;
+  bool _autoFailed = false;
+
+  /// Картку «Сповіщати про хвилі» закрито або вже ввімкнено (на телефоні, LocalStore).
+  bool _pushHidden = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Картка — лише коли push налаштовано в збірці і її ще не закривали.
+    if (!PushService.available) return;
+    try {
+      ref.read(localStoreProvider).read(_pushKey).then((v) {
+        if (mounted) setState(() => _pushHidden = v?.data == true);
+      }, onError: (_) {});
+    } catch (_) {
+      // Немає сховища (тести) — картку не показуємо.
+    }
+  }
+
+  static const _pushKey = 'wave_alerts_card_done';
+
+  Future<void> _enablePush() async {
+    final res = await PushService.enable(ref.read(apiClientProvider));
+    if (!mounted) return;
+    if (res == null) {
+      _snack('Сповіщення не ввімкнено — дозвольте їх у налаштуваннях телефону.');
+      return;
+    }
+    setState(() => _pushHidden = true);
+    try {
+      await ref.read(localStoreProvider).write(_pushKey, true);
+    } catch (_) {}
+    if (!mounted) return;
+    _snack(res.allowed
+        ? 'Готово: повідомимо, коли на ділянці почнеться хвиля.'
+        : (res.lockedLabel ?? 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»'));
+  }
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Аналіз не на сьогодні або до оновлення застосунку — оновити безкоштовно (раз на добу).
+  void _maybeAutoRefresh(AnalysisResult? result, bool offline) {
+    if (result == null || offline || _busy || _autoRefreshing) return;
+    if (!result.isStale(_today()) || !_autoTried.add(_area.id)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoRefresh());
+  }
+
+  Future<void> _autoRefresh() async {
+    if (!mounted) return;
+    setState(() {
+      _autoRefreshing = true;
+      _autoFailed = false;
+    });
+    try {
+      final fresh = await ref.read(analysisRepositoryProvider).dailyRefresh(_area.id, forest: _forestHint());
+      if (fresh != null) ref.invalidate(analysisOverviewProvider);
+    } catch (_) {
+      if (mounted) setState(() => _autoFailed = true);
+    } finally {
+      if (mounted) setState(() => _autoRefreshing = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -155,7 +237,8 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
       builder: (context) => AlertDialog(
         title: const Text('Оновити аналіз?'),
         content: Text(
-          'Прогноз для ділянки перерахується за свіжою погодою на сьогодні й наступні дні.'
+          'Прогноз ділянки й так оновлюється автоматично раз на день. Оновити зараз — '
+          'перерахувати за найсвіжішою погодою.'
           '${left == null ? '' : ' Буде використано 1 аналіз — сьогодні лишилось $left з ${usage!.limit}.'}',
         ),
         actions: [
@@ -257,6 +340,13 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
     final offline = o.offlineSince != null;
     final result = _area.lastResult;
+    _maybeAutoRefresh(result, offline);
+    // Віджет на головному екрані — свіжі підписи ділянки.
+    if (result != null) {
+      final area = _area;
+      WidgetsBinding.instance.addPostFrameCallback((_) => HomeWidgetSync.update(area, result));
+    }
+    final stale = result != null && result.isStale(_today());
 
     return Column(
       children: [
@@ -319,6 +409,37 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
             ],
           ),
         ),
+        if (result != null && PushService.available && !_pushHidden)
+          _WaveAlertsCard(
+            onEnable: _enablePush,
+            onClose: () => setState(() => _pushHidden = true),
+          ),
+        if (_autoRefreshing)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Row(
+              key: ValueKey('auto-refreshing'),
+              children: [
+                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
+                SizedBox(width: 8),
+                Text('Оновлюємо прогноз на сьогодні…', style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+              ],
+            ),
+          )
+        else if (stale && (offline || _autoFailed))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: ForecastInfoCard(
+              key: const ValueKey('stale-banner'),
+              icon: Icons.update_rounded,
+              color: AppTheme.accentOrange,
+              text: result.resultVersion < kExpectedResultVersion
+                  ? 'Аналіз зроблено до оновлення застосунку — частина даних недоступна. '
+                      '${offline ? 'Оновиться, коли з\'явиться інтернет.' : 'Натисніть ⟳.'}'
+                  : 'Прогноз від ${result.date.substring(8, 10)}.${result.date.substring(5, 7)}. '
+                      '${offline ? 'Оновиться автоматично, коли з\'явиться інтернет.' : 'Не вдалося оновити — натисніть ⟳.'}',
+            ),
+          ),
         if (offline)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -362,6 +483,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                             bounds: result.area.bounds!,
                             species: species,
                             analyzedAt: _area.lastAnalyzedAt,
+                            history: result.finds?.lastYear ?? const [],
                           ),
                   refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
                   // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
@@ -596,5 +718,40 @@ class _RenameDialogState extends State<_RenameDialog> {
             child: const Text('Зберегти'),
           ),
         ],
+      );
+}
+
+/// «Сповіщати, коли почнеться хвиля?» — лише якщо push налаштовано в збірці.
+class _WaveAlertsCard extends StatelessWidget {
+  const _WaveAlertsCard({required this.onEnable, required this.onClose});
+
+  final VoidCallback onEnable;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('wave-alerts-card'),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_active_outlined, color: AppTheme.darkGreen, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Сповіщати, коли на ділянці почнеться хвиля?',
+                    style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+              ),
+              TextButton(key: const ValueKey('wave-alerts-enable'), onPressed: onEnable, child: const Text('Увімкнути')),
+              IconButton(
+                tooltip: 'Не зараз',
+                visualDensity: VisualDensity.compact,
+                onPressed: onClose,
+                icon: Icon(Icons.close_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+              ),
+            ],
+          ),
+        ),
       );
 }

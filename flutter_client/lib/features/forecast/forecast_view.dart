@@ -161,10 +161,13 @@ class _WeatherCard extends StatelessWidget {
 /// Причини рівня (що підходить і що заважає) — під кнопкою «Розширені дані»: розрахунки
 /// лишаються всередині, грибнику не потрібно бути мікологом (рішення PO 2026-11-14).
 class ForecastSpeciesCard extends StatefulWidget {
-  const ForecastSpeciesCard({super.key, required this.species, this.primary = false});
+  const ForecastSpeciesCard({super.key, required this.species, this.primary = false, this.identify});
 
   final ForecastSpecies species;
   final bool primary;
+
+  /// «Як відрізнити» з результату аналізу (один раз на вид); інакше — з самого виду.
+  final IdentifyCard? identify;
 
   @override
   State<ForecastSpeciesCard> createState() => _ForecastSpeciesCardState();
@@ -179,6 +182,7 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
     final species = widget.species;
     final primary = widget.primary;
     final hasDetails = species.whyLabels.isNotEmpty || species.limitLabels.isNotEmpty;
+    final idCard = widget.identify ?? species.identify;
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -205,9 +209,16 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
                     color: species.levelColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    species.levelLabel,
-                    style: TextStyle(color: species.levelColor, fontWeight: FontWeight.w600, fontSize: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_levelIcon(species.level), size: 14, color: species.levelColor),
+                      const SizedBox(width: 3),
+                      Text(
+                        species.levelLabel,
+                        style: TextStyle(color: species.levelColor, fontWeight: FontWeight.w600, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -237,11 +248,11 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
               ],
             ],
             // «Як відрізнити» — ознаки, двійник і правило з довідника (рішення PO 2026-11-15).
-            if (_identify && species.identify != null) ...[
+            if (_identify && idCard != null) ...[
               const SizedBox(height: 6),
-              IdentifyView(card: species.identify!, species: species),
+              IdentifyView(card: idCard, species: species),
             ],
-            if (hasDetails || species.identify != null)
+            if (hasDetails || idCard != null)
               Wrap(
                 spacing: 12,
                 children: [
@@ -253,7 +264,7 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
                       icon: Icon(_advanced ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
                       label: Text(_advanced ? 'Сховати подробиці' : 'Розширені дані'),
                     ),
-                  if (species.identify != null)
+                  if (idCard != null)
                     TextButton.icon(
                       key: const ValueKey('species-identify'),
                       onPressed: () => setState(() => _identify = !_identify),
@@ -423,6 +434,15 @@ class WaveStrip extends StatelessWidget {
 
   int get _stageIndex => switch (wave.stage) { 'rise' => 0, 'peak' => 1, 'decline' => 2, _ => -1 };
 }
+
+/// Значок рівня — щоб рівень було видно не лише кольором.
+IconData _levelIcon(String level) => switch (level) {
+      'peak' => Icons.keyboard_double_arrow_up_rounded,
+      'high' => Icons.keyboard_arrow_up_rounded,
+      'medium' => Icons.remove_rounded,
+      'low' => Icons.keyboard_arrow_down_rounded,
+      _ => Icons.help_outline_rounded,
+    };
 
 class _Line extends StatelessWidget {
   const _Line({required this.icon, required this.text, this.color});

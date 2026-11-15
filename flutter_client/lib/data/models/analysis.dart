@@ -398,6 +398,9 @@ class AnalysisWeather {
     this.scene,
     this.sceneLabel,
     this.sprouts,
+    this.rangeLabel,
+    this.sunLabel,
+    this.takeLabel,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -411,7 +414,19 @@ class AnalysisWeather {
         scene: opt<String>(json, 'scene'),
         sceneLabel: opt<String>(json, 'scene_label'),
         sprouts: opt<String>(json, 'sprouts'),
+        rangeLabel: opt<String>(json, 'range_label'),
+        sunLabel: opt<String>(json, 'sun_label'),
+        takeLabel: opt<String>(json, 'take_label'),
       );
+
+  /// «Схід 07:12 · захід 16:08 · світла 8 год 56 хв».
+  final String? sunLabel;
+
+  /// «Візьміть: дощовик, гумові чоботи…».
+  final String? takeLabel;
+
+  /// Дні 5–7: «Різні моделі: опади 2–11 мм, 3…10°».
+  final String? rangeLabel;
 
   /// Сцена з грибом-маскотом: `sunny | partly_cloudy | cloudy | rain | heavy_rain | fog | frost | snow | heat`.
   final String? scene;
@@ -598,6 +613,45 @@ class AnalysisBasketSpecies {
   final String whenLabel;
 }
 
+/// «Інші гриби сезону»: вид без шансу цього дня і чому (рішення PO 2026-11-15).
+typedef OtherSpecies = ({String type, String name, String reason});
+
+List<OtherSpecies> _others(Map<String, dynamic> json) => [
+      for (final o in (opt<List<dynamic>>(json, 'others') ?? const []).cast<Map<String, dynamic>>())
+        (type: req<String>(o, 'mushroom_type'), name: req<String>(o, 'name_ua'), reason: opt<String>(o, 'reason_label') ?? ''),
+    ];
+
+/// Знахідки в ділянці: звірка ваших тук-туків із прогнозом і ваші знахідки торік у ці тижні.
+class AreaFinds {
+  const AreaFinds({this.verificationLabel, this.lastYear = const [], this.lastYearLabel});
+
+  factory AreaFinds.fromJson(Map<String, dynamic> json) => AreaFinds(
+        verificationLabel: opt<String>(json, 'verification_label'),
+        lastYearLabel: opt<String>(json, 'last_year_label'),
+        lastYear: [
+          for (final f in (opt<List<dynamic>>(json, 'last_year') ?? const []).cast<Map<String, dynamic>>())
+            (
+              point: LatLng(toDouble(f['lat'], 'lat'), toDouble(f['lng'], 'lng')),
+              type: opt<String>(f, 'mushroom_type') ?? '',
+              name: opt<String>(f, 'name') ?? 'Гриб',
+              dateLabel: opt<String>(f, 'date_label') ?? '',
+            ),
+        ],
+      );
+
+  /// «Ваші знахідки тут збіглися з прогнозом: 2 з 3».
+  final String? verificationLabel;
+  final List<PastFind> lastYear;
+
+  /// «Торік у ці тижні: 3 знахідки».
+  final String? lastYearLabel;
+}
+
+typedef PastFind = ({LatLng point, String type, String name, String dateLabel});
+
+/// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
+const kExpectedResultVersion = 3;
+
 List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
       final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],
       null => null,
@@ -620,6 +674,7 @@ class AnalysisDay {
     required this.warnings,
     required this.noDataReason,
     this.basket,
+    this.others = const [],
   });
 
   factory AnalysisDay.fromJson(Map<String, dynamic> json) {
@@ -641,8 +696,12 @@ class AnalysisDay {
       warnings: stringList(json, 'warnings'),
       noDataReason: opt<String>(json, 'no_data_reason'),
       basket: _basket(json),
+      others: _others(json),
     );
   }
+
+  /// «Інші гриби сезону» цього дня.
+  final List<OtherSpecies> others;
 
   /// Усі гриби зі шансом цього дня; `null` — старий збережений результат.
   final List<AnalysisBasketSpecies>? basket;
@@ -684,6 +743,7 @@ class AnalysisResult {
     this.forestExtra = const [],
     this.forestRefined = false,
     this.refineNoteLabel,
+    this.terrainLabel,
     this.days = const [],
     this.bestDay,
     this.lockedDays = const [],
@@ -691,6 +751,10 @@ class AnalysisResult {
     this.basket,
     this.weekAnimation,
     this.weatherInsight,
+    this.others = const [],
+    this.identify = const {},
+    this.resultVersion = 0,
+    this.finds,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -710,6 +774,7 @@ class AnalysisResult {
           .toList(growable: false),
       forestRefined: opt<bool>(forest, 'refined') ?? false,
       refineNoteLabel: opt<String>(forest, 'refine_note_label'),
+      terrainLabel: opt<String>(forest, 'terrain_label'),
       top1: top1 == null ? null : AnalysisSpecies.fromJson(top1),
       alternative: alt == null ? null : AnalysisSpecies.fromJson(alt),
       weather: weather == null ? null : AnalysisWeather.fromJson(weather),
@@ -733,6 +798,16 @@ class AnalysisResult {
         final w? => (allowed: opt<bool>(w, 'allowed') ?? false, lockedLabel: opt<String>(w, 'locked_label')),
         null => null,
       },
+      others: _others(json),
+      identify: {
+        for (final e in (opt<Map<String, dynamic>>(json, 'identify') ?? const {}).entries)
+          if (e.value is Map<String, dynamic>) e.key: IdentifyCard.fromJson(e.value as Map<String, dynamic>),
+      },
+      resultVersion: opt<num>(json, 'result_version')?.toInt() ?? 0,
+      finds: switch (opt<Map<String, dynamic>>(json, 'finds')) {
+        final f? => AreaFinds.fromJson(f),
+        null => null,
+      },
       weatherInsight: switch (opt<Map<String, dynamic>>(json, 'weather_insight')) {
         final c? => WeatherInsight.fromJson(c),
         null => null,
@@ -750,6 +825,7 @@ class AnalysisResult {
         forestExtra: forestExtra,
         forestRefined: forestRefined,
         refineNoteLabel: refineNoteLabel,
+        terrainLabel: terrainLabel,
         top1: day.top1,
         alternative: day.alternative,
         weather: day.weather,
@@ -763,6 +839,10 @@ class AnalysisResult {
         basket: day.basket,
         weekAnimation: weekAnimation,
         weatherInsight: weatherInsight,
+        others: day.others,
+        identify: identify,
+        resultVersion: resultVersion,
+        finds: finds,
       );
 
   final AnalysisArea area;
@@ -778,6 +858,9 @@ class AnalysisResult {
 
   /// «Уточнення діє лише для вашої ділянки…»
   final String? refineNoteLabel;
+
+  /// «Рельєф: низина — … · Ґрунт: піщаний — …»; `null` — невідомо.
+  final String? terrainLabel;
   final AnalysisSpecies? top1;
   final AnalysisSpecies? alternative;
   final AnalysisWeather? weather;
@@ -805,4 +888,19 @@ class AnalysisResult {
 
   /// «Розширені дані погоди»; `null` — старий результат.
   final WeatherInsight? weatherInsight;
+
+  /// «Інші гриби сезону» обраного дня — після натискання кнопки.
+  final List<OtherSpecies> others;
+
+  /// «Як відрізнити» — один раз на вид.
+  final Map<String, IdentifyCard> identify;
+
+  /// Версія результату із сервера; менша за [kExpectedResultVersion] — оновлюється безкоштовно.
+  final int resultVersion;
+
+  /// Знахідки в ділянці (звірка з прогнозом, торішні); `null` — старий результат.
+  final AreaFinds? finds;
+
+  /// Аналіз не на сьогодні або зроблений до оновлення застосунку.
+  bool isStale(String today) => date.compareTo(today) < 0 || resultVersion < kExpectedResultVersion;
 }

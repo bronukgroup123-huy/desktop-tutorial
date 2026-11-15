@@ -286,4 +286,83 @@ void main() {
     await tester.pump();
     expect(find.textContaining('ліміт 2 рази'), findsOneWidget);
   });
+
+  testWidgets('Інші гриби сезону — після натискання кнопки, з причиною; рівень зі значком', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['others'] = [
+      {'mushroom_type': 'boletus_edulis', 'name_ua': 'Білий гриб', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
+      {'mushroom_type': 'hydnum_repandum', 'name_ua': 'Їжовик жовтуватий', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
+    ];
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('other-species')), findsOneWidget);
+    expect(find.text('Інші гриби сезону (2)'), findsOneWidget);
+    expect(find.text('Білий гриб'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('other-species')));
+    await tester.tap(find.byKey(const ValueKey('other-species')));
+    await tester.pump();
+    expect(find.text('Білий гриб'), findsOneWidget);
+    expect(find.text('Холодно: 3° за тиждень, потрібно від 10°'), findsNWidgets(2));
+    // інший день — своїх «інших» немає → кнопки немає
+    await tester.ensureVisible(find.byKey(const ValueKey('day-2026-11-12')));
+    await tester.tap(find.byKey(const ValueKey('day-2026-11-12')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('other-species')), findsNothing);
+    // значок рівня в смужці днів
+    expect(find.byIcon(Icons.remove_rounded), findsWidgets); // «Середня»
+  });
+
+  testWidgets('Знахідки: звірка з прогнозом і торішні — під мінікартою', (tester) async {
+    final json = {
+      ...daysJson(),
+      'finds': {
+        'verification_label': 'Ваші знахідки тут збіглися з прогнозом: 2 з 3',
+        'last_year': [
+          {'lat': 50.41, 'lng': 30.51, 'mushroom_type': 'flammulina_velutipes', 'name': 'Зимовий опеньок', 'date_label': '12.11.2025'},
+        ],
+        'last_year_label': 'Торік у ці тижні: 1 знахідка',
+      },
+    };
+    final r = AnalysisResult.fromJson(json);
+    expect(r.finds!.lastYear.single.dateLabel, '12.11.2025');
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: AnalysisResultView(result: r, miniMapBuilder: (_) => const SizedBox(height: 40))),
+    ));
+    expect(find.text('Ваші знахідки тут збіглися з прогнозом: 2 з 3'), findsOneWidget);
+    expect(find.text('Торік у ці тижні: 1 знахідка'), findsOneWidget);
+  });
+
+  testWidgets('Рельєф і ґрунт — у блоці лісу; дні 5–7 — діапазон моделей у погоді', (tester) async {
+    final json = daysJson();
+    json['forest'] = <String, dynamic>{
+      ...(json['forest'] as Map),
+      'terrain_label': 'Рельєф: низина — вологіше й прохолодніше · Ґрунт: піщаний — після дощу пересихає швидше',
+    };
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['weather'] = <String, dynamic>{...(days[0]['weather'] as Map), 'range_label': 'Різні моделі: опади 2–11 мм, 3…10°'};
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('terrain-label')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-range')));
+    expect(find.text('Різні моделі: опади 2–11 мм, 3…10°'), findsOneWidget);
+  });
+
+  testWidgets('Коли їхати — схід / захід сонця і що взяти, у розширених даних погоди', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['weather'] = <String, dynamic>{
+      ...(days[0]['weather'] as Map),
+      'sun_label': 'Схід 07:12 · захід 16:08 · світла 8 год 56 хв',
+      'take_label': 'Візьміть: дощовик, гумові чоботи',
+    };
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('weather-when')), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-advanced')));
+    await tester.tap(find.byKey(const ValueKey('weather-advanced')));
+    await tester.pump();
+    expect(find.text('Схід 07:12 · захід 16:08 · світла 8 год 56 хв'), findsOneWidget);
+    expect(find.text('Візьміть: дощовик, гумові чоботи'), findsOneWidget);
+  });
 }

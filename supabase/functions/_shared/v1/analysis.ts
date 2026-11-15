@@ -46,8 +46,20 @@ import {
   type TokenVerifier,
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
-import { SCENE_LABEL, sceneSprouts, weatherBlock, weatherScene, weatherVerdict } from "./forecast-labels.ts";
+import {
+  otherReasonLabel,
+  SCENE_LABEL,
+  sceneSprouts,
+  sunLabel,
+  takeLabel,
+  weatherBlock,
+  weatherScene,
+  weatherVerdict,
+} from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
+import { IDENTIFY } from "./identify-data.ts";
+import { type Terrain, terrainLabel } from "../forecast/terrain.ts";
+import type { DayRange } from "../forecast/weather.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -257,6 +269,8 @@ export interface AreaForecastInput {
   dates: string[];
   forestType: string | null;
   homeRegionId: number;
+  /** Рельєф і ґрунт ділянки — поправки рушія плодоношення. */
+  terrain?: Terrain | null;
 }
 
 export interface AnalysisDeps {
@@ -264,6 +278,10 @@ export interface AnalysisDeps {
   verify: TokenVerifier;
   /** Прогноз для центру ділянки з заданим типом лісу на кожен день `dates` (у тому ж порядку). */
   forecast: (input: AreaForecastInput) => Promise<ForecastResult[]>;
+  /** Діапазони погоди днів 4–7 за ансамблем моделей; немає — без діапазону. */
+  ensemble?: (lat: number, lng: number) => Promise<Record<string, DayRange>>;
+  /** Рельєф і ґрунт квадрата (Open-Meteo Elevation, SoilGrids); немає — без поправок. */
+  terrain?: (lat: number, lng: number, sizeKm: number) => Promise<Terrain>;
   /** Чи є в користувача Pro-аналіз (entitlements, B6.3). До запуску Pro — немає ні в кого. */
   hasAnalysisPro?: (userId: string) => Promise<boolean>;
   now?: () => Date;
@@ -310,7 +328,7 @@ export function secondsToKyivMidnight(now: Date): number {
 /** Нова ділянка з центром у точці або повторний аналіз збереженої. */
 export type AnalysisTarget =
   | { kind: "create"; lat: number; lng: number; sizeKm: AnalysisSize }
-  | { kind: "area"; areaId: string };
+  | { kind: "area"; areaId: string; daily?: boolean };
 
 export interface AnalysisInput {
   target: AnalysisTarget;
@@ -381,7 +399,8 @@ export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
     if (obj.lat !== undefined || obj.lng !== undefined || obj.size_km !== undefined) {
       throw validationError("Ділянку не можна змінити: передайте або area_id, або lat/lng/size_km для нової");
     }
-    target = { kind: "area", areaId: obj.area_id.toLowerCase() };
+    if (obj.refresh !== undefined && obj.refresh !== "daily") throw validationError("refresh — лише \"daily\"");
+    target = { kind: "area", areaId: obj.area_id.toLowerCase(), daily: obj.refresh === "daily" };
   } else {
     if (typeof obj.lat !== "number" || !Number.isFinite(obj.lat) || obj.lat < -90 || obj.lat > 90) {
       throw validationError("lat — широта від -90 до 90");
@@ -533,12 +552,13 @@ export interface AreaRow {
   last_analyzed_at?: string | null;
   forest_override?: unknown;
   label?: string | null;
+  terrain?: Terrain | null;
 }
 
 async function loadAreas(db: AnalysisDb, userId: string): Promise<AreaRow[]> {
   const { data, error } = await db
     .from("analysis_areas")
-    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override, label")
+    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override, label, terrain")
     .eq("user_id", userId);
   if (error) dbFail("analysis_areas select", error);
   return ((data ?? []) as AreaRow[]).sort((a, b) => a.slot - b.slot);
@@ -595,6 +615,70 @@ export function validateAreaLabel(raw: unknown): string | null {
   if ([...v].length > AREA_LABEL_MAX) throw validationError(`Назва ділянки — до ${AREA_LABEL_MAX} символів`);
   return v;
 }
+
+/**
+ * PUT v1-analysis/push { token, platform, wave_alerts? } — пристрій для сповіщень «Почалась
+ * хвиля» (Pro або «Слідопит», ADR-015 §15.8 п.19). Відповідь каже, чи сповіщення доступні.
+ */
+async function registerPush(req: Request, user: AuthUser, deps: AnalysisDeps): Promise<Response> {
+  const body = await readJson(req);
+  if (body === null || typeof body !== "object" || Array.isArray(body)) throw validationError("Очікується { token, platform }");
+  const b = body as Record<string, unknown>;
+  if (typeof b.token !== "string" || b.token.length < 20 || b.token.length > 4096 || /\s/.test(b.token)) {
+    throw validationError("token — токен пристрою");
+  }
+  if (b.platform !== "android" && b.platform !== "ios") throw validationError("platform — android або ios");
+  if (b.wave_alerts !== undefined && typeof b.wave_alerts !== "boolean") throw validationError("wave_alerts — true або false");
+  const enabled = b.wave_alerts !== false;
+  const { error } = await deps.db.rpc("register_push_device", {
+    p_user_id: user.id, p_token: b.token, p_platform: b.platform, p_wave_alerts: enabled,
+  });
+  if (error) dbFail("register_push_device", error);
+  const allowed = (await hasPro(deps, user)) || (await loadRating(deps.db, user.id)) >= TRACKER_RATING;
+  return ok({
+    registered: true,
+    wave_alerts: enabled,
+    allowed,
+    locked_label: allowed ? null : WAVE_ALERTS_LOCKED_LABEL,
+  }, req);
+}
+
+export const WAVE_ALERTS_LOCKED_LABEL = "Сповіщення про хвилі — у Pro або з рівня «Слідопит»";
+
+/**
+ * Аналіз ділянки для щоденних сповіщень (v1-wave-alerts): сьогоднішній збережений результат,
+ * або безкоштовне щоденне оновлення. `null` — ділянку неможливо проаналізувати.
+ */
+export async function alertAnalysis(
+  deps: AnalysisDeps,
+  userId: string,
+  row: AreaRow,
+  now: Date,
+): Promise<{ data: Record<string, unknown>; allowed: boolean } | null> {
+  const point = areaCenter(row);
+  const regionId = await loadHomeRegionId(deps.db, userId);
+  if (!point || regionId === null) return null;
+  const user: AuthUser = { id: userId, isAnonymous: false };
+  const pro = await hasPro(deps, user);
+  const rating = await loadRating(deps.db, userId);
+  const allowed = pro || rating >= TRACKER_RATING;
+  if (!dailyRefreshAllowed(row, now) && row.last_result && typeof row.last_result === "object") {
+    return { data: row.last_result as Record<string, unknown>, allowed };
+  }
+  const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
+  const used = await usedToday(deps.db, userId, row.slot);
+  const area: AreaRef = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km, terrain: row.terrain ?? null };
+  const data = await analyzeArea(
+    deps, area, regionId, { date: kyivToday(now), now, pro, rating, userId }, undefined,
+    parseStoredOverride(row.forest_override), usageBlock(used, limit),
+  );
+  const saved = await deps.db.rpc("save_analysis_result", { p_user_id: userId, p_area_id: row.id, p_result: data });
+  if (saved.error) console.warn("[v1-wave-alerts] save_analysis_result failed:", saved.error);
+  return { data, allowed };
+}
+
+/** Ділянки користувача (для v1-wave-alerts). */
+export const loadUserAreas = (db: AnalysisDb, userId: string) => loadAreas(db, userId);
 
 /** PUT v1-analysis/areas/{id} { label } — підписати ділянку («Біля Броників»). */
 async function renameArea(req: Request, user: AuthUser, deps: AnalysisDeps, areaId: string): Promise<Response> {
@@ -717,7 +801,7 @@ export function pickBest(
 
 function shapeCandidate(c: Candidate | null, result: ForecastResult): Record<string, unknown> | null {
   if (!c) return null;
-  const shaped = shapeSpecies(c.species, result.weather);
+  const shaped = shapeSpecies(c.species, result.weather, { identify: false });
   if (!shaped) return null;
   return { ...shaped, forest_label: c.forestType ? forestTypeStyle(c.forestType).label : null };
 }
@@ -746,6 +830,24 @@ async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regi
   }
 }
 
+/**
+ * Версія результату аналізу: змінюється, коли у відповіді з'являються нові дані (сцена погоди,
+ * «як відрізнити»…). Збережений результат старішої версії оновлюється безкоштовно.
+ */
+export const RESULT_VERSION = 3;
+
+/**
+ * Щоденне оновлення збереженої ділянки — без списання аналізу (рішення PO 2026-11-15): раз
+ * на добу (київську), або коли збережений результат старішої версії.
+ */
+export function dailyRefreshAllowed(row: { last_result?: unknown; last_analyzed_at?: string | null }, now: Date): boolean {
+  if (!row.last_analyzed_at) return true;
+  const last = kyivToday(new Date(row.last_analyzed_at));
+  if (last < kyivToday(now)) return true;
+  const version = (row.last_result as { result_version?: unknown } | null)?.result_version;
+  return typeof version !== "number" || version < RESULT_VERSION;
+}
+
 async function runAnalysis(
   req: Request,
   user: AuthUser,
@@ -764,6 +866,7 @@ async function runAnalysis(
   let area: AreaRef;
   let used: number;
   let override: ForestOverride | null = null;
+  let free = false;
 
   if (input.target.kind === "area") {
     // Повторний аналіз збереженої ділянки — центр і розмір незмінні.
@@ -775,8 +878,17 @@ async function runAnalysis(
       throw new HttpError(403, "pro_required", "Ця ділянка доступна в Pro. Безкоштовно — одна ділянка 5×5 км.");
     }
     await assertInRegion(deps, point.lat, point.lng, regionId);
-    used = await consume(deps, user.id, row.slot, limit, now);
-    area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km };
+    if (input.target.daily) {
+      // Щоденне оновлення — безкоштовно, але не частіше разу на добу.
+      if (!dailyRefreshAllowed(row, now)) {
+        throw new HttpError(409, "already_fresh", "Прогноз ділянки вже оновлено сьогодні.");
+      }
+      used = await usedToday(deps.db, user.id, row.slot);
+      free = true;
+    } else {
+      used = await consume(deps, user.id, row.slot, limit, now);
+    }
+    area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km, terrain: row.terrain ?? null };
     override = parseStoredOverride(row.forest_override);
   } else {
     const t = input.target;
@@ -819,14 +931,14 @@ async function runAnalysis(
 
   try {
     const rating = await loadRating(deps.db, user.id);
-    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro, rating }, input.forestRaw, override, usageBlock(used, limit));
+    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro, rating, userId: user.id }, input.forestRaw, override, usageBlock(used, limit));
     // Останній результат — разом із ділянкою (вкладка «Прогноз», інші пристрої).
     const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: area.id, p_result: data });
     if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
     return ok(data, req);
   } catch (err) {
     // Розрахунок не вдався — списаний аналіз повертаємо.
-    await refund(deps, user.id, area.slot);
+    if (!free) await refund(deps, user.id, area.slot);
     if (err instanceof HttpError) throw err;
     console.error("[v1-analysis] analysis failed:", err);
     throw new HttpError(500, "internal_error", "Не вдалося виконати аналіз. Спробуйте ще раз.");
@@ -839,6 +951,7 @@ interface AreaRef {
   lat: number;
   lng: number;
   sizeKm: number;
+  terrain?: Terrain | null;
 }
 
 /** Розрахунок аналізу ділянки (без списань і збереження). */
@@ -846,7 +959,7 @@ async function analyzeArea(
   deps: AnalysisDeps,
   area: AreaRef,
   regionId: number,
-  when: { date: string; now: Date; pro: boolean; rating?: number },
+  when: { date: string; now: Date; pro: boolean; rating?: number; userId?: string },
   forestRaw: unknown,
   override: ForestOverride | null,
   usage: Record<string, unknown>,
@@ -868,18 +981,37 @@ async function analyzeArea(
   const locked = when.pro ? [] : horizonDates(today, PRO_HORIZON_DAYS).slice(dates.length);
 
   // Прогноз для переважних типів лісу (з уточненням — для обраних порід); лісів немає — лише погода.
+  // Рельєф і ґрунт — один раз на ділянку (далі — збережені з нею).
+  let terrain = area.terrain ?? null;
+  if (!terrain && deps.terrain) {
+    try {
+      terrain = await deps.terrain(area.lat, area.lng, area.sizeKm);
+      if (when.userId && (terrain.relief || terrain.soil)) {
+        const saved = await deps.db.rpc("save_area_terrain", { p_user_id: when.userId, p_area_id: area.id, p_terrain: terrain });
+        if (saved.error) console.warn("[v1-analysis] save_area_terrain failed:", saved.error);
+      }
+    } catch (err) {
+      console.warn("[v1-analysis] terrain failed:", err);
+      terrain = null;
+    }
+  }
+
   const forestTypes = forestRunTypes(forest, override);
   const runTypes: Array<string | null> = forestTypes.length > 0 ? forestTypes : [null];
   const runs: Array<{ forestType: string | null; results: ForecastResult[] }> = [];
   for (const forestType of runTypes) {
-    const results = await deps.forecast({ lat: area.lat, lng: area.lng, dates, forestType, homeRegionId: regionId });
+    const results = await deps.forecast({ lat: area.lat, lng: area.lng, dates, forestType, homeRegionId: regionId, terrain });
     if (results.length !== dates.length) throw new Error(`forecast returned ${results.length} days, expected ${dates.length}`);
     runs.push({ forestType, results });
   }
 
+  // Дні 4–7 (Pro): діапазон погоди за ансамблем моделей — чесне «орієнтовно».
+  const ranges = deps.ensemble && dates.some((d) => daysAhead(d, today) >= APPROXIMATE_FROM_DAY)
+    ? await deps.ensemble(area.lat, area.lng).catch(() => ({} as Record<string, DayRange>))
+    : {};
   const days = dates.map((date, i) => {
     const dayRuns = runs.map((r) => ({ forestType: r.forestType, result: r.results[i] }));
-    return analyzeDay(date, today, dayRuns, hasForest);
+    return analyzeDay(date, today, dayRuns, hasForest, ranges[date]);
   });
   const selected = days[Math.max(0, dates.indexOf(when.date))];
 
@@ -894,7 +1026,7 @@ async function analyzeArea(
       bbox: forest.bbox,
     },
     date: selected.view.date,
-    forest: shapeForest(forest, override),
+    forest: { ...shapeForest(forest, override), terrain_label: terrainLabel(terrain) },
     top1: selected.view.top1,
     alternative: selected.view.alternative,
     weather: selected.view.weather,
@@ -906,10 +1038,26 @@ async function analyzeArea(
     locked_days: locked.map((date) => ({ date, day_label: dayLabel(date, today) })),
     locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
     basket: selected.view.basket,
+    others: selected.view.others,
     week_animation: weekAnimation(when.pro, when.rating ?? 0),
     // «Розширені дані погоди»: дощ → гриби, що сталося, шкали, що далі.
+    result_version: RESULT_VERSION,
+    // «Як відрізнити» — один раз на вид (не в кожному дні).
+    identify: identifyFor(days.map((d) => d.view)),
     weather_insight: weatherInsight(runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today)),
   };
+  if (when.userId) {
+    // Прогноз сьогоднішнього дня — в історію (звірка зі знахідками, калібрування).
+    const todayView = days[dates.indexOf(today)]?.view;
+    if (todayView) {
+      const species = (todayView.basket ?? []).map((b) => String(b.mushroom_type));
+      const saved = await deps.db.rpc("save_analysis_history", {
+        p_user_id: when.userId, p_area_id: area.id, p_day: today, p_species: species,
+      });
+      if (saved.error) console.warn("[v1-analysis] save_analysis_history failed:", saved.error);
+    }
+    data.finds = await areaFinds(deps, when.userId, area.id, today, dates.length);
+  }
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
 }
@@ -917,7 +1065,7 @@ async function analyzeArea(
 interface AnalyzedDay {
   view: Record<string, unknown> & {
     date: string; top1: unknown; alternative: unknown; weather: unknown; warnings: string[];
-    no_data_reason: string | null; basket: Array<Record<string, unknown>>;
+    no_data_reason: string | null; basket: Array<Record<string, unknown>>; others: Array<Record<string, unknown>>;
   };
   /** Внутрішній порядок для «найкращого дня» — у відповідь не йде. */
   bestScore: number | null;
@@ -932,6 +1080,7 @@ function analyzeDay(
   today: string,
   runs: Array<{ forestType: string | null; result: ForecastResult }>,
   hasForest: boolean,
+  range?: DayRange,
 ): AnalyzedDay {
   const first = runs[0].result;
   // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
@@ -971,10 +1120,17 @@ function analyzeDay(
           scene,
           scene_label: scene ? SCENE_LABEL[scene] : null,
           sprouts: sceneSprouts(best.top1?.species.fruiting),
+          // Дні 4–7: «Різні моделі: опади 2–11 мм, 3…10°».
+          range_label: approximate && range ? rangeLabel(range) : null,
+          // «Коли їхати»: схід / захід сонця і що взяти.
+          sun_label: dayW ? sunLabel(dayW) : null,
+          take_label: dayW ? takeLabel(dayW, first.weather) : null,
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
       basket: hasForest ? basketOf(runs) : [],
+      // «Інші гриби сезону» — після натискання кнопки (рішення PO 2026-11-15).
+      others: hasForest ? othersOf(runs) : [],
       no_data_reason: !hasForest ? NO_FOREST_REASON : !best.top1 && first.noDataReason ? first.noDataReason : null,
     },
     bestScore: best.top1 ? best.top1.species.score : null,
@@ -990,6 +1146,91 @@ const NO_FOREST_REASON = "У цій ділянці на карті немає л
 const LEVEL_SHORT_LABEL: Record<ProbabilityLevel, string> = {
   peak: "Пік", high: "Висока", medium: "Середня", low: "Низька", no_data: "—",
 };
+
+/** Скільки днів назад звіряти знахідки з прогнозом. */
+export const FINDS_CHECK_DAYS = 60;
+
+const dmy = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
+
+function shiftDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+interface FindRow { lat: number; lng: number; species_id: string; name_ua: string | null; day: string; matched: boolean | null }
+
+/**
+ * Знахідки в ділянці (рішення PO 2026-11-15): звірка ваших тук-туків за 60 днів із прогнозом
+ * того дня і ваші знахідки за ці ж тижні торік — для мінікарти. Лише власні точки.
+ */
+export async function areaFinds(
+  deps: AnalysisDeps,
+  userId: string,
+  areaId: string,
+  today: string,
+  horizon: number,
+): Promise<Record<string, unknown> | null> {
+  const call = async (from: string, to: string): Promise<FindRow[]> => {
+    const { data, error } = await deps.db.rpc("area_finds", { p_user_id: userId, p_area_id: areaId, p_from: from, p_to: to });
+    if (error) {
+      console.warn("[v1-analysis] area_finds failed:", error);
+      return [];
+    }
+    return (Array.isArray(data) ? data : []) as FindRow[];
+  };
+  const recent = await call(shiftDays(today, -FINDS_CHECK_DAYS), today);
+  const lastYearFrom = shiftDays(today, -365 - 7);
+  const lastYear = await call(lastYearFrom, shiftDays(today, -365 + horizon + 7));
+  const checked = recent.filter((r) => r.matched !== null);
+  const matched = checked.filter((r) => r.matched).length;
+  return {
+    verification: checked.length > 0 ? { matched, total: checked.length } : null,
+    verification_label: checked.length > 0
+      ? `Ваші знахідки тут збіглися з прогнозом: ${matched} з ${checked.length}`
+      : null,
+    last_year: lastYear.slice(0, 30).map((r) => ({
+      lat: r.lat,
+      lng: r.lng,
+      mushroom_type: r.species_id,
+      name: r.name_ua ?? "Гриб",
+      date_label: dmy(String(r.day).slice(0, 10)),
+    })),
+    last_year_label: lastYear.length > 0 ? `Торік у ці тижні: ${lastYear.length} ${lastYear.length === 1 ? "знахідка" : lastYear.length < 5 ? "знахідки" : "знахідок"}` : null,
+  };
+}
+
+/** «Як відрізнити» для видів, що є найкращими або альтернативою хоча б одного дня. */
+export function identifyFor(views: Array<{ top1: unknown; alternative: unknown }>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const v of views) {
+    for (const s of [v.top1, v.alternative] as Array<{ mushroom_type?: string } | null>) {
+      const t = s?.mushroom_type;
+      if (t && IDENTIFY[t] && !out[t]) out[t] = IDENTIFY[t];
+    }
+  }
+  return out;
+}
+
+/**
+ * «Інші гриби сезону»: види в сезоні без шансу в жодному з лісів ділянки — з причиною. Якщо
+ * вид має шанс хоча б в одному лісі, він у кошику, а не тут.
+ */
+export function othersOf(runs: Array<{ forestType: string | null; result: ForecastResult }>): Array<Record<string, unknown>> {
+  const withChance = new Set(runs.flatMap((r) => (r.result.candidates ?? []).map((s) => s.mushroom_type)));
+  const seen = new Map<string, Record<string, unknown>>();
+  for (const run of runs) {
+    for (const s of run.result.others ?? []) {
+      if (withChance.has(s.mushroom_type) || seen.has(s.mushroom_type)) continue;
+      seen.set(s.mushroom_type, {
+        mushroom_type: s.mushroom_type,
+        name_ua: s.name_ua,
+        reason_label: otherReasonLabel(s.missed, run.result.weather),
+      });
+    }
+  }
+  return [...seen.values()].sort((a, b) => String(a.name_ua).localeCompare(String(b.name_ua), "uk"));
+}
 
 /**
  * Кошик мінікарти: усі види зі шансом за день (найкращий рівень серед типів лісу ділянки),
@@ -1036,6 +1277,12 @@ async function loadRating(db: AnalysisDb, userId: string): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/** Діапазон ансамблю одним рядком. */
+export function rangeLabel(r: DayRange): string {
+  const rain = r.rainMax < 1 ? "без опадів" : r.rainMin === r.rainMax ? `опади ${r.rainMax} мм` : `опади ${r.rainMin}–${r.rainMax} мм`;
+  return `Різні моделі: ${rain}, ${r.tMin}…${r.tMax}°`;
 }
 
 /** Іконка смужки днів — узгоджена зі сценою погоди. */
@@ -1115,7 +1362,7 @@ async function editForest(
     const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
     const usage = usageBlock(await usedToday(deps.db, user.id, area.slot), limit);
     const rating = await loadRating(deps.db, user.id);
-    const data = await analyzeArea(deps, area, regionId, { date, now, pro, rating }, obj.forest, override, usage);
+    const data = await analyzeArea(deps, area, regionId, { date, now, pro, rating, userId: user.id }, obj.forest, override, usage);
     const saved = await deps.db.rpc("save_forest_override", {
       p_user_id: user.id,
       p_area_id: area.id,
@@ -1194,6 +1441,7 @@ export async function handleAnalysis(req: Request, deps: AnalysisDeps): Promise<
 
   if (req.method === "PUT") {
     const url = new URL(req.url);
+    if (/\/v1-analysis\/push\/?$/.test(url.pathname)) return await registerPush(req, user, deps);
     const forestId = forestAreaIdFromPath(url);
     if (forestId) return await editForest(req, user, deps, forestId, now);
     const areaId = areaIdFromPath(url);

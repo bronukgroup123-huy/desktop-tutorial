@@ -80,6 +80,7 @@ class AreaMiniMap extends ConsumerStatefulWidget {
     required this.bounds,
     required this.species,
     this.analyzedAt,
+    this.history = const [],
   });
 
   final String areaId;
@@ -88,6 +89,9 @@ class AreaMiniMap extends ConsumerStatefulWidget {
 
   /// Коли зроблено аналіз: новий аналіз — знімок перезнімається.
   final DateTime? analyzedAt;
+
+  /// Ваші знахідки торік у ці тижні.
+  final List<({LatLng point, String type, String name, String dateLabel})> history;
 
   @override
   ConsumerState<AreaMiniMap> createState() => _AreaMiniMapState();
@@ -217,6 +221,7 @@ class _AreaMiniMapState extends ConsumerState<AreaMiniMap> {
         species: widget.species,
         positions: _positions,
         map: map,
+        history: widget.history,
         onMove: (type, p) => _update({..._positions, type: p}),
         onRemove: (type) => _update({..._positions}..remove(type)),
       );

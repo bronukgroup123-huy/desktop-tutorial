@@ -32,6 +32,12 @@ export interface FruitingParams {
   /** Температура ґрунту, за якої гриби ростуть, °C. */
   soilTempMin: number;
   soilTempMax: number;
+  /** Поправки на місце (рельєф, ґрунт — terrain.ts): посуха, що зриває дозрівання, днів. */
+  abortDryDays?: number;
+  /** «Ґрунт вологий до поштовху» — від стількох мм за 10 днів. */
+  primedRainMm?: number;
+  /** Поправка температури ґрунту, °C (низина — холодніше). */
+  soilTOffset?: number;
 }
 
 /** Частка суми тепла, коли грибниця вже готова (ґрунт вологий до поштовху). */
@@ -125,17 +131,18 @@ export function fruitingEvents(s: WeatherSeries, p: FruitingParams): FruitingEve
     const rain = isTrigger(s, k, p, springDone);
     if (rain === null) continue;
     const primed = p.trigger === "thaw" ||
-      sum(s.precip.slice(Math.max(0, k - 10), k)) >= PRIMED_RAIN_MM;
+      sum(s.precip.slice(Math.max(0, k - 10), k)) >= (p.primedRainMm ?? PRIMED_RAIN_MM);
+    const off = p.soilTOffset ?? 0;
     const need = p.maturationDd * (primed ? PRIMED_FRACTION : 1);
     let dd = 0, dry = 0, flushStart: number | null = null, aborted = false;
     for (let j = k + 1; j < s.dates.length; j++) {
-      dd += Math.max(0, (s.soilT[j] ?? s.tmean[j]) - p.ddBase);
+      dd += Math.max(0, (s.soilT[j] ?? s.tmean[j]) + off - p.ddBase);
       dry = (s.precip[j] ?? 0) < 1 ? dry + 1 : 0;
       if (dd >= need) {
         flushStart = j;
         break;
       }
-      if (dry >= ABORT_DRY_DAYS) {
+      if (dry >= (p.abortDryDays ?? ABORT_DRY_DAYS)) {
         aborted = true;
         break;
       }
@@ -185,7 +192,7 @@ export function fruitingState(s: WeatherSeries, date: string, p: FruitingParams,
   // Хвиля, що триває сьогодні. Кілька хвиль накладаються (новий дощ чи відлига посеред
   // хвилі) — береться сильніша: новий поштовх підтримує хвилю, а не починає відлік заново
   // (раніше бралась найпізніша — і «1-й день, підйом» знижував рівень посеред розпалу).
-  const soilT = s.soilT[i] ?? s.tmean[i];
+  const soilT = (s.soilT[i] ?? s.tmean[i]) + (p.soilTOffset ?? 0);
   const soilFit = soilTempFit(soilT, p);
   let best: FruitingState | null = null;
   for (const ev of events) {
