@@ -57,6 +57,7 @@ export interface FruitingEvent {
 }
 
 export type FruitingPhase = "flush" | "maturing" | "after" | "idle";
+export type FlushStage = "rise" | "peak" | "decline";
 
 export interface FruitingState {
   phase: FruitingPhase;
@@ -65,6 +66,13 @@ export interface FruitingState {
   flushDays?: number;
   /** Сила хвилі 0..1 з урахуванням температури ґрунту. */
   intensity: number;
+  /** Хвиля: підйом / розпал / спад (форма хвилі). */
+  stage?: FlushStage;
+  /** Хвиля: наскільки температура ґрунту підходить (1 / 0.6 / 0.25). */
+  soilFit?: number;
+  /** Хвиля: температура ґрунту дня, °C; [soilCold] — нижче за оптимум виду (інакше вище). */
+  soilT?: number;
+  soilCold?: boolean;
   /** Дата й опади поштовху, від якого ця хвиля / дозрівання. */
   triggerDate?: string;
   triggerRain?: number;
@@ -137,11 +145,21 @@ export function fruitingEvents(s: WeatherSeries, p: FruitingParams): FruitingEve
   return events;
 }
 
+/** Межі стадій хвилі: підйом — перші ~20% днів, спад — з ~65%. */
+export function flushStages(days: number): { rise: number; fallFrom: number } {
+  return { rise: Math.max(1, Math.round(days * 0.2)), fallFrom: days * 0.65 };
+}
+
+/** Стадія хвилі на день [day] (з 0). */
+export function flushStage(day: number, days: number): FlushStage {
+  const { rise, fallFrom } = flushStages(days);
+  return day < rise ? "rise" : day < fallFrom ? "peak" : "decline";
+}
+
 /** Форма хвилі: підйом (перші ~20% днів), розпал, спад до ~0.4 наприкінці. */
 export function flushShape(day: number, days: number): number {
-  const rise = Math.max(1, Math.round(days * 0.2));
+  const { rise, fallFrom } = flushStages(days);
   if (day < rise) return 0.55 + 0.45 * (day + 1) / rise;
-  const fallFrom = days * 0.65;
   if (day < fallFrom) return 1;
   return Math.max(0.4, 1 - 0.6 * (day - fallFrom) / Math.max(1, days - fallFrom));
 }
@@ -164,19 +182,26 @@ export function fruitingState(s: WeatherSeries, date: string, p: FruitingParams,
   let events = perSeries.get(key);
   if (!events) perSeries.set(key, events = fruitingEvents(s, p));
 
-  // Хвиля, що триває сьогодні (найпізніша з тих, що почалися).
-  for (let e = events.length - 1; e >= 0; e--) {
-    const ev = events[e];
+  // Хвиля, що триває сьогодні. Кілька хвиль накладаються (новий дощ чи відлига посеред
+  // хвилі) — береться сильніша: новий поштовх підтримує хвилю, а не починає відлік заново
+  // (раніше бралась найпізніша — і «1-й день, підйом» знижував рівень посеред розпалу).
+  const soilT = s.soilT[i] ?? s.tmean[i];
+  const soilFit = soilTempFit(soilT, p);
+  let best: FruitingState | null = null;
+  for (const ev of events) {
     if (ev.flushStart === null || ev.flushStart > i) continue;
     const day = i - ev.flushStart;
-    if (day < p.flushDays) {
-      const intensity = flushShape(day, p.flushDays) * soilTempFit(s.soilT[i] ?? s.tmean[i], p);
-      return {
-        phase: "flush", flushDay: day + 1, flushDays: p.flushDays, intensity,
-        triggerDate: s.dates[ev.trigger], triggerRain: ev.triggerRain,
-      };
-    }
+    if (day >= p.flushDays) continue;
+    const intensity = flushShape(day, p.flushDays) * soilFit;
+    // Рівні за силою — старша хвиля (довший відлік, без «скидання» на 1-й день).
+    if (best && intensity <= best.intensity) continue;
+    best = {
+      phase: "flush", flushDay: day + 1, flushDays: p.flushDays, intensity,
+      stage: flushStage(day, p.flushDays), soilFit, soilT, soilCold: soilT < p.soilTempMin,
+      triggerDate: s.dates[ev.trigger], triggerRain: ev.triggerRain,
+    };
   }
+  if (best) return best;
   // Дозрівання: поштовх уже був, хвиля ще попереду (або за межами ряду).
   for (let e = events.length - 1; e >= 0; e--) {
     const ev = events[e];

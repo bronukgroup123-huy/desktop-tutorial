@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -208,17 +210,26 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
                 ),
               ],
             ),
+            // Чому саме такий рівень — одним реченням, одразу під назвою (рішення PO 2026-11-15).
+            if (species.reasonLabel != null) ...[
+              const SizedBox(height: 10),
+              _ReasonBox(text: species.reasonLabel!, color: species.levelColor),
+            ],
             const SizedBox(height: 10),
-            _Line(icon: Icons.schedule_rounded, text: species.whenLabel),
+            // Хвиля: смужка «підйом · розпал · спад» з позначкою дня; інакше — рядок «коли».
+            if (species.wave?.isFlush ?? false)
+              WaveStrip(wave: species.wave!)
+            else
+              _Line(icon: Icons.schedule_rounded, text: species.whenLabel),
             _Line(icon: Icons.place_outlined, text: species.whereLabel),
             if (_advanced) ...[
               if (species.whyLabels.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, muted: true),
+                const _SectionTitle('Сприяє'),
+                for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, color: const Color(0xff2e7d32)),
               ],
               // Чому рівень не вищий — інакше «✓» суперечили б бейджу (напр. «Низька»).
               if (species.limitLabels.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const _SectionTitle('Не вистачає'),
                 for (final limit in species.limitLabels)
                   _Line(icon: Icons.error_outline_rounded, text: limit, color: AppTheme.accentOrange),
               ],
@@ -243,12 +254,163 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
   }
 }
 
+/// «Чому середня: …» — підсвічено кольором рівня, префікс жирним.
+class _ReasonBox extends StatelessWidget {
+  const _ReasonBox({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = text.indexOf(': ');
+    final dark = Color.lerp(color, Colors.black, 0.35)!;
+    return Container(
+      key: const ValueKey('species-reason'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+      child: Text.rich(
+        TextSpan(children: [
+          if (i > 0) TextSpan(text: '${text.substring(0, i + 1)} ', style: const TextStyle(fontWeight: FontWeight.w700)),
+          TextSpan(text: i > 0 ? text.substring(i + 2) : text),
+        ]),
+        style: TextStyle(color: dark, height: 1.3),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: 2),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+        ),
+      );
+}
+
+/// Смужка хвилі плодоношення: дні хвилі клітинками, стадії (підйом / розпал / спад) кольором,
+/// пройдені дні — насиченіше, сьогоднішній — з позначкою. Лише дні й підписи із сервера.
+class WaveStrip extends StatelessWidget {
+  const WaveStrip({super.key, required this.wave});
+
+  final SpeciesWave wave;
+
+  static const stageColors = [Color(0xff9ccc65), Color(0xff2e7d32), Color(0xffc9a227)];
+
+  @override
+  Widget build(BuildContext context) {
+    final days = wave.days!, day = wave.day!.clamp(1, wave.days!);
+    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final cells = <Color>[];
+    for (var g = 0; g < wave.segments.length; g++) {
+      for (var k = 0; k < wave.segments[g].days; k++) {
+        cells.add(stageColors[math.min(g, stageColors.length - 1)]);
+      }
+    }
+    while (cells.length < days) {
+      cells.add(stageColors.last);
+    }
+    return Padding(
+      key: const ValueKey('wave-strip'),
+      padding: const EdgeInsets.only(top: 2, bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.waves_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.8)),
+              const SizedBox(width: 8),
+              Expanded(child: Text(wave.label ?? '', style: const TextStyle(color: AppTheme.darkGreen))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(builder: (context, box) {
+            final w = box.maxWidth / days;
+            return SizedBox(
+              height: 24,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    top: 8,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < days; i++)
+                          Container(
+                            width: w,
+                            padding: const EdgeInsets.symmetric(horizontal: 0.75),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: cells[i].withValues(alpha: i < day ? 1 : 0.28),
+                                borderRadius: BorderRadius.horizontal(
+                                  left: Radius.circular(i == 0 ? 6 : 1.5),
+                                  right: Radius.circular(i == days - 1 ? 6 : 1.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Позначка сьогоднішнього дня хвилі.
+                  Positioned(
+                    left: (day - 0.5) * w - 7,
+                    top: -2,
+                    child: Container(
+                      key: const ValueKey('wave-today'),
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cells[day - 1], width: 3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              for (var g = 0; g < wave.segments.length; g++)
+                Expanded(
+                  flex: wave.segments[g].days,
+                  child: Text(
+                    wave.segments[g].label,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: muted,
+                      fontWeight: _stageIndex == g ? FontWeight.w700 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  int get _stageIndex => switch (wave.stage) { 'rise' => 0, 'peak' => 1, 'decline' => 2, _ => -1 };
+}
+
 class _Line extends StatelessWidget {
-  const _Line({required this.icon, required this.text, this.muted = false, this.color});
+  const _Line({required this.icon, required this.text, this.color});
 
   final IconData icon;
   final String text;
-  final bool muted;
 
   /// Колір іконки (напр. помаранчевий для обмежувальних факторів).
   final Color? color;
@@ -259,10 +421,10 @@ class _Line extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: color ?? AppTheme.darkGreen.withValues(alpha: muted ? 0.5 : 0.8)),
+            Icon(icon, size: 18, color: color ?? AppTheme.darkGreen.withValues(alpha: 0.8)),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(text, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: muted ? 0.75 : 1))),
+              child: Text(text, style: const TextStyle(color: AppTheme.darkGreen)),
             ),
           ],
         ),

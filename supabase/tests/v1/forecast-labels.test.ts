@@ -6,7 +6,10 @@ import {
   humanizeLimit,
   humanizeReason,
   MAX_WHY,
+  levelReasonLabel,
+  waveBlock,
   weatherBlock,
+  weatherVerdict,
   whenLabel,
   whyLabels,
 } from "../../functions/_shared/v1/forecast-labels.ts";
@@ -123,4 +126,51 @@ Deno.test("рушій плодоношення: поштовх за його в�
 
 Deno.test("whyLabels: «в оптимумі» без дублю «температура підходить»", () => {
   assertEquals(whyLabels(["temp 6 within fruiting range", "in peak temp [5,12]"], W), ["Температура в оптимумі для виду"]);
+});
+
+// ─── Чому такий рівень, смужка хвилі, висновок погоди (рішення PO 2026-11-15) ──────
+
+Deno.test("Чому середня: хвиля тільки починається — головне, що стримує, першим", () => {
+  const s = {
+    mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", score: 0.6, probability: "medium",
+    matched: ["fruiting flush 1/20 thaw 0 2026-11-14"], missed: [], wave: null,
+    fruiting: {
+      phase: "flush", flushDay: 1, flushDays: 20, intensity: 0.66, stage: "rise", soilFit: 1, soilT: 4,
+      soilCold: false, triggerDate: "2026-11-14", triggerRain: 0,
+    },
+  } as unknown as ScoredSpecies;
+  const shaped = shapeSpecies(s, W)!;
+  assertEquals(shaped.reason_label, "Чому середня: хвиля тільки починається — гриби ще дрібні й поодинокі");
+  assertEquals((shaped.limit_labels as string[])[0], "Хвиля тільки починається — гриби ще дрібні й поодинокі");
+  // розмите «Умови сприятливі лише частково» більше не з'являється
+  assertEquals((shaped.limit_labels as string[]).includes("Умови сприятливі лише частково"), false);
+  assertEquals(shaped.wave, {
+    phase: "flush", day: 1, days: 20, stage: "rise", label: "Хвиля зараз — 1-й день з 20",
+    segments: [{ days: 4, label: "підйом" }, { days: 9, label: "розпал" }, { days: 7, label: "спад" }],
+  });
+});
+
+Deno.test("Чому висока / низька; холодний ґрунт; не хвиля — лише фаза", () => {
+  const peak = { phase: "flush", flushDay: 6, flushDays: 10, intensity: 1, stage: "peak" } as const;
+  assertEquals(levelReasonLabel("high", [], ["Підходящий ліс"], peak), "Чому висока: хвиля в розпалі — грибів найбільше");
+  assertEquals(levelReasonLabel("low", ["Мало дощу: 2 мм за 3 дні (краще від 10 мм)"], [], undefined),
+    "Чому низька: мало дощу: 2 мм за 3 дні (краще від 10 мм)");
+  assertEquals(levelReasonLabel("no_data", [], [], undefined), null);
+  const cold = shapeSpecies({
+    mushroom_type: "x", name_ua: "X", score: 0.5, probability: "medium", matched: [], missed: [], wave: null,
+    fruiting: { phase: "flush", flushDay: 5, flushDays: 10, intensity: 0.6, stage: "peak", soilFit: 0.6, soilT: 6.6, soilCold: true },
+  } as unknown as ScoredSpecies, W)!;
+  assertEquals(cold.reason_label, "Чому середня: ґрунт прохолодний (7°) — гриби ростуть повільно");
+  assertEquals(waveBlock({ phase: "maturing", intensity: 0, expectedStart: "2026-11-20" }),
+    { phase: "maturing", label: "Хвиля орієнтовно з 20.11" });
+  assertEquals(waveBlock(undefined), null);
+});
+
+Deno.test("Висновок погоди для грибів: сухо / холодно / свіжий дощ / волого / помірно", () => {
+  assertEquals(weatherVerdict({ ...W, droughtDays: 12 })!.tone, "bad");
+  assertEquals(weatherVerdict({ ...W, tempAvg7d: 1 })!.label, "Холодно — ростуть лише зимові гриби (зимовий опеньок, глива)");
+  assertEquals(weatherVerdict({ ...W, rain3d: 16 })!.tone, "good");
+  assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 18 })!.label, "Ґрунт вологий після дощів — добре для грибів");
+  assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 6, rain14d: 10 })!.tone, "neutral");
+  assertEquals(weatherVerdict({ ...W, source: "unavailable" }), null);
 });

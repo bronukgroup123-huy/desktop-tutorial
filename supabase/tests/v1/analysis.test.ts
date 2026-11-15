@@ -175,7 +175,7 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
     ],
     extra: [],
     refined: false,
-    refine_note_label: null,
+    refine_note_label: "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх.",
   });
   assertEquals(a.top1.name_ua, "Білий гриб");
   assertEquals(a.top1.level, "high");
@@ -373,7 +373,9 @@ Deno.test("analysis POST: базова погода — температура, 
   };
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
-  assertEquals(Object.keys(json.data.weather ?? {}).sort(), ["day_label", "humidity_label", "icon", "rain_label", "temp_label"]);
+  assertEquals(Object.keys(json.data.weather ?? {}).sort(), [
+    "day_label", "humidity_label", "icon", "rain_label", "temp_label", "verdict_label", "verdict_tone",
+  ]);
 });
 
 Deno.test("analysis POST: погода дня — температура й опади саме цього дня", async () => {
@@ -391,6 +393,33 @@ Deno.test("analysis POST: погода дня — температура й оп
   const days = json.data.days as Array<{ weather: { icon: string; day_label: string } }>;
   assertEquals(days.map((d) => d.weather.icon), ["sun", "rain", "sun"]);
   assertEquals(days.map((d) => d.weather.day_label), ["4…11°, без опадів", "4…11°, опади 8 мм", "4…11°, без опадів"]);
+});
+
+Deno.test("analysis POST: графік погоди — тиждень до сьогодні (факт) + дні горизонту (прогноз)", async () => {
+  const day = (date: string, rain: number) => ({ date, tempMin: 1.4, tempMax: 7.6, rain, humidity: 80, daysAhead: 0 });
+  const forecast = (input: DayInput) => {
+    const date = input.date.toISOString().slice(0, 10);
+    const weather = {
+      tempMin: 1, tempMax: 8, tempAvg7d: 4, humidity: 85, rain1d: 0, rain3d: 12, rain7d: 25, rain14d: 30,
+      droughtDays: 0, daysAfterRain: 2, pressure: 1012, pressureTrend: "stable", source: "open-meteo",
+      day: day(date, date === "2026-11-12" ? 9.04 : 0),
+      recent: ["2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", date]
+        .map((d, k) => day(d, k === 2 ? 14 : 0)),
+    };
+    return Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
+  };
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  const chart = json.data.weather_chart;
+  assertEquals(chart.days.length, 9); // 05.11–11.11 + 12.11, 13.11
+  assertEquals(chart.days[0], {
+    date: "2026-11-05", label: "Чт", date_label: "05.11", tmin: 1, tmax: 8, rain: 0, forecast: false, today: false,
+  });
+  assertEquals(chart.days[2].rain, 14);
+  assertEquals(chart.days.filter((d: { today: boolean }) => d.today).map((d: { date: string }) => d.date), ["2026-11-11"]);
+  assertEquals(chart.days.filter((d: { forecast: boolean }) => d.forecast).map((d: { rain: number }) => d.rain), [9, 0]);
+  // висновок для грибів: свіжий дощ (12 мм за 3 дні)
+  assertEquals(json.data.days[0].weather.verdict_tone, "good");
+  assert(json.data.days[0].weather.verdict_label.includes("Свіжий дощ"));
 });
 
 Deno.test("analysis POST: розрахунок упав → 500 і списаний аналіз повернуто", async () => {

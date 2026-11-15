@@ -1062,6 +1062,27 @@ components:
           properties:
             allowed: { type: boolean }
             locked_label: { type: [string, 'null'], example: 'Анімація тижня — у Pro або з рівня «Слідопит»' }
+        weather_chart:
+          type: [object, 'null']
+          description: Графік погоди — 7 днів до сьогодні (факт) і дні горизонту (прогноз)
+          properties:
+            title_label: { type: string }
+            rain_legend_label: { type: string, example: 'опади, мм' }
+            temp_legend_label: { type: string, example: 'температура, °' }
+            days:
+              type: array
+              items:
+                type: object
+                required: [date, label, date_label, tmin, tmax, rain, forecast, today]
+                properties:
+                  date: { type: string, format: date }
+                  label: { type: string, example: Пн }
+                  date_label: { type: string, example: '16.11' }
+                  tmin: { type: integer }
+                  tmax: { type: integer }
+                  rain: { type: number, description: мм за добу }
+                  forecast: { type: boolean }
+                  today: { type: boolean }
 
     AnalysisBasketSpecies:
       type: object
@@ -1083,6 +1104,8 @@ components:
         temp_label: { type: string }
         humidity_label: { type: string }
         rain_label: { type: string }
+        verdict_label: { type: [string, 'null'], example: 'Ґрунт вологий після дощів — добре для грибів', description: Що погода означає для грибів }
+        verdict_tone: { type: [string, 'null'], enum: [good, neutral, bad, null] }
 
     AnalysisDay:
       type: object
@@ -1210,6 +1233,26 @@ components:
           maxItems: 4
           description: Що знижує рівень (показується з попередженням, не з «✓»)
           items: { type: string }
+        reason_label:
+          type: [string, 'null']
+          example: 'Чому середня: хвиля тільки починається — гриби ще дрібні й поодинокі'
+          description: Одне речення — чому саме такий рівень
+        wave:
+          type: [object, 'null']
+          description: Хвиля плодоношення для смужки — день і стадії, без чисел сили хвилі
+          properties:
+            phase: { type: string, enum: [flush, maturing, after, idle] }
+            label: { type: [string, 'null'], example: 'Хвиля зараз — 3-й день з 20' }
+            day: { type: integer }
+            days: { type: integer }
+            stage: { type: [string, 'null'], enum: [rise, peak, decline, null] }
+            segments:
+              type: array
+              items:
+                type: object
+                properties:
+                  days: { type: integer }
+                  label: { type: string, example: розпал }
           example: ['Вологість 55% — замало (краще від 70%)', 'Сухий ґрунт']
 
     ForecastWeather:
