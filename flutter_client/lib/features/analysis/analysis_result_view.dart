@@ -511,7 +511,7 @@ class _OtherSpeciesBlockState extends State<OtherSpeciesBlock> {
           onPressed: () => setState(() => _open = !_open),
           style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
           icon: Icon(_open ? Icons.expand_less_rounded : Icons.spa_outlined, size: 20),
-          label: Text(_open ? 'Сховати інші гриби' : 'Інші гриби сезону (${widget.others.length})'),
+          label: Text(_open ? 'Сховати інші гриби' : 'Інші гриби (${widget.others.length})'),
         ),
         if (_open)
           Container(
@@ -521,60 +521,57 @@ class _OtherSpeciesBlockState extends State<OtherSpeciesBlock> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, bottom: 2),
-                  child: Text('У сезоні, але сьогодні без шансу:', style: TextStyle(fontSize: 12, color: muted)),
-                ),
-                for (final o in widget.others)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Сірий стікер — шансу цього дня немає.
-                        ColorFiltered(
-                          colorFilter: const ColorFilter.matrix(<double>[
-                            0.33,
-                            0.33,
-                            0.33,
-                            0,
-                            0,
-                            0.33,
-                            0.33,
-                            0.33,
-                            0,
-                            0,
-                            0.33,
-                            0.33,
-                            0.33,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: SpeciesIcon(type: o.type, fallbackColor: const Color(0xff94a3b8), size: 30),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(o.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
-                              Text(o.reason, style: TextStyle(fontSize: 13, color: muted)),
-                            ],
-                          ),
-                        ),
-                      ],
+                for (final (group, title) in const [
+                  ('today', 'У сезоні, але сьогодні без шансу'),
+                  ('season', 'Дерева для них є, але сезон минув або ще не почався'),
+                ])
+                  if (widget.others.any((o) => o.group == group)) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 2),
+                      child: Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: muted)),
                     ),
-                  ),
+                    for (final o in widget.others.where((o) => o.group == group)) _OtherRow(other: o),
+                  ],
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _OtherRow extends StatelessWidget {
+  const _OtherRow({required this.other});
+
+  final OtherSpecies other;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Сірий стікер — шансу цього дня немає.
+          ColorFiltered(
+            colorFilter: const ColorFilter.matrix(<double>[
+              0.33, 0.33, 0.33, 0, 0, 0.33, 0.33, 0.33, 0, 0, 0.33, 0.33, 0.33, 0, 0, 0, 0, 0, 1, 0,
+            ]),
+            child: SpeciesIcon(type: other.type, fallbackColor: const Color(0xff94a3b8), size: 30),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(other.name, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                Text(other.reason, style: TextStyle(fontSize: 13, color: muted)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

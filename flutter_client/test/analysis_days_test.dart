@@ -293,17 +293,21 @@ void main() {
     days[0]['others'] = [
       {'mushroom_type': 'boletus_edulis', 'name_ua': 'Білий гриб', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
       {'mushroom_type': 'hydnum_repandum', 'name_ua': 'Їжовик жовтуватий', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
+      {'mushroom_type': 'leccinum_scabrum', 'name_ua': 'Підберезник', 'reason_label': 'Сезон 01.05–31.10 уже минув', 'group': 'season'},
     ];
     json['days'] = days;
     await _pump(tester, AnalysisResult.fromJson(json));
     expect(find.byKey(const ValueKey('other-species')), findsOneWidget);
-    expect(find.text('Інші гриби сезону (2)'), findsOneWidget);
+    expect(find.text('Інші гриби (3)'), findsOneWidget);
     expect(find.text('Білий гриб'), findsNothing);
     await tester.ensureVisible(find.byKey(const ValueKey('other-species')));
     await tester.tap(find.byKey(const ValueKey('other-species')));
     await tester.pump();
     expect(find.text('Білий гриб'), findsOneWidget);
     expect(find.text('Холодно: 3° за тиждень, потрібно від 10°'), findsNWidgets(2));
+    expect(find.text('У сезоні, але сьогодні без шансу'), findsOneWidget);
+    expect(find.text('Дерева для них є, але сезон минув або ще не почався'), findsOneWidget);
+    expect(find.text('Сезон 01.05–31.10 уже минув'), findsOneWidget);
     // інший день — своїх «інших» немає → кнопки немає
     await tester.ensureVisible(find.byKey(const ValueKey('day-2026-11-12')));
     await tester.tap(find.byKey(const ValueKey('day-2026-11-12')));

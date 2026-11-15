@@ -751,7 +751,7 @@ Deno.test("analysis POST refresh=daily: раз на добу без списан
   const yesterday = "2026-11-10T18:00:00Z"; // NOW — 2026-11-11 12:00 за Києвом
   const d = db({
     "analysis_areas.select": {
-      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 3 } }],
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 4 } }],
       error: null,
     },
     "rpc.analysis_used_today": { data: 5, error: null },
@@ -760,12 +760,12 @@ Deno.test("analysis POST refresh=daily: раз на добу без списан
   assertEquals(res.status, 200);
   assertEquals(find(d, "rpc.consume_analysis"), undefined); // ліміт не витрачено
   assertEquals(json.data.usage.used, 5); // навіть коли ліміт вичерпано
-  assertEquals(json.data.result_version, 3);
+  assertEquals(json.data.result_version, 4);
 
   // сьогодні вже оновлено і версія свіжа → 409
   const fresh = db({
     "analysis_areas.select": {
-      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 3 } }],
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 4 } }],
       error: null,
     },
   });
@@ -796,8 +796,8 @@ Deno.test("analysis POST: «інші гриби сезону» з причино
   }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
   assertEquals(json.data.others, [
-    { mushroom_type: "boletus_edulis", name_ua: "Білий гриб", reason_label: "Холодно: 3° за тиждень, потрібно від 10°" },
-    { mushroom_type: "suillus_bovinus", name_ua: "Козляк", reason_label: "У лісах ділянки немає його дерев (сосна)" },
+    { mushroom_type: "boletus_edulis", name_ua: "Білий гриб", reason_label: "Холодно: 3° за тиждень, потрібно від 10°", group: "today" },
+    { mushroom_type: "suillus_bovinus", name_ua: "Козляк", reason_label: "У лісах ділянки немає його дерев (сосна)", group: "today" },
   ]);
   assertEquals(json.data.days[0].others.length, 2);
   // identify — не в кожному виді, а один раз на результат
@@ -905,4 +905,38 @@ Deno.test("analysis PUT push: пристрій для сповіщень про 
   assertEquals(bad.res.status, 422);
   const pro = await run(db(), req("PUT", `${URL_}/push`, { token, platform: "ios", wave_alerts: false }), { pro: true });
   assertEquals([pro.json.data.allowed, pro.json.data.wave_alerts], [true, false]);
+});
+
+Deno.test("analysis: «інші гриби» — пояснення з лісу, де його дерева є; сезон минув — окремо", async () => {
+  const { othersOf, seasonReason } = await import("../../functions/_shared/v1/analysis.ts");
+  const miss = (type: string, name: string, missed: string[]) =>
+    ({ ...species({ mushroom_type: type, name_ua: name, probability: "no_data", score: 0 }), missed });
+  const pine = result({
+    date: "2026-11-15",
+    candidates: [],
+    others: [
+      miss("leccinum_scabrum", "Підберезник", ["forest mismatch: need birch|mixed, got pine", "11-15 outside season [05-01..10-31]"]),
+      miss("boletus_edulis", "Білий гриб", ["forest mismatch: need oak, got pine"]),
+      miss("suillus_bovinus", "Козляк", ["forest mismatch: need pine, got birch", "11-15 outside season [07-01..10-31]"]),
+    ],
+  });
+  const birch = result({
+    date: "2026-11-15",
+    candidates: [],
+    others: [
+      miss("leccinum_scabrum", "Підберезник", ["11-15 outside season [05-01..10-31]"]),
+      miss("boletus_edulis", "Білий гриб", ["temp 3 < min 10"]),
+      miss("suillus_bovinus", "Козляк", ["forest mismatch: need pine, got birch", "11-15 outside season [07-01..10-31]"]),
+    ],
+  });
+  const out = othersOf([{ forestType: "pine", result: pine }, { forestType: "birch", result: birch }]);
+  assertEquals(out, [
+    // уточнена береза є — білий не «без дерев», а через холод
+    { mushroom_type: "boletus_edulis", name_ua: "Білий гриб", reason_label: "Холодно: 3° за тиждень, потрібно від 10°", group: "today" },
+    // дерева є, але сезон минув
+    { mushroom_type: "leccinum_scabrum", name_ua: "Підберезник", reason_label: "Сезон 01.05–31.10 уже минув", group: "season" },
+    // козляк: його дерев немає й сезон минув — не показуємо
+  ]);
+  assertEquals(seasonReason(["03-20 outside season [04-15..06-30]"], "2026-03-20"), "Сезон з 15.04 — ще не почався");
+  assertEquals(seasonReason(["temp 3 < min 10"], "2026-11-15"), null);
 });

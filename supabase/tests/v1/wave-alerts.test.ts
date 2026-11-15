@@ -15,7 +15,7 @@ const dayWith = (wave: unknown, level = "high") => ({
   alternative: null,
 });
 const saved = (wave: unknown, level = "high") => ({
-  result_version: 3,
+  result_version: 4,
   days: [dayWith(wave, level)],
   best_day: { date: "2026-11-17", label: "Найкращий день: неділя" },
 });
