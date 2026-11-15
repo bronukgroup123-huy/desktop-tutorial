@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
-/// Фото довідника: з телефону (якщо вже переглядали) або з релізу «catalog-data» — і
+/// Фото довідника: з телефону (якщо вже переглядали) або з релізу «catalog-photos» — і
 /// зберігається на телефоні, щоб наступного разу працювало без інтернету.
 ///
 /// У релізі фото лежать архівами tar (GitHub обмежує кількість файлів, що викладаються):

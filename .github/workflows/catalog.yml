@@ -1,4 +1,4 @@
-# Довідник для застосунку: фото (WebP до 1080 px + мініатюри, в архівах tar) → реліз «catalog-data».
+# Довідник для застосунку: фото (WebP до 1080 px + мініатюри, в архівах tar) → реліз «catalog-photos».
 # Тексти довідника вбудовані в застосунок (flutter_client/assets/catalog/catalog.json.gz,
 # генерує той самий скрипт); застосунок завантажує фото з релізу і зберігає на телефоні.
 name: Catalog photos
@@ -39,26 +39,20 @@ jobs:
           if ! git diff --quiet -- flutter_client/assets/catalog/catalog.json.gz; then
             echo "::warning::catalog.json.gz у репозиторії застарів — запустіть scripts/catalog_sync/build_app_catalog.py і закомітьте"
           fi
-      - name: Publish to release «catalog-data»
+      - name: Publish to release «catalog-photos»
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           R="$GITHUB_REPOSITORY"
+          # Окремий реліз «catalog-photos» (лише архіви). Старий «catalog-data» з окремими фото
+          # першої спроби не чіпаємо: видалення релізу з сотнями файлів GitHub обриває (HTTP 502).
           create() {
-            gh release create catalog-data --repo "$R" --prerelease --latest=false \
+            gh release create catalog-photos --repo "$R" --prerelease --latest=false \
               --title "Довідник: фото для застосунку" \
               --notes "Фото довідника (WebP в архівах tar: <id>.tar, thumbs.tar). Генерує .github/workflows/catalog.yml."
           }
-          gh release view catalog-data --repo "$R" >/dev/null 2>&1 || create
-          gh release view catalog-data --repo "$R" --json assets -q '.assets[] | "\(.name) \(.size)"' > existing.txt
-          # Окремі фото з першої версії (до архівів): прибрати разом із релізом — одним запитом,
-          # а не сотнями видалень (GitHub обмежує частоту запитів).
-          if grep -q '\.webp ' existing.txt; then
-            gh release delete catalog-data --repo "$R" --yes --cleanup-tag
-            sleep 10
-            create
-            : > existing.txt
-          fi
+          gh release view catalog-photos --repo "$R" >/dev/null 2>&1 || create
+          gh release view catalog-photos --repo "$R" --json assets -q '.assets[] | "\(.name) \(.size)"' > existing.txt
           # По одному архіву з паузою; незмінені (той самий розмір) — пропускаємо;
           # на ліміт GitHub — чекаємо й повторюємо.
           uploaded=0 skipped=0
@@ -68,7 +62,7 @@ jobs:
             if grep -qx "$name $size" existing.txt; then skipped=$((skipped+1)); continue; fi
             ok=0
             for attempt in 1 2 3 4 5; do
-              if gh release upload catalog-data "$f" --clobber --repo "$R"; then ok=1; break; fi
+              if gh release upload catalog-photos "$f" --clobber --repo "$R"; then ok=1; break; fi
               echo "::warning::$name: спроба $attempt не вдалась, чекаю $((attempt*60)) с"
               sleep $((attempt*60))
             done
