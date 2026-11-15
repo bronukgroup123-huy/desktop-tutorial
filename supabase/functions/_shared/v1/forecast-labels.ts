@@ -339,6 +339,34 @@ export function sceneSprouts(fr: FruitingState | undefined): "none" | "few" | "m
   return fr.stage === "peak" ? "many" : "few";
 }
 
+/** «Схід 07:12 · захід 16:08 · світла 8 год 56 хв»; немає даних — null. */
+export function sunLabel(day: { sunrise?: string | null; sunset?: string | null; daylightMin?: number | null }): string | null {
+  if (!day.sunrise || !day.sunset) return null;
+  const light = typeof day.daylightMin === "number"
+    ? ` · світла ${Math.floor(day.daylightMin / 60)} год${day.daylightMin % 60 ? ` ${day.daylightMin % 60} хв` : ""}`
+    : "";
+  return `Схід ${day.sunrise} · захід ${day.sunset}${light}`;
+}
+
+/**
+ * Що взяти в ліс за погодою дня — коротко: дощовик, гумові чоботи, тепле, вода, ліхтарик
+ * (короткий день). Нічого особливого — null.
+ */
+export function takeLabel(
+  day: { tempMin: number; tempMax: number; rain: number; daylightMin?: number | null },
+  w: WeatherData | null | undefined,
+): string | null {
+  const items: string[] = [];
+  if (day.rain >= 1) items.push("дощовик");
+  if (day.rain >= 3 || (weatherOk(w) && (w.rain3d >= 10 || w.soilState === "wet" || w.soilState === "waterlogged"))) {
+    items.push("гумові чоботи");
+  }
+  if (day.tempMin <= 2) items.push("тепла куртка й рукавиці");
+  if (day.tempMax >= 26) items.push("вода й кепка");
+  if (typeof day.daylightMin === "number" && day.daylightMin < 600) items.push("ліхтарик — день короткий");
+  return items.length ? `Візьміть: ${items.join(", ")}` : null;
+}
+
 export type WeatherTone = "good" | "neutral" | "bad";
 
 /**

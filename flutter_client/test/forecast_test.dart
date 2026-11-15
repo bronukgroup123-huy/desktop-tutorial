@@ -327,6 +327,33 @@ void main() {
     expect(find.byKey(const ValueKey('stale-banner')), findsOneWidget);
     expect(find.textContaining('коли з\'явиться інтернет'), findsOneWidget);
   });
+
+  testWidgets('Поділитися прогнозом: кнопка вгорі, картинка з рівнем і найкращим днем', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final area = areaJson(withResult: true);
+    final res = resultJson();
+    // без меж ділянки — мінікарта (офлайн карта, сховище) у цьому тесті не потрібна
+    res['area'] = {...(res['area'] as Map<String, dynamic>)}..remove('bbox');
+    area['last_result'] = {...res, 'best_day': {'date': '2026-11-12', 'label': 'Найкращий день: завтра'}};
+    final (api, _) = makeClient((req) => _alreadyFresh);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) => overview(areas: [area])),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('share-forecast')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const ValueKey('share-card')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('share-card')), matching: find.text('Білий гриб')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('share-card')), matching: find.text('Найкращий день: завтра')), findsOneWidget);
+    expect(find.byKey(const ValueKey('share-send')), findsOneWidget);
+  });
 }
 
 Map<String, dynamic> areaJson({bool withResult = false}) => {

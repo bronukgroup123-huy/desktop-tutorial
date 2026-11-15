@@ -77,6 +77,10 @@ export interface DayWeather {
   daysAhead: number;      // 0 — сьогодні, 1 — завтра…
   /** Код погоди WMO за добу; `null` — невідомо. */
   code?: number | null;
+  /** Схід / захід сонця «HH:MM», світлий день, хв. */
+  sunrise?: string | null;
+  sunset?: string | null;
+  daylightMin?: number | null;
 }
 
 export interface WeatherData {

@@ -1184,6 +1184,8 @@ components:
         scene_label: { type: [string, 'null'], example: Мінлива хмарність }
         sprouts: { type: string, enum: [none, few, many], description: Молоді гриби в сцені — за стадією хвилі найкращого виду }
         range_label: { type: [string, 'null'], example: 'Різні моделі: опади 2–11 мм, 3…10°', description: Дні 5–7 (Pro) — діапазон за ансамблем моделей }
+        sun_label: { type: [string, 'null'], example: 'Схід 07:12 · захід 16:08 · світла 8 год 56 хв' }
+        take_label: { type: [string, 'null'], example: 'Візьміть: дощовик, гумові чоботи' }
 
     AnalysisDay:
       type: object

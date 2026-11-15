@@ -347,4 +347,22 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('weather-range')));
     expect(find.text('Різні моделі: опади 2–11 мм, 3…10°'), findsOneWidget);
   });
+
+  testWidgets('Коли їхати — схід / захід сонця і що взяти, у розширених даних погоди', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['weather'] = <String, dynamic>{
+      ...(days[0]['weather'] as Map),
+      'sun_label': 'Схід 07:12 · захід 16:08 · світла 8 год 56 хв',
+      'take_label': 'Візьміть: дощовик, гумові чоботи',
+    };
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('weather-when')), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-advanced')));
+    await tester.tap(find.byKey(const ValueKey('weather-advanced')));
+    await tester.pump();
+    expect(find.text('Схід 07:12 · захід 16:08 · світла 8 год 56 хв'), findsOneWidget);
+    expect(find.text('Візьміть: дощовик, гумові чоботи'), findsOneWidget);
+  });
 }

@@ -378,8 +378,8 @@ Deno.test("analysis POST: базова погода — температура, 
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
   assertEquals(Object.keys(json.data.weather ?? {}).sort(), [
-    "day_label", "humidity_label", "icon", "rain_label", "range_label", "scene", "scene_label", "sprouts", "temp_label",
-    "verdict_label", "verdict_tone",
+    "day_label", "humidity_label", "icon", "rain_label", "range_label", "scene", "scene_label", "sprouts", "sun_label",
+    "take_label", "temp_label", "verdict_label", "verdict_tone",
   ]);
 });
 

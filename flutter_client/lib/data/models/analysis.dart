@@ -399,6 +399,8 @@ class AnalysisWeather {
     this.sceneLabel,
     this.sprouts,
     this.rangeLabel,
+    this.sunLabel,
+    this.takeLabel,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -413,7 +415,15 @@ class AnalysisWeather {
         sceneLabel: opt<String>(json, 'scene_label'),
         sprouts: opt<String>(json, 'sprouts'),
         rangeLabel: opt<String>(json, 'range_label'),
+        sunLabel: opt<String>(json, 'sun_label'),
+        takeLabel: opt<String>(json, 'take_label'),
       );
+
+  /// «Схід 07:12 · захід 16:08 · світла 8 год 56 хв».
+  final String? sunLabel;
+
+  /// «Візьміть: дощовик, гумові чоботи…».
+  final String? takeLabel;
 
   /// Дні 5–7: «Різні моделі: опади 2–11 мм, 3…10°».
   final String? rangeLabel;

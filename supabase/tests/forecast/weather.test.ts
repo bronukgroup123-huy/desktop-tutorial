@@ -81,7 +81,7 @@ Deno.test("weatherAsOf: «сьогодні» не бачить дощів нас
   assertEquals(today.droughtDays, 31);
   assertEquals(today.daysAfterRain, 999);
   assertEquals(today.tempAvg7d, 15 + 5 / 7); // 6 минулих днів по 15° + сьогодні 20°
-  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null });
+  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null, sunrise: null, sunset: null, daylightMin: null });
 });
 
 Deno.test("weatherAsOf: день прогнозу бачить дощ, що випав до нього", () => {

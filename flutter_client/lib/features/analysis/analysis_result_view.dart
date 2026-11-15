@@ -832,6 +832,23 @@ class _WeatherCardState extends State<_WeatherCard> {
                 ),
               ),
             if (_advanced) ...[
+              // «Коли їхати»: світловий день і що взяти (рішення PO 2026-11-15).
+              if (weather.sunLabel != null || weather.takeLabel != null) ...[
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    key: const ValueKey('weather-when'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Коли їхати',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.85))),
+                      if (weather.sunLabel != null) _WeatherDetail(icon: Icons.wb_twilight_rounded, text: weather.sunLabel!),
+                      if (weather.takeLabel != null) _WeatherDetail(icon: Icons.backpack_outlined, text: weather.takeLabel!),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               if (insight != null)
                 Padding(

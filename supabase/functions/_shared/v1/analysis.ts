@@ -50,6 +50,8 @@ import {
   otherReasonLabel,
   SCENE_LABEL,
   sceneSprouts,
+  sunLabel,
+  takeLabel,
   weatherBlock,
   weatherScene,
   weatherVerdict,
@@ -1056,6 +1058,9 @@ function analyzeDay(
           sprouts: sceneSprouts(best.top1?.species.fruiting),
           // Дні 4–7: «Різні моделі: опади 2–11 мм, 3…10°».
           range_label: approximate && range ? rangeLabel(range) : null,
+          // «Коли їхати»: схід / захід сонця і що взяти.
+          sun_label: dayW ? sunLabel(dayW) : null,
+          take_label: dayW ? takeLabel(dayW, first.weather) : null,
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],

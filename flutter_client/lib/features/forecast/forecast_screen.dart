@@ -14,6 +14,8 @@ import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart' show ForecastInfoCard;
+import 'package:flutter_client/features/forecast/home_widget_sync.dart';
+import 'package:flutter_client/features/forecast/share_forecast.dart';
 
 /// Вкладка «Прогноз» — робота з ділянками аналізу (ADR-015 §15.4).
 ///
@@ -35,6 +37,16 @@ class ForecastScreen extends ConsumerWidget {
         title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          // «Поділитися прогнозом» — картинка для Viber / Telegram (рішення PO 2026-11-15).
+          if (area?.lastResult != null)
+            IconButton(
+              key: const ValueKey('share-forecast'),
+              tooltip: 'Поділитися прогнозом',
+              icon: const Icon(Icons.ios_share_rounded, color: AppTheme.darkGreen),
+              onPressed: () => showShareForecast(context, areaTitle: area!.title, result: area.lastResult!),
+            ),
+        ],
       ),
       body: data == null
           ? (overview.hasError
@@ -292,6 +304,11 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     final offline = o.offlineSince != null;
     final result = _area.lastResult;
     _maybeAutoRefresh(result, offline);
+    // Віджет на головному екрані — свіжі підписи ділянки.
+    if (result != null) {
+      final area = _area;
+      WidgetsBinding.instance.addPostFrameCallback((_) => HomeWidgetSync.update(area, result));
+    }
     final stale = result != null && result.isStale(_today());
 
     return Column(
