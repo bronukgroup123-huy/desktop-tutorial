@@ -169,7 +169,8 @@ class _MiniMapLibreState extends State<_MiniMapLibre> {
           dragEnabled: false,
           compassEnabled: false,
           // Атрибуція OpenStreetMap — обов'язкова за ліцензією (ODbL), маленька кнопка в куті.
-          attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
+          // Лівий нижній кут: правий — для кошика.
+          attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
           attributionButtonMargins: const Point(4, 4),
         ),
       );

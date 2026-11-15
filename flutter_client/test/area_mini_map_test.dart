@@ -98,10 +98,16 @@ void main() {
     expect(find.byKey(const ValueKey('basket-boletus_edulis')), findsOneWidget);
     expect(find.byKey(const ValueKey('basket-cantharellus_cibarius')), findsOneWidget);
 
-    // торкнутися гриба — маленька назва
+    // торкнутися гриба — назва і рівень; торкнутися повз — закрити (кошик лишається відкритим)
     await tester.tap(find.byKey(const ValueKey('basket-boletus_edulis')));
     await tester.pump();
-    expect(find.text('Білий гриб'), findsOneWidget);
+    expect(find.text('Білий гриб · Пікова ймовірність'), findsOneWidget);
+    await tester.tapAt(tester.getTopLeft(find.byKey(const ValueKey('basket-open'))) + const Offset(30, 30));
+    await tester.pump();
+    expect(find.text('Білий гриб · Пікова ймовірність'), findsNothing);
+    expect(find.byKey(const ValueKey('basket-open')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('basket-boletus_edulis')));
+    await tester.pump();
 
     // затиснути й перенести на карту (у лівий верхній квадрант)
     final mapBox = tester.getRect(find.byKey(const ValueKey('mini-map')));
@@ -126,16 +132,31 @@ void main() {
     expect(after.longitude, greaterThan(before.longitude));
     expect(after.latitude, lessThan(before.latitude));
 
-    // торкнутися — підказка з рівнем дня
+    // торкнутися — лише вид і рівень (без фази хвилі); торкнутися будь-де — закрити
     await tester.tap(find.byKey(const ValueKey('placed-boletus_edulis')));
     await tester.pump();
     expect(find.text('Білий гриб · Пікова ймовірність'), findsOneWidget);
+    expect(find.textContaining('Хвиля'), findsNothing);
+    await tester.tapAt(tester.getRect(find.byKey(const ValueKey('mini-map'))).topLeft + const Offset(20, 20));
+    await tester.pump();
+    expect(find.text('Білий гриб · Пікова ймовірність'), findsNothing);
 
     // назад у кошик
     await longDrag(tester, find.byKey(const ValueKey('placed-boletus_edulis')),
         tester.getCenter(find.byKey(const ValueKey('basket'))));
     expect(removed, ['boletus_edulis']);
     expect(positions, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Порожній кошик — без напису', (tester) async {
+    var positions = <String, LatLng>{};
+    await tester.pumpWidget(boardApp(() => positions, (p) => positions = p, species: const []));
+    await tester.tap(find.byKey(const ValueKey('basket')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const ValueKey('basket-open')), findsOneWidget);
+    expect(find.textContaining('немає'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
