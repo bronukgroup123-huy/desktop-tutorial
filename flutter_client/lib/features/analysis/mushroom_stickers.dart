@@ -79,8 +79,8 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
   /// Гриб на карті — дрібніший, щоб не закривати ліс (мінікарта тепер рівно на ділянку).
   static const double _stickerSize = 30;
 
-  /// Гриб у відкритому кошику.
-  static const double _inBasketSize = 46;
+  /// Гриб у відкритому кошику — великий, як справжній гриб у кошику (менше грибів — більші).
+  static double _inBasketSize(int n) => n <= 3 ? 84 : (n <= 6 ? 72 : 60);
   static const Size _basketSize = Size(60, 52);
 
   late final AnimationController _open =
@@ -219,6 +219,15 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(child: widget.map),
+                  // Підпис гриба відкритий — торкнутися будь-де повз нього, щоб закрити.
+                  if (_tooltipFor != null)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        key: const ValueKey('tooltip-dismiss'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _tooltipFor = null),
+                      ),
+                    ),
                   for (final type in placed) _placed(type),
                   if (_tooltipFor != null && widget.positions[_tooltipFor] != null) _tooltip(_tooltipFor!),
                   _closedBasket(),
@@ -273,26 +282,9 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
     final above = at.dy > 90;
     return Positioned(
       left: left,
-      top: above ? at.dy - _stickerSize - 64 : at.dy + 8,
+      top: above ? at.dy - _stickerSize - 52 : at.dy + 8,
       width: width,
-      child: IgnorePointer(
-        child: Material(
-          elevation: 3,
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('${s.name} · ${s.levelLabel}', style: TextStyle(fontWeight: FontWeight.w600, color: s.color)),
-                if (s.whenLabel.isNotEmpty) Text(s.whenLabel, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: IgnorePointer(child: Center(child: _NameLabel(species: s, key: ValueKey('tooltip-$type')))),
     );
   }
 
@@ -385,24 +377,13 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
                       child: GestureDetector(
                         key: const ValueKey('basket-open'),
                         behavior: HitTestBehavior.translucent,
-                        onTap: _toggleBasket,
+                        // Відкрита назва гриба — перше торкання повз неї лише закриває її.
+                        onTap: () => _nameFor != null ? setState(() => _nameFor = null) : _toggleBasket(),
                         child: CustomPaint(painter: OpenBasketPainter(g)),
                       ),
                     ),
-                    if (items.isEmpty)
-                      Positioned(
-                        left: g.floorCenter.dx - g.floorRx,
-                        width: g.floorRx * 2,
-                        top: g.floorCenter.dy - 10,
-                        child: IgnorePointer(
-                          child: Text(
-                            'Цього дня грибів зі шансом немає',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.95), fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                    for (var i = 0; i < items.length; i++) _inBasketItem(items[i], g.slot(i, items.length)),
+                    for (var i = 0; i < items.length; i++)
+                      _inBasketItem(items[i], g.slot(i, items.length), _inBasketSize(items.length)),
                   ],
                 ),
               ),
@@ -414,8 +395,7 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
   }
 
   /// Гриб лежить на дні кошика: трохи нахилений, з м'якою тінню під собою.
-  Widget _inBasketItem(StickerSpecies s, Offset at) {
-    const size = _inBasketSize;
+  Widget _inBasketItem(StickerSpecies s, Offset at, double size) {
     final seed = s.type.codeUnits.fold<int>(7, (a, c) => (a * 31 + c) & 0x7fffffff);
     final tilt = ((seed % 9) - 4) * 0.07;
     final bobY = _reduceMotion ? 0.0 : math.sin((_bob.value + seed % 7 / 7) * 2 * math.pi) * 1.2;
@@ -461,13 +441,7 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
             if (_nameFor == s.type)
               Positioned(
                 bottom: size + 2,
-                child: IgnorePointer(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                    child: Text(s.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
-                  ),
-                ),
+                child: IgnorePointer(child: _NameLabel(species: s)),
               ),
           ],
         ),
@@ -476,47 +450,120 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
   }
 }
 
-/// Плетений кошик збоку: корпус-трапеція з лозою, обідок, ручка.
+/// Підпис гриба: лише вид і рівень, напівпрозорий білий фон.
+class _NameLabel extends StatelessWidget {
+  const _NameLabel({super.key, required this.species});
+
+  final StickerSpecies species;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '${species.name} · ${species.levelLabel}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: species.level == null ? AppTheme.darkGreen : Color.lerp(species.color, Colors.black, 0.25),
+          ),
+        ),
+      );
+}
+
+/// Плетений кошик збоку (закритий, у кутку мінікарти) — у тому ж стилі, що й відкритий:
+/// лоза «в шахівницю», плетений обідок, обмотана ручка, тінь на карті.
 class _BasketPainter extends CustomPainter {
   _BasketPainter({this.glow = false});
 
   final bool glow;
 
+  static const _light = OpenBasketPainter._light;
+  static const _mid = OpenBasketPainter._mid;
+  static const _dark = OpenBasketPainter._dark;
+  static const _deep = OpenBasketPainter._deep;
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    final rimY = h * 0.38;
-    final handle = Paint()
-      ..color = const Color(0xff6d4c41)
+    final rimY = h * 0.4;
+    final rimH = h * 0.11;
+    // Тінь на карті.
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w * 0.52, h * 0.98), width: w * 0.9, height: h * 0.14),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    // Ручка — обмотана лозою.
+    final handle = Path()
+      ..moveTo(w * 0.2, rimY)
+      ..cubicTo(w * 0.2, -h * 0.12, w * 0.8, -h * 0.12, w * 0.8, rimY);
+    canvas.drawPath(handle, Paint()
+      ..color = _deep
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawArc(Rect.fromLTWH(w * 0.18, -h * 0.05, w * 0.64, rimY * 1.9), math.pi, math.pi, false, handle);
+      ..strokeWidth = w * 0.07
+      ..strokeCap = StrokeCap.round);
+    final wrap = Paint()
+      ..color = _mid
+      ..strokeWidth = w * 0.025
+      ..strokeCap = StrokeCap.round;
+    for (final m in handle.computeMetrics()) {
+      for (var d = 2.0; d < m.length - 2; d += w * 0.055) {
+        final tg = m.getTangentForOffset(d)!;
+        final n = Offset(-tg.vector.dy, tg.vector.dx) * (w * 0.03);
+        canvas.drawLine(tg.position - n - tg.vector * 1.5, tg.position + n + tg.vector * 1.5, wrap);
+      }
+    }
+    // Корпус — трапеція з лозою «в шахівницю», темніше до боків.
     final body = Path()
       ..moveTo(w * 0.04, rimY)
       ..lineTo(w * 0.96, rimY)
-      ..lineTo(w * 0.84, h)
-      ..lineTo(w * 0.16, h)
+      ..quadraticBezierTo(w * 0.9, h * 0.97, w * 0.8, h * 0.97)
+      ..lineTo(w * 0.2, h * 0.97)
+      ..quadraticBezierTo(w * 0.1, h * 0.97, w * 0.04, rimY)
       ..close();
     if (glow) {
       canvas.drawPath(body, Paint()
-        ..color = const Color(0xffffd54f).withValues(alpha: 0.7)
+        ..color = const Color(0xffffd54f).withValues(alpha: 0.8)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
     }
-    canvas.drawPath(body, Paint()..color = const Color(0xffa1887f));
-    final weave = Paint()
-      ..color = const Color(0xff795548)
-      ..strokeWidth = 1.4;
-    for (var y = rimY + 7; y < h - 2; y += 7) {
-      final inset = (y - rimY) / (h - rimY) * w * 0.12;
-      canvas.drawLine(Offset(w * 0.04 + inset, y), Offset(w * 0.96 - inset, y), weave);
+    canvas.save();
+    canvas.clipPath(body);
+    canvas.drawPath(body, Paint()..color = _mid);
+    const rows = 4, cols = 7;
+    final rowH = (h * 0.97 - rimY) / rows;
+    for (var r = 0; r < rows; r++) {
+      final y = rimY + r * rowH;
+      for (var c = 0; c < cols; c++) {
+        final cell = Rect.fromLTWH(w * c / cols, y, w / cols, rowH);
+        final side = ((c + 0.5) / cols - 0.5).abs() * 2; // 0 — посередині, 1 — край
+        canvas.drawRect(cell, Paint()..color = Color.lerp((r + c).isEven ? _light : _mid, _deep, side * 0.45)!);
+        canvas.drawRect(cell, Paint()
+          ..color = _deep.withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.7);
+      }
     }
-    for (var x = 0.2; x < 0.85; x += 0.15) {
-      canvas.drawLine(Offset(w * x, rimY), Offset(w * (0.5 + (x - 0.5) * 0.8), h), weave);
+    canvas.restore();
+    // Обідок — дві скручені лозини.
+    final rim = RRect.fromRectAndRadius(Rect.fromLTWH(0, rimY - rimH / 2, w, rimH), Radius.circular(rimH / 2));
+    canvas.drawRRect(rim, Paint()..color = _deep);
+    final n = (w / (rimH * 0.7)).round();
+    for (var i = 0; i < n; i++) {
+      final cx = (i + 0.5) / n * w;
+      canvas.save();
+      canvas.translate(cx, rimY);
+      canvas.rotate(0.6);
+      final r = Rect.fromCenter(center: Offset.zero, width: rimH * 1.2, height: rimH * 0.55);
+      canvas.drawOval(r, Paint()..color = _dark);
+      canvas.drawOval(r.deflate(rimH * 0.1), Paint()..color = _light.withValues(alpha: 0.8));
+      canvas.restore();
     }
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(0, rimY - 4, w, 8), const Radius.circular(4)),
-      Paint()..color = const Color(0xff6d4c41),
-    );
   }
 
   @override
