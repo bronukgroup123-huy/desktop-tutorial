@@ -14,6 +14,7 @@ import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/auth/auth_screen.dart';
 import 'package:flutter_client/features/auth/region_selection_screen.dart';
+import 'package:flutter_client/features/catalog/catalog_detail_screen.dart';
 import 'package:flutter_client/features/community/community_screen.dart';
 import 'package:flutter_client/features/forecast/forecast_screen.dart';
 import 'package:flutter_client/features/map/map_screen.dart';
@@ -33,7 +34,7 @@ abstract final class Routes {
   static const map = '/map';
 }
 
-const _shellPrefixes = ['/forecast', '/map', '/recognize', '/safety', '/community', '/profile'];
+const _shellPrefixes = ['/forecast', '/map', '/recognize', '/safety', '/community', '/profile', '/catalog'];
 
 /// Куди вести користувача. Чиста функція — тестується без UI.
 ///
@@ -88,6 +89,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.auth, builder: (c, s) => const AuthScreen()),
       GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
       GoRoute(path: Routes.onboarding, builder: (c, s) => const RegionSelectionScreen()),
+      // Картка виду в довіднику — поверх вкладок (з «Розпізнати» і з «Як відрізнити» у прогнозі).
+      GoRoute(path: '/catalog/:id', builder: (c, s) => CatalogDetailScreen(speciesId: s.pathParameters['id']!)),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainNavigationScreen(navigationShell: shell),
         branches: [

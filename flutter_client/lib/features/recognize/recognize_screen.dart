@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_client/core/app_theme.dart';
 
+import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/features/catalog/catalog_browser.dart';
+
+/// Вкладка «Розпізнати»: довідник грибів (розпізнавання за фото — локальний ONNX, ADR — додамо над ним).
 class RecognizeScreen extends StatelessWidget {
   const RecognizeScreen({super.key});
 
@@ -13,9 +16,7 @@ class RecognizeScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Center(
-        child: Text('Розпізнати', style: GoogleFonts.inter(fontSize: 18, color: AppTheme.darkGreen)),
-      ),
+      body: const CatalogBrowser(),
     );
   }
 }

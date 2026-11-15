@@ -5,6 +5,7 @@ import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/local/offline_result.dart';
 import 'package:flutter_client/data/models/analysis.dart';
+import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/models/forecast.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/analysis_repository.dart';
@@ -136,7 +137,10 @@ void main() {
       'name_ua': 'Зимовий опеньок',
       'identify': identifyJson,
     });
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: ForecastSpeciesCard(species: species)))));
+    await tester.pumpWidget(ProviderScope(
+      overrides: [catalogProvider.overrideWith((ref) => Catalog.parse(File('assets/catalog/catalog.json.gz').readAsBytesSync()))],
+      child: MaterialApp(home: Scaffold(body: SingleChildScrollView(child: ForecastSpeciesCard(species: species)))),
+    ));
     expect(find.byKey(const ValueKey('identify-view')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('species-identify')));
     await tester.pump();
@@ -150,6 +154,8 @@ void main() {
     expect(find.text('Смертельно отруйний!'), findsOneWidget);
     expect(find.text('Відсутнє'), findsOneWidget); // ❌ — у значок, не в текст
     expect(find.text('Ніколи не беріть гриби на пеньках без уважної перевірки'), findsOneWidget);
+    // в кінці — посилання на цей вид у довіднику
+    expect(find.widgetWithText(OutlinedButton, 'Переглянути в довіднику'), findsOneWidget);
     await tester.pumpAndSettle(); // переливання кольорів шапки зупиняється
     await tester.ensureVisible(find.byKey(const ValueKey('species-identify')));
     await tester.pumpAndSettle();
