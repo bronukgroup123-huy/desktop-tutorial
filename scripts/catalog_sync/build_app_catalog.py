@@ -9,8 +9,11 @@
     назва, латина, їстівність, Червона книга, Топ-20 / популярні, місяці, дерева, сезони,
     імена фото й опис. Вбудовується в застосунок — працює без інтернету.
   * --photos DIR — фото для телефону (WebP: до 1080 px і мініатюра 420 px для списку) з
-    іменами <id>-<n>.webp / <id>-0-t.webp; їх викладає .github/workflows/catalog.yml у реліз
-    «catalog-data», застосунок завантажує й зберігає на телефоні під час перегляду.
+    іменами <id>-<n>.webp / <id>-0-t.webp, запаковані в архіви tar: <id>.tar — фото виду,
+    thumbs.tar — мініатюри всіх видів. Архіви, а не окремі файли: GitHub обмежує кількість
+    завантажень у реліз (сотні окремих фото впираються в ліміт). Їх викладає
+    .github/workflows/catalog.yml у реліз «catalog-data»; застосунок завантажує архів виду під
+    час перегляду, розпаковує й зберігає фото на телефоні.
 
 Запуск: python3 scripts/catalog_sync/build_app_catalog.py [--photos dist/catalog]
 """
@@ -18,7 +21,9 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import io
 import json
+import tarfile
 import sys
 from pathlib import Path
 
@@ -85,18 +90,43 @@ def build() -> tuple[dict, list[tuple[Path, str, int]]]:
     return {"version": catalog["meta"].get("generated", ""), "species": species}, photos
 
 
-def write_photos(photos: list[tuple[Path, str, int]], out_dir: Path) -> None:
+def _webp(src: Path, px: int) -> bytes:
     from PIL import Image  # pip install pillow
 
+    buf = io.BytesIO()
+    with Image.open(src) as im:
+        im = im.convert("RGB")
+        im.thumbnail((px, px))
+        im.save(buf, "WEBP", quality=78 if px == FULL_PX else 72, method=6)
+    return buf.getvalue()
+
+
+def _add(tar: tarfile.TarFile, name: str, data: bytes) -> None:
+    info = tarfile.TarInfo(name)
+    info.size = len(data)
+    info.mtime = 0  # однаковий вміст — однаковий архів
+    info.mode = 0o644
+    tar.addfile(info, io.BytesIO(data))
+
+
+def bundle_name(photo: str) -> str:
+    """Архів, у якому лежить фото: мініатюри — thumbs.tar, решта — <id>.tar."""
+    if photo.endswith("-t.webp"):
+        return "thumbs.tar"
+    return photo.rsplit("-", 1)[0] + ".tar"
+
+
+def write_photos(photos: list[tuple[Path, str, int]], out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
+    bundles: dict[str, list[tuple[str, bytes]]] = {}
     for src, name, px in photos:
-        dst = out_dir / name
-        with Image.open(src) as im:
-            im = im.convert("RGB")
-            im.thumbnail((px, px))
-            im.save(dst, "WEBP", quality=78 if px == FULL_PX else 72, method=6)
-    total = sum((out_dir / n).stat().st_size for _, n, _ in photos)
-    print(f"  фото: {len(photos)} файлів, {total / 1e6:.1f} МБ → {out_dir}")
+        bundles.setdefault(bundle_name(name), []).append((name, _webp(src, px)))
+    for bundle, files in sorted(bundles.items()):
+        with tarfile.open(out_dir / bundle, "w", format=tarfile.USTAR_FORMAT) as tar:
+            for name, data in sorted(files):
+                _add(tar, name, data)
+    total = sum((out_dir / b).stat().st_size for b in bundles)
+    print(f"  фото: {len(photos)} шт. у {len(bundles)} архівах, {total / 1e6:.1f} МБ → {out_dir}")
 
 
 def main() -> None:

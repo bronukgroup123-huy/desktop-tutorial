@@ -10,10 +10,44 @@ import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show Sp
 
 /// Фото довідника: з телефону (якщо вже переглядали) або з релізу «catalog-data» — і
 /// зберігається на телефоні, щоб наступного разу працювало без інтернету.
+///
+/// У релізі фото лежать архівами tar (GitHub обмежує кількість файлів, що викладаються):
+/// `<id>.tar` — фото виду, `thumbs.tar` — мініатюри всіх видів для списку. Перше звернення до
+/// будь-якого фото архіву завантажує його цілком і розпаковує на телефон.
 class CatalogPhotoCache {
   CatalogPhotoCache._();
 
   static final Map<String, Future<Uint8List?>> _memory = {};
+  static final Map<String, Future<Map<String, Uint8List>?>> _bundles = {};
+
+  /// Архів, у якому лежить фото.
+  static String bundleOf(String name) =>
+      name.endsWith('-t.webp') ? 'thumbs.tar' : '${name.replaceFirst(RegExp(r'-\d+\.webp$'), '')}.tar';
+
+  /// Розпакувати tar (ustar): ім'я файлу → вміст.
+  static Map<String, Uint8List> untar(Uint8List b) {
+    final out = <String, Uint8List>{};
+    String field(int off, int len) {
+      final raw = b.sublist(off, off + len);
+      final end = raw.indexOf(0);
+      return String.fromCharCodes(end < 0 ? raw : raw.sublist(0, end)).trim();
+    }
+
+    var off = 0;
+    while (off + 512 <= b.length) {
+      if (b[off] == 0) break; // кінець архіву — порожні блоки
+      final name = field(off, 100);
+      final size = int.tryParse(field(off + 124, 12), radix: 8) ?? 0;
+      final type = b[off + 156];
+      off += 512;
+      if (off + size > b.length) break; // обірваний архів
+      if ((type == 0x30 || type == 0) && name.isNotEmpty) {
+        out[name.split('/').last] = Uint8List.fromList(b.sublist(off, off + size));
+      }
+      off += (size + 511) ~/ 512 * 512;
+    }
+    return out;
+  }
 
   /// Завантаження з мережі (у тестах підміняється).
   @visibleForTesting
@@ -55,22 +89,40 @@ class CatalogPhotoCache {
     final dir = await directory();
     final file = dir == null ? null : File('${dir.path}/$name');
     if (file != null && await file.exists()) return file.readAsBytes();
-    final bytes = await fetcher('$kCatalogPhotosBase/$name');
+    final bundle = bundleOf(name);
+    final files = await _bundles.putIfAbsent(bundle, () => _fetchBundle(bundle, dir));
+    final bytes = files?[name];
     if (bytes == null) {
       _memory.remove(name); // наступного разу спробувати ще
-      return null;
-    }
-    if (file != null) {
-      try {
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(bytes, flush: true);
-      } catch (_) {}
+      if (files == null) _bundles.remove(bundle);
     }
     return bytes;
   }
 
+  /// Завантажити архів і розпакувати на телефон; збережено — архів у пам'яті більше не тримаємо.
+  static Future<Map<String, Uint8List>?> _fetchBundle(String bundle, Directory? dir) async {
+    final raw = await fetcher('$kCatalogPhotosBase/$bundle');
+    if (raw == null) return null;
+    final files = untar(raw);
+    if (files.isEmpty) return null;
+    if (dir != null) {
+      try {
+        await dir.create(recursive: true);
+        for (final e in files.entries) {
+          await File('${dir.path}/${e.key}').writeAsBytes(e.value, flush: true);
+        }
+        // Далі фото читаються з телефону; запит, що вже чекає, отримає їх із цього результату.
+        Future<void>.delayed(Duration.zero, () => _bundles.remove(bundle));
+      } catch (_) {}
+    }
+    return files;
+  }
+
   @visibleForTesting
-  static void clear() => _memory.clear();
+  static void clear() {
+    _memory.clear();
+    _bundles.clear();
+  }
 }
 
 /// Фото виду; немає (офлайн і ще не переглядали) — стікер гриба на світлому тлі.
