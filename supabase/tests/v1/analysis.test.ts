@@ -893,3 +893,16 @@ Deno.test("analysis POST (Pro): дні 5–7 — діапазон погоди �
   await run(db(), req("POST", URL_, body()), { forecast, deps: { ensemble } });
   assertEquals(called, 0);
 });
+
+Deno.test("analysis PUT push: пристрій для сповіщень про хвилі; доступ — Pro або «Слідопит»", async () => {
+  const d = db({ "users.select": { data: { home_region_id: 10, rating: 12 }, error: null } });
+  const token = "fcm-token-" + "x".repeat(30);
+  const { res, json } = await run(d, req("PUT", `${URL_}/push`, { token, platform: "android" }));
+  assertEquals(res.status, 200);
+  assertEquals(json.data, { registered: true, wave_alerts: true, allowed: false, locked_label: "Сповіщення про хвилі — у Pro або з рівня «Слідопит»" });
+  assertEquals(find(d, "rpc.register_push_device")!.args[0], { p_user_id: USER, p_token: token, p_platform: "android", p_wave_alerts: true });
+  const bad = await run(db(), req("PUT", `${URL_}/push`, { token: "short", platform: "android" }));
+  assertEquals(bad.res.status, 422);
+  const pro = await run(db(), req("PUT", `${URL_}/push`, { token, platform: "ios", wave_alerts: false }), { pro: true });
+  assertEquals([pro.json.data.allowed, pro.json.data.wave_alerts], [true, false]);
+});

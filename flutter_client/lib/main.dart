@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ import 'package:flutter_client/features/profile/profile_screen.dart';
 import 'package:flutter_client/features/recognize/recognize_screen.dart';
 import 'package:flutter_client/features/safety/safety_screen.dart';
 import 'package:flutter_client/features/splash/splash_screen.dart';
+import 'package:flutter_client/core/push.dart';
 
 // ─── Маршрути ───────────────────────────────────────────────────────────────
 
@@ -115,6 +117,9 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
   );
+
+  // Сповіщення «Почалась хвиля»: Firebase — лише якщо налаштований у збірці (не блокує запуск).
+  unawaited(PushService.init());
 
   final cacheDir = Directory('${(await getApplicationSupportDirectory()).path}/offline_cache');
 

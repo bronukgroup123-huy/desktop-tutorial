@@ -453,6 +453,40 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /v1-analysis/push:
+    put:
+      operationId: registerPushDevice
+      summary: Пристрій для сповіщень «Почалась хвиля»
+      description: ADR-015 §15.8 п.19. Сповіщення надсилаються лише в Pro або з рівня «Слідопит» — відповідь каже, чи доступні.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, platform]
+              properties:
+                token: { type: string, minLength: 20, maxLength: 4096 }
+                platform: { type: string, enum: [android, ios] }
+                wave_alerts: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Зареєстровано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      registered: { type: boolean }
+                      wave_alerts: { type: boolean }
+                      allowed: { type: boolean }
+                      locked_label: { type: [string, 'null'], example: 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»' }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
   /v1-analysis/areas/{id}:
     put:
       operationId: renameAnalysisArea

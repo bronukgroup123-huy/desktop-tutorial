@@ -616,6 +616,70 @@ export function validateAreaLabel(raw: unknown): string | null {
   return v;
 }
 
+/**
+ * PUT v1-analysis/push { token, platform, wave_alerts? } — пристрій для сповіщень «Почалась
+ * хвиля» (Pro або «Слідопит», ADR-015 §15.8 п.19). Відповідь каже, чи сповіщення доступні.
+ */
+async function registerPush(req: Request, user: AuthUser, deps: AnalysisDeps): Promise<Response> {
+  const body = await readJson(req);
+  if (body === null || typeof body !== "object" || Array.isArray(body)) throw validationError("Очікується { token, platform }");
+  const b = body as Record<string, unknown>;
+  if (typeof b.token !== "string" || b.token.length < 20 || b.token.length > 4096 || /\s/.test(b.token)) {
+    throw validationError("token — токен пристрою");
+  }
+  if (b.platform !== "android" && b.platform !== "ios") throw validationError("platform — android або ios");
+  if (b.wave_alerts !== undefined && typeof b.wave_alerts !== "boolean") throw validationError("wave_alerts — true або false");
+  const enabled = b.wave_alerts !== false;
+  const { error } = await deps.db.rpc("register_push_device", {
+    p_user_id: user.id, p_token: b.token, p_platform: b.platform, p_wave_alerts: enabled,
+  });
+  if (error) dbFail("register_push_device", error);
+  const allowed = (await hasPro(deps, user)) || (await loadRating(deps.db, user.id)) >= TRACKER_RATING;
+  return ok({
+    registered: true,
+    wave_alerts: enabled,
+    allowed,
+    locked_label: allowed ? null : WAVE_ALERTS_LOCKED_LABEL,
+  }, req);
+}
+
+export const WAVE_ALERTS_LOCKED_LABEL = "Сповіщення про хвилі — у Pro або з рівня «Слідопит»";
+
+/**
+ * Аналіз ділянки для щоденних сповіщень (v1-wave-alerts): сьогоднішній збережений результат,
+ * або безкоштовне щоденне оновлення. `null` — ділянку неможливо проаналізувати.
+ */
+export async function alertAnalysis(
+  deps: AnalysisDeps,
+  userId: string,
+  row: AreaRow,
+  now: Date,
+): Promise<{ data: Record<string, unknown>; allowed: boolean } | null> {
+  const point = areaCenter(row);
+  const regionId = await loadHomeRegionId(deps.db, userId);
+  if (!point || regionId === null) return null;
+  const user: AuthUser = { id: userId, isAnonymous: false };
+  const pro = await hasPro(deps, user);
+  const rating = await loadRating(deps.db, userId);
+  const allowed = pro || rating >= TRACKER_RATING;
+  if (!dailyRefreshAllowed(row, now) && row.last_result && typeof row.last_result === "object") {
+    return { data: row.last_result as Record<string, unknown>, allowed };
+  }
+  const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
+  const used = await usedToday(deps.db, userId, row.slot);
+  const area: AreaRef = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km, terrain: row.terrain ?? null };
+  const data = await analyzeArea(
+    deps, area, regionId, { date: kyivToday(now), now, pro, rating, userId }, undefined,
+    parseStoredOverride(row.forest_override), usageBlock(used, limit),
+  );
+  const saved = await deps.db.rpc("save_analysis_result", { p_user_id: userId, p_area_id: row.id, p_result: data });
+  if (saved.error) console.warn("[v1-wave-alerts] save_analysis_result failed:", saved.error);
+  return { data, allowed };
+}
+
+/** Ділянки користувача (для v1-wave-alerts). */
+export const loadUserAreas = (db: AnalysisDb, userId: string) => loadAreas(db, userId);
+
 /** PUT v1-analysis/areas/{id} { label } — підписати ділянку («Біля Броників»). */
 async function renameArea(req: Request, user: AuthUser, deps: AnalysisDeps, areaId: string): Promise<Response> {
   if (!UUID_RE.test(areaId)) throw new HttpError(404, "not_found", "Ділянку не знайдено");
@@ -1377,6 +1441,7 @@ export async function handleAnalysis(req: Request, deps: AnalysisDeps): Promise<
 
   if (req.method === "PUT") {
     const url = new URL(req.url);
+    if (/\/v1-analysis\/push\/?$/.test(url.pathname)) return await registerPush(req, user, deps);
     const forestId = forestAreaIdFromPath(url);
     if (forestId) return await editForest(req, user, deps, forestId, now);
     const areaId = areaIdFromPath(url);

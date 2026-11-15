@@ -87,6 +87,8 @@ jobs:
           TEXTBEE_ENABLED: ${{ secrets.TEXTBEE_ENABLED || 'false' }}
           TEXTBEE_API_KEY: ${{ secrets.TEXTBEE_API_KEY }}
           TEXTBEE_DEVICE_ID: ${{ secrets.TEXTBEE_DEVICE_ID }}
+          # Тестування: сповіщення «Почалась хвиля» всім, не лише Pro / «Слідопит».
+          WAVE_ALERTS_FOR_ALL: ${{ secrets.WAVE_ALERTS_FOR_ALL || 'false' }}
         run: |
           supabase secrets set \
             GUARDIAN_JWT_SECRET="$GUARDIAN_JWT_SECRET" \
@@ -98,4 +100,5 @@ jobs:
             TEXTBEE_ENABLED="$TEXTBEE_ENABLED" \
             TEXTBEE_API_KEY="$TEXTBEE_API_KEY" \
             TEXTBEE_DEVICE_ID="$TEXTBEE_DEVICE_ID" \
+            WAVE_ALERTS_FOR_ALL="$WAVE_ALERTS_FOR_ALL" \
             --project-ref "$PROJECT_ID"

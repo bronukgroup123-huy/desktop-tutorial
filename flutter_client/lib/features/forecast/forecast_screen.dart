@@ -14,6 +14,7 @@ import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart' show ForecastInfoCard;
+import 'package:flutter_client/core/push.dart';
 import 'package:flutter_client/features/forecast/home_widget_sync.dart';
 import 'package:flutter_client/features/forecast/share_forecast.dart';
 
@@ -99,6 +100,42 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
   final Set<String> _autoTried = {};
   bool _autoRefreshing = false;
   bool _autoFailed = false;
+
+  /// Картку «Сповіщати про хвилі» закрито або вже ввімкнено (на телефоні, LocalStore).
+  bool _pushHidden = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Картка — лише коли push налаштовано в збірці і її ще не закривали.
+    if (!PushService.available) return;
+    try {
+      ref.read(localStoreProvider).read(_pushKey).then((v) {
+        if (mounted) setState(() => _pushHidden = v?.data == true);
+      }, onError: (_) {});
+    } catch (_) {
+      // Немає сховища (тести) — картку не показуємо.
+    }
+  }
+
+  static const _pushKey = 'wave_alerts_card_done';
+
+  Future<void> _enablePush() async {
+    final res = await PushService.enable(ref.read(apiClientProvider));
+    if (!mounted) return;
+    if (res == null) {
+      _snack('Сповіщення не ввімкнено — дозвольте їх у налаштуваннях телефону.');
+      return;
+    }
+    setState(() => _pushHidden = true);
+    try {
+      await ref.read(localStoreProvider).write(_pushKey, true);
+    } catch (_) {}
+    if (!mounted) return;
+    _snack(res.allowed
+        ? 'Готово: повідомимо, коли на ділянці почнеться хвиля.'
+        : (res.lockedLabel ?? 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»'));
+  }
 
   static String _today() {
     final n = DateTime.now();
@@ -372,6 +409,11 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
             ],
           ),
         ),
+        if (result != null && PushService.available && !_pushHidden)
+          _WaveAlertsCard(
+            onEnable: _enablePush,
+            onClose: () => setState(() => _pushHidden = true),
+          ),
         if (_autoRefreshing)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
@@ -676,5 +718,40 @@ class _RenameDialogState extends State<_RenameDialog> {
             child: const Text('Зберегти'),
           ),
         ],
+      );
+}
+
+/// «Сповіщати, коли почнеться хвиля?» — лише якщо push налаштовано в збірці.
+class _WaveAlertsCard extends StatelessWidget {
+  const _WaveAlertsCard({required this.onEnable, required this.onClose});
+
+  final VoidCallback onEnable;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        key: const ValueKey('wave-alerts-card'),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_active_outlined, color: AppTheme.darkGreen, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Сповіщати, коли на ділянці почнеться хвиля?',
+                    style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+              ),
+              TextButton(key: const ValueKey('wave-alerts-enable'), onPressed: onEnable, child: const Text('Увімкнути')),
+              IconButton(
+                tooltip: 'Не зараз',
+                visualDensity: VisualDensity.compact,
+                onPressed: onClose,
+                icon: Icon(Icons.close_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+              ),
+            ],
+          ),
+        ),
       );
 }

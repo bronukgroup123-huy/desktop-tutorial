@@ -4,6 +4,8 @@
     <!-- «Моє місцезнаходження» на карті (geolocator) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Сповіщення «Почалась хвиля» (Android 13+ питає дозвіл) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Камера, сповіщення, фоновий трек Наглядача — додаються разом із цими функціями
          (Google Play вимагає обґрунтування кожного дозволу). -->
 

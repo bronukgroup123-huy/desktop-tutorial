@@ -1,3 +1,6 @@
+import 'package:flutter_client/data/local/local_store.dart';
+import 'package:flutter_client/core/push.dart';
+import 'dart:io';
 import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/local/offline_result.dart';
@@ -354,6 +357,27 @@ void main() {
     expect(find.descendant(of: find.byKey(const ValueKey('share-card')), matching: find.text('Найкращий день: завтра')), findsOneWidget);
     expect(find.byKey(const ValueKey('share-send')), findsOneWidget);
   });
+
+  testWidgets('Сповіщення про хвилі: картка лише коли push налаштовано; «Не зараз» — сховати', (tester) async {
+    PushService.availableForTest = true;
+    addTearDown(() => PushService.availableForTest = false);
+    final (api, _) = makeClient((req) => _alreadyFresh);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) => overview(areas: [areaJson(withResult: true)])),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+        localStoreProvider.overrideWithValue(_MemoryStore()),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('wave-alerts-card')), findsOneWidget);
+    await tester.tap(find.byTooltip('Не зараз'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('wave-alerts-card')), findsNothing);
+    await tester.pump(const Duration(seconds: 5)); // таймери анімацій / запитів
+  });
 }
 
 Map<String, dynamic> areaJson({bool withResult = false}) => {
@@ -429,3 +453,18 @@ const identifyJson = {
 bool _isDaily(RequestOptions req) => req.data is Map && (req.data as Map)['refresh'] == 'daily';
 const _alreadyFresh = FakeResponse(409, {'error': 'already_fresh', 'message': 'Прогноз ділянки вже оновлено сьогодні.'});
 List<RequestOptions> _manual(FakeAdapter a) => a.requests.where((r) => !_isDaily(r)).toList();
+
+
+/// Сховище в пам'яті (без файлів) — для тестів екрана.
+class _MemoryStore extends LocalStore {
+  _MemoryStore() : super(Directory.systemTemp);
+
+  final Map<String, Object?> _data = {};
+
+  @override
+  Future<StoredEntry?> read(String key) async =>
+      _data.containsKey(key) ? StoredEntry(data: _data[key], savedAt: DateTime(2026)) : null;
+
+  @override
+  Future<void> write(String key, Object? data, {String? etag, DateTime? savedAt}) async => _data[key] = data;
+}

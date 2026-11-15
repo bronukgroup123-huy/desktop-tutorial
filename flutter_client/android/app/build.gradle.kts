@@ -72,3 +72,10 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Сповіщення «Почалась хвиля» (ADR-015 §15.8 п.19): Firebase вмикається, лише коли CI поклав
+// android/app/google-services.json (секрет GOOGLE_SERVICES_JSON). Без нього збірка як раніше,
+// застосунок працює без push.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
