@@ -42,6 +42,8 @@
   `mushroom_descriptions.js` (ті самі, що у веб-довіднику) збирає
   `flutter_client/assets/catalog/catalog.json.gz` — види з фото, атрибути й описи. Після зміни
   каталогу чи описів — перезапустити й закомітити (CI попереджає про застарілий файл).
-* `--photos dist/catalog` — фото для телефону (`<id>-<n>.webp`, мініатюра `<id>-0-t.webp`);
+* `--photos dist/catalog` — фото для телефону (`<id>-<n>.webp`, мініатюра `<id>-0-t.webp`) в
+  архівах tar: `<id>.tar` — фото виду, `thumbs.tar` — усі мініатюри (133 файли замість 687 —
+  інакше GitHub зупиняє викладання за лімітом частоти);
   `.github/workflows/catalog.yml` робить це сам на push у `main` (або вручну) і викладає фото в
   реліз `catalog-data`.
