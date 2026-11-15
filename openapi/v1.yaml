@@ -438,7 +438,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: '`area_limit_reached` — немає вільного слоту (текст у `message`), `home_region_required`'
+          description: '`area_limit_reached` — немає вільного слоту (текст у `message`), `home_region_required`, `already_fresh` — щоденне оновлення вже було сьогодні'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -936,6 +936,12 @@ components:
       description: Або `area_id` (повторний аналіз), або `lat` + `lng` + `size_km` (нова ділянка).
       properties:
         area_id: { type: string, format: uuid }
+        refresh:
+          type: string
+          enum: [daily]
+          description: >-
+            З `area_id`: щоденне оновлення без списання аналізу — раз на київську добу або коли
+            збережений результат старішої версії (`result_version`); інакше `409 already_fresh`.
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }
         size_km: { type: integer, enum: [5, 10] }
@@ -1062,6 +1068,20 @@ components:
           properties:
             allowed: { type: boolean }
             locked_label: { type: [string, 'null'], example: 'Анімація тижня — у Pro або з рівня «Слідопит»' }
+        result_version: { type: integer, example: 3, description: Старіший збережений результат оновлюється безкоштовно }
+        identify:
+          type: object
+          description: «Як відрізнити» — один раз на вид (ключ — mushroom_type), не в кожному дні
+          additionalProperties: { type: object }
+        others:
+          type: array
+          description: «Інші гриби сезону» обраного дня (у days[] — для кожного дня)
+          items:
+            type: object
+            properties:
+              mushroom_type: { type: string }
+              name_ua: { type: string }
+              reason_label: { type: string, example: 'Холодно: 3° за тиждень, потрібно від 10°' }
         weather_insight:
           type: [object, 'null']
           description: «Розширені дані погоди» — дощ → гриби, що сталося, шкали, що далі (ADR-015 §15.8 п.9)

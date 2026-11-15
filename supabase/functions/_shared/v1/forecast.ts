@@ -53,6 +53,7 @@ export function normalizeLevel(p: string): ProbabilityLevel {
 export function shapeSpecies(
   s: ScoredSpecies | null,
   weather: WeatherData | null | undefined = null,
+  opts: { identify?: boolean } = {},
 ): Record<string, unknown> | null {
   if (!s) return null;
   const level = normalizeLevel(s.probability);
@@ -74,7 +75,8 @@ export function shapeSpecies(
     // Смужка хвилі: день і стадії (підйом / розпал / спад), без чисел сили.
     wave: waveBlock(s.fruiting),
     // «Як відрізнити» — з довідника (scripts/catalog_sync/identify.py): ознаки, двійник, правило.
-    identify: IDENTIFY[s.mushroom_type] ?? null,
+    // В аналізі ділянки — один раз на вид у result.identify (без дублювання по днях).
+    ...(opts.identify === false ? {} : { identify: IDENTIFY[s.mushroom_type] ?? null }),
   };
 }
 

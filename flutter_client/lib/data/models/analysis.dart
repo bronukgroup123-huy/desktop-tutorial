@@ -598,6 +598,17 @@ class AnalysisBasketSpecies {
   final String whenLabel;
 }
 
+/// «Інші гриби сезону»: вид без шансу цього дня і чому (рішення PO 2026-11-15).
+typedef OtherSpecies = ({String type, String name, String reason});
+
+List<OtherSpecies> _others(Map<String, dynamic> json) => [
+      for (final o in (opt<List<dynamic>>(json, 'others') ?? const []).cast<Map<String, dynamic>>())
+        (type: req<String>(o, 'mushroom_type'), name: req<String>(o, 'name_ua'), reason: opt<String>(o, 'reason_label') ?? ''),
+    ];
+
+/// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
+const kExpectedResultVersion = 3;
+
 List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
       final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],
       null => null,
@@ -620,6 +631,7 @@ class AnalysisDay {
     required this.warnings,
     required this.noDataReason,
     this.basket,
+    this.others = const [],
   });
 
   factory AnalysisDay.fromJson(Map<String, dynamic> json) {
@@ -641,8 +653,12 @@ class AnalysisDay {
       warnings: stringList(json, 'warnings'),
       noDataReason: opt<String>(json, 'no_data_reason'),
       basket: _basket(json),
+      others: _others(json),
     );
   }
+
+  /// «Інші гриби сезону» цього дня.
+  final List<OtherSpecies> others;
 
   /// Усі гриби зі шансом цього дня; `null` — старий збережений результат.
   final List<AnalysisBasketSpecies>? basket;
@@ -691,6 +707,9 @@ class AnalysisResult {
     this.basket,
     this.weekAnimation,
     this.weatherInsight,
+    this.others = const [],
+    this.identify = const {},
+    this.resultVersion = 0,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -733,6 +752,12 @@ class AnalysisResult {
         final w? => (allowed: opt<bool>(w, 'allowed') ?? false, lockedLabel: opt<String>(w, 'locked_label')),
         null => null,
       },
+      others: _others(json),
+      identify: {
+        for (final e in (opt<Map<String, dynamic>>(json, 'identify') ?? const {}).entries)
+          if (e.value is Map<String, dynamic>) e.key: IdentifyCard.fromJson(e.value as Map<String, dynamic>),
+      },
+      resultVersion: opt<num>(json, 'result_version')?.toInt() ?? 0,
       weatherInsight: switch (opt<Map<String, dynamic>>(json, 'weather_insight')) {
         final c? => WeatherInsight.fromJson(c),
         null => null,
@@ -763,6 +788,9 @@ class AnalysisResult {
         basket: day.basket,
         weekAnimation: weekAnimation,
         weatherInsight: weatherInsight,
+        others: day.others,
+        identify: identify,
+        resultVersion: resultVersion,
       );
 
   final AnalysisArea area;
@@ -805,4 +833,16 @@ class AnalysisResult {
 
   /// «Розширені дані погоди»; `null` — старий результат.
   final WeatherInsight? weatherInsight;
+
+  /// «Інші гриби сезону» обраного дня — після натискання кнопки.
+  final List<OtherSpecies> others;
+
+  /// «Як відрізнити» — один раз на вид.
+  final Map<String, IdentifyCard> identify;
+
+  /// Версія результату із сервера; менша за [kExpectedResultVersion] — оновлюється безкоштовно.
+  final int resultVersion;
+
+  /// Аналіз не на сьогодні або зроблений до оновлення застосунку.
+  bool isStale(String today) => date.compareTo(today) < 0 || resultVersion < kExpectedResultVersion;
 }

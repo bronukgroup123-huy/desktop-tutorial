@@ -286,4 +286,30 @@ void main() {
     await tester.pump();
     expect(find.textContaining('ліміт 2 рази'), findsOneWidget);
   });
+
+  testWidgets('Інші гриби сезону — після натискання кнопки, з причиною; рівень зі значком', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['others'] = [
+      {'mushroom_type': 'boletus_edulis', 'name_ua': 'Білий гриб', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
+      {'mushroom_type': 'hydnum_repandum', 'name_ua': 'Їжовик жовтуватий', 'reason_label': 'Холодно: 3° за тиждень, потрібно від 10°'},
+    ];
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('other-species')), findsOneWidget);
+    expect(find.text('Інші гриби сезону (2)'), findsOneWidget);
+    expect(find.text('Білий гриб'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('other-species')));
+    await tester.tap(find.byKey(const ValueKey('other-species')));
+    await tester.pump();
+    expect(find.text('Білий гриб'), findsOneWidget);
+    expect(find.text('Холодно: 3° за тиждень, потрібно від 10°'), findsNWidgets(2));
+    // інший день — своїх «інших» немає → кнопки немає
+    await tester.ensureVisible(find.byKey(const ValueKey('day-2026-11-12')));
+    await tester.tap(find.byKey(const ValueKey('day-2026-11-12')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('other-species')), findsNothing);
+    // значок рівня в смужці днів
+    expect(find.byIcon(Icons.remove_rounded), findsWidgets); // «Середня»
+  });
 }

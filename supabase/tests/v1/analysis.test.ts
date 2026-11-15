@@ -740,3 +740,63 @@ Deno.test("analysis PUT area: задовга або не рядок → 422; ч�
   const bad = await run(db(), req("PUT", `${URL_}/areas/not-a-uuid`, { label: "Ліс" }));
   assertEquals(bad.res.status, 404);
 });
+
+// ─── Щоденне безкоштовне оновлення, «інші гриби сезону», «як відрізнити» один раз ─────────
+
+Deno.test("analysis POST refresh=daily: раз на добу без списання; вдруге — 409 already_fresh", async () => {
+  const yesterday = "2026-11-10T18:00:00Z"; // NOW — 2026-11-11 12:00 за Києвом
+  const d = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 3 } }],
+      error: null,
+    },
+    "rpc.analysis_used_today": { data: 5, error: null },
+  });
+  const { res, json } = await run(d, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals(res.status, 200);
+  assertEquals(find(d, "rpc.consume_analysis"), undefined); // ліміт не витрачено
+  assertEquals(json.data.usage.used, 5); // навіть коли ліміт вичерпано
+  assertEquals(json.data.result_version, 3);
+
+  // сьогодні вже оновлено і версія свіжа → 409
+  const fresh = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 3 } }],
+      error: null,
+    },
+  });
+  const r2 = await run(fresh, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals([r2.res.status, r2.json.error], [409, "already_fresh"]);
+
+  // сьогодні оновлено, але результат старої версії (до оновлення застосунку) → знову безкоштовно
+  const old = db({
+    "analysis_areas.select": {
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 1 } }],
+      error: null,
+    },
+  });
+  const r3 = await run(old, req("POST", URL_, { area_id: AREA, refresh: "daily" }));
+  assertEquals(r3.res.status, 200);
+  assertEquals(find(old, "rpc.consume_analysis"), undefined);
+
+  const bad = await run(db(), req("POST", URL_, { area_id: AREA, refresh: "always" }));
+  assertEquals(bad.res.status, 422);
+});
+
+Deno.test("analysis POST: «інші гриби сезону» з причиною; «як відрізнити» — один раз у result.identify", async () => {
+  const cold = { ...species({ mushroom_type: "boletus_edulis", name_ua: "Білий гриб", probability: "no_data", score: 0 }), missed: ["temp 3.4 < min 10"] };
+  const forest = { ...species({ mushroom_type: "suillus_bovinus", name_ua: "Козляк", probability: "no_data", score: 0 }), missed: ["forest mismatch: need pine, got oak"] };
+  const flam = species({ mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", probability: "high" });
+  const forecast = () => Promise.resolve(result({
+    top1: flam, alternative: null, candidates: [flam], others: [cold, forest],
+  }));
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast });
+  assertEquals(json.data.others, [
+    { mushroom_type: "boletus_edulis", name_ua: "Білий гриб", reason_label: "Холодно: 3° за тиждень, потрібно від 10°" },
+    { mushroom_type: "suillus_bovinus", name_ua: "Козляк", reason_label: "У лісах ділянки немає його дерев (сосна)" },
+  ]);
+  assertEquals(json.data.days[0].others.length, 2);
+  // identify — не в кожному виді, а один раз на результат
+  assertEquals(json.data.top1.identify, undefined);
+  assertEquals(Object.keys(json.data.identify), ["flammulina_velutipes"]);
+});

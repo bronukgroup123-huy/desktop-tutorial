@@ -46,8 +46,16 @@ import {
   type TokenVerifier,
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
-import { SCENE_LABEL, sceneSprouts, weatherBlock, weatherScene, weatherVerdict } from "./forecast-labels.ts";
+import {
+  otherReasonLabel,
+  SCENE_LABEL,
+  sceneSprouts,
+  weatherBlock,
+  weatherScene,
+  weatherVerdict,
+} from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
+import { IDENTIFY } from "./identify-data.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -310,7 +318,7 @@ export function secondsToKyivMidnight(now: Date): number {
 /** Нова ділянка з центром у точці або повторний аналіз збереженої. */
 export type AnalysisTarget =
   | { kind: "create"; lat: number; lng: number; sizeKm: AnalysisSize }
-  | { kind: "area"; areaId: string };
+  | { kind: "area"; areaId: string; daily?: boolean };
 
 export interface AnalysisInput {
   target: AnalysisTarget;
@@ -381,7 +389,8 @@ export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
     if (obj.lat !== undefined || obj.lng !== undefined || obj.size_km !== undefined) {
       throw validationError("Ділянку не можна змінити: передайте або area_id, або lat/lng/size_km для нової");
     }
-    target = { kind: "area", areaId: obj.area_id.toLowerCase() };
+    if (obj.refresh !== undefined && obj.refresh !== "daily") throw validationError("refresh — лише \"daily\"");
+    target = { kind: "area", areaId: obj.area_id.toLowerCase(), daily: obj.refresh === "daily" };
   } else {
     if (typeof obj.lat !== "number" || !Number.isFinite(obj.lat) || obj.lat < -90 || obj.lat > 90) {
       throw validationError("lat — широта від -90 до 90");
@@ -717,7 +726,7 @@ export function pickBest(
 
 function shapeCandidate(c: Candidate | null, result: ForecastResult): Record<string, unknown> | null {
   if (!c) return null;
-  const shaped = shapeSpecies(c.species, result.weather);
+  const shaped = shapeSpecies(c.species, result.weather, { identify: false });
   if (!shaped) return null;
   return { ...shaped, forest_label: c.forestType ? forestTypeStyle(c.forestType).label : null };
 }
@@ -746,6 +755,24 @@ async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regi
   }
 }
 
+/**
+ * Версія результату аналізу: змінюється, коли у відповіді з'являються нові дані (сцена погоди,
+ * «як відрізнити»…). Збережений результат старішої версії оновлюється безкоштовно.
+ */
+export const RESULT_VERSION = 3;
+
+/**
+ * Щоденне оновлення збереженої ділянки — без списання аналізу (рішення PO 2026-11-15): раз
+ * на добу (київську), або коли збережений результат старішої версії.
+ */
+export function dailyRefreshAllowed(row: { last_result?: unknown; last_analyzed_at?: string | null }, now: Date): boolean {
+  if (!row.last_analyzed_at) return true;
+  const last = kyivToday(new Date(row.last_analyzed_at));
+  if (last < kyivToday(now)) return true;
+  const version = (row.last_result as { result_version?: unknown } | null)?.result_version;
+  return typeof version !== "number" || version < RESULT_VERSION;
+}
+
 async function runAnalysis(
   req: Request,
   user: AuthUser,
@@ -764,6 +791,7 @@ async function runAnalysis(
   let area: AreaRef;
   let used: number;
   let override: ForestOverride | null = null;
+  let free = false;
 
   if (input.target.kind === "area") {
     // Повторний аналіз збереженої ділянки — центр і розмір незмінні.
@@ -775,7 +803,16 @@ async function runAnalysis(
       throw new HttpError(403, "pro_required", "Ця ділянка доступна в Pro. Безкоштовно — одна ділянка 5×5 км.");
     }
     await assertInRegion(deps, point.lat, point.lng, regionId);
-    used = await consume(deps, user.id, row.slot, limit, now);
+    if (input.target.daily) {
+      // Щоденне оновлення — безкоштовно, але не частіше разу на добу.
+      if (!dailyRefreshAllowed(row, now)) {
+        throw new HttpError(409, "already_fresh", "Прогноз ділянки вже оновлено сьогодні.");
+      }
+      used = await usedToday(deps.db, user.id, row.slot);
+      free = true;
+    } else {
+      used = await consume(deps, user.id, row.slot, limit, now);
+    }
     area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km };
     override = parseStoredOverride(row.forest_override);
   } else {
@@ -826,7 +863,7 @@ async function runAnalysis(
     return ok(data, req);
   } catch (err) {
     // Розрахунок не вдався — списаний аналіз повертаємо.
-    await refund(deps, user.id, area.slot);
+    if (!free) await refund(deps, user.id, area.slot);
     if (err instanceof HttpError) throw err;
     console.error("[v1-analysis] analysis failed:", err);
     throw new HttpError(500, "internal_error", "Не вдалося виконати аналіз. Спробуйте ще раз.");
@@ -906,8 +943,12 @@ async function analyzeArea(
     locked_days: locked.map((date) => ({ date, day_label: dayLabel(date, today) })),
     locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
     basket: selected.view.basket,
+    others: selected.view.others,
     week_animation: weekAnimation(when.pro, when.rating ?? 0),
     // «Розширені дані погоди»: дощ → гриби, що сталося, шкали, що далі.
+    result_version: RESULT_VERSION,
+    // «Як відрізнити» — один раз на вид (не в кожному дні).
+    identify: identifyFor(days.map((d) => d.view)),
     weather_insight: weatherInsight(runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today)),
   };
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
@@ -917,7 +958,7 @@ async function analyzeArea(
 interface AnalyzedDay {
   view: Record<string, unknown> & {
     date: string; top1: unknown; alternative: unknown; weather: unknown; warnings: string[];
-    no_data_reason: string | null; basket: Array<Record<string, unknown>>;
+    no_data_reason: string | null; basket: Array<Record<string, unknown>>; others: Array<Record<string, unknown>>;
   };
   /** Внутрішній порядок для «найкращого дня» — у відповідь не йде. */
   bestScore: number | null;
@@ -975,6 +1016,8 @@ function analyzeDay(
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
       basket: hasForest ? basketOf(runs) : [],
+      // «Інші гриби сезону» — після натискання кнопки (рішення PO 2026-11-15).
+      others: hasForest ? othersOf(runs) : [],
       no_data_reason: !hasForest ? NO_FOREST_REASON : !best.top1 && first.noDataReason ? first.noDataReason : null,
     },
     bestScore: best.top1 ? best.top1.species.score : null,
@@ -990,6 +1033,38 @@ const NO_FOREST_REASON = "У цій ділянці на карті немає л
 const LEVEL_SHORT_LABEL: Record<ProbabilityLevel, string> = {
   peak: "Пік", high: "Висока", medium: "Середня", low: "Низька", no_data: "—",
 };
+
+/** «Як відрізнити» для видів, що є найкращими або альтернативою хоча б одного дня. */
+export function identifyFor(views: Array<{ top1: unknown; alternative: unknown }>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const v of views) {
+    for (const s of [v.top1, v.alternative] as Array<{ mushroom_type?: string } | null>) {
+      const t = s?.mushroom_type;
+      if (t && IDENTIFY[t] && !out[t]) out[t] = IDENTIFY[t];
+    }
+  }
+  return out;
+}
+
+/**
+ * «Інші гриби сезону»: види в сезоні без шансу в жодному з лісів ділянки — з причиною. Якщо
+ * вид має шанс хоча б в одному лісі, він у кошику, а не тут.
+ */
+export function othersOf(runs: Array<{ forestType: string | null; result: ForecastResult }>): Array<Record<string, unknown>> {
+  const withChance = new Set(runs.flatMap((r) => (r.result.candidates ?? []).map((s) => s.mushroom_type)));
+  const seen = new Map<string, Record<string, unknown>>();
+  for (const run of runs) {
+    for (const s of run.result.others ?? []) {
+      if (withChance.has(s.mushroom_type) || seen.has(s.mushroom_type)) continue;
+      seen.set(s.mushroom_type, {
+        mushroom_type: s.mushroom_type,
+        name_ua: s.name_ua,
+        reason_label: otherReasonLabel(s.missed, run.result.weather),
+      });
+    }
+  }
+  return [...seen.values()].sort((a, b) => String(a.name_ua).localeCompare(String(b.name_ua), "uk"));
+}
 
 /**
  * Кошик мінікарти: усі види зі шансом за день (найкращий рівень серед типів лісу ділянки),

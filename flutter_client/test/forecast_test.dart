@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/local/offline_result.dart';
 import 'package:flutter_client/data/models/analysis.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'data/analysis_test.dart' show resultJson;
 import 'data/fake_adapter.dart';
 
 Map<String, dynamic> forecastJson({bool withWeather = true}) => {
@@ -197,7 +199,7 @@ void main() {
   });
 
   testWidgets('Клітинки ділянок: замок Pro, назва через олівець, ▶ на старому аналізі підказує оновити', (tester) async {
-    final (api, adapter) = makeClient((req) => FakeResponse(200, {
+    final (api, adapter) = makeClient((req) => _isDaily(req) ? _alreadyFresh : FakeResponse(200, {
           'data': {'id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'label': 'Біля Броників', 'title': 'Біля Броників'},
         }));
     var loads = 0;
@@ -231,9 +233,9 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('area-label-field')), '  Біля Броників ');
     await tester.tap(find.byKey(const ValueKey('area-label-save')));
     await tester.pumpAndSettle();
-    expect([adapter.requests.single.method, adapter.requests.single.path],
+    expect([_manual(adapter).single.method, _manual(adapter).single.path],
         ['PUT', '/v1-analysis/areas/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']);
-    expect(adapter.requests.single.data, {'label': 'Біля Броників'});
+    expect(_manual(adapter).single.data, {'label': 'Біля Броників'});
     expect(loads, 2); // список ділянок оновлено з сервера
 
     // довге натискання на клітинку — той самий діалог
@@ -243,7 +245,7 @@ void main() {
   });
 
   testWidgets('«Оновити аналіз» спершу питає: скасувати — без запиту; «Оновити» — аналіз', (tester) async {
-    final (api, adapter) = makeClient((req) => FakeResponse(500, {'error': 'x', 'message': 'x'}));
+    final (api, adapter) = makeClient((req) => _isDaily(req) ? _alreadyFresh : FakeResponse(500, {'error': 'x', 'message': 'x'}));
     await tester.pumpWidget(ProviderScope(
       overrides: [
         analysisOverviewProvider.overrideWith((ref) => overview(areas: [areaJson(withResult: true)])),
@@ -258,17 +260,17 @@ void main() {
     expect(find.textContaining('сьогодні лишилось 4 з 5'), findsOneWidget);
     await tester.tap(find.text('Скасувати'));
     await tester.pumpAndSettle();
-    expect(adapter.requests, isEmpty);
+    expect(_manual(adapter), isEmpty);
 
     await tester.tap(find.byKey(const ValueKey('reanalyze')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('reanalyze-confirm')));
     await tester.pumpAndSettle();
-    expect([adapter.requests.single.method, adapter.requests.single.path], ['POST', '/v1-analysis']);
+    expect([_manual(adapter).single.method, _manual(adapter).single.path], ['POST', '/v1-analysis']);
   });
 
   testWidgets('«Оновити аналіз», коли аналізи закінчились, — пояснення без запиту', (tester) async {
-    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': {}}));
+    final (api, adapter) = makeClient((req) => _isDaily(req) ? _alreadyFresh : FakeResponse(200, {'data': {}}));
     final area = areaJson(withResult: true)..['usage'] = {'used': 5, 'limit': 5, 'label': 'Сьогодні: 5 з 5 аналізів'};
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -282,7 +284,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Аналізи на сьогодні закінчились'), findsOneWidget);
     expect(find.byKey(const ValueKey('reanalyze-confirm')), findsNothing);
+    expect(_manual(adapter), isEmpty);
+  });
+
+  testWidgets('Щоденне оновлення: старий аналіз оновлюється сам, без списання ліміту', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': resultJson()}));
+    var loads = 0;
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) {
+          loads++;
+          return overview(areas: [areaJson(withResult: true)]);
+        }),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump(); // перший кадр
+    await tester.pump(); // post-frame — автооновлення
+    expect(find.byKey(const ValueKey('auto-refreshing')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 50));
+    final daily = adapter.requests.where(_isDaily).toList();
+    expect(daily.length, 1);
+    expect(daily.single.data, containsPair('area_id', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'));
+    expect(loads, greaterThanOrEqualTo(2)); // ділянки перечитано зі свіжим результатом
+  });
+
+  testWidgets('Щоденне оновлення без інтернету — банер, без запиту', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': resultJson()}));
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith(
+          (ref) => overview(areas: [areaJson(withResult: true)], offlineSince: DateTime(2026, 11, 12, 9)),
+        ),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    await tester.pump();
     expect(adapter.requests, isEmpty);
+    expect(find.byKey(const ValueKey('stale-banner')), findsOneWidget);
+    expect(find.textContaining('коли з\'явиться інтернет'), findsOneWidget);
   });
 }
 
@@ -353,3 +396,9 @@ const identifyJson = {
   },
   'rule': 'Ніколи не беріть гриби на пеньках без уважної перевірки',
 };
+
+
+/// Щоденне автооновлення (refresh: daily) — окремо від дій користувача в тестах.
+bool _isDaily(RequestOptions req) => req.data is Map && (req.data as Map)['refresh'] == 'daily';
+const _alreadyFresh = FakeResponse(409, {'error': 'already_fresh', 'message': 'Прогноз ділянки вже оновлено сьогодні.'});
+List<RequestOptions> _manual(FakeAdapter a) => a.requests.where((r) => !_isDaily(r)).toList();

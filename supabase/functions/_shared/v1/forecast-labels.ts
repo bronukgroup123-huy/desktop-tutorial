@@ -183,6 +183,32 @@ export function fruitingLimitLabels(fr: FruitingState | undefined): string[] {
 }
 
 /**
+ * «Інші гриби сезону»: чому виду в сезоні сьогодні немає серед грибів зі шансом — одне речення.
+ */
+export function otherReasonLabel(missed: string[], w: WeatherData | null | undefined): string {
+  for (const r of missed) {
+    let m: RegExpMatchArray | null;
+    if ((m = r.match(/^temp (-?[\d.]+) < min (-?[\d.]+)/))) {
+      return `Холодно: ${deg(Number(m[1]))} за тиждень, потрібно від ${deg(Number(m[2]))}`;
+    }
+    if ((m = r.match(/^temp (-?[\d.]+) > max (-?[\d.]+)/))) {
+      return `Затепло: ${deg(Number(m[1]))} за тиждень, потрібно до ${deg(Number(m[2]))}`;
+    }
+    if ((m = r.match(/^forest mismatch: need ([\w|]+)/))) {
+      const TREE: Record<string, string> = {
+        pine: "сосна", spruce: "ялина", oak: "дуб", birch: "береза", aspen: "осика",
+        beech: "бук", hornbeam: "граб", alder: "вільха",
+      };
+      const names = m[1].split("|").map((t) => TREE[t]).filter((t): t is string => !!t).slice(0, 3);
+      return names.length ? `У лісах ділянки немає його дерев (${names.join(", ")})` : "У лісах ділянки немає його дерев";
+    }
+    const label = humanizeLimit(r, w);
+    if (label) return label;
+  }
+  return "Умови для нього поки не склалися";
+}
+
+/**
  * «Що заважає»: перекладені обмежувальні фактори. Якщо рівень нижчий за «високий», а
  * явних факторів немає — пояснюємо сезон, щоб «✓» не суперечили бейджу рівня.
  */

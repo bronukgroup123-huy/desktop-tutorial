@@ -83,6 +83,39 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
   /// ▶ «Хвиля по днях» у верхньому рядку значків (ADR-015 §15.9).
   final _play = WeekPlayController();
 
+  /// Щоденне безкоштовне оновлення: для яких ділянок уже пробували в цій сесії.
+  final Set<String> _autoTried = {};
+  bool _autoRefreshing = false;
+  bool _autoFailed = false;
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Аналіз не на сьогодні або до оновлення застосунку — оновити безкоштовно (раз на добу).
+  void _maybeAutoRefresh(AnalysisResult? result, bool offline) {
+    if (result == null || offline || _busy || _autoRefreshing) return;
+    if (!result.isStale(_today()) || !_autoTried.add(_area.id)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoRefresh());
+  }
+
+  Future<void> _autoRefresh() async {
+    if (!mounted) return;
+    setState(() {
+      _autoRefreshing = true;
+      _autoFailed = false;
+    });
+    try {
+      final fresh = await ref.read(analysisRepositoryProvider).dailyRefresh(_area.id, forest: _forestHint());
+      if (fresh != null) ref.invalidate(analysisOverviewProvider);
+    } catch (_) {
+      if (mounted) setState(() => _autoFailed = true);
+    } finally {
+      if (mounted) setState(() => _autoRefreshing = false);
+    }
+  }
+
   @override
   void dispose() {
     _play.dispose();
@@ -155,7 +188,8 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
       builder: (context) => AlertDialog(
         title: const Text('Оновити аналіз?'),
         content: Text(
-          'Прогноз для ділянки перерахується за свіжою погодою на сьогодні й наступні дні.'
+          'Прогноз ділянки й так оновлюється автоматично раз на день. Оновити зараз — '
+          'перерахувати за найсвіжішою погодою.'
           '${left == null ? '' : ' Буде використано 1 аналіз — сьогодні лишилось $left з ${usage!.limit}.'}',
         ),
         actions: [
@@ -257,6 +291,8 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
     final offline = o.offlineSince != null;
     final result = _area.lastResult;
+    _maybeAutoRefresh(result, offline);
+    final stale = result != null && result.isStale(_today());
 
     return Column(
       children: [
@@ -319,6 +355,32 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
             ],
           ),
         ),
+        if (_autoRefreshing)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Row(
+              key: ValueKey('auto-refreshing'),
+              children: [
+                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
+                SizedBox(width: 8),
+                Text('Оновлюємо прогноз на сьогодні…', style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+              ],
+            ),
+          )
+        else if (stale && (offline || _autoFailed))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: ForecastInfoCard(
+              key: const ValueKey('stale-banner'),
+              icon: Icons.update_rounded,
+              color: AppTheme.accentOrange,
+              text: result.resultVersion < kExpectedResultVersion
+                  ? 'Аналіз зроблено до оновлення застосунку — частина даних недоступна. '
+                      '${offline ? 'Оновиться, коли з\'явиться інтернет.' : 'Натисніть ⟳.'}'
+                  : 'Прогноз від ${result.date.substring(8, 10)}.${result.date.substring(5, 7)}. '
+                      '${offline ? 'Оновиться автоматично, коли з\'явиться інтернет.' : 'Не вдалося оновити — натисніть ⟳.'}',
+            ),
+          ),
         if (offline)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
