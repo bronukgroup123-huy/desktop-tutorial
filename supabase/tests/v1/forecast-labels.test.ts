@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import type { WeatherData } from "../../functions/_shared/forecast/types.ts";
 import {
   days,
@@ -201,4 +201,31 @@ Deno.test("Сцена погоди: за кодом WMO, без коду — з�
   assertEquals(sceneSprouts({ phase: "flush", intensity: 0.7, stage: "rise" }), "few");
   assertEquals(sceneSprouts({ phase: "maturing", intensity: 0 }), "none");
   assertEquals(sceneSprouts(undefined), "none");
+});
+
+Deno.test("Розширені дані погоди: вікно хвилі й відлига з рушія; без дощу — «ґрунт підсихатиме»", async () => {
+  const { weatherInsight } = await import("../../functions/_shared/v1/weather-insight.ts");
+  const day = (date: string, rain = 0, tmin = 0) => ({ date, tempMin: tmin, tempMax: 5, rain, humidity: 85, daysAhead: 0 });
+  const res = (date: string) => ({
+    weather: { ...W, tempAvg7d: 3, rain14d: 6, soilState: "normal", day: day(date), recent: [day("2026-11-14", 0, -3), day(date)] },
+  });
+  const top = {
+    mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", score: 0.8, probability: "high",
+    matched: ["fruiting flush 3/20 thaw 0 2026-11-14"], missed: [], wave: null,
+    fruiting: { phase: "flush", flushDay: 3, flushDays: 20, intensity: 1, stage: "rise", triggerDate: "2026-11-14", triggerRain: 0 },
+  } as unknown as ScoredSpecies;
+  const ins = weatherInsight(
+    // deno-lint-ignore no-explicit-any
+    [res("2026-11-15"), res("2026-11-16"), res("2026-11-17")] as any,
+    "2026-11-15",
+    top,
+    (d: string) => (d === "2026-11-15" ? "Сьогодні" : d === "2026-11-16" ? "Завтра" : "Вт 17"),
+  )!;
+  assertEquals(ins.wave, { from: "2026-11-13", to: "2026-12-02", label: "Зимовий опеньок: гриби 13.11–02.12" });
+  const events = ins.events as Array<{ icon: string; label: string }>;
+  assertEquals(events.map((e) => e.icon).sort(), ["frost", "thaw"]);
+  assert(events.some((e) => e.label === "Відлига 14.11 — грибниця рушила в ріст"));
+  assertEquals(ins.outlook_label, "Без дощу до вт 17 — ґрунт підсихатиме");
+  const rain14 = (ins.gauges as Array<{ key: string; value_label?: string; tone: string }>).find((g) => g.key === "rain14")!;
+  assertEquals([rain14.value_label, rain14.tone], ["6 мм — замало", "bad"]);
 });

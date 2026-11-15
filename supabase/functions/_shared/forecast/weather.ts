@@ -349,8 +349,8 @@ export function weatherAsOf(series: WeatherSeries, date: string, source: Weather
       daysAhead: dayOffset(date, series.today),
       code: series.wcode?.[i] ?? null,
     },
-    recent: series.dates.slice(Math.max(0, i - 6), i + 1).map((d, k) => {
-      const j = Math.max(0, i - 6) + k;
+    recent: series.dates.slice(Math.max(0, i - 13), i + 1).map((d, k) => {
+      const j = Math.max(0, i - 13) + k;
       return {
         date: d,
         tempMin: series.tmin[j],

@@ -1062,27 +1062,60 @@ components:
           properties:
             allowed: { type: boolean }
             locked_label: { type: [string, 'null'], example: 'Анімація тижня — у Pro або з рівня «Слідопит»' }
-        weather_chart:
+        weather_insight:
           type: [object, 'null']
-          description: Графік погоди — 7 днів до сьогодні (факт) і дні горизонту (прогноз)
+          description: «Розширені дані погоди» — дощ → гриби, що сталося, шкали, що далі (ADR-015 §15.8 п.9)
           properties:
-            title_label: { type: string }
-            rain_legend_label: { type: string, example: 'опади, мм' }
-            temp_legend_label: { type: string, example: 'температура, °' }
+            strip_title: { type: string, example: 'Дощі й гриби' }
             days:
               type: array
+              description: 14 днів до сьогодні й дні горизонту
               items:
                 type: object
-                required: [date, label, date_label, tmin, tmax, rain, forecast, today]
+                required: [date, label, date_label, rain, soaking, temp, forecast, today]
                 properties:
                   date: { type: string, format: date }
                   label: { type: string, example: Пн }
-                  date_label: { type: string, example: '16.11' }
-                  tmin: { type: integer }
-                  tmax: { type: integer }
+                  date_label: { type: string, example: '16' }
                   rain: { type: number, description: мм за добу }
+                  soaking: { type: boolean, description: Дощ промочив ґрунт (поштовх) }
+                  temp: { type: string, enum: [frost, cold, ok, hot] }
                   forecast: { type: boolean }
                   today: { type: boolean }
+            wave:
+              type: [object, 'null']
+              properties:
+                from: { type: string, format: date }
+                to: { type: [string, 'null'], format: date }
+                label: { type: string, example: 'Зимовий опеньок: гриби 13.11–02.12' }
+            legend_labels: { type: object, additionalProperties: { type: string } }
+            events_title: { type: string }
+            events:
+              type: array
+              maxItems: 3
+              items:
+                type: object
+                properties:
+                  icon: { type: string, enum: [rain, frost, thaw, dry] }
+                  label: { type: string, example: 'Дощ 9 мм, 13.11 — ґрунт промочило' }
+            gauges:
+              type: array
+              items:
+                type: object
+                required: [key, title, tone]
+                properties:
+                  key: { type: string, enum: [soil, warmth, rain14] }
+                  title: { type: string }
+                  steps: { type: array, items: { type: string } }
+                  index: { type: integer }
+                  hint: { type: [string, 'null'] }
+                  value_label: { type: string, example: '25 мм — достатньо' }
+                  fill: { type: number, minimum: 0, maximum: 1 }
+                  mark: { type: number, minimum: 0, maximum: 1 }
+                  mark_label: { type: string }
+                  tone: { type: string, enum: [good, neutral, bad] }
+            outlook_title: { type: string }
+            outlook_label: { type: string, example: 'Вт 17 — дощ 9 мм: підтримає хвилю' }
 
     AnalysisBasketSpecies:
       type: object
