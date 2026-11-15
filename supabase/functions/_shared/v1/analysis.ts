@@ -32,7 +32,7 @@
 // ============================================================================
 
 import { parseEwkbPoint } from "../forecast/picks-list.ts";
-import type { ForecastResult, ScoredSpecies } from "../forecast/types.ts";
+import type { DayWeather, ForecastResult, ScoredSpecies } from "../forecast/types.ts";
 import {
   assertMethod,
   type AuthUser,
@@ -46,7 +46,7 @@ import {
   type TokenVerifier,
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
-import { weatherBlock } from "./forecast-labels.ts";
+import { weatherBlock, weatherVerdict } from "./forecast-labels.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -507,9 +507,8 @@ export function shapeForest(f: ForestSummary, override: ForestOverride | null = 
     })),
     refined,
     // Уточнення діє лише на цю ділянку; ліс на карті змінюють перевірені тук-туки (ADR-019).
-    refine_note_label: refined
-      ? "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх."
-      : null,
+    // Показується у вікні «Уточнити ліс» (не на головному екрані) — тому завжди.
+    refine_note_label: "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх.",
   };
 }
 
@@ -907,9 +906,41 @@ async function analyzeArea(
     locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
     basket: selected.view.basket,
     week_animation: weekAnimation(when.pro, when.rating ?? 0),
+    weather_chart: weatherChart(runs[0].results, today),
   };
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
+}
+
+/**
+ * Графік погоди в прогнозі ділянки: 7 днів до сьогодні (факт) + дні горизонту (прогноз),
+ * опади й мінімум / максимум температури — звичайні числа погоди, без ймовірностей.
+ */
+export function weatherChart(results: ForecastResult[], today: string): Record<string, unknown> | null {
+  const byDate = new Map<string, DayWeather>();
+  const todayRes = results.find((r) => r.weather?.day?.date === today) ?? results[0];
+  for (const d of todayRes?.weather?.recent ?? []) byDate.set(d.date, d);
+  for (const r of results) {
+    const d = r.weather?.day;
+    if (d && r.weather?.source !== "unavailable") byDate.set(d.date, d);
+  }
+  const list = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  if (list.length < 2) return null;
+  return {
+    days: list.map((d) => ({
+      date: d.date,
+      label: WEEKDAY_SHORT[new Date(`${d.date}T00:00:00Z`).getUTCDay()],
+      date_label: `${d.date.slice(8, 10)}.${d.date.slice(5, 7)}`,
+      tmin: Math.round(d.tempMin),
+      tmax: Math.round(d.tempMax),
+      rain: Math.round(d.rain * 10) / 10,
+      forecast: d.date > today,
+      today: d.date === today,
+    })),
+    title_label: "Погода: тиждень до сьогодні й прогноз",
+    rain_legend_label: "опади, мм",
+    temp_legend_label: "температура, °",
+  };
 }
 
 interface AnalyzedDay {
@@ -937,6 +968,7 @@ function analyzeDay(
   const ahead = daysAhead(date, today);
   const approximate = ahead >= APPROXIMATE_FROM_DAY;
   const w = weatherBlock(first.weather);
+  const verdict = weatherVerdict(first.weather);
   const dayW = first.weather?.day;
   return {
     view: {
@@ -958,6 +990,9 @@ function analyzeDay(
           temp_label: w.temp_label,
           humidity_label: w.humidity_label,
           rain_label: w.rain_label,
+          // Що це означає для грибів — одне речення й тон.
+          verdict_label: verdict?.label ?? null,
+          verdict_tone: verdict?.tone ?? null,
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],

@@ -85,9 +85,31 @@ class _ForestRefineSheetState extends State<ForestRefineSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Оберіть 1–2 породи для кожного лісу — прогноз врахує гриби, що ростуть під ними. '
-            'Уточнення діє лише для вашої ділянки.',
+            'Оберіть 1–2 породи для кожного лісу — прогноз врахує гриби, що ростуть під ними.',
             style: TextStyle(color: muted),
+          ),
+          // Пояснення про уточнення — тут, а не на головному екрані (рішення PO 2026-11-15).
+          const SizedBox(height: 10),
+          Container(
+            key: const ValueKey('refine-note'),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.darkGreen.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded, size: 18, color: muted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.result.refineNoteLabel ?? 'Уточнення діє лише для вашої ділянки.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.8)),
+                  ),
+                ),
+              ],
+            ),
           ),
           for (final t in widget.result.forestTypes) ...[
             const SizedBox(height: 18),

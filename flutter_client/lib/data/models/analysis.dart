@@ -393,6 +393,8 @@ class AnalysisWeather {
     required this.humidityLabel,
     required this.rainLabel,
     this.dayLabel,
+    this.verdictLabel,
+    this.verdictTone,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -401,7 +403,15 @@ class AnalysisWeather {
         humidityLabel: req<String>(json, 'humidity_label'),
         rainLabel: req<String>(json, 'rain_label'),
         dayLabel: opt<String>(json, 'day_label'),
+        verdictLabel: opt<String>(json, 'verdict_label'),
+        verdictTone: opt<String>(json, 'verdict_tone'),
       );
+
+  /// Що погода означає для грибів: «Ґрунт вологий після дощів — добре для грибів».
+  final String? verdictLabel;
+
+  /// `good | neutral | bad`
+  final String? verdictTone;
 
   /// Погода самого дня: «4…11°, опади 8 мм».
   final String? dayLabel;
@@ -409,6 +419,63 @@ class AnalysisWeather {
   final String tempLabel;
   final String humidityLabel;
   final String rainLabel;
+}
+
+/// Графік погоди: тиждень до сьогодні (факт) і дні горизонту (прогноз). Числа погоди — не ймовірності.
+class WeatherChart {
+  const WeatherChart({required this.days, this.titleLabel, this.rainLegendLabel, this.tempLegendLabel});
+
+  factory WeatherChart.fromJson(Map<String, dynamic> json) => WeatherChart(
+        days: [
+          for (final d in (opt<List<dynamic>>(json, 'days') ?? const []).cast<Map<String, dynamic>>())
+            WeatherChartDay(
+              date: req<String>(d, 'date'),
+              label: req<String>(d, 'label'),
+              dateLabel: opt<String>(d, 'date_label') ?? '',
+              tmin: toDouble(d['tmin'], 'tmin'),
+              tmax: toDouble(d['tmax'], 'tmax'),
+              rain: toDouble(d['rain'], 'rain'),
+              forecast: opt<bool>(d, 'forecast') ?? false,
+              today: opt<bool>(d, 'today') ?? false,
+            ),
+        ],
+        titleLabel: opt<String>(json, 'title_label'),
+        rainLegendLabel: opt<String>(json, 'rain_legend_label'),
+        tempLegendLabel: opt<String>(json, 'temp_legend_label'),
+      );
+
+  final List<WeatherChartDay> days;
+  final String? titleLabel;
+  final String? rainLegendLabel;
+  final String? tempLegendLabel;
+}
+
+class WeatherChartDay {
+  const WeatherChartDay({
+    required this.date,
+    required this.label,
+    required this.dateLabel,
+    required this.tmin,
+    required this.tmax,
+    required this.rain,
+    required this.forecast,
+    required this.today,
+  });
+
+  final String date;
+
+  /// «Пн».
+  final String label;
+
+  /// «16.11».
+  final String dateLabel;
+  final double tmin;
+  final double tmax;
+
+  /// Опади за добу, мм.
+  final double rain;
+  final bool forecast;
+  final bool today;
 }
 
 /// Гриб у кошику мінікарти: вид зі шансом на день (ADR-015 §15.9). Лише підписи із сервера.
@@ -531,6 +598,7 @@ class AnalysisResult {
     this.lockedLabel,
     this.basket,
     this.weekAnimation,
+    this.weatherChart,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -573,6 +641,10 @@ class AnalysisResult {
         final w? => (allowed: opt<bool>(w, 'allowed') ?? false, lockedLabel: opt<String>(w, 'locked_label')),
         null => null,
       },
+      weatherChart: switch (opt<Map<String, dynamic>>(json, 'weather_chart')) {
+        final c? => WeatherChart.fromJson(c),
+        null => null,
+      },
     );
   }
 
@@ -598,6 +670,7 @@ class AnalysisResult {
         lockedLabel: lockedLabel,
         basket: day.basket,
         weekAnimation: weekAnimation,
+        weatherChart: weatherChart,
       );
 
   final AnalysisArea area;
@@ -637,4 +710,7 @@ class AnalysisResult {
 
   /// ▶ «Хвиля по днях»: Pro або «Слідопит»; інакше — пояснення при натисканні.
   final ({bool allowed, String? lockedLabel})? weekAnimation;
+
+  /// Графік погоди (тиждень до сьогодні + прогноз); `null` — старий результат.
+  final WeatherChart? weatherChart;
 }

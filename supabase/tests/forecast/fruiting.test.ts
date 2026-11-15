@@ -2,6 +2,7 @@
 import { assert, assertEquals } from "jsr:@std/assert";
 import {
   flushShape,
+  flushStage,
   fruitingEvents,
   type FruitingParams,
   fruitingState,
@@ -91,4 +92,33 @@ Deno.test("fruiting: форма хвилі і температура ґрунт�
   assertEquals(soilTempFit(15, BOLETUS), 1);
   assertEquals(soilTempFit(8, BOLETUS), 0.6);
   assertEquals(soilTempFit(2, BOLETUS), 0.25);
+});
+
+Deno.test("fruiting: новий поштовх посеред хвилі не скидає її на 1-й день — береться сильніша", () => {
+  // Злива 31.08 → хвиля з 08.09; ще злива 10.09 (ґрунт вологий — нова хвиля за ~3 дні).
+  const s = scenarioSeries("2025-08-01", [
+    { days: 30, t: 16, rain: 0 },
+    { days: 1, t: 16, rain: 25 },          // 31.08
+    { days: 10, t: 16, rain: 1 },          // 01.09–10.09
+    { days: 1, t: 16, rain: 25 },          // 11.09 — новий поштовх посеред хвилі
+    { days: 20, t: 16, rain: 1 },
+  ]);
+  const evs = fruitingEvents(s, BOLETUS).filter((e) => e.flushStart !== null);
+  assert(evs.length >= 2);
+  const second = s.dates[evs[1].flushStart!];
+  const st = fruitingState(s, second, BOLETUS)!;
+  // Стара хвиля (розпал) сильніша за початок нової — день не скидається на 1-й.
+  assertEquals(st.phase, "flush");
+  assert(st.flushDay! > 1, `день ${st.flushDay}`);
+  assertEquals(st.stage, "peak");
+  assertEquals(st.intensity, 1);
+  // Коли стара хвиля спадає, а нова — в розпалі, береться нова.
+  const later = fruitingState(s, s.dates[evs[1].flushStart! + 4], BOLETUS)!;
+  assertEquals(later.triggerDate, s.dates[evs[1].trigger]);
+});
+
+Deno.test("fruiting: стадії хвилі", () => {
+  assertEquals([0, 1, 2, 3, 4, 12, 13, 19].map((d) => flushStage(d, 20)), [
+    "rise", "rise", "rise", "rise", "peak", "peak", "decline", "decline",
+  ]);
 });

@@ -13,7 +13,7 @@
 
 import { z } from "npm:zod@3";
 import type { ScoredSpecies, WeatherData } from "../forecast/types.ts";
-import { fruitingWhenLabel, limitLabels, whenLabel, whyLabels } from "./forecast-labels.ts";
+import { fruitingWhenLabel, levelReasonLabel, limitLabels, waveBlock, whenLabel, whyLabels } from "./forecast-labels.ts";
 import { HttpError } from "../http.ts";
 
 export const ForecastInputSchema = z.object({
@@ -55,6 +55,9 @@ export function shapeSpecies(
 ): Record<string, unknown> | null {
   if (!s) return null;
   const level = normalizeLevel(s.probability);
+  const why = whyLabels(s.matched, weather);
+  // Що знижує рівень — щоб «✓» у why_labels не суперечили бейджу (напр. «Низька»).
+  const limits = level === "no_data" ? [] : limitLabels(s.missed, s.matched, level, weather, s.fruiting);
   return {
     mushroom_type: s.mushroom_type,
     name_ua: s.name_ua,
@@ -63,9 +66,12 @@ export function shapeSpecies(
     level_color: LEVEL_COLOR[level],
     when_label: fruitingWhenLabel(s.fruiting) ?? whenLabel(s.wave, weather),
     where_label: s.where ?? "У лісі, де ростуть дерева-симбіонти цього виду",
-    why_labels: whyLabels(s.matched, weather),
-    // Що знижує рівень — щоб «✓» у why_labels не суперечили бейджу (напр. «Низька»).
-    limit_labels: level === "no_data" ? [] : limitLabels(s.missed, s.matched, level, weather),
+    why_labels: why,
+    limit_labels: limits,
+    // «Чому середня: хвиля тільки починається…» — одне речення над картою виду.
+    reason_label: levelReasonLabel(level, limits, why, s.fruiting),
+    // Смужка хвилі: день і стадії (підйом / розпал / спад), без чисел сили.
+    wave: waveBlock(s.fruiting),
   };
 }
 

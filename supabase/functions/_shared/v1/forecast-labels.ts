@@ -12,7 +12,7 @@
 
 import type { Wave, WeatherData } from "../forecast/types.ts";
 import { FOREST_TYPE_STYLE } from "./forest-zones.ts";
-import type { FruitingState } from "../forecast/fruiting.ts";
+import { type FruitingState, flushStages } from "../forecast/fruiting.ts";
 
 export const WAVE_LABEL: Record<Wave, string> = {
   spring: "Весняна хвиля",
@@ -166,6 +166,23 @@ export function humanizeLimit(reason: string, w: WeatherData | null | undefined)
 }
 
 /**
+ * Що стримує хвилю (рушій плодоношення): початок / спад хвилі, температура ґрунту.
+ * Саме це найчастіше пояснює «Середню» посеред хвилі.
+ */
+export function fruitingLimitLabels(fr: FruitingState | undefined): string[] {
+  if (!fr || fr.phase !== "flush") return [];
+  const out: string[] = [];
+  if (fr.stage === "rise") out.push("Хвиля тільки починається — гриби ще дрібні й поодинокі");
+  if (fr.stage === "decline") out.push("Хвиля спадає — грибів меншає");
+  if (fr.soilFit !== undefined && fr.soilFit < 1 && fr.soilT !== undefined) {
+    out.push(fr.soilCold !== false
+      ? `Ґрунт прохолодний (${deg(fr.soilT)}) — гриби ростуть повільно`
+      : `Ґрунт затеплий (${deg(fr.soilT)}) — гриби ростуть гірше`);
+  }
+  return out;
+}
+
+/**
  * «Що заважає»: перекладені обмежувальні фактори. Якщо рівень нижчий за «високий», а
  * явних факторів немає — пояснюємо сезон, щоб «✓» не суперечили бейджу рівня.
  */
@@ -174,8 +191,9 @@ export function limitLabels(
   matched: string[],
   level: string,
   w: WeatherData | null | undefined,
+  fruiting?: FruitingState,
 ): string[] {
-  const out: string[] = [];
+  const out: string[] = [...fruitingLimitLabels(fruiting)];
   for (const r of missed) {
     const label = humanizeLimit(r, w);
     if (label && !out.includes(label)) out.push(label);
@@ -186,6 +204,90 @@ export function limitLabels(
     out.push(peak ? "Умови сприятливі лише частково" : "Не пік сезону для цього виду");
   }
   return out;
+}
+
+const REASON_PREFIX: Record<string, string> = {
+  peak: "Чому пік",
+  high: "Чому висока",
+  medium: "Чому середня",
+  low: "Чому низька",
+};
+
+const lowerFirst = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
+/**
+ * Одне речення над карткою виду: чому саме такий рівень («Чому середня: хвиля тільки
+ * починається — гриби ще дрібні й поодинокі»). Низька / середня — головне, що заважає;
+ * висока / пік — головне, що сприяє.
+ */
+export function levelReasonLabel(
+  level: string,
+  limits: string[],
+  why: string[],
+  fr: FruitingState | undefined,
+): string | null {
+  const prefix = REASON_PREFIX[level];
+  if (!prefix) return null;
+  if (level === "low" || level === "medium") {
+    const main = limits[0] ?? why[0];
+    return main ? `${prefix}: ${lowerFirst(main)}` : null;
+  }
+  if (fr?.phase === "flush") {
+    const text = fr.stage === "rise"
+      ? "хвиля набирає силу — грибів більшає щодня"
+      : fr.stage === "decline"
+      ? "хвиля ще триває, хоч уже спадає"
+      : "хвиля в розпалі — грибів найбільше";
+    return `${prefix}: ${text}`;
+  }
+  return why[0] ? `${prefix}: ${lowerFirst(why[0])}` : null;
+}
+
+/**
+ * Хвиля для смужки на картці виду: день і стадії (підйом / розпал / спад) — лише дні й
+ * підписи, без чисел сили хвилі. Не хвиля — лише фаза й підпис.
+ */
+export function waveBlock(fr: FruitingState | undefined): Record<string, unknown> | null {
+  if (!fr) return null;
+  const label = fruitingWhenLabel(fr);
+  if (fr.phase !== "flush" || !fr.flushDay || !fr.flushDays) return { phase: fr.phase, label };
+  const n = fr.flushDays;
+  const { rise, fallFrom } = flushStages(n);
+  const declineFrom = Math.min(n, Math.ceil(fallFrom));
+  return {
+    phase: "flush",
+    day: fr.flushDay,
+    days: n,
+    stage: fr.stage ?? null,
+    label,
+    segments: [
+      { days: rise, label: "підйом" },
+      { days: Math.max(0, declineFrom - rise), label: "розпал" },
+      { days: n - declineFrom, label: "спад" },
+    ].filter((x) => x.days > 0),
+  };
+}
+
+export type WeatherTone = "good" | "neutral" | "bad";
+
+/**
+ * Що погода на день означає для грибів — одне речення й тон (зелений / сірий / помаранчевий).
+ * Вікна (опади за 3/7/14 днів, температура тижня, посуха) закінчуються цим днем.
+ */
+export function weatherVerdict(w: WeatherData | null | undefined): { label: string; tone: WeatherTone } | null {
+  if (!weatherOk(w)) return null;
+  if (w.droughtDays >= 10 || w.rain14d < 5) {
+    return { label: "Сухо: дощу майже не було — гриби майже не ростуть", tone: "bad" };
+  }
+  if (w.tempAvg7d < 3) {
+    return { label: "Холодно — ростуть лише зимові гриби (зимовий опеньок, глива)", tone: "neutral" };
+  }
+  if (w.tempAvg7d > 24 && w.rain7d < 10) return { label: "Спекотно й сухо — гриби ховаються", tone: "bad" };
+  if (w.rain3d >= 10) return { label: "Свіжий дощ промочив ґрунт — за кілька днів можлива нова хвиля", tone: "good" };
+  if (w.rain7d >= 15 || (w.rain14d >= 20 && w.humidity >= 75)) {
+    return { label: "Ґрунт вологий після дощів — добре для грибів", tone: "good" };
+  }
+  return { label: "Помірно волого — гриби ростуть, але без поспіху", tone: "neutral" };
 }
 
 /** «Коли»: «Зараз — 3 дні після дощу · Осіння хвиля». */

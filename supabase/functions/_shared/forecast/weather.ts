@@ -339,6 +339,17 @@ export function weatherAsOf(series: WeatherSeries, date: string, source: Weather
       humidity: series.humidity[i],
       daysAhead: dayOffset(date, series.today),
     },
+    recent: series.dates.slice(Math.max(0, i - 6), i + 1).map((d, k) => {
+      const j = Math.max(0, i - 6) + k;
+      return {
+        date: d,
+        tempMin: series.tmin[j],
+        tempMax: series.tmax[j],
+        rain: series.precip[j],
+        humidity: series.humidity[j],
+        daysAhead: dayOffset(d, series.today),
+      };
+    }),
     fetchedAt: series.fetchedAt,
     source,
   };

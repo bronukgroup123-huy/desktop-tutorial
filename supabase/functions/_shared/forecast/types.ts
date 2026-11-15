@@ -109,6 +109,9 @@ export interface WeatherData {
   /** Погода самого дня, на який рахується стан (смужка днів у прогнозі ділянки). */
   day?: DayWeather;
 
+  /** 7 днів, що закінчуються цим днем (графік погоди в прогнозі ділянки). */
+  recent?: DayWeather[];
+
   // Метадані
   fetchedAt: string;      // ISO timestamp
   source: "open-meteo" | "openweather" | "cached" | "unavailable";

@@ -15,6 +15,8 @@ class ForecastSpecies {
     required this.whereLabel,
     required this.whyLabels,
     this.limitLabels = const [],
+    this.reasonLabel,
+    this.wave,
   });
 
   factory ForecastSpecies.fromJson(Map<String, dynamic> json) => ForecastSpecies(
@@ -27,6 +29,11 @@ class ForecastSpecies {
         whereLabel: req<String>(json, 'where_label'),
         whyLabels: stringList(json, 'why_labels'),
         limitLabels: json['limit_labels'] == null ? const [] : stringList(json, 'limit_labels'),
+        reasonLabel: opt<String>(json, 'reason_label'),
+        wave: switch (opt<Map<String, dynamic>>(json, 'wave')) {
+          final w? => SpeciesWave.fromJson(w),
+          null => null,
+        },
       );
 
   final String mushroomType;
@@ -42,6 +49,43 @@ class ForecastSpecies {
 
   /// Що знижує рівень — показується з попередженням (не з «✓»).
   final List<String> limitLabels;
+
+  /// «Чому середня: хвиля тільки починається — гриби ще дрібні й поодинокі».
+  final String? reasonLabel;
+
+  /// Хвиля плодоношення для смужки на картці; `null` — старий результат.
+  final SpeciesWave? wave;
+}
+
+/// Хвиля плодоношення виду: день і стадії (підйом / розпал / спад) — без чисел сили хвилі.
+class SpeciesWave {
+  const SpeciesWave({required this.phase, this.label, this.day, this.days, this.stage, this.segments = const []});
+
+  factory SpeciesWave.fromJson(Map<String, dynamic> json) => SpeciesWave(
+        phase: req<String>(json, 'phase'),
+        label: opt<String>(json, 'label'),
+        day: opt<num>(json, 'day')?.toInt(),
+        days: opt<num>(json, 'days')?.toInt(),
+        stage: opt<String>(json, 'stage'),
+        segments: [
+          for (final g in (opt<List<dynamic>>(json, 'segments') ?? const []).cast<Map<String, dynamic>>())
+            (days: req<num>(g, 'days').toInt(), label: req<String>(g, 'label')),
+        ],
+      );
+
+  /// `flush | maturing | after | idle`
+  final String phase;
+
+  /// «Хвиля зараз — 3-й день з 20».
+  final String? label;
+  final int? day;
+  final int? days;
+
+  /// `rise | peak | decline`
+  final String? stage;
+  final List<({int days, String label})> segments;
+
+  bool get isFlush => phase == 'flush' && day != null && days != null && segments.isNotEmpty;
 }
 
 /// Блок погоди (`weather`) — готові рядки із сервера.

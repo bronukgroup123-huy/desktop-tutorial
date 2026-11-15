@@ -139,4 +139,95 @@ void main() {
     expect(find.text(kWeekAnimationStaleLabel), findsOneWidget);
     expect(stale.playing, isFalse);
   });
+
+  testWidgets('Погода: висновок для грибів і графік; торкнутися дня на графіку — обрати день', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    for (final d in days) {
+      d['weather'] = <String, dynamic>{
+        ...(d['weather'] as Map),
+        'verdict_label': 'Ґрунт вологий після дощів — добре для грибів',
+        'verdict_tone': 'good',
+      };
+    }
+    json['days'] = days;
+    json['weather_chart'] = {
+      'title_label': 'Погода: тиждень до сьогодні й прогноз',
+      'rain_legend_label': 'опади, мм',
+      'days': [
+        for (final (i, date) in ['2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].indexed)
+          {
+            'date': date, 'label': 'Пн', 'date_label': '${date.substring(8)}.11',
+            'tmin': i, 'tmax': i + 6, 'rain': i == 1 ? 12 : 0, 'forecast': i > 3, 'today': i == 3,
+          },
+      ],
+    };
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('weather-verdict')), findsOneWidget);
+    expect(find.text('Ґрунт вологий після дощів — добре для грибів'), findsOneWidget);
+    expect(find.byKey(const ValueKey('weather-chart')), findsOneWidget);
+    expect(find.text('Погода Сьогодні'), findsOneWidget);
+    // остання колонка графіка — 13.11 (день смужки) → обирається
+    final chart = tester.getRect(find.byKey(const ValueKey('weather-chart')));
+    await tester.tapAt(Offset(chart.right - 4, chart.center.dy));
+    await tester.pump();
+    expect(find.text('Погода Пт 13'), findsOneWidget);
+    // перша колонка — минуле, не день смужки → нічого не змінюється
+    await tester.tapAt(Offset(chart.left + 4, chart.center.dy));
+    await tester.pump();
+    expect(find.text('Погода Пт 13'), findsOneWidget);
+  });
+
+  testWidgets('Картка гриба: «Чому середня» і смужка хвилі; подробиці — «Сприяє» / «Не вистачає»', (tester) async {
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['top1'] = <String, dynamic>{
+      ...(days[0]['top1'] as Map),
+      'level': 'medium',
+      'reason_label': 'Чому середня: хвиля тільки починається — гриби ще дрібні й поодинокі',
+      'why_labels': ['Підходящий ліс: сосновий ліс'],
+      'limit_labels': ['Хвиля тільки починається — гриби ще дрібні й поодинокі'],
+      'wave': {
+        'phase': 'flush', 'day': 1, 'days': 20, 'stage': 'rise', 'label': 'Хвиля зараз — 1-й день з 20',
+        'segments': [{'days': 4, 'label': 'підйом'}, {'days': 9, 'label': 'розпал'}, {'days': 7, 'label': 'спад'}],
+      },
+    };
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('species-reason')), findsOneWidget);
+    expect(find.textContaining('хвиля тільки починається', findRichText: true), findsOneWidget);
+    expect(find.byKey(const ValueKey('wave-strip')), findsOneWidget);
+    expect(find.text('Хвиля зараз — 1-й день з 20'), findsOneWidget);
+    expect(find.text('Зараз'), findsNothing); // рядок «коли» замінено смужкою
+    expect(find.text('підйом'), findsOneWidget);
+    expect(find.text('Сприяє'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('species-advanced')).first);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('species-advanced')).first);
+    await tester.pump();
+    expect(find.text('Сприяє'), findsOneWidget);
+    expect(find.text('Не вистачає'), findsOneWidget);
+  });
+
+  testWidgets('Ліс: пояснення про уточнення не на головному екрані; без можливості — кнопка пояснює', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: AnalysisResultView(
+          result: AnalysisResult.fromJson({
+            ...daysJson(),
+            'forest': <String, dynamic>{
+              ...(daysJson()['forest'] as Map),
+              'refine_note_label': 'Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук.',
+            },
+          }),
+          refineHintLabel: 'Уточнити ліс сьогодні вже не можна — ліміт 2 рази на добу',
+        ),
+      ),
+    ));
+    expect(find.textContaining('тук-тук'), findsNothing);
+    expect(find.textContaining('ліміт 2 рази'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('refine-forest')));
+    await tester.pump();
+    expect(find.textContaining('ліміт 2 рази'), findsOneWidget);
+  });
 }
