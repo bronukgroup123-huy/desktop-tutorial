@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -167,6 +169,28 @@ void main() {
     await tester.pump();
     expect(find.textContaining('Цього дня шансу немає'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  test('Знімок мінікарти: один на ділянку, лише з тим самим підписом (інакше — перезняти)', () async {
+    final dir = Directory.systemTemp.createTempSync('mr_minimap_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final store = MiniMapSnapshotStore(LocalStore(dir));
+    final png = Uint8List.fromList([137, 80, 78, 71, 1, 2, 3]);
+    expect(await store.load('AREA-1', 'v1|map7|t1|360'), isNull);
+    await store.save('AREA-1', 'v1|map7|t1|360', png);
+    expect(await store.load('area-1', 'v1|map7|t1|360'), png);
+    // новий аналіз або нова карта — інший підпис, старий знімок не показується
+    expect(await store.load('area-1', 'v1|map7|t2|360'), isNull);
+    await store.save('area-1', 'v1|map7|t2|360', Uint8List.fromList([1]));
+    expect(await store.load('area-1', 'v1|map7|t2|360'), [1]);
+    expect(dir.listSync().length, 2); // один .bin + один .json, без накопичення
+  });
+
+  testWidgets('ⓘ на знімку — звідки дані карти (ODbL)', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: Center(child: MapAttributionButton()))));
+    await tester.tap(find.byKey(const ValueKey('map-attribution')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('© OpenStreetMap contributors'), findsOneWidget);
   });
 
   test('Місця грибів зберігаються на телефоні за ділянкою', () async {
