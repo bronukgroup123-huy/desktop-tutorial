@@ -1292,6 +1292,39 @@ components:
                 properties:
                   days: { type: integer }
                   label: { type: string, example: розпал }
+        identify:
+          type: [object, 'null']
+          description: «Як відрізнити» — з довідника (scripts/catalog_sync/identify.py)
+          properties:
+            features:
+              type: array
+              items:
+                type: object
+                properties:
+                  part: { type: string, enum: [cap, underside, stem, flesh] }
+                  title: { type: string, example: Ніжка }
+                  text: { type: string, example: 'Головна ознака — білувате плівчасте кільце' }
+                  kind: { type: [string, 'null'], enum: [tubes, gills, folds, spines, null] }
+            cap_colors:
+              type: array
+              items: { type: object, properties: { hex: { type: string }, label: { type: string } } }
+            underside: { type: [string, 'null'], enum: [tubes, gills, folds, spines, null] }
+            ring: { type: [boolean, 'null'] }
+            twin:
+              type: [object, 'null']
+              properties:
+                name: { type: string, example: Галерина облямована }
+                danger: { type: string, enum: [similar, inedible, poisonous, deadly] }
+                danger_label: { type: string, example: Смертельно отруйний! }
+                diffs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      feature: { type: string }
+                      ours: { type: string }
+                      twin: { type: string }
+            rule: { type: [string, 'null'] }
           example: ['Вологість 55% — замало (краще від 70%)', 'Сухий ґрунт']
 
     ForecastWeather:

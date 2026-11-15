@@ -229,3 +229,25 @@ Deno.test("Розширені дані погоди: вікно хвилі й в
   const rain14 = (ins.gauges as Array<{ key: string; value_label?: string; tone: string }>).find((g) => g.key === "rain14")!;
   assertEquals([rain14.value_label, rain14.tone], ["6 мм — замало", "bad"]);
 });
+
+Deno.test("Як відрізнити: картка з довідника для кожного з 20 видів, двійник з відмінностями", async () => {
+  const { IDENTIFY } = await import("../../functions/_shared/v1/identify-data.ts");
+  assertEquals(Object.keys(IDENTIFY).length, 20);
+  const f = IDENTIFY.flammulina_velutipes;
+  assertEquals(f.ring, false);
+  assertEquals(f.underside, "gills");
+  assertEquals(f.twin?.name, "Галерина облямована");
+  assertEquals(f.twin?.danger, "deadly");
+  assertEquals(f.twin?.diffs[0], { feature: "Кільце на ніжці", ours: "❌ Відсутнє", twin: "✅ Чітке кільце" });
+  assertEquals(IDENTIFY.armillaria_mellea.ring, true);
+  assertEquals(IDENTIFY.cantharellus_cibarius.underside, "folds");
+  // кожен рядок — короткий (один рядок на картці)
+  for (const [mt, card] of Object.entries(IDENTIFY)) {
+    for (const x of card.features) assert(x.text.length <= 75, `${mt}: ${x.text}`);
+  }
+  const shaped = shapeSpecies({
+    mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", score: 0.8, probability: "high",
+    matched: [], missed: [], wave: null,
+  } as unknown as ScoredSpecies, W)!;
+  assertEquals((shaped.identify as { twin: { name: string } }).twin.name, "Галерина облямована");
+});

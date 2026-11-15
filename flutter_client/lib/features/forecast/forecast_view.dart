@@ -8,6 +8,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/forecast.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/forecast/identify_view.dart';
 
 /// Прогноз для обраної точки: погода, Top-1 / Top-2, «коли / де / чому».
 /// Усі тексти й кольори — із сервера (Thin Client); чисел-ймовірностей немає.
@@ -171,6 +172,7 @@ class ForecastSpeciesCard extends StatefulWidget {
 
 class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
   bool _advanced = false;
+  bool _identify = false;
 
   @override
   Widget build(BuildContext context) {
@@ -234,16 +236,32 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
                   _Line(icon: Icons.error_outline_rounded, text: limit, color: AppTheme.accentOrange),
               ],
             ],
-            if (hasDetails)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const ValueKey('species-advanced'),
-                  onPressed: () => setState(() => _advanced = !_advanced),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppTheme.darkGreen),
-                  icon: Icon(_advanced ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
-                  label: Text(_advanced ? 'Сховати подробиці' : 'Розширені дані'),
-                ),
+            // «Як відрізнити» — ознаки, двійник і правило з довідника (рішення PO 2026-11-15).
+            if (_identify && species.identify != null) ...[
+              const SizedBox(height: 6),
+              IdentifyView(card: species.identify!, species: species),
+            ],
+            if (hasDetails || species.identify != null)
+              Wrap(
+                spacing: 12,
+                children: [
+                  if (hasDetails)
+                    TextButton.icon(
+                      key: const ValueKey('species-advanced'),
+                      onPressed: () => setState(() => _advanced = !_advanced),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppTheme.darkGreen),
+                      icon: Icon(_advanced ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
+                      label: Text(_advanced ? 'Сховати подробиці' : 'Розширені дані'),
+                    ),
+                  if (species.identify != null)
+                    TextButton.icon(
+                      key: const ValueKey('species-identify'),
+                      onPressed: () => setState(() => _identify = !_identify),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppTheme.darkGreen),
+                      icon: Icon(_identify ? Icons.expand_less_rounded : Icons.search_rounded, size: 20),
+                      label: Text(_identify ? 'Сховати' : 'Як відрізнити'),
+                    ),
+                ],
               )
             else
               const SizedBox(height: 8),

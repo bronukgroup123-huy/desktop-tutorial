@@ -17,6 +17,7 @@ class ForecastSpecies {
     this.limitLabels = const [],
     this.reasonLabel,
     this.wave,
+    this.identify,
   });
 
   factory ForecastSpecies.fromJson(Map<String, dynamic> json) => ForecastSpecies(
@@ -32,6 +33,10 @@ class ForecastSpecies {
         reasonLabel: opt<String>(json, 'reason_label'),
         wave: switch (opt<Map<String, dynamic>>(json, 'wave')) {
           final w? => SpeciesWave.fromJson(w),
+          null => null,
+        },
+        identify: switch (opt<Map<String, dynamic>>(json, 'identify')) {
+          final i? => IdentifyCard.fromJson(i),
           null => null,
         },
       );
@@ -55,6 +60,72 @@ class ForecastSpecies {
 
   /// Хвиля плодоношення для смужки на картці; `null` — старий результат.
   final SpeciesWave? wave;
+
+  /// «Як відрізнити» — з довідника; `null` — немає даних.
+  final IdentifyCard? identify;
+}
+
+/// «Як відрізнити»: ознаки (по одному рядку з довідника), кольори шапки, кільце, двійник, правило.
+class IdentifyCard {
+  const IdentifyCard({
+    required this.features,
+    required this.capColors,
+    this.underside,
+    this.ring,
+    this.twin,
+    this.rule,
+  });
+
+  factory IdentifyCard.fromJson(Map<String, dynamic> json) => IdentifyCard(
+        features: [
+          for (final f in (opt<List<dynamic>>(json, 'features') ?? const []).cast<Map<String, dynamic>>())
+            (part: req<String>(f, 'part'), title: req<String>(f, 'title'), text: req<String>(f, 'text'), kind: opt<String>(f, 'kind')),
+        ],
+        capColors: [
+          for (final c in (opt<List<dynamic>>(json, 'cap_colors') ?? const []).cast<Map<String, dynamic>>())
+            (color: parseHexColor(req<String>(c, 'hex')), label: req<String>(c, 'label')),
+        ],
+        underside: opt<String>(json, 'underside'),
+        ring: opt<bool>(json, 'ring'),
+        twin: switch (opt<Map<String, dynamic>>(json, 'twin')) {
+          final t? => IdentifyTwin(
+              name: req<String>(t, 'name'),
+              danger: opt<String>(t, 'danger') ?? 'similar',
+              dangerLabel: opt<String>(t, 'danger_label') ?? '',
+              diffs: [
+                for (final d in (opt<List<dynamic>>(t, 'diffs') ?? const []).cast<Map<String, dynamic>>())
+                  (feature: req<String>(d, 'feature'), ours: req<String>(d, 'ours'), twin: req<String>(d, 'twin')),
+              ],
+            ),
+          null => null,
+        },
+        rule: opt<String>(json, 'rule'),
+      );
+
+  /// `part`: `cap | underside | stem | flesh`; `kind` (низ шапки): `tubes | gills | folds | spines`.
+  final List<({String part, String title, String text, String? kind})> features;
+  final List<({Color color, String label})> capColors;
+  final String? underside;
+
+  /// Кільце («спідничка») на ніжці: є / немає / `null` — книга не каже.
+  final bool? ring;
+  final IdentifyTwin? twin;
+
+  /// Головне правило з книги.
+  final String? rule;
+}
+
+class IdentifyTwin {
+  const IdentifyTwin({required this.name, required this.danger, required this.dangerLabel, required this.diffs});
+
+  final String name;
+
+  /// `similar | inedible | poisonous | deadly`
+  final String danger;
+  final String dangerLabel;
+  final List<({String feature, String ours, String twin})> diffs;
+
+  bool get dangerous => danger == 'poisonous' || danger == 'deadly';
 }
 
 /// Хвиля плодоношення виду: день і стадії (підйом / розпал / спад) — без чисел сили хвилі.

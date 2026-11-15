@@ -15,6 +15,7 @@ import { z } from "npm:zod@3";
 import type { ScoredSpecies, WeatherData } from "../forecast/types.ts";
 import { fruitingWhenLabel, levelReasonLabel, limitLabels, waveBlock, whenLabel, whyLabels } from "./forecast-labels.ts";
 import { HttpError } from "../http.ts";
+import { IDENTIFY } from "./identify-data.ts";
 
 export const ForecastInputSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -72,6 +73,8 @@ export function shapeSpecies(
     reason_label: levelReasonLabel(level, limits, why, s.fruiting),
     // Смужка хвилі: день і стадії (підйом / розпал / спад), без чисел сили.
     wave: waveBlock(s.fruiting),
+    // «Як відрізнити» — з довідника (scripts/catalog_sync/identify.py): ознаки, двійник, правило.
+    identify: IDENTIFY[s.mushroom_type] ?? null,
   };
 }
 

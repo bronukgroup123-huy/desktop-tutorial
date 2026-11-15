@@ -124,6 +124,35 @@ void main() {
     expect(find.text('Вологість 55% — замало (краще від 70%)'), findsOneWidget);
   });
 
+  testWidgets('«Як відрізнити»: ознаки з довідника зі стікерами частин, двійник з відмінностями, правило', (tester) async {
+    final species = ForecastSpecies.fromJson({
+      ...(forecastJson()['top1'] as Map<String, dynamic>),
+      'mushroom_type': 'flammulina_velutipes',
+      'name_ua': 'Зимовий опеньок',
+      'identify': identifyJson,
+    });
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: ForecastSpeciesCard(species: species)))));
+    expect(find.byKey(const ValueKey('identify-view')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('species-identify')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1700)); // анімація появи — один раз
+    expect(find.byKey(const ValueKey('identify-view')), findsOneWidget);
+    expect(find.text('Пластинки'), findsWidgets); // ознака й рядок відмінності двійника
+    expect(find.text('жовтий'), findsOneWidget);
+    expect(find.text('Немає кільця'), findsOneWidget);
+    expect(find.byKey(const ValueKey('glyph-ring')), findsOneWidget);
+    expect(find.text('Галерина облямована'), findsOneWidget);
+    expect(find.text('Смертельно отруйний!'), findsOneWidget);
+    expect(find.text('Відсутнє'), findsOneWidget); // ❌ — у значок, не в текст
+    expect(find.text('Ніколи не беріть гриби на пеньках без уважної перевірки'), findsOneWidget);
+    await tester.pumpAndSettle(); // переливання кольорів шапки зупиняється
+    await tester.ensureVisible(find.byKey(const ValueKey('species-identify')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('species-identify')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('identify-view')), findsNothing);
+  });
+
   testWidgets('Вкладка «Прогноз»: ділянка з останнім результатом; її не змінити — лише оновити, показати, видалити',
       (tester) async {
     await tester.pumpWidget(ProviderScope(
@@ -298,3 +327,29 @@ AnalysisOverview overview({
       'usage': {'used': 1, 'limit': 5, 'label': 'Сьогодні: 1 з 5 аналізів'},
       'hint_label': 'Торкніться карти, щоб обрати центр ділянки',
     }, offlineSince: offlineSince);
+
+const identifyJson = {
+  'features': [
+    {'part': 'cap', 'title': 'Шапка', 'text': 'Опукло- або плоско-розпростерта, 2–6 см'},
+    {'part': 'underside', 'kind': 'gills', 'title': 'Пластинки', 'text': 'Рідкі, кремові або жовтуваті, прирослі до ніжки'},
+    {'part': 'stem', 'title': 'Ніжка', 'text': 'Циліндрична, довга, щільна, з порожниною'},
+    {'part': 'flesh', 'title': "М'якоть", 'text': 'Жовтувата, щільна, з приємним грибним запахом'},
+  ],
+  'cap_colors': [
+    {'hex': '#e6c03a', 'label': 'жовтий'},
+    {'hex': '#8b5a2b', 'label': 'коричневий'},
+    {'hex': '#e0802c', 'label': 'оранжевий'},
+  ],
+  'underside': 'gills',
+  'ring': false,
+  'twin': {
+    'name': 'Галерина облямована',
+    'danger': 'deadly',
+    'danger_label': 'Смертельно отруйний!',
+    'diffs': [
+      {'feature': 'Кільце на ніжці', 'ours': '❌ Відсутнє', 'twin': '✅ Чітке кільце'},
+      {'feature': 'Пластинки', 'ours': 'Прирослі до ніжки', 'twin': 'Не приростають до ніжки'},
+    ],
+  },
+  'rule': 'Ніколи не беріть гриби на пеньках без уважної перевірки',
+};
