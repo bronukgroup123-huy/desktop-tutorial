@@ -627,6 +627,25 @@ class _ForestCard extends StatelessWidget {
                   Expanded(child: Text(result.forestSummaryLabel, style: const TextStyle(fontWeight: FontWeight.w600))),
                 ],
               ),
+              // Рельєф і ґрунт ділянки — коротко, дрібно.
+              if (result.terrainLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.terrain_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          result.terrainLabel!,
+                          key: const ValueKey('terrain-label'),
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               for (final t in result.forestTypes)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -794,6 +813,24 @@ class _WeatherCardState extends State<_WeatherCard> {
                 ),
               ),
             ],
+            // Дні 5–7 — діапазон за кількома моделями погоди.
+            if (weather.rangeLabel != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.stacked_line_chart_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        weather.rangeLabel!,
+                        key: const ValueKey('weather-range'),
+                        style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (_advanced) ...[
               const SizedBox(height: 14),
               if (insight != null)

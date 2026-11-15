@@ -398,6 +398,7 @@ class AnalysisWeather {
     this.scene,
     this.sceneLabel,
     this.sprouts,
+    this.rangeLabel,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -411,7 +412,11 @@ class AnalysisWeather {
         scene: opt<String>(json, 'scene'),
         sceneLabel: opt<String>(json, 'scene_label'),
         sprouts: opt<String>(json, 'sprouts'),
+        rangeLabel: opt<String>(json, 'range_label'),
       );
+
+  /// Дні 5–7: «Різні моделі: опади 2–11 мм, 3…10°».
+  final String? rangeLabel;
 
   /// Сцена з грибом-маскотом: `sunny | partly_cloudy | cloudy | rain | heavy_rain | fog | frost | snow | heat`.
   final String? scene;
@@ -728,6 +733,7 @@ class AnalysisResult {
     this.forestExtra = const [],
     this.forestRefined = false,
     this.refineNoteLabel,
+    this.terrainLabel,
     this.days = const [],
     this.bestDay,
     this.lockedDays = const [],
@@ -758,6 +764,7 @@ class AnalysisResult {
           .toList(growable: false),
       forestRefined: opt<bool>(forest, 'refined') ?? false,
       refineNoteLabel: opt<String>(forest, 'refine_note_label'),
+      terrainLabel: opt<String>(forest, 'terrain_label'),
       top1: top1 == null ? null : AnalysisSpecies.fromJson(top1),
       alternative: alt == null ? null : AnalysisSpecies.fromJson(alt),
       weather: weather == null ? null : AnalysisWeather.fromJson(weather),
@@ -808,6 +815,7 @@ class AnalysisResult {
         forestExtra: forestExtra,
         forestRefined: forestRefined,
         refineNoteLabel: refineNoteLabel,
+        terrainLabel: terrainLabel,
         top1: day.top1,
         alternative: day.alternative,
         weather: day.weather,
@@ -840,6 +848,9 @@ class AnalysisResult {
 
   /// «Уточнення діє лише для вашої ділянки…»
   final String? refineNoteLabel;
+
+  /// «Рельєф: низина — … · Ґрунт: піщаний — …»; `null` — невідомо.
+  final String? terrainLabel;
   final AnalysisSpecies? top1;
   final AnalysisSpecies? alternative;
   final AnalysisWeather? weather;

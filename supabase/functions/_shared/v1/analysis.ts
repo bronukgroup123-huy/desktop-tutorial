@@ -56,6 +56,8 @@ import {
 } from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
 import { IDENTIFY } from "./identify-data.ts";
+import { type Terrain, terrainLabel } from "../forecast/terrain.ts";
+import type { DayRange } from "../forecast/weather.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -265,6 +267,8 @@ export interface AreaForecastInput {
   dates: string[];
   forestType: string | null;
   homeRegionId: number;
+  /** Рельєф і ґрунт ділянки — поправки рушія плодоношення. */
+  terrain?: Terrain | null;
 }
 
 export interface AnalysisDeps {
@@ -272,6 +276,10 @@ export interface AnalysisDeps {
   verify: TokenVerifier;
   /** Прогноз для центру ділянки з заданим типом лісу на кожен день `dates` (у тому ж порядку). */
   forecast: (input: AreaForecastInput) => Promise<ForecastResult[]>;
+  /** Діапазони погоди днів 4–7 за ансамблем моделей; немає — без діапазону. */
+  ensemble?: (lat: number, lng: number) => Promise<Record<string, DayRange>>;
+  /** Рельєф і ґрунт квадрата (Open-Meteo Elevation, SoilGrids); немає — без поправок. */
+  terrain?: (lat: number, lng: number, sizeKm: number) => Promise<Terrain>;
   /** Чи є в користувача Pro-аналіз (entitlements, B6.3). До запуску Pro — немає ні в кого. */
   hasAnalysisPro?: (userId: string) => Promise<boolean>;
   now?: () => Date;
@@ -542,12 +550,13 @@ export interface AreaRow {
   last_analyzed_at?: string | null;
   forest_override?: unknown;
   label?: string | null;
+  terrain?: Terrain | null;
 }
 
 async function loadAreas(db: AnalysisDb, userId: string): Promise<AreaRow[]> {
   const { data, error } = await db
     .from("analysis_areas")
-    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override, label")
+    .select("id, slot, size_km, center, last_result, last_analyzed_at, forest_override, label, terrain")
     .eq("user_id", userId);
   if (error) dbFail("analysis_areas select", error);
   return ((data ?? []) as AreaRow[]).sort((a, b) => a.slot - b.slot);
@@ -813,7 +822,7 @@ async function runAnalysis(
     } else {
       used = await consume(deps, user.id, row.slot, limit, now);
     }
-    area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km };
+    area = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km, terrain: row.terrain ?? null };
     override = parseStoredOverride(row.forest_override);
   } else {
     const t = input.target;
@@ -876,6 +885,7 @@ interface AreaRef {
   lat: number;
   lng: number;
   sizeKm: number;
+  terrain?: Terrain | null;
 }
 
 /** Розрахунок аналізу ділянки (без списань і збереження). */
@@ -905,18 +915,37 @@ async function analyzeArea(
   const locked = when.pro ? [] : horizonDates(today, PRO_HORIZON_DAYS).slice(dates.length);
 
   // Прогноз для переважних типів лісу (з уточненням — для обраних порід); лісів немає — лише погода.
+  // Рельєф і ґрунт — один раз на ділянку (далі — збережені з нею).
+  let terrain = area.terrain ?? null;
+  if (!terrain && deps.terrain) {
+    try {
+      terrain = await deps.terrain(area.lat, area.lng, area.sizeKm);
+      if (when.userId && (terrain.relief || terrain.soil)) {
+        const saved = await deps.db.rpc("save_area_terrain", { p_user_id: when.userId, p_area_id: area.id, p_terrain: terrain });
+        if (saved.error) console.warn("[v1-analysis] save_area_terrain failed:", saved.error);
+      }
+    } catch (err) {
+      console.warn("[v1-analysis] terrain failed:", err);
+      terrain = null;
+    }
+  }
+
   const forestTypes = forestRunTypes(forest, override);
   const runTypes: Array<string | null> = forestTypes.length > 0 ? forestTypes : [null];
   const runs: Array<{ forestType: string | null; results: ForecastResult[] }> = [];
   for (const forestType of runTypes) {
-    const results = await deps.forecast({ lat: area.lat, lng: area.lng, dates, forestType, homeRegionId: regionId });
+    const results = await deps.forecast({ lat: area.lat, lng: area.lng, dates, forestType, homeRegionId: regionId, terrain });
     if (results.length !== dates.length) throw new Error(`forecast returned ${results.length} days, expected ${dates.length}`);
     runs.push({ forestType, results });
   }
 
+  // Дні 4–7 (Pro): діапазон погоди за ансамблем моделей — чесне «орієнтовно».
+  const ranges = deps.ensemble && dates.some((d) => daysAhead(d, today) >= APPROXIMATE_FROM_DAY)
+    ? await deps.ensemble(area.lat, area.lng).catch(() => ({} as Record<string, DayRange>))
+    : {};
   const days = dates.map((date, i) => {
     const dayRuns = runs.map((r) => ({ forestType: r.forestType, result: r.results[i] }));
-    return analyzeDay(date, today, dayRuns, hasForest);
+    return analyzeDay(date, today, dayRuns, hasForest, ranges[date]);
   });
   const selected = days[Math.max(0, dates.indexOf(when.date))];
 
@@ -931,7 +960,7 @@ async function analyzeArea(
       bbox: forest.bbox,
     },
     date: selected.view.date,
-    forest: shapeForest(forest, override),
+    forest: { ...shapeForest(forest, override), terrain_label: terrainLabel(terrain) },
     top1: selected.view.top1,
     alternative: selected.view.alternative,
     weather: selected.view.weather,
@@ -985,6 +1014,7 @@ function analyzeDay(
   today: string,
   runs: Array<{ forestType: string | null; result: ForecastResult }>,
   hasForest: boolean,
+  range?: DayRange,
 ): AnalyzedDay {
   const first = runs[0].result;
   // Лісу немає — лісові види не прогнозуємо (узгоджено з «лісів немає»).
@@ -1024,6 +1054,8 @@ function analyzeDay(
           scene,
           scene_label: scene ? SCENE_LABEL[scene] : null,
           sprouts: sceneSprouts(best.top1?.species.fruiting),
+          // Дні 4–7: «Різні моделі: опади 2–11 мм, 3…10°».
+          range_label: approximate && range ? rangeLabel(range) : null,
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
@@ -1176,6 +1208,12 @@ async function loadRating(db: AnalysisDb, userId: string): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/** Діапазон ансамблю одним рядком. */
+export function rangeLabel(r: DayRange): string {
+  const rain = r.rainMax < 1 ? "без опадів" : r.rainMin === r.rainMax ? `опади ${r.rainMax} мм` : `опади ${r.rainMin}–${r.rainMax} мм`;
+  return `Різні моделі: ${rain}, ${r.tMin}…${r.tMax}°`;
 }
 
 /** Іконка смужки днів — узгоджена зі сценою погоди. */

@@ -142,6 +142,8 @@ export interface ForecastInput {
   homeRegionId: number | null;
   userId?: string;
   mushroomTypes?: string[];    // filter (optional)
+  /** Рельєф і ґрунт ділянки (terrain.ts) — поправки рушія плодоношення. */
+  terrain?: import("./terrain.ts").Terrain | null;
 }
 
 export interface ForestZoneRef {

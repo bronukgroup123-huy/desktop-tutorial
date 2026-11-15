@@ -332,4 +332,19 @@ void main() {
     expect(find.text('Ваші знахідки тут збіглися з прогнозом: 2 з 3'), findsOneWidget);
     expect(find.text('Торік у ці тижні: 1 знахідка'), findsOneWidget);
   });
+
+  testWidgets('Рельєф і ґрунт — у блоці лісу; дні 5–7 — діапазон моделей у погоді', (tester) async {
+    final json = daysJson();
+    json['forest'] = <String, dynamic>{
+      ...(json['forest'] as Map),
+      'terrain_label': 'Рельєф: низина — вологіше й прохолодніше · Ґрунт: піщаний — після дощу пересихає швидше',
+    };
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['weather'] = <String, dynamic>{...(days[0]['weather'] as Map), 'range_label': 'Різні моделі: опади 2–11 мм, 3…10°'};
+    json['days'] = days;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('terrain-label')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('weather-range')));
+    expect(find.text('Різні моделі: опади 2–11 мм, 3…10°'), findsOneWidget);
+  });
 }

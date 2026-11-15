@@ -80,6 +80,8 @@ interface Opts {
   forecast?: (input: DayInput) => Promise<ForecastResult>;
   pro?: boolean;
   isAnonymous?: boolean;
+  /** Додаткові залежності (рельєф тощо). */
+  deps?: Record<string, unknown>;
 }
 
 async function run(d: ReturnType<typeof mockDb>, r: Request, opts: Opts = {}) {
@@ -96,6 +98,7 @@ async function run(d: ReturnType<typeof mockDb>, r: Request, opts: Opts = {}) {
         const one = opts.forecast ?? (() => Promise.resolve(result()));
         return Promise.all(dates.map((d) => one({ ...rest, date: new Date(`${d}T00:00:00Z`) })));
       },
+      ...(opts.deps ?? {}),
     })
   )(r);
   return { res, json: await res.json(), inputs };
@@ -176,6 +179,7 @@ Deno.test("analysis POST: 5×5 → рівні з підписами, ліс у �
     extra: [],
     refined: false,
     refine_note_label: "Уточнення діє лише для вашої ділянки. Знайдете тут гриб — зробіть тук-тук, і ліс уточниться для всіх.",
+    terrain_label: null,
   });
   assertEquals(a.top1.name_ua, "Білий гриб");
   assertEquals(a.top1.level, "high");
@@ -374,7 +378,7 @@ Deno.test("analysis POST: базова погода — температура, 
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
   assertEquals(Object.keys(json.data.weather ?? {}).sort(), [
-    "day_label", "humidity_label", "icon", "rain_label", "scene", "scene_label", "sprouts", "temp_label",
+    "day_label", "humidity_label", "icon", "rain_label", "range_label", "scene", "scene_label", "sprouts", "temp_label",
     "verdict_label", "verdict_tone",
   ]);
 });
@@ -832,4 +836,60 @@ Deno.test("analysis POST: знахідки — прогноз дня в істо
   const calls = d.calls.filter((c) => c.key === "rpc.area_finds").map((c) => c.args[0] as { p_from: string; p_to: string });
   assertEquals([calls[0].p_from, calls[0].p_to], ["2026-09-12", "2026-11-11"]); // 60 днів назад
   assertEquals([calls[1].p_from, calls[1].p_to], ["2025-11-04", "2025-11-21"]);
+});
+
+Deno.test("analysis POST: рельєф і ґрунт — один раз на ділянку, у рушій і підпис у блоці лісу", async () => {
+  const inputs: Array<{ terrain?: unknown }> = [];
+  const forecast = (input: { terrain?: unknown }) => {
+    inputs.push(input);
+    return Promise.resolve(result());
+  };
+  let fetched = 0;
+  const terrain = () => {
+    fetched++;
+    return Promise.resolve({ elevation: 160, relief: "valley" as const, reliefRange: 24, sand: 78, clay: 6, soil: "sandy" as const, fetchedAt: "x" });
+  };
+  const d = db();
+  const { json } = await run(d, req("POST", URL_, body()), { forecast: forecast as never, deps: { terrain } });
+  assertEquals(fetched, 1);
+  assertEquals((inputs[0].terrain as { soil: string }).soil, "sandy");
+  assertEquals((find(d, "rpc.save_area_terrain")!.args[0] as { p_terrain: { relief: string } }).p_terrain.relief, "valley");
+  assertEquals(json.data.forest.terrain_label,
+    "Рельєф: низина — вологіше й прохолодніше, вранці заморозки · Ґрунт: піщаний — після дощу пересихає швидше");
+
+  // збережений рельєф — без нового запиту
+  const d2 = db({
+    "analysis_areas.select": { data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, terrain: { relief: "hill", soil: null } }], error: null },
+    "rpc.consume_analysis": { data: 1, error: null },
+  });
+  fetched = 0;
+  const r2 = await run(d2, req("POST", URL_, { area_id: AREA }), { forecast: forecast as never, deps: { terrain } });
+  assertEquals(fetched, 0);
+  assertEquals(r2.json.data.forest.terrain_label, "Рельєф: підвищення — сухіше, ґрунт прогрівається краще");
+});
+
+Deno.test("analysis POST (Pro): дні 5–7 — діапазон погоди за кількома моделями", async () => {
+  const forecast = (input: DayInput) => {
+    const date = input.date.toISOString().slice(0, 10);
+    const weather = {
+      tempMin: 1, tempMax: 8, tempAvg7d: 4, humidity: 85, rain1d: 0, rain3d: 2, rain7d: 5, rain14d: 10,
+      droughtDays: 0, daysAfterRain: 2, pressure: 1012, pressureTrend: "stable", source: "open-meteo",
+      day: { date, tempMin: 1, tempMax: 8, rain: 0, humidity: 80, daysAhead: 0 },
+    };
+    return Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
+  };
+  let called = 0;
+  const ensemble = () => {
+    called++;
+    return Promise.resolve({ "2026-11-16": { rainMin: 2, rainMax: 11, tMin: 3, tMax: 10 } });
+  };
+  const { json } = await run(db(), req("POST", URL_, body()), { forecast, pro: true, deps: { ensemble } });
+  assertEquals(called, 1);
+  const days = json.data.days as Array<{ date: string; weather: { range_label: string | null } }>;
+  assertEquals(days.find((d) => d.date === "2026-11-16")!.weather.range_label, "Різні моделі: опади 2–11 мм, 3…10°");
+  assertEquals(days[0].weather.range_label, null); // близькі дні — без діапазону
+  // безкоштовно (3 дні) ансамбль не запитується
+  called = 0;
+  await run(db(), req("POST", URL_, body()), { forecast, deps: { ensemble } });
+  assertEquals(called, 0);
 });

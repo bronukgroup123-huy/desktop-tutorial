@@ -388,3 +388,73 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
   const series = await fetchWeatherSeries(lat, lng);
   return series ? weatherAsOf(series, series.today) : unavailableWeather();
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Ансамбль для днів 4–7 (рішення PO 2026-11-15, ADR-015 §15.8 п.16)
+// ────────────────────────────────────────────────────────────────────
+
+/** Діапазон погоди дня за ансамблем моделей: 10-й і 90-й перцентилі учасників. */
+export interface DayRange {
+  rainMin: number;
+  rainMax: number;
+  tMin: number;
+  tMax: number;
+}
+
+function percentile(xs: number[], q: number): number {
+  const v = [...xs].sort((a, b) => a - b);
+  if (v.length === 0) return NaN;
+  const i = (v.length - 1) * q;
+  const lo = Math.floor(i), hi = Math.ceil(i);
+  return v[lo] + (v[hi] - v[lo]) * (i - lo);
+}
+
+/** Відповідь Ensemble API (daily, учасники `*_memberNN`) → діапазони по днях. */
+export function parseEnsemble(json: unknown): Record<string, DayRange> {
+  const daily = (json as { daily?: Record<string, unknown> })?.daily;
+  const time = daily?.time;
+  if (!daily || !Array.isArray(time)) return {};
+  const members = (prefix: string) =>
+    Object.entries(daily)
+      .filter(([k, v]) => (k === prefix || k.startsWith(`${prefix}_member`)) && Array.isArray(v))
+      .map(([, v]) => v as Array<number | null>);
+  const rain = members("precipitation_sum"), tmax = members("temperature_2m_max"), tmin = members("temperature_2m_min");
+  const out: Record<string, DayRange> = {};
+  time.forEach((d, i) => {
+    const col = (ms: Array<Array<number | null>>) =>
+      ms.map((m) => m[i]).filter((x): x is number => typeof x === "number" && Number.isFinite(x));
+    const r = col(rain), hi = col(tmax), lo = col(tmin);
+    if (r.length < 3 || hi.length < 3 || lo.length < 3) return;
+    out[String(d)] = {
+      rainMin: Math.round(percentile(r, 0.1)),
+      rainMax: Math.round(percentile(r, 0.9)),
+      tMin: Math.round(percentile(lo, 0.1)),
+      tMax: Math.round(percentile(hi, 0.9)),
+    };
+  });
+  return out;
+}
+
+/** Діапазони погоди на 7 днів за ансамблем ICON (Open-Meteo); збій — порожньо. */
+export async function fetchEnsembleRanges(
+  lat: number,
+  lng: number,
+  fetchFn: (url: string) => Promise<Response> = fetch,
+): Promise<Record<string, DayRange>> {
+  const url = "https://ensemble-api.open-meteo.com/v1/ensemble?" + new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lng.toFixed(4),
+    daily: "precipitation_sum,temperature_2m_max,temperature_2m_min",
+    models: "icon_seamless",
+    forecast_days: "7",
+    timezone: "Europe/Kyiv",
+  });
+  try {
+    const res = await fetchFn(url);
+    if (!res.ok) return {};
+    return parseEnsemble(await res.json());
+  } catch {
+    return {};
+  }
+}
+
