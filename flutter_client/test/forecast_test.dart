@@ -212,6 +212,49 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('area-label-field')), findsOneWidget);
   });
+
+  testWidgets('«Оновити аналіз» спершу питає: скасувати — без запиту; «Оновити» — аналіз', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(500, {'error': 'x', 'message': 'x'}));
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) => overview(areas: [areaJson(withResult: true)])),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('reanalyze')));
+    await tester.pumpAndSettle();
+    expect(find.text('Оновити аналіз?'), findsOneWidget);
+    expect(find.textContaining('сьогодні лишилось 4 з 5'), findsOneWidget);
+    await tester.tap(find.text('Скасувати'));
+    await tester.pumpAndSettle();
+    expect(adapter.requests, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('reanalyze')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('reanalyze-confirm')));
+    await tester.pumpAndSettle();
+    expect([adapter.requests.single.method, adapter.requests.single.path], ['POST', '/v1-analysis']);
+  });
+
+  testWidgets('«Оновити аналіз», коли аналізи закінчились, — пояснення без запиту', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': {}}));
+    final area = areaJson(withResult: true)..['usage'] = {'used': 5, 'limit': 5, 'label': 'Сьогодні: 5 з 5 аналізів'};
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        analysisOverviewProvider.overrideWith((ref) => overview(areas: [area])),
+        analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+      ],
+      child: const MaterialApp(home: ForecastScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('reanalyze')));
+    await tester.pumpAndSettle();
+    expect(find.text('Аналізи на сьогодні закінчились'), findsOneWidget);
+    expect(find.byKey(const ValueKey('reanalyze-confirm')), findsNothing);
+    expect(adapter.requests, isEmpty);
+  });
 }
 
 Map<String, dynamic> areaJson({bool withResult = false}) => {

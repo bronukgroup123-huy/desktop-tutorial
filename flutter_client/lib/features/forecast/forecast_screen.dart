@@ -134,6 +134,44 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     return forestInSquare(zones, squareAround(_area.center, _area.sizeKm)).toJson();
   }
 
+  /// «Оновити аналіз» — спершу запитати: це витрачає один з аналізів на сьогодні
+  /// (рішення PO 2026-11-15: щоб не натискали випадково і з першого разу зрозуміли, що це).
+  Future<void> _confirmReanalyze() async {
+    final usage = _area.usage;
+    final left = usage == null ? null : (usage.limit - usage.used).clamp(0, usage.limit);
+    if (left == 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Аналізи на сьогодні закінчились'),
+          content: Text('${usage!.label}. Нові аналізи з\'являться після півночі.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Зрозуміло'))],
+        ),
+      );
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Оновити аналіз?'),
+        content: Text(
+          'Прогноз для ділянки перерахується за свіжою погодою на сьогодні й наступні дні.'
+          '${left == null ? '' : ' Буде використано 1 аналіз — сьогодні лишилось $left з ${usage!.limit}.'}',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Скасувати')),
+          FilledButton(
+            key: const ValueKey('reanalyze-confirm'),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Оновити'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) await _reanalyze();
+  }
+
   Future<void> _reanalyze() async {
     setState(() => _busy = true);
     try {
@@ -245,7 +283,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                 IconButton(
                   key: const ValueKey('reanalyze'),
                   tooltip: 'Оновити аналіз',
-                  onPressed: _busy || offline ? null : _reanalyze,
+                  onPressed: _busy || offline ? null : _confirmReanalyze,
                   icon: _busy
                       ? const SizedBox(
                           width: 22,
@@ -319,7 +357,12 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   playController: _play,
                   miniMapBuilder: result.area.bounds == null
                       ? null
-                      : (species) => AreaMiniMap(areaId: result.area.id, bounds: result.area.bounds!, species: species),
+                      : (species) => AreaMiniMap(
+                            areaId: result.area.id,
+                            bounds: result.area.bounds!,
+                            species: species,
+                            analyzedAt: _area.lastAnalyzedAt,
+                          ),
                   refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
                   // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
                   onRefineForest: o.forestEditOptions != null &&
