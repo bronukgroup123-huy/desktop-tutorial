@@ -396,28 +396,37 @@ Deno.test("analysis POST: погода дня — температура й оп
   assertEquals(days.map((d) => d.weather.day_label), ["4…11°, без опадів", "4…11°, опади 8 мм", "4…11°, без опадів"]);
 });
 
-Deno.test("analysis POST: графік погоди — тиждень до сьогодні (факт) + дні горизонту (прогноз)", async () => {
-  const day = (date: string, rain: number) => ({ date, tempMin: 1.4, tempMax: 7.6, rain, humidity: 80, daysAhead: 0 });
+Deno.test("analysis POST: розширені дані погоди — дощ → гриби, що сталося, шкали, що далі", async () => {
+  const day = (date: string, rain: number, tmin = 1.4) => ({ date, tempMin: tmin, tempMax: 7.6, rain, humidity: 80, daysAhead: 0 });
   const forecast = (input: DayInput) => {
     const date = input.date.toISOString().slice(0, 10);
     const weather = {
       tempMin: 1, tempMax: 8, tempAvg7d: 4, humidity: 85, rain1d: 0, rain3d: 12, rain7d: 25, rain14d: 30,
-      droughtDays: 0, daysAfterRain: 2, pressure: 1012, pressureTrend: "stable", source: "open-meteo",
+      droughtDays: 0, daysAfterRain: 2, pressure: 1012, pressureTrend: "stable", source: "open-meteo", soilState: "wet",
       day: day(date, date === "2026-11-12" ? 9.04 : 0),
       recent: ["2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", date]
-        .map((d, k) => day(d, k === 2 ? 14 : 0)),
+        .map((d, k) => day(d, k === 2 ? 14 : 0, k === 4 ? -2.4 : 1.4)),
     };
     return Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   };
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
-  const chart = json.data.weather_chart;
-  assertEquals(chart.days.length, 9); // 05.11–11.11 + 12.11, 13.11
-  assertEquals(chart.days[0], {
-    date: "2026-11-05", label: "Чт", date_label: "05.11", tmin: 1, tmax: 8, rain: 0, forecast: false, today: false,
+  const ins = json.data.weather_insight;
+  assertEquals(ins.days.length, 9); // 05.11–11.11 + 12.11, 13.11
+  assertEquals(ins.days[0], {
+    date: "2026-11-05", label: "Чт", date_label: "05", rain: 0, soaking: false, temp: "cold", forecast: false, today: false,
   });
-  assertEquals(chart.days[2].rain, 14);
-  assertEquals(chart.days.filter((d: { today: boolean }) => d.today).map((d: { date: string }) => d.date), ["2026-11-11"]);
-  assertEquals(chart.days.filter((d: { forecast: boolean }) => d.forecast).map((d: { rain: number }) => d.rain), [9, 0]);
+  assertEquals([ins.days[2].rain, ins.days[2].soaking], [14, true]); // 07.11 — злива промочила ґрунт
+  assertEquals(ins.days[4].temp, "frost");
+  assertEquals(ins.days.find((d: { today: boolean }) => d.today).label, "сьог.");
+  assertEquals(ins.events.map((e: { icon: string }) => e.icon), ["frost", "rain"]); // свіжіші — першими
+  assertEquals(ins.events[1].label, "Дощ 14 мм, 07.11 — ґрунт промочило");
+  assertEquals(ins.events[0].label, "Заморозок -2°, 09.11 — ріст пригальмував");
+  assertEquals(ins.gauges.map((g: { key: string }) => g.key), ["soil", "warmth", "rain14"]);
+  assertEquals([ins.gauges[0].index, ins.gauges[0].tone], [2, "good"]); // волого
+  assertEquals([ins.gauges[1].index, ins.gauges[1].hint], [0, "ростуть лише зимові гриби"]);
+  assertEquals([ins.gauges[2].value_label, ins.gauges[2].fill], ["30 мм — достатньо", 0.75]);
+  assertEquals(ins.outlook_label, "Завтра — дощ 9 мм: промочить ґрунт — за 1–2 тижні можлива хвиля");
+  assertEquals(json.data.weather_chart, undefined);
   // висновок для грибів: свіжий дощ (12 мм за 3 дні)
   assertEquals(json.data.days[0].weather.verdict_tone, "good");
   assert(json.data.days[0].weather.verdict_label.includes("Свіжий дощ"));

@@ -436,61 +436,138 @@ class AnalysisWeather {
   final String rainLabel;
 }
 
-/// Графік погоди: тиждень до сьогодні (факт) і дні горизонту (прогноз). Числа погоди — не ймовірності.
-class WeatherChart {
-  const WeatherChart({required this.days, this.titleLabel, this.rainLegendLabel, this.tempLegendLabel});
+/// «Розширені дані погоди» (рішення PO 2026-11-15): дощ → гриби, що сталося, шкали, що далі.
+/// Усі підписи — із сервера; числа — лише мм опадів і частки шкал.
+class WeatherInsight {
+  const WeatherInsight({
+    required this.days,
+    required this.events,
+    required this.gauges,
+    this.stripTitle,
+    this.wave,
+    this.legend = const {},
+    this.eventsTitle,
+    this.outlookTitle,
+    this.outlookLabel,
+  });
 
-  factory WeatherChart.fromJson(Map<String, dynamic> json) => WeatherChart(
+  factory WeatherInsight.fromJson(Map<String, dynamic> json) => WeatherInsight(
+        stripTitle: opt<String>(json, 'strip_title'),
         days: [
           for (final d in (opt<List<dynamic>>(json, 'days') ?? const []).cast<Map<String, dynamic>>())
-            WeatherChartDay(
+            InsightDay(
               date: req<String>(d, 'date'),
               label: req<String>(d, 'label'),
               dateLabel: opt<String>(d, 'date_label') ?? '',
-              tmin: toDouble(d['tmin'], 'tmin'),
-              tmax: toDouble(d['tmax'], 'tmax'),
               rain: toDouble(d['rain'], 'rain'),
+              soaking: opt<bool>(d, 'soaking') ?? false,
+              temp: opt<String>(d, 'temp') ?? 'ok',
               forecast: opt<bool>(d, 'forecast') ?? false,
               today: opt<bool>(d, 'today') ?? false,
             ),
         ],
-        titleLabel: opt<String>(json, 'title_label'),
-        rainLegendLabel: opt<String>(json, 'rain_legend_label'),
-        tempLegendLabel: opt<String>(json, 'temp_legend_label'),
+        wave: switch (opt<Map<String, dynamic>>(json, 'wave')) {
+          final w? => (from: req<String>(w, 'from'), to: opt<String>(w, 'to'), label: req<String>(w, 'label')),
+          null => null,
+        },
+        legend: {
+          for (final e in (opt<Map<String, dynamic>>(json, 'legend_labels') ?? const {}).entries)
+            if (e.value is String) e.key: e.value as String,
+        },
+        eventsTitle: opt<String>(json, 'events_title'),
+        events: [
+          for (final e in (opt<List<dynamic>>(json, 'events') ?? const []).cast<Map<String, dynamic>>())
+            (icon: opt<String>(e, 'icon') ?? '', label: req<String>(e, 'label')),
+        ],
+        gauges: [
+          for (final g in (opt<List<dynamic>>(json, 'gauges') ?? const []).cast<Map<String, dynamic>>())
+            InsightGauge(
+              key: req<String>(g, 'key'),
+              title: req<String>(g, 'title'),
+              steps: g['steps'] == null ? const [] : stringList(g, 'steps'),
+              index: opt<num>(g, 'index')?.toInt(),
+              hint: opt<String>(g, 'hint'),
+              valueLabel: opt<String>(g, 'value_label'),
+              fill: opt<num>(g, 'fill')?.toDouble(),
+              mark: opt<num>(g, 'mark')?.toDouble(),
+              markLabel: opt<String>(g, 'mark_label'),
+              tone: opt<String>(g, 'tone') ?? 'neutral',
+            ),
+        ],
+        outlookTitle: opt<String>(json, 'outlook_title'),
+        outlookLabel: opt<String>(json, 'outlook_label'),
       );
 
-  final List<WeatherChartDay> days;
-  final String? titleLabel;
-  final String? rainLegendLabel;
-  final String? tempLegendLabel;
+  final String? stripTitle;
+  final List<InsightDay> days;
+
+  /// Вікно хвилі найкращого виду: «Зимовий опеньок: гриби 13.11–02.12».
+  final ({String from, String? to, String label})? wave;
+
+  /// Підписи легенди: `soaking`, `frost`, `cold`, `ok`, `hot`.
+  final Map<String, String> legend;
+  final String? eventsTitle;
+  final List<({String icon, String label})> events;
+  final List<InsightGauge> gauges;
+  final String? outlookTitle;
+  final String? outlookLabel;
 }
 
-class WeatherChartDay {
-  const WeatherChartDay({
+class InsightDay {
+  const InsightDay({
     required this.date,
     required this.label,
     required this.dateLabel,
-    required this.tmin,
-    required this.tmax,
     required this.rain,
+    required this.soaking,
+    required this.temp,
     required this.forecast,
     required this.today,
   });
 
   final String date;
-
-  /// «Пн».
   final String label;
-
-  /// «16.11».
   final String dateLabel;
-  final double tmin;
-  final double tmax;
 
   /// Опади за добу, мм.
   final double rain;
+
+  /// Дощ промочив ґрунт (поштовх для грибів).
+  final bool soaking;
+
+  /// `frost | cold | ok | hot`
+  final String temp;
   final bool forecast;
   final bool today;
+}
+
+/// Шкала: кроки (сухо · норма · волого…) з позначкою [index] або смужка [fill] з межею [mark].
+class InsightGauge {
+  const InsightGauge({
+    required this.key,
+    required this.title,
+    required this.tone,
+    this.steps = const [],
+    this.index,
+    this.hint,
+    this.valueLabel,
+    this.fill,
+    this.mark,
+    this.markLabel,
+  });
+
+  final String key;
+  final String title;
+  final List<String> steps;
+  final int? index;
+  final String? hint;
+  final String? valueLabel;
+  final double? fill;
+  final double? mark;
+  final String? markLabel;
+
+  /// `good | neutral | bad`
+  final String tone;
 }
 
 /// Гриб у кошику мінікарти: вид зі шансом на день (ADR-015 §15.9). Лише підписи із сервера.
@@ -613,7 +690,7 @@ class AnalysisResult {
     this.lockedLabel,
     this.basket,
     this.weekAnimation,
-    this.weatherChart,
+    this.weatherInsight,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -656,8 +733,8 @@ class AnalysisResult {
         final w? => (allowed: opt<bool>(w, 'allowed') ?? false, lockedLabel: opt<String>(w, 'locked_label')),
         null => null,
       },
-      weatherChart: switch (opt<Map<String, dynamic>>(json, 'weather_chart')) {
-        final c? => WeatherChart.fromJson(c),
+      weatherInsight: switch (opt<Map<String, dynamic>>(json, 'weather_insight')) {
+        final c? => WeatherInsight.fromJson(c),
         null => null,
       },
     );
@@ -685,7 +762,7 @@ class AnalysisResult {
         lockedLabel: lockedLabel,
         basket: day.basket,
         weekAnimation: weekAnimation,
-        weatherChart: weatherChart,
+        weatherInsight: weatherInsight,
       );
 
   final AnalysisArea area;
@@ -726,6 +803,6 @@ class AnalysisResult {
   /// ▶ «Хвиля по днях»: Pro або «Слідопит»; інакше — пояснення при натисканні.
   final ({bool allowed, String? lockedLabel})? weekAnimation;
 
-  /// Графік погоди (тиждень до сьогодні + прогноз); `null` — старий результат.
-  final WeatherChart? weatherChart;
+  /// «Розширені дані погоди»; `null` — старий результат.
+  final WeatherInsight? weatherInsight;
 }

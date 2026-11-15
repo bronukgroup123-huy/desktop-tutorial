@@ -32,7 +32,7 @@
 // ============================================================================
 
 import { parseEwkbPoint } from "../forecast/picks-list.ts";
-import type { DayWeather, ForecastResult, ScoredSpecies } from "../forecast/types.ts";
+import type { ForecastResult, ScoredSpecies } from "../forecast/types.ts";
 import {
   assertMethod,
   type AuthUser,
@@ -47,6 +47,7 @@ import {
 } from "../http.ts";
 import { forestTypeStyle } from "./forest-styles.ts";
 import { SCENE_LABEL, sceneSprouts, weatherBlock, weatherScene, weatherVerdict } from "./forecast-labels.ts";
+import { weatherInsight } from "./weather-insight.ts";
 import { LEVEL_COLOR, LEVEL_LABEL, normalizeLevel, type ProbabilityLevel, shapeSpecies } from "./forecast.ts";
 
 export const ANALYSIS_SIZES = [5, 10] as const;
@@ -906,41 +907,11 @@ async function analyzeArea(
     locked_label: locked.length > 0 ? `Ще ${locked.length} дні прогнозу — у Pro` : null,
     basket: selected.view.basket,
     week_animation: weekAnimation(when.pro, when.rating ?? 0),
-    weather_chart: weatherChart(runs[0].results, today),
+    // «Розширені дані погоди»: дощ → гриби, що сталося, шкали, що далі.
+    weather_insight: weatherInsight(runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today)),
   };
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
-}
-
-/**
- * Графік погоди в прогнозі ділянки: 7 днів до сьогодні (факт) + дні горизонту (прогноз),
- * опади й мінімум / максимум температури — звичайні числа погоди, без ймовірностей.
- */
-export function weatherChart(results: ForecastResult[], today: string): Record<string, unknown> | null {
-  const byDate = new Map<string, DayWeather>();
-  const todayRes = results.find((r) => r.weather?.day?.date === today) ?? results[0];
-  for (const d of todayRes?.weather?.recent ?? []) byDate.set(d.date, d);
-  for (const r of results) {
-    const d = r.weather?.day;
-    if (d && r.weather?.source !== "unavailable") byDate.set(d.date, d);
-  }
-  const list = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-  if (list.length < 2) return null;
-  return {
-    days: list.map((d) => ({
-      date: d.date,
-      label: WEEKDAY_SHORT[new Date(`${d.date}T00:00:00Z`).getUTCDay()],
-      date_label: `${d.date.slice(8, 10)}.${d.date.slice(5, 7)}`,
-      tmin: Math.round(d.tempMin),
-      tmax: Math.round(d.tempMax),
-      rain: Math.round(d.rain * 10) / 10,
-      forecast: d.date > today,
-      today: d.date === today,
-    })),
-    title_label: "Погода: тиждень до сьогодні й прогноз",
-    rain_legend_label: "опади, мм",
-    temp_legend_label: "температура, °",
-  };
 }
 
 interface AnalyzedDay {
@@ -950,6 +921,8 @@ interface AnalyzedDay {
   };
   /** Внутрішній порядок для «найкращого дня» — у відповідь не йде. */
   bestScore: number | null;
+  /** Найкращий вид дня (внутрішнє: вікно хвилі в «Розширених даних погоди»). */
+  topSpecies: ScoredSpecies | null;
   level: ProbabilityLevel;
 }
 
@@ -1005,6 +978,7 @@ function analyzeDay(
       no_data_reason: !hasForest ? NO_FOREST_REASON : !best.top1 && first.noDataReason ? first.noDataReason : null,
     },
     bestScore: best.top1 ? best.top1.species.score : null,
+    topSpecies: best.top1?.species ?? null,
     level,
   };
 }

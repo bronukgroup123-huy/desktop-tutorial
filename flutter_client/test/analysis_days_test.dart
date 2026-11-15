@@ -141,7 +141,7 @@ void main() {
     expect(stale.playing, isFalse);
   });
 
-  testWidgets('Погода: висновок для грибів і графік; торкнутися дня на графіку — обрати день', (tester) async {
+  testWidgets('Погода: розширені дані — дощ → гриби, що сталося, шкали, що далі; торкнутися дня — обрати', (tester) async {
     final json = daysJson();
     final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
     for (final d in days) {
@@ -152,36 +152,55 @@ void main() {
       };
     }
     json['days'] = days;
-    json['weather_chart'] = {
-      'title_label': 'Погода: тиждень до сьогодні й прогноз',
-      'rain_legend_label': 'опади, мм',
+    json['weather_insight'] = {
+      'strip_title': 'Дощі й гриби',
       'days': [
         for (final (i, date) in ['2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].indexed)
           {
-            'date': date, 'label': 'Пн', 'date_label': '${date.substring(8)}.11',
-            'tmin': i, 'tmax': i + 6, 'rain': i == 1 ? 12 : 0, 'forecast': i > 3, 'today': i == 3,
+            'date': date, 'label': i == 3 ? 'сьог.' : 'Пн', 'date_label': date.substring(8),
+            'rain': i == 1 ? 12 : 0, 'soaking': i == 1, 'temp': i == 0 ? 'frost' : 'ok', 'forecast': i > 3, 'today': i == 3,
           },
       ],
+      'wave': {'from': '2026-11-10', 'to': '2026-11-29', 'label': 'Зимовий опеньок: гриби 10.11–29.11'},
+      'legend_labels': {'soaking': 'дощ промочив ґрунт', 'frost': 'заморозок', 'ok': 'добре'},
+      'events_title': 'Що вже сталося',
+      'events': [
+        {'icon': 'rain', 'label': 'Дощ 12 мм, 09.11 — ґрунт промочило'},
+        {'icon': 'frost', 'label': 'Заморозок -2°, 08.11 — ріст пригальмував'},
+      ],
+      'gauges': [
+        {'key': 'soil', 'title': 'Вологість ґрунту', 'steps': ['сухо', 'норма', 'волого', 'перезволожено'], 'index': 2, 'tone': 'good'},
+        {'key': 'warmth', 'title': 'Тепло для росту', 'steps': ['холодно', 'прохолодно', 'добре', 'жарко'], 'index': 0,
+         'tone': 'bad', 'hint': 'ростуть лише зимові гриби'},
+        {'key': 'rain14', 'title': 'Дощ за 2 тижні', 'value_label': '25 мм — достатньо', 'fill': 0.62, 'mark': 0.5,
+         'mark_label': 'від 20 мм — досить', 'tone': 'good'},
+      ],
+      'outlook_title': 'Що далі',
+      'outlook_label': 'Пт 13 — дощ 9 мм: підтримає хвилю',
     };
     await _pump(tester, AnalysisResult.fromJson(json));
     expect(find.byKey(const ValueKey('weather-verdict')), findsOneWidget);
-    expect(find.text('Ґрунт вологий після дощів — добре для грибів'), findsOneWidget);
-    // простий вигляд: графік — у «Розширені дані погоди»
-    expect(find.byKey(const ValueKey('weather-chart')), findsNothing);
+    // простий вигляд — без аналітики
+    expect(find.byKey(const ValueKey('weather-insight')), findsNothing);
     await tester.ensureVisible(find.byKey(const ValueKey('weather-advanced')));
     await tester.tap(find.byKey(const ValueKey('weather-advanced')));
     await tester.pump();
-    expect(find.byKey(const ValueKey('weather-chart')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const ValueKey('weather-chart')));
+    expect(find.byKey(const ValueKey('weather-insight')), findsOneWidget);
+    expect(find.text('Зимовий опеньок: гриби 10.11–29.11'), findsOneWidget);
+    expect(find.text('Дощ 12 мм, 09.11 — ґрунт промочило'), findsOneWidget);
+    expect(find.byKey(const ValueKey('gauge-soil')), findsOneWidget);
+    expect(find.text('ростуть лише зимові гриби'), findsOneWidget);
+    expect(find.text('25 мм — достатньо'), findsOneWidget);
+    expect(find.textContaining('підтримає хвилю', findRichText: true), findsOneWidget);
+    // торкнутися останньої колонки смужки (13.11 — день смужки днів) → обрано
+    await tester.ensureVisible(find.byKey(const ValueKey('insight-strip')));
     await tester.pump();
-    expect(find.text('Погода Сьогодні'), findsOneWidget);
-    // остання колонка графіка — 13.11 (день смужки) → обирається
-    final chart = tester.getRect(find.byKey(const ValueKey('weather-chart')));
-    await tester.tapAt(Offset(chart.right - 4, chart.center.dy));
+    final strip = tester.getRect(find.byKey(const ValueKey('insight-strip')));
+    await tester.tapAt(Offset(strip.right - 4, strip.center.dy));
     await tester.pump();
     expect(find.text('Погода Пт 13'), findsOneWidget);
-    // перша колонка — минуле, не день смужки → нічого не змінюється
-    await tester.tapAt(Offset(chart.left + 4, chart.center.dy));
+    // минулий день — не обирається
+    await tester.tapAt(Offset(strip.left + 4, strip.center.dy));
     await tester.pump();
     expect(find.text('Погода Пт 13'), findsOneWidget);
   });

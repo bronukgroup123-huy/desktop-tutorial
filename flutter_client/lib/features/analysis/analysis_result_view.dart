@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart';
-import 'package:flutter_client/features/analysis/weather_chart_view.dart';
+import 'package:flutter_client/features/analysis/weather_insight_view.dart';
 import 'package:flutter_client/features/analysis/weather_scene.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
 
@@ -279,7 +279,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           const SizedBox(height: 10),
           _WeatherCard(
             weather: r.weather!,
-            chart: widget.result.weatherChart,
+            insight: widget.result.weatherInsight,
             selected: _selected,
             selectable: {for (final d in widget.result.days) d.date},
             onSelect: (date) => setState(() {
@@ -559,12 +559,12 @@ class _WeatherCard extends StatefulWidget {
     required this.weather,
     required this.selected,
     required this.onSelect,
-    this.chart,
+    this.insight,
     this.selectable = const {},
   });
 
   final AnalysisWeather weather;
-  final WeatherChart? chart;
+  final WeatherInsight? insight;
   final String selected;
   final Set<String> selectable;
   final ValueChanged<String> onSelect;
@@ -585,8 +585,7 @@ class _WeatherCardState extends State<_WeatherCard> {
   @override
   Widget build(BuildContext context) {
     final weather = widget.weather;
-    final chart = widget.chart;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final insight = widget.insight;
     final tone = _tone[weather.verdictTone] ?? _tone['neutral']!;
     final scene = parseWeatherScene(weather.scene);
     final title = Column(
@@ -658,19 +657,23 @@ class _WeatherCardState extends State<_WeatherCard> {
               ),
             ],
             if (_advanced) ...[
-              if (chart != null && chart.days.length > 1) ...[
-                const SizedBox(height: 14),
-                if (chart.titleLabel != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6, left: 4),
-                    child: Text(chart.titleLabel!, style: TextStyle(fontSize: 12, color: muted)),
+              const SizedBox(height: 14),
+              if (insight != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: WeatherInsightView(
+                    insight: insight,
+                    selected: widget.selected,
+                    selectable: widget.selectable,
+                    onSelect: widget.onSelect,
                   ),
-                WeatherChartView(chart: chart, selected: widget.selected, selectable: widget.selectable, onSelect: widget.onSelect),
+                )
+              else ...[
+                // Старий результат — цифри тижня, як раніше.
+                _WeatherDetail(icon: Icons.thermostat_rounded, text: weather.tempLabel),
+                _WeatherDetail(icon: Icons.water_drop_outlined, text: weather.rainLabel),
+                _WeatherDetail(icon: Icons.opacity_rounded, text: weather.humidityLabel),
               ],
-              const SizedBox(height: 10),
-              _WeatherDetail(icon: Icons.thermostat_rounded, text: weather.tempLabel),
-              _WeatherDetail(icon: Icons.water_drop_outlined, text: weather.rainLabel),
-              _WeatherDetail(icon: Icons.opacity_rounded, text: weather.humidityLabel),
             ],
             Align(
               alignment: Alignment.centerLeft,
