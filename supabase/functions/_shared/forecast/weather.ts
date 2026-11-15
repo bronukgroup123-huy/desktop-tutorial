@@ -27,6 +27,8 @@ export interface OpenMeteoResponse {
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     precipitation_sum: number[];
+    /** Код погоди WMO за добу (ясно / хмарно / туман / дощ / сніг / гроза) — для сцени погоди. */
+    weather_code?: Array<number | null>;
   };
 }
 
@@ -51,6 +53,7 @@ async function fetchOpenMeteo(
       "temperature_2m_max",
       "temperature_2m_min",
       "precipitation_sum",
+      "weather_code",
     ].join(","),
     past_days: String(pastDays),
     forecast_days: String(forecastDays),
@@ -203,6 +206,8 @@ export interface WeatherSeries {
   soil: Array<number | null>;
   /** Середня температура ґрунту за добу (°C) — для дозрівання грибниці; немає → середня повітря. */
   soilT: number[];
+  /** Код погоди WMO за добу; немає (старий кеш) — сцена визначається за опадами й вологістю. */
+  wcode?: Array<number | null>;
   /** Тиск о першій і останній годині доби — для тренду тиску. */
   pressureStart: number[];
   pressureEnd: number[];
@@ -260,6 +265,10 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
     precip: dates.map((_, k) => num(data.daily.precipitation_sum?.[k])),
     tmax: dates.map((_, k) => num(data.daily.temperature_2m_max?.[k])),
     tmin: dates.map((_, k) => num(data.daily.temperature_2m_min?.[k])),
+    wcode: dates.map((_, k) => {
+      const c = data.daily.weather_code?.[k];
+      return typeof c === "number" && Number.isFinite(c) ? c : null;
+    }),
     tmean,
     humidity,
     soil,
@@ -338,6 +347,7 @@ export function weatherAsOf(series: WeatherSeries, date: string, source: Weather
       rain: series.precip[i],
       humidity: series.humidity[i],
       daysAhead: dayOffset(date, series.today),
+      code: series.wcode?.[i] ?? null,
     },
     recent: series.dates.slice(Math.max(0, i - 6), i + 1).map((d, k) => {
       const j = Math.max(0, i - 6) + k;

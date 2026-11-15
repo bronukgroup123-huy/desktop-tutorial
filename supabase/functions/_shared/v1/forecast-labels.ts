@@ -268,6 +268,51 @@ export function waveBlock(fr: FruitingState | undefined): Record<string, unknown
   };
 }
 
+export type WeatherScene =
+  | "sunny" | "partly_cloudy" | "cloudy" | "rain" | "heavy_rain" | "fog" | "frost" | "snow" | "heat";
+
+export const SCENE_LABEL: Record<WeatherScene, string> = {
+  sunny: "Сонячно",
+  partly_cloudy: "Мінлива хмарність",
+  cloudy: "Хмарно",
+  rain: "Дощ",
+  heavy_rain: "Злива",
+  fog: "Туман",
+  frost: "Заморозок",
+  snow: "Сніг",
+  heat: "Спека",
+};
+
+/**
+ * Сцена погоди дня для анімованого блоку (маскот-гриб): за кодом погоди WMO, а без нього
+ * (старий кеш) — за опадами, температурою й вологістю. Спека — лише разом із посухою.
+ */
+export function weatherScene(
+  day: { tempMin: number; tempMax: number; rain: number; humidity: number; code?: number | null },
+  w: WeatherData | null | undefined,
+): WeatherScene {
+  const c = day.code ?? null;
+  const inCodes = (...xs: Array<number | [number, number]>) =>
+    c !== null && xs.some((x) => (Array.isArray(x) ? c >= x[0] && c <= x[1] : c === x));
+  if (inCodes([71, 77], 85, 86) || (day.rain >= 1 && day.tempMax <= 1)) return "snow";
+  if (inCodes(65, 67, 82, [95, 99]) || day.rain >= 15) return "heavy_rain";
+  if (inCodes([51, 64], 66, 80, 81) || day.rain >= 1) return "rain";
+  if (inCodes(45, 48) || (c === null && day.humidity >= 97)) return "fog";
+  if (day.tempMin <= -1) return "frost";
+  const dry = weatherOk(w) && (w.droughtDays >= 7 || w.rain7d < 5);
+  if (day.tempMax >= 28 && dry) return "heat";
+  if (inCodes(0, 1)) return "sunny";
+  if (inCodes(2)) return "partly_cloudy";
+  if (inCodes(3)) return "cloudy";
+  return day.humidity >= 85 ? "cloudy" : day.humidity >= 75 ? "partly_cloudy" : "sunny";
+}
+
+/** Скільки молодих грибів навколо маскота: за стадією хвилі найкращого виду дня. */
+export function sceneSprouts(fr: FruitingState | undefined): "none" | "few" | "many" {
+  if (fr?.phase !== "flush") return "none";
+  return fr.stage === "peak" ? "many" : "few";
+}
+
 export type WeatherTone = "good" | "neutral" | "bad";
 
 /**

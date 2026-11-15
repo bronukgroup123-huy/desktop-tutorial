@@ -1099,13 +1099,19 @@ components:
       type: object
       required: [icon, temp_label, humidity_label, rain_label]
       properties:
-        icon: { type: string, enum: [sun, cloud, rain, unknown], description: За погодою самого дня }
+        icon: { type: string, enum: [sun, cloud, rain, snow, fog, unknown], description: За погодою самого дня }
         day_label: { type: [string, 'null'], example: '4…11°, опади 8 мм', description: Погода самого дня }
         temp_label: { type: string }
         humidity_label: { type: string }
         rain_label: { type: string }
         verdict_label: { type: [string, 'null'], example: 'Ґрунт вологий після дощів — добре для грибів', description: Що погода означає для грибів }
         verdict_tone: { type: [string, 'null'], enum: [good, neutral, bad, null] }
+        scene:
+          type: [string, 'null']
+          enum: [sunny, partly_cloudy, cloudy, rain, heavy_rain, fog, frost, snow, heat, null]
+          description: Анімована сцена з грибом-маскотом (код погоди WMO дня; без нього — за опадами й вологістю)
+        scene_label: { type: [string, 'null'], example: Мінлива хмарність }
+        sprouts: { type: string, enum: [none, few, many], description: Молоді гриби в сцені — за стадією хвилі найкращого виду }
 
     AnalysisDay:
       type: object
