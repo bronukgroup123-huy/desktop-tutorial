@@ -424,6 +424,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                             bounds: result.area.bounds!,
                             species: species,
                             analyzedAt: _area.lastAnalyzedAt,
+                            history: result.finds?.lastYear ?? const [],
                           ),
                   refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
                   // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.

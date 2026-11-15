@@ -312,4 +312,24 @@ void main() {
     // значок рівня в смужці днів
     expect(find.byIcon(Icons.remove_rounded), findsWidgets); // «Середня»
   });
+
+  testWidgets('Знахідки: звірка з прогнозом і торішні — під мінікартою', (tester) async {
+    final json = {
+      ...daysJson(),
+      'finds': {
+        'verification_label': 'Ваші знахідки тут збіглися з прогнозом: 2 з 3',
+        'last_year': [
+          {'lat': 50.41, 'lng': 30.51, 'mushroom_type': 'flammulina_velutipes', 'name': 'Зимовий опеньок', 'date_label': '12.11.2025'},
+        ],
+        'last_year_label': 'Торік у ці тижні: 1 знахідка',
+      },
+    };
+    final r = AnalysisResult.fromJson(json);
+    expect(r.finds!.lastYear.single.dateLabel, '12.11.2025');
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: AnalysisResultView(result: r, miniMapBuilder: (_) => const SizedBox(height: 40))),
+    ));
+    expect(find.text('Ваші знахідки тут збіглися з прогнозом: 2 з 3'), findsOneWidget);
+    expect(find.text('Торік у ці тижні: 1 знахідка'), findsOneWidget);
+  });
 }

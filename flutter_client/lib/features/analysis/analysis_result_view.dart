@@ -231,6 +231,23 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           ),
           const SizedBox(height: 6),
           widget.miniMapBuilder!(_stickers(r)),
+          // Звірка з вашими знахідками і торішні знахідки (рішення PO 2026-11-15).
+          for (final label in [r.finds?.verificationLabel, r.finds?.lastYearLabel])
+            if (label != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      label == r.finds?.verificationLabel ? Icons.verified_outlined : Icons.history_rounded,
+                      size: 16,
+                      color: AppTheme.darkGreen.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.8)))),
+                  ],
+                ),
+              ),
         ],
         const SizedBox(height: 14),
         _ForestCard(result: r, onRefine: widget.onRefineForest, refineHintLabel: widget.refineHintLabel),

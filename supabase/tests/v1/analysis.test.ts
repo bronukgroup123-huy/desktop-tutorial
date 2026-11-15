@@ -800,3 +800,36 @@ Deno.test("analysis POST: «інші гриби сезону» з причино
   assertEquals(json.data.top1.identify, undefined);
   assertEquals(Object.keys(json.data.identify), ["flammulina_velutipes"]);
 });
+
+Deno.test("analysis POST: знахідки — прогноз дня в історію, звірка тук-туків, торішні знахідки", async () => {
+  const flam = species({ mushroom_type: "flammulina_velutipes", name_ua: "Зимовий опеньок", probability: "high" });
+  const forecast = () => Promise.resolve(result({ top1: flam, alternative: null, candidates: [flam] }));
+  const d = db({
+    "rpc.area_finds": (call) => {
+      const p = call.args[0] as { p_from: string };
+      return p.p_from.startsWith("2025")
+        ? { data: [{ lat: 50.41, lng: 30.51, species_id: "flammulina_velutipes", name_ua: "Зимовий опеньок", day: "2025-11-12", matched: null }], error: null }
+        : {
+          data: [
+            { lat: 50.41, lng: 30.51, species_id: "flammulina_velutipes", name_ua: "Зимовий опеньок", day: "2026-11-09", matched: true },
+            { lat: 50.42, lng: 30.52, species_id: "pleurotus_ostreatus", name_ua: "Глива", day: "2026-11-08", matched: false },
+            { lat: 50.42, lng: 30.52, species_id: "boletus_edulis", name_ua: "Білий гриб", day: "2026-09-20", matched: null },
+          ],
+          error: null,
+        };
+    },
+  });
+  const { json } = await run(d, req("POST", URL_, body()), { forecast });
+  // прогноз сьогоднішнього дня збережено
+  const hist = find(d, "rpc.save_analysis_history")!.args[0] as Record<string, unknown>;
+  assertEquals([hist.p_user_id, hist.p_day, hist.p_species], [USER, "2026-11-11", ["flammulina_velutipes"]]);
+  const f = json.data.finds;
+  assertEquals(f.verification, { matched: 1, total: 2 }); // без прогнозу на той день — не рахується
+  assertEquals(f.verification_label, "Ваші знахідки тут збіглися з прогнозом: 1 з 2");
+  assertEquals(f.last_year, [{ lat: 50.41, lng: 30.51, mushroom_type: "flammulina_velutipes", name: "Зимовий опеньок", date_label: "12.11.2025" }]);
+  assertEquals(f.last_year_label, "Торік у ці тижні: 1 знахідка");
+  // торішнє вікно — навколо цих самих тижнів
+  const calls = d.calls.filter((c) => c.key === "rpc.area_finds").map((c) => c.args[0] as { p_from: string; p_to: string });
+  assertEquals([calls[0].p_from, calls[0].p_to], ["2026-09-12", "2026-11-11"]); // 60 днів назад
+  assertEquals([calls[1].p_from, calls[1].p_to], ["2025-11-04", "2025-11-21"]);
+});

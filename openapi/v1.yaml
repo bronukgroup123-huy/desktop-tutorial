@@ -1082,6 +1082,24 @@ components:
               mushroom_type: { type: string }
               name_ua: { type: string }
               reason_label: { type: string, example: 'Холодно: 3° за тиждень, потрібно від 10°' }
+        finds:
+          type: [object, 'null']
+          description: Знахідки в ділянці — звірка ваших тук-туків за 60 днів із прогнозом того дня і ваші знахідки торік у ці тижні (лише власні)
+          properties:
+            verification: { type: [object, 'null'], properties: { matched: { type: integer }, total: { type: integer } } }
+            verification_label: { type: [string, 'null'], example: 'Ваші знахідки тут збіглися з прогнозом: 2 з 3' }
+            last_year:
+              type: array
+              maxItems: 30
+              items:
+                type: object
+                properties:
+                  lat: { type: number }
+                  lng: { type: number }
+                  mushroom_type: { type: string }
+                  name: { type: string }
+                  date_label: { type: string, example: '12.11.2025' }
+            last_year_label: { type: [string, 'null'], example: 'Торік у ці тижні: 3 знахідки' }
         weather_insight:
           type: [object, 'null']
           description: «Розширені дані погоди» — дощ → гриби, що сталося, шкали, що далі (ADR-015 §15.8 п.9)

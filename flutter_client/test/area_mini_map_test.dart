@@ -51,7 +51,9 @@ void main() {
   });
 
   Widget boardApp(Map<String, LatLng> Function() get, void Function(Map<String, LatLng>) set,
-          {List<StickerSpecies> species = const [boletus, chanterelle], List<String>? removed}) =>
+          {List<StickerSpecies> species = const [boletus, chanterelle],
+          List<String>? removed,
+          List<({LatLng point, String type, String name, String dateLabel})> history = const []}) =>
       MaterialApp(
         home: Scaffold(
           body: Padding(
@@ -62,6 +64,7 @@ void main() {
                 species: species,
                 positions: get(),
                 map: Container(key: const ValueKey('mini-map'), color: Colors.green.shade100),
+                history: history,
                 onMove: (t, p) => setState(() => set({...get(), t: p})),
                 onRemove: (t) => setState(() {
                   removed?.add(t);
@@ -148,6 +151,21 @@ void main() {
         tester.getCenter(find.byKey(const ValueKey('basket'))));
     expect(removed, ['boletus_edulis']);
     expect(positions, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Торішні знахідки — бліді мітки; тап — дата й вид, тап повз — закрити', (tester) async {
+    var positions = <String, LatLng>{};
+    await tester.pumpWidget(boardApp(() => positions, (p) => positions = p, history: [
+      (point: const LatLng(50.22, 28.63), type: 'flammulina_velutipes', name: 'Зимовий опеньок', dateLabel: '12.11.2025'),
+    ]));
+    expect(find.byKey(const ValueKey('history-0')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('history-0')));
+    await tester.pump();
+    expect(find.text('Торік 12.11.2025 · Зимовий опеньок'), findsOneWidget);
+    await tester.tapAt(tester.getRect(find.byKey(const ValueKey('mini-map'))).topLeft + const Offset(20, 20));
+    await tester.pump();
+    expect(find.text('Торік 12.11.2025 · Зимовий опеньок'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

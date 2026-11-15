@@ -606,6 +606,34 @@ List<OtherSpecies> _others(Map<String, dynamic> json) => [
         (type: req<String>(o, 'mushroom_type'), name: req<String>(o, 'name_ua'), reason: opt<String>(o, 'reason_label') ?? ''),
     ];
 
+/// Знахідки в ділянці: звірка ваших тук-туків із прогнозом і ваші знахідки торік у ці тижні.
+class AreaFinds {
+  const AreaFinds({this.verificationLabel, this.lastYear = const [], this.lastYearLabel});
+
+  factory AreaFinds.fromJson(Map<String, dynamic> json) => AreaFinds(
+        verificationLabel: opt<String>(json, 'verification_label'),
+        lastYearLabel: opt<String>(json, 'last_year_label'),
+        lastYear: [
+          for (final f in (opt<List<dynamic>>(json, 'last_year') ?? const []).cast<Map<String, dynamic>>())
+            (
+              point: LatLng(toDouble(f['lat'], 'lat'), toDouble(f['lng'], 'lng')),
+              type: opt<String>(f, 'mushroom_type') ?? '',
+              name: opt<String>(f, 'name') ?? 'Гриб',
+              dateLabel: opt<String>(f, 'date_label') ?? '',
+            ),
+        ],
+      );
+
+  /// «Ваші знахідки тут збіглися з прогнозом: 2 з 3».
+  final String? verificationLabel;
+  final List<PastFind> lastYear;
+
+  /// «Торік у ці тижні: 3 знахідки».
+  final String? lastYearLabel;
+}
+
+typedef PastFind = ({LatLng point, String type, String name, String dateLabel});
+
 /// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
 const kExpectedResultVersion = 3;
 
@@ -710,6 +738,7 @@ class AnalysisResult {
     this.others = const [],
     this.identify = const {},
     this.resultVersion = 0,
+    this.finds,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -758,6 +787,10 @@ class AnalysisResult {
           if (e.value is Map<String, dynamic>) e.key: IdentifyCard.fromJson(e.value as Map<String, dynamic>),
       },
       resultVersion: opt<num>(json, 'result_version')?.toInt() ?? 0,
+      finds: switch (opt<Map<String, dynamic>>(json, 'finds')) {
+        final f? => AreaFinds.fromJson(f),
+        null => null,
+      },
       weatherInsight: switch (opt<Map<String, dynamic>>(json, 'weather_insight')) {
         final c? => WeatherInsight.fromJson(c),
         null => null,
@@ -791,6 +824,7 @@ class AnalysisResult {
         others: day.others,
         identify: identify,
         resultVersion: resultVersion,
+        finds: finds,
       );
 
   final AnalysisArea area;
@@ -842,6 +876,9 @@ class AnalysisResult {
 
   /// Версія результату із сервера; менша за [kExpectedResultVersion] — оновлюється безкоштовно.
   final int resultVersion;
+
+  /// Знахідки в ділянці (звірка з прогнозом, торішні); `null` — старий результат.
+  final AreaFinds? finds;
 
   /// Аналіз не на сьогодні або зроблений до оновлення застосунку.
   bool isStale(String today) => date.compareTo(today) < 0 || resultVersion < kExpectedResultVersion;

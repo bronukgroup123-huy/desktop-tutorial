@@ -56,6 +56,7 @@ class StickerBoard extends StatefulWidget {
     required this.onMove,
     required this.onRemove,
     required this.map,
+    this.history = const [],
   });
 
   final StickerCamera camera;
@@ -70,6 +71,9 @@ class StickerBoard extends StatefulWidget {
 
   /// Карта під грибами (у тестах — будь-який віджет).
   final Widget map;
+
+  /// Ваші знахідки торік у ці тижні — бліді мітки під грибами (тап — дата й вид).
+  final List<({LatLng point, String type, String name, String dateLabel})> history;
 
   @override
   State<StickerBoard> createState() => _StickerBoardState();
@@ -92,6 +96,9 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
   Offset? _dragAt;
   bool _dragFromBasket = false;
   String? _tooltipFor;
+
+  /// Відкритий підпис торішньої знахідки.
+  int? _historyTip;
   String? _nameFor;
   final GlobalKey _boardKey = GlobalKey();
 
@@ -219,13 +226,18 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(child: widget.map),
+                  for (var i = 0; i < widget.history.length; i++) _historyMark(i),
+                  if (_historyTip != null && _historyTip! < widget.history.length) _historyTooltip(_historyTip!),
                   // Підпис гриба відкритий — торкнутися будь-де повз нього, щоб закрити.
-                  if (_tooltipFor != null)
+                  if (_tooltipFor != null || _historyTip != null)
                     Positioned.fill(
                       child: GestureDetector(
                         key: const ValueKey('tooltip-dismiss'),
                         behavior: HitTestBehavior.opaque,
-                        onTap: () => setState(() => _tooltipFor = null),
+                        onTap: () => setState(() {
+                          _tooltipFor = null;
+                          _historyTip = null;
+                        }),
                       ),
                     ),
                   for (final type in placed) _placed(type),
@@ -270,6 +282,62 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
         onLongPressMoveUpdate: (d) => _moveDrag(d.globalPosition),
         onLongPressEnd: (_) => _endDrag(),
         child: Opacity(opacity: dragging ? 0 : 1, child: MushroomSticker(species: s, size: _stickerSize)),
+      ),
+    );
+  }
+
+  // ─── Торішні знахідки ───────────────────────────────────────────────────
+
+  Widget _historyMark(int i) {
+    final h = widget.history[i];
+    final at = widget.camera.toScreen(h.point);
+    const size = 22.0;
+    return Positioned(
+      key: ValueKey('history-$i'),
+      left: at.dx - size / 2,
+      top: at.dy - size / 2,
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _tooltipFor = null;
+          _historyTip = _historyTip == i ? null : i;
+        }),
+        child: Container(
+          width: size,
+          height: size,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.7),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xff8d6e63), width: 1.5),
+          ),
+          child: Opacity(opacity: 0.75, child: SpeciesIcon(type: h.type, fallbackColor: const Color(0xff8d6e63), size: 16)),
+        ),
+      ),
+    );
+  }
+
+  Widget _historyTooltip(int i) {
+    final h = widget.history[i];
+    final at = widget.camera.toScreen(h.point);
+    const width = 190.0;
+    final left = (at.dx - width / 2).clamp(4.0, _size.width - width - 4);
+    return Positioned(
+      left: left,
+      top: at.dy > 60 ? at.dy - 48 : at.dy + 14,
+      width: width,
+      child: IgnorePointer(
+        child: Center(
+          child: Container(
+            key: ValueKey('history-tip-$i'),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(10)),
+            child: Text(
+              'Торік ${h.dateLabel} · ${h.name}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xff5d4037)),
+            ),
+          ),
+        ),
       ),
     );
   }

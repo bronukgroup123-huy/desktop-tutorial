@@ -856,7 +856,7 @@ async function runAnalysis(
 
   try {
     const rating = await loadRating(deps.db, user.id);
-    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro, rating }, input.forestRaw, override, usageBlock(used, limit));
+    const data = await analyzeArea(deps, area, regionId, { date: input.date, now, pro, rating, userId: user.id }, input.forestRaw, override, usageBlock(used, limit));
     // Останній результат — разом із ділянкою (вкладка «Прогноз», інші пристрої).
     const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: area.id, p_result: data });
     if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
@@ -883,7 +883,7 @@ async function analyzeArea(
   deps: AnalysisDeps,
   area: AreaRef,
   regionId: number,
-  when: { date: string; now: Date; pro: boolean; rating?: number },
+  when: { date: string; now: Date; pro: boolean; rating?: number; userId?: string },
   forestRaw: unknown,
   override: ForestOverride | null,
   usage: Record<string, unknown>,
@@ -951,6 +951,18 @@ async function analyzeArea(
     identify: identifyFor(days.map((d) => d.view)),
     weather_insight: weatherInsight(runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today)),
   };
+  if (when.userId) {
+    // Прогноз сьогоднішнього дня — в історію (звірка зі знахідками, калібрування).
+    const todayView = days[dates.indexOf(today)]?.view;
+    if (todayView) {
+      const species = (todayView.basket ?? []).map((b) => String(b.mushroom_type));
+      const saved = await deps.db.rpc("save_analysis_history", {
+        p_user_id: when.userId, p_area_id: area.id, p_day: today, p_species: species,
+      });
+      if (saved.error) console.warn("[v1-analysis] save_analysis_history failed:", saved.error);
+    }
+    data.finds = await areaFinds(deps, when.userId, area.id, today, dates.length);
+  }
   if (selected.view.no_data_reason) data.no_data_reason = selected.view.no_data_reason;
   return data;
 }
@@ -1033,6 +1045,59 @@ const NO_FOREST_REASON = "У цій ділянці на карті немає л
 const LEVEL_SHORT_LABEL: Record<ProbabilityLevel, string> = {
   peak: "Пік", high: "Висока", medium: "Середня", low: "Низька", no_data: "—",
 };
+
+/** Скільки днів назад звіряти знахідки з прогнозом. */
+export const FINDS_CHECK_DAYS = 60;
+
+const dmy = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
+
+function shiftDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+interface FindRow { lat: number; lng: number; species_id: string; name_ua: string | null; day: string; matched: boolean | null }
+
+/**
+ * Знахідки в ділянці (рішення PO 2026-11-15): звірка ваших тук-туків за 60 днів із прогнозом
+ * того дня і ваші знахідки за ці ж тижні торік — для мінікарти. Лише власні точки.
+ */
+export async function areaFinds(
+  deps: AnalysisDeps,
+  userId: string,
+  areaId: string,
+  today: string,
+  horizon: number,
+): Promise<Record<string, unknown> | null> {
+  const call = async (from: string, to: string): Promise<FindRow[]> => {
+    const { data, error } = await deps.db.rpc("area_finds", { p_user_id: userId, p_area_id: areaId, p_from: from, p_to: to });
+    if (error) {
+      console.warn("[v1-analysis] area_finds failed:", error);
+      return [];
+    }
+    return (Array.isArray(data) ? data : []) as FindRow[];
+  };
+  const recent = await call(shiftDays(today, -FINDS_CHECK_DAYS), today);
+  const lastYearFrom = shiftDays(today, -365 - 7);
+  const lastYear = await call(lastYearFrom, shiftDays(today, -365 + horizon + 7));
+  const checked = recent.filter((r) => r.matched !== null);
+  const matched = checked.filter((r) => r.matched).length;
+  return {
+    verification: checked.length > 0 ? { matched, total: checked.length } : null,
+    verification_label: checked.length > 0
+      ? `Ваші знахідки тут збіглися з прогнозом: ${matched} з ${checked.length}`
+      : null,
+    last_year: lastYear.slice(0, 30).map((r) => ({
+      lat: r.lat,
+      lng: r.lng,
+      mushroom_type: r.species_id,
+      name: r.name_ua ?? "Гриб",
+      date_label: dmy(String(r.day).slice(0, 10)),
+    })),
+    last_year_label: lastYear.length > 0 ? `Торік у ці тижні: ${lastYear.length} ${lastYear.length === 1 ? "знахідка" : lastYear.length < 5 ? "знахідки" : "знахідок"}` : null,
+  };
+}
 
 /** «Як відрізнити» для видів, що є найкращими або альтернативою хоча б одного дня. */
 export function identifyFor(views: Array<{ top1: unknown; alternative: unknown }>): Record<string, unknown> {
@@ -1190,7 +1255,7 @@ async function editForest(
     const limit = pro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
     const usage = usageBlock(await usedToday(deps.db, user.id, area.slot), limit);
     const rating = await loadRating(deps.db, user.id);
-    const data = await analyzeArea(deps, area, regionId, { date, now, pro, rating }, obj.forest, override, usage);
+    const data = await analyzeArea(deps, area, regionId, { date, now, pro, rating, userId: user.id }, obj.forest, override, usage);
     const saved = await deps.db.rpc("save_forest_override", {
       p_user_id: user.id,
       p_area_id: area.id,
