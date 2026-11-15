@@ -12,6 +12,7 @@ import 'api/api_client.dart';
 import 'local/local_store.dart';
 import 'local/offline_result.dart';
 import 'models/analysis.dart';
+import 'models/catalog.dart';
 import 'models/forecast.dart';
 import 'models/me.dart';
 import 'models/pick.dart';
@@ -242,6 +243,9 @@ final pickCardProvider = FutureProvider.autoDispose.family<PickCard, String>(
 final pickSpeciesProvider = FutureProvider<SpeciesList>(
   (ref) => ref.watch(picksRepositoryProvider).fetchSpecies(),
 );
+
+/// Довідник грибів (вкладка «Розпізнати», «Переглянути в довіднику») — вбудований у застосунок.
+final catalogProvider = FutureProvider<Catalog>((ref) => Catalog.load());
 
 // ─── Аналіз ділянки ─────────────────────────────────────────────────────────
 

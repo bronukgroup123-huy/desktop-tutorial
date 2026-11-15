@@ -1,0 +1,50 @@
+# Довідник для застосунку: фото (WebP до 1080 px + мініатюри) → реліз «catalog-data».
+# Тексти довідника вбудовані в застосунок (flutter_client/assets/catalog/catalog.json.gz,
+# генерує той самий скрипт); застосунок завантажує фото з релізу і зберігає на телефоні.
+name: Catalog photos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web-guardian/public/mushroom_catalog.js'
+      - 'web-guardian/public/mushroom_descriptions.js'
+      - 'scripts/catalog_sync/build_app_catalog.py'
+      - 'фото Топ-20 грибів (webp)/**'
+      - 'фото популярні 55 грибів (webp)/**'
+      - 'Отруйні та смертельно отруйні (webp)/**'
+      - 'Червона книга (webp)/**'
+      - '.github/workflows/catalog.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalog-photos
+  cancel-in-progress: false
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build catalog and photos
+        run: |
+          pip install pillow
+          python3 scripts/catalog_sync/build_app_catalog.py --photos dist/catalog
+          if ! git diff --quiet -- flutter_client/assets/catalog/catalog.json.gz; then
+            echo "::warning::catalog.json.gz у репозиторії застарів — запустіть scripts/catalog_sync/build_app_catalog.py і закомітьте"
+          fi
+      - name: Publish to release «catalog-data»
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view catalog-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create catalog-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
+              --title "Довідник: фото для застосунку" --notes "Фото довідника (WebP) для застосунку. Генерує .github/workflows/catalog.yml."
+          gh release upload catalog-data dist/catalog/*.webp --clobber --repo "$GITHUB_REPOSITORY"
+          echo "### Фото довідника: $(ls dist/catalog | wc -l) файлів" >> "$GITHUB_STEP_SUMMARY"

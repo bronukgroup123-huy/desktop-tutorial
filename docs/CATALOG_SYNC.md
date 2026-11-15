@@ -35,3 +35,13 @@
 * «Де шукати» — міграція `20261115100000_where_from_books.sql` (коротке речення до 50 символів за
   полями «Де росте» / «Порада»).
 
+
+## Довідник у застосунку
+
+* `python3 scripts/catalog_sync/build_app_catalog.py` — з `mushroom_catalog.js` і
+  `mushroom_descriptions.js` (ті самі, що у веб-довіднику) збирає
+  `flutter_client/assets/catalog/catalog.json.gz` — види з фото, атрибути й описи. Після зміни
+  каталогу чи описів — перезапустити й закомітити (CI попереджає про застарілий файл).
+* `--photos dist/catalog` — фото для телефону (`<id>-<n>.webp`, мініатюра `<id>-0-t.webp`);
+  `.github/workflows/catalog.yml` робить це сам на push у `main` (або вручну) і викладає фото в
+  реліз `catalog-data`.

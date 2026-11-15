@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/forecast.dart';
+import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
 /// «Як відрізнити» (рішення PO 2026-11-15): ознаки з довідника — кожна з анімованим
@@ -147,7 +150,40 @@ class _IdentifyViewState extends State<IdentifyView> with TickerProviderStateMix
             ),
           ),
         ],
+        // Повний опис і фото — у довіднику (рішення PO 2026-11-15).
+        _CatalogLink(speciesId: widget.species.mushroomType),
       ],
+    );
+  }
+}
+
+/// «Переглянути в довіднику» → сторінка цього ж виду з фото й описом; немає виду — не показуємо.
+class _CatalogLink extends ConsumerWidget {
+  const _CatalogLink({required this.speciesId});
+
+  final String speciesId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final has = ref.watch(catalogProvider.select((c) => c.valueOrNull?.byId(speciesId) != null));
+    if (!has) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          key: const ValueKey('identify-catalog'),
+          onPressed: () => context.push('/catalog/$speciesId'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.darkGreen,
+            side: const BorderSide(color: AppTheme.darkGreen),
+            minimumSize: const Size.fromHeight(44),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          icon: const Icon(Icons.menu_book_rounded, size: 20),
+          label: const Text('Переглянути в довіднику'),
+        ),
+      ),
     );
   }
 }
