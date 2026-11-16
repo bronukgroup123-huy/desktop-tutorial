@@ -146,7 +146,8 @@ class _Detail extends StatelessWidget {
                 if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
               ],
             ),
-            if (s.months.isNotEmpty) ...[
+            // Отруйним сезон плодоношення не показуємо (рішення PO 2026-11-16).
+            if (s.showsSeason && s.months.isNotEmpty) ...[
               const SizedBox(height: 14),
               _SeasonStrip(months: s.months.toSet(), peak: s.peakMonths.toSet()),
             ],

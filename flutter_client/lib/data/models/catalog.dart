@@ -82,8 +82,23 @@ class CatalogSpecies {
   /// Області, де вид поширений (`zhytomyrska`…) — карта на сторінці виду; порожньо — невідомо.
   final List<String> zones;
 
-  /// Місяць [month] (1–12) — у сезоні цього виду.
-  bool inSeason(int month) => months.contains(month);
+  /// Сезон плодоношення показуємо лише не для отруйних (рішення PO 2026-11-16): отруйний гриб
+  /// не «збирають у сезон».
+  bool get showsSeason => !poisonous;
+
+  /// Місяць [month] (1–12) — у сезоні цього виду (отруйні — ніколи).
+  bool inSeason(int month) => showsSeason && months.contains(month);
+
+  /// Сезони за місяцями плодоношення (точніше, ніж атрибут каталогу: у зимового опенька там
+  /// помилково всі чотири сезони); місяців немає — з атрибута. Отруйні — без сезону.
+  List<String> get seasons {
+    if (!showsSeason) return const [];
+    if (months.isEmpty) return season;
+    return [
+      for (final e in const {'spring': [3, 4, 5], 'summer': [6, 7, 8], 'autumn': [9, 10, 11], 'winter': [12, 1, 2]}.entries)
+        if (e.value.any(months.contains)) e.key,
+    ];
+  }
 
   bool get poisonous => edibility == 'poisonous' || edibility == 'deadly_poisonous';
 

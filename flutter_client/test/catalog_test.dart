@@ -110,6 +110,15 @@ void main() {
     expect((tester.widget<Text>(find.byKey(const ValueKey('catalog-count')))).data, startsWith('$n '));
   });
 
+  testWidgets('Отруйний гриб — без сезону плодоношення', (tester) async {
+    final p = catalog.species.firstWhere((s) => s.poisonous && s.months.isNotEmpty);
+    await tester.pumpWidget(app('/catalog/${p.id}'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('catalog-detail-${p.id}')), findsOneWidget);
+    expect(find.byKey(const ValueKey('catalog-season')), findsNothing);
+    expect(find.byKey(const ValueKey('catalog-in-season')), findsNothing);
+  });
+
   testWidgets('Невідомий вид — повідомлення, без падіння', (tester) async {
     await tester.pumpWidget(app('/catalog/no_such'));
     await tester.pumpAndSettle();

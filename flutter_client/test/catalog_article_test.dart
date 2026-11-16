@@ -125,9 +125,11 @@ void main() {
   test('Рецепти кроками: нічого з тексту не губиться', () {
     for (final sp in catalog.species) {
       for (final s in descSections(sp.description).where((s) => articleKind(s) == ArticleKind.recipes)) {
-        final recipes = parseRecipes(s.lines);
+        final parsed = parseRecipeSection(s.lines);
+        final recipes = parsed.recipes;
         if (recipes.isEmpty) continue;
         final shown = {
+          ...parsed.preface,
           for (final r in recipes) ...[r.title, r.ingredientsLabel, r.stepsLabel, ...r.intro, ...r.ingredients, ...r.steps, ...r.notes],
         };
         for (final l in s.lines.map((l) => l.trim()).where((l) => l.isNotEmpty)) {
@@ -201,6 +203,38 @@ void main() {
     await tester.pumpWidget(host(CatalogArticle(species: withLink!)));
     await tester.pump();
     expect(find.byKey(ValueKey('twin-link-$twinId')), findsOneWidget);
+  });
+
+  test('Рецепти кроками — у всіх видів з нумерованими рецептами (і зі вступом перед ними)', () {
+    var sections = 0;
+    for (final sp in catalog.species) {
+      for (final s in descSections(sp.description).where((s) => articleKind(s) == ArticleKind.recipes)) {
+        final numbered = s.lines.any((l) => RegExp(r'^\d+\.\s').hasMatch(l.trim()));
+        if (!numbered) continue;
+        sections++;
+        final r = parseRecipeSection(s.lines);
+        expect(r.recipes, isNotEmpty, reason: sp.id);
+        expect(r.recipes.every((x) => x.steps.isNotEmpty), isTrue, reason: sp.id);
+      }
+    }
+    expect(sections, greaterThanOrEqualTo(60));
+    final rufescens = parseRecipeSection(descSections(catalog.byId('hydnum_rufescens')!.description)
+        .firstWhere((s) => articleKind(s) == ArticleKind.recipes)
+        .lines);
+    expect(rufescens.preface, ['Знайдено перевірені рецепти для цього виду.']);
+    expect(rufescens.recipes, isNotEmpty);
+  });
+
+  test('Сезон — за місяцями: «Весна» без зимового опенька; отруйні — без сезону', () {
+    expect(catalog.byId('flammulina_velutipes')!.seasons, ['autumn', 'winter']);
+    final spring = filterCatalog(catalog.species, seasons: {'spring'});
+    expect(spring.map((s) => s.id), isNot(contains('flammulina_velutipes')));
+    expect(spring.every((s) => s.months.isEmpty || s.months.any([3, 4, 5].contains)), isTrue);
+    for (final p in catalog.species.where((s) => s.poisonous)) {
+      expect(p.seasons, isEmpty, reason: p.id);
+      expect(p.inSeason(DateTime.now().month), isFalse, reason: p.id);
+    }
+    expect(filterCatalog(catalog.species, seasons: {'summer', 'autumn'}).any((s) => s.poisonous), isFalse);
   });
 
   test('«Зараз сезон»: відбір за місяцем', () {

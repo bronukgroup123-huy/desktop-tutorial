@@ -42,7 +42,7 @@ List<CatalogSpecies> filterCatalog(
             CatalogCategory.red => s.redListed,
           } &&
           (trees.isEmpty || s.tree.any(trees.contains)) &&
-          (seasons.isEmpty || s.season.any(seasons.contains)) &&
+          (seasons.isEmpty || s.seasons.any(seasons.contains)) &&
           (inSeasonMonth == null || s.inSeason(inSeasonMonth)))
         s,
   ];
@@ -89,7 +89,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
       error: (e, _) => const Center(child: Text('Не вдалося відкрити довідник')),
       data: (c) {
         final trees = {for (final s in c.species) ...s.tree};
-        final seasons = {for (final s in c.species) ...s.season};
+        final seasons = {for (final s in c.species) ...s.seasons};
         final month = DateTime.now().month;
         final list = filterCatalog(c.species,
             query: _query, category: _category, trees: _trees, seasons: _seasons, inSeasonMonth: _nowOnly ? month : null);

@@ -943,7 +943,13 @@ class Recipe {
 
 final _recipeTitle = RegExp(r'^\d+\.\s+(.+)$');
 
-List<Recipe> parseRecipes(List<String> lines) {
+/// Проміжний підпис усередині рецепта («Для маринаду на 1 літр води:») — окремим рядком, без номера.
+bool isRecipeLabel(String s) => s.endsWith(':') && s.length < 45;
+
+/// Розділ рецептів: вступ до першого рецепта («Знайдено перевірені рецепти…») і рецепти.
+/// Немає нумерованих рецептів — `recipes` порожній (розділ показується як текст).
+({List<String> preface, List<Recipe> recipes}) parseRecipeSection(List<String> lines) {
+  final preface = <String>[];
   final out = <Recipe>[];
   var mode = 0; // 0 — вступ, 1 — інгредієнти, 2 — кроки
   for (final raw in lines) {
@@ -955,12 +961,15 @@ List<Recipe> parseRecipes(List<String> lines) {
       mode = 0;
       continue;
     }
-    if (out.isEmpty) return const []; // не рецепти — показуємо як є
+    if (out.isEmpty) {
+      preface.add(l);
+      continue;
+    }
     final r = out.last;
-    if (l.startsWith('Інгредієнти') && l.length < 40) {
+    if (l.startsWith('Інгредієнти') && l.length < 45) {
       mode = 1;
       r.ingredientsLabel = l; // підпис — дослівно з книги
-    } else if (l.startsWith('Приготування') && l.length < 40) {
+    } else if (l.startsWith('Приготування') && l.length < 45) {
       mode = 2;
       r.stepsLabel = l;
     } else if (l.startsWith('Порада:')) {
@@ -973,8 +982,10 @@ List<Recipe> parseRecipes(List<String> lines) {
       r.intro.add(l);
     }
   }
-  return out;
+  return (preface: preface, recipes: out);
 }
+
+List<Recipe> parseRecipes(List<String> lines) => parseRecipeSection(lines).recipes;
 
 class _Recipes extends StatelessWidget {
   const _Recipes({required this.lines});
@@ -983,12 +994,14 @@ class _Recipes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recipes = parseRecipes(lines);
+    final parsed = parseRecipeSection(lines);
+    final recipes = parsed.recipes;
     if (recipes.isEmpty) return DescBlocks(lines: lines, time: true);
     return Column(
       key: const ValueKey('article-recipes'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (parsed.preface.isNotEmpty) DescBlocks(lines: parsed.preface, time: true),
         for (final r in recipes)
           Container(
             margin: const EdgeInsets.only(top: 10),
@@ -1015,7 +1028,18 @@ class _Recipes extends StatelessWidget {
                         runSpacing: 6,
                         children: [
                           for (final i in r.ingredients)
-                            Container(
+                            if (isRecipeLabel(i))
+                              SizedBox(
+                                width: double.infinity,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(i,
+                                      style: const TextStyle(
+                                          fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                                ),
+                              )
+                            else
+                              Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -1033,7 +1057,7 @@ class _Recipes extends StatelessWidget {
                         child: Text(r.stepsLabel,
                             style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
                       ),
-                      for (var k = 0; k < r.steps.length; k++) _Step(n: k + 1, text: r.steps[k], time: true),
+                      ..._stepWidgets(r.steps),
                     ],
                     for (final n in r.notes) _MascotTip(lines: [n]),
                   ],
@@ -1044,6 +1068,23 @@ class _Recipes extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Кроки рецепта з номерами; проміжні підписи («Для соусу:») — без номера.
+List<Widget> _stepWidgets(List<String> steps) {
+  final out = <Widget>[];
+  var n = 0;
+  for (final st in steps) {
+    if (isRecipeLabel(st)) {
+      out.add(Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(st, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+      ));
+    } else {
+      out.add(_Step(n: ++n, text: st, time: true));
+    }
+  }
+  return out;
 }
 
 // ─── Пам'ятка: питання — відповідь ──────────────────────────────────────────
