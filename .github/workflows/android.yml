@@ -37,6 +37,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '21' # maplibre_gl збирається на JDK 21
+          # Кеш Gradle (~/.gradle/caches, wrapper): бібліотеки не качаються з Maven Central
+          # щоразу — інакше збірки впираються в його ліміт (HTTP 429 Too Many Requests).
+          cache: gradle
+          cache-dependency-path: |
+            flutter_client/android/*.gradle*
+            flutter_client/android/app/*.gradle*
+            flutter_client/android/gradle/wrapper/gradle-wrapper.properties
 
       - uses: subosito/flutter-action@v2
         with:
@@ -90,9 +97,17 @@ jobs:
 
       - name: Build APK
         run: |
-          flutter build apk --release \
-            --dart-define-from-file=.env \
-            --build-number=${{ github.run_number }}
+          build() {
+            flutter build apk --release \
+              --dart-define-from-file=.env \
+              --build-number=${{ github.run_number }}
+          }
+          # Maven Central інколи тимчасово відмовляє (HTTP 429) — одна повторна спроба за 2 хв.
+          if ! build; then
+            echo "::warning::Збірка не вдалась (можливо, ліміт Maven Central) — повтор за 2 хв"
+            sleep 120
+            build
+          fi
           mv build/app/outputs/flutter-apk/app-release.apk build/mushroom-radar.apk
 
       - name: Upload APK (Artifacts)
