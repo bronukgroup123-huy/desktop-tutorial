@@ -93,6 +93,24 @@ void main() {
     expect(await CatalogPhotoCache.get('b-0.webp'), [2, 3]);
   });
 
+  test('Паралельні перевірки (відкриття + ще одна) не перезаписують точний розмір застарілим', () async {
+    CatalogPhotoCache.fetcher = release();
+    // Перше звернення до теки — повільне: перевірка під час відкриття ще чекає, коли друга вже
+    // отримала manifest.json (так було на повільній машині CI).
+    var calls = 0;
+    CatalogPhotoCache.directory = () async {
+      if (calls++ < 2) await Future<void>.delayed(const Duration(milliseconds: 60));
+      return dir;
+    };
+    final c = container();
+    final ctrl = c.read(catalogOfflineProvider.notifier);
+    await ctrl.refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    final s = c.read(catalogOfflineProvider);
+    expect(s.bytesExact, isTrue);
+    expect(s.bytesPlanned, 3000000);
+  });
+
   test('Обрив мережі — помилка; «Продовжити» докачує лише решту', () async {
     final log = <String>[];
     CatalogPhotoCache.fetcher = release(fail: {'c.tar'}, log: log);
