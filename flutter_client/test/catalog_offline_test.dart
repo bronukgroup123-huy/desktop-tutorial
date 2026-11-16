@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -91,6 +92,42 @@ void main() {
     CatalogPhotoCache.clear();
     CatalogPhotoCache.fetcher = (_) async => fail('мережа не потрібна');
     expect(await CatalogPhotoCache.get('b-0.webp'), [2, 3]);
+  });
+
+  test('Паралельні перевірки (відкриття + ще одна) не перезаписують точний розмір застарілим', () async {
+    CatalogPhotoCache.fetcher = release();
+    // Перше звернення до теки — повільне: перевірка під час відкриття ще чекає, коли друга вже
+    // отримала manifest.json (так було на повільній машині CI).
+    var calls = 0;
+    CatalogPhotoCache.directory = () async {
+      if (calls++ < 2) await Future<void>.delayed(const Duration(milliseconds: 60));
+      return dir;
+    };
+    final c = container();
+    final ctrl = c.read(catalogOfflineProvider.notifier);
+    await ctrl.refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    final s = c.read(catalogOfflineProvider);
+    expect(s.bytesExact, isTrue);
+    expect(s.bytesPlanned, 3000000);
+  });
+
+  test('Перевірки під час завантаження (файли перейменовуються) — без збоїв; «.part» не рахується', () async {
+    CatalogPhotoCache.fetcher = release();
+    final c = container();
+    final ctrl = c.read(catalogOfflineProvider.notifier);
+    final download = ctrl.start();
+    for (var i = 0; i < 30; i++) {
+      unawaited(ctrl.refresh());
+      await Future<void>.delayed(Duration.zero);
+    }
+    await download;
+    await ctrl.refresh();
+    expect(c.read(catalogOfflineProvider).complete, isTrue);
+    File('${dir.path}/x-0.webp.part').writeAsBytesSync([1, 2, 3, 4, 5]);
+    final before = await CatalogPhotoCache.savedBytes();
+    File('${dir.path}/x-0.webp.part').deleteSync();
+    expect(await CatalogPhotoCache.savedBytes(), before);
   });
 
   test('Обрив мережі — помилка; «Продовжити» докачує лише решту', () async {

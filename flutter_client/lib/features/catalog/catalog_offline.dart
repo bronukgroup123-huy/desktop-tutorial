@@ -109,7 +109,20 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
   int _bytes(List<String> bundles) => bundles.fold(
       0, (a, b) => a + (_sizes?[b] ?? (b == _thumbsBundle ? 3300 * 1024 : _avgBundleBytes)));
 
-  Future<void> refresh() async {
+  Future<void>? _refreshing;
+
+  /// Перевірити, що вже на телефоні. Виклики виконуються по черзі: паралельні перевірки
+  /// (під час відкриття і після завантаження) не перезаписують одна одну застарілим станом.
+  Future<void> refresh() {
+    // Перевірка не кидає помилок: це лише показ стану (файли можуть змінюватись під час неї).
+    final next = (_refreshing ?? Future<void>.value()).then((_) => _refresh()).catchError((Object _) {});
+    _refreshing = next;
+    return next.whenComplete(() {
+      if (identical(_refreshing, next)) _refreshing = null;
+    });
+  }
+
+  Future<void> _refresh() async {
     final Catalog c;
     try {
       c = await ref.read(catalogProvider.future);
@@ -117,7 +130,9 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
       return;
     }
     final saved = await CatalogPhotoCache.savedNames();
+    final savedBytes = await CatalogPhotoCache.savedBytes();
     final missing = missingBundles(c, saved);
+    // Стан — лише після всіх очікувань (інакше записали б значення, прочитані до них).
     state = state.copyWith(
       checked: true,
       total: c.species.length,
@@ -125,7 +140,7 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
       thumbsSaved: c.species.every((s) => s.thumb == null || saved.contains(s.thumb)),
       bytesPlanned: _bytes(missing),
       bytesExact: _sizes != null,
-      savedBytes: await CatalogPhotoCache.savedBytes(),
+      savedBytes: savedBytes,
     );
     // Точний розмір — з manifest.json (одним малим запитом, якщо є мережа).
     if (_sizes == null && missing.isNotEmpty && !state.downloading) {
@@ -140,6 +155,8 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
   Future<void> start() async {
     if (state.downloading) return;
     _cancel = false;
+    // Не перетинатися з перевіркою, що ще йде (під час відкриття довідника).
+    await _refreshing;
     final c = await ref.read(catalogProvider.future);
     _sizes ??= await CatalogPhotoCache.manifest();
     final queue = missingBundles(c, await CatalogPhotoCache.savedNames());
