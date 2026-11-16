@@ -61,12 +61,13 @@ void main() {
     expect(filterCatalog(all, query: 'немає такого гриба'), isEmpty);
   });
 
-  test('Опис: розділи за емодзі-заголовками; рядки з табуляцією — не заголовки', () {
-    final s = CatalogDescription.sections('Вступ\n🔍 Швидка картка\nШапка: руда\n⚠️ Двійники\nОзнака\tА\tБ\n🍳 Приготування\nВаріть');
-    expect(s.map((x) => x.emoji), [null, '🔍', '⚠️', '🍳']);
+  test('Опис: розділи за емодзі-заголовками і підзаголовками Червоної книги; рядки з табуляцією — не заголовки', () {
+    final s = descSections('Вступ\n🔍 Швидка картка\nШапка: руда\n⚠️ Двійники\nОзнака\tА\tБ\n🍳 Приготування\nВаріть\nТаксономія\nРодина: X');
+    expect(s.map((x) => x.emoji), [null, '🔍', '⚠️', '🍳', null]);
     expect(s[1].title, 'Швидка картка');
     expect(s[2].lines, ['Ознака\tА\tБ']);
-    expect(CatalogDescription.heading('🔍\tтаблиця'), isNull);
+    expect(s[4].title, 'Таксономія');
+    expect(descHeading('🔍\tтаблиця'), isNull);
   });
 
   testWidgets('Довідник: пошук → картка виду з фото-заглушкою, значками, сезоном і описом', (tester) async {
@@ -77,6 +78,9 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('catalog-search')), 'зимовий оп');
     await tester.pump();
     expect(find.text('1 вид'), findsOneWidget);
+    // над сіткою — картка «Фото без інтернету»: гриб може бути нижче краю тестового екрана
+    await tester.ensureVisible(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('catalog-detail-flammulina_velutipes')), findsOneWidget);
@@ -85,11 +89,10 @@ void main() {
     expect(find.byKey(const ValueKey('catalog-season')), findsOneWidget);
     expect(find.byKey(const ValueKey('catalog-description')), findsOneWidget);
     expect(find.text('Швидка картка (як визначити)'), findsOneWidget);
-    // таблиця двійників і згорнуте приготування
-    await tester.scrollUntilVisible(find.byType(Table).first, 300,
+    // двійники — поруч картками (замість таблиці)
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('article-twins')), 300,
         scrollable: find.descendant(of: find.byKey(const ValueKey('catalog-detail-flammulina_velutipes')), matching: find.byType(Scrollable)).first);
     expect(find.text('Галерина облямована'), findsWidgets);
-    expect(find.byType(Table), findsWidgets);
   });
 
   testWidgets('Фільтр «Дерево»: вибір береза зменшує список', (tester) async {

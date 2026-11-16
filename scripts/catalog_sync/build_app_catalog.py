@@ -11,7 +11,8 @@
   * --photos DIR — фото для телефону (WebP: до 1080 px і мініатюра 420 px для списку) з
     іменами <id>-<n>.webp / <id>-0-t.webp, запаковані в архіви tar: <id>.tar — фото виду,
     thumbs.tar — мініатюри всіх видів. Архіви, а не окремі файли: GitHub обмежує кількість
-    завантажень у реліз (сотні окремих фото впираються в ліміт). Їх викладає
+    завантажень у реліз (сотні окремих фото впираються в ліміт). manifest.json — розміри
+    архівів (для «Фото без інтернету» в застосунку). Їх викладає
     .github/workflows/catalog.yml у реліз «catalog-photos»; застосунок завантажує архів виду під
     час перегляду, розпаковує й зберігає фото на телефоні.
 
@@ -80,6 +81,8 @@ def build() -> tuple[dict, list[tuple[Path, str, int]]]:
             "peak_months": s.get("peak_months") or [],
             "tree": attrs.get("tree") or [],
             "season": attrs.get("season") or [],
+            # Області, де вид поширений (коди як у ukraine_oblasts.json) — карта на сторінці виду.
+            "zones": s.get("zones") or [],
             "photos": names,
             # Автор і ліцензія фото (CC BY — підпис обов'язковий).
             "license": {k: lic[k] for k in ("author", "type", "url") if lic.get(k)} or None,
@@ -125,7 +128,11 @@ def write_photos(photos: list[tuple[Path, str, int]], out_dir: Path) -> None:
         with tarfile.open(out_dir / bundle, "w", format=tarfile.USTAR_FORMAT) as tar:
             for name, data in sorted(files):
                 _add(tar, name, data)
-    total = sum((out_dir / b).stat().st_size for b in bundles)
+    sizes = {b: (out_dir / b).stat().st_size for b in sorted(bundles)}
+    total = sum(sizes.values())
+    # Розміри архівів — застосунок показує, скільки займе «Завантажити всі фото», і прогрес.
+    (out_dir / "manifest.json").write_text(
+        json.dumps({"total": total, "bundles": sizes}, separators=(",", ":")), encoding="utf-8")
     print(f"  фото: {len(photos)} шт. у {len(bundles)} архівах, {total / 1e6:.1f} МБ → {out_dir}")
 
 

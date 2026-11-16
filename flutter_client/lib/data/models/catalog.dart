@@ -25,6 +25,7 @@ class CatalogSpecies {
     required this.description,
     this.photoAuthor,
     this.photoLicense,
+    this.zones = const [],
   });
 
   factory CatalogSpecies.fromJson(Map<String, dynamic> j) => CatalogSpecies(
@@ -44,6 +45,7 @@ class CatalogSpecies {
         description: (j['description'] as String?) ?? '',
         photoAuthor: (j['license'] as Map?)?['author'] as String?,
         photoLicense: (j['license'] as Map?)?['type'] as String?,
+        zones: [for (final z in (j['zones'] as List? ?? const [])) z as String],
       );
 
   final String id;
@@ -76,6 +78,12 @@ class CatalogSpecies {
   /// Автор і ліцензія фото (CC BY — показуємо під галереєю); `null` — власні фото проєкту.
   final String? photoAuthor;
   final String? photoLicense;
+
+  /// Області, де вид поширений (`zhytomyrska`…) — карта на сторінці виду; порожньо — невідомо.
+  final List<String> zones;
+
+  /// Місяць [month] (1–12) — у сезоні цього виду.
+  bool inSeason(int month) => months.contains(month);
 
   bool get poisonous => edibility == 'poisonous' || edibility == 'deadly_poisonous';
 

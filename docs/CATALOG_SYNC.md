@@ -43,9 +43,14 @@
   `flutter_client/assets/catalog/catalog.json.gz` — види з фото, атрибути й описи. Після зміни
   каталогу чи описів — перезапустити й закомітити (CI попереджає про застарілий файл).
 * `--photos dist/catalog` — фото для телефону (`<id>-<n>.webp`, мініатюра `<id>-0-t.webp`) в
-  архівах tar: `<id>.tar` — фото виду, `thumbs.tar` — усі мініатюри (133 файли замість 687 —
+  архівах tar: `<id>.tar` — фото виду, `thumbs.tar` — усі мініатюри, `manifest.json` — їхні
+  розміри для «Фото без інтернету» (133 архіви замість 687 фото —
   інакше GitHub зупиняє викладання за лімітом частоти);
   `.github/workflows/catalog.yml` робить це сам на push у `main` (або вручну) і викладає фото в
   реліз `catalog-photos`.
 * Реліз фото — `catalog-photos`. Старий `catalog-data` (окремі фото першої спроби) застосунок не
   використовує; його можна видалити вручну на сторінці Releases.
+* `python3 scripts/catalog_sync/build_ukraine_oblasts.py ne_10m_admin_1_states_provinces.geojson` —
+  карта областей для сторінки виду (`flutter_client/assets/catalog/ukraine_oblasts.json`, ~34 КБ) з
+  Natural Earth Admin 1 (суспільне надбання). Області — за кодом ISO `UA-*` (Крим і Севастополь у
+  складі України); Київ — разом із Київською областю. Перезапускати не потрібно, лише при зміні меж.
