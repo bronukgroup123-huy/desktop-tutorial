@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,11 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
-import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 import 'package:flutter_client/features/catalog/catalog_browser.dart' show EdibilityBadge;
 import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_forecast_link.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
+import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion, seg;
+import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
 
 /// Значок дерева / лісу: хвойні — 🌲, листяні — 🌳, мішаний — обидва.
 String treeEmoji(String t) => switch (t) {
@@ -117,7 +120,8 @@ class _Detail extends StatelessWidget {
           sliver: SliverList.list(children: [
             Row(
               children: [
-                SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+                // Довге натискання — коло ігрових сценок з цим грибом.
+                PlayfulSpeciesIcon(speciesId: s.id),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -202,65 +206,137 @@ class _Tag extends StatelessWidget {
 }
 
 /// 12 місяців: сезон і пік плодоношення.
-class _SeasonStrip extends StatelessWidget {
+/// 12 місяців: сезон і пік плодоношення. Під час появи вздовж місяців пробігає листочок —
+/// клітинки сезону загоряються слідом, місяці піку на мить «спалахують» (календар гортається).
+class _SeasonStrip extends StatefulWidget {
   const _SeasonStrip({required this.months, required this.peak});
 
   final Set<int> months;
   final Set<int> peak;
 
   @override
-  Widget build(BuildContext context) => Column(
-        key: const ValueKey('catalog-season'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Сезон плодоношення', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (var m = 1; m <= 12; m++)
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(
-                      color: peak.contains(m)
-                          ? AppTheme.darkGreen
-                          : months.contains(m)
-                              ? const Color(0xff8fbf8f)
-                              : Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      child: Text(
-                        _monthsShort[m - 1],
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: peak.contains(m) ? Colors.white : AppTheme.darkGreen.withValues(alpha: months.contains(m) ? 1 : 0.4),
-                        ),
+  State<_SeasonStrip> createState() => _SeasonStripState();
+}
+
+class _SeasonStripState extends State<_SeasonStrip> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (reduceMotion(context)) {
+      _c.value = 1;
+    } else {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final months = widget.months, peak = widget.peak;
+    return Column(
+      key: const ValueKey('catalog-season'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Сезон плодоношення', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+        const SizedBox(height: 6),
+        AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            final t = _c.value;
+            final run = seg(t, 0, 0.7); // листочок біжить січень → грудень
+            return LayoutBuilder(builder: (context, box) {
+              final cell = box.maxWidth / 12;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Row(
+                    children: [
+                      for (var m = 1; m <= 12; m++)
+                        Builder(builder: (context) {
+                          final lit = seg(run * 12, m - 1.0, m - 0.2); // загоряється, коли листочок поруч
+                          final glow = peak.contains(m) ? math.sin(math.pi * seg(t, 0.72, 0.95)) : 0.0;
+                          final target = peak.contains(m)
+                              ? AppTheme.darkGreen
+                              : months.contains(m)
+                                  ? const Color(0xff8fbf8f)
+                                  : Colors.white;
+                          final on = months.contains(m) || peak.contains(m);
+                          return Expanded(
+                            child: Transform.scale(
+                              scale: 1 + 0.12 * glow + (on ? 0.08 * math.sin(math.pi * lit) : 0),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Color.lerp(Colors.white, target, on ? lit : 1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: glow > 0
+                                      ? [BoxShadow(color: const Color(0xff7cc47f).withValues(alpha: 0.7 * glow), blurRadius: 10 * glow)]
+                                      : null,
+                                ),
+                                alignment: Alignment.center,
+                                child: FittedBox(
+                                  child: Text(
+                                    _monthsShort[m - 1],
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color.lerp(
+                                        AppTheme.darkGreen.withValues(alpha: on ? 1 : 0.4),
+                                        peak.contains(m) ? Colors.white : AppTheme.darkGreen,
+                                        peak.contains(m) ? lit : 0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                  // Листочок, що пробігає над місяцями.
+                  if (run > 0 && run < 1)
+                    Positioned(
+                      left: cell * 12 * run - 9,
+                      top: -14 - 6 * math.sin(run * math.pi * 12).abs(),
+                      child: Transform.rotate(
+                        angle: run * math.pi * 6,
+                        child: const Text('🍂', style: TextStyle(fontSize: 15)),
                       ),
                     ),
-                  ),
-                ),
+                ],
+              );
+            });
+          },
+        ),
+        if (peak.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: AppTheme.darkGreen, borderRadius: BorderRadius.circular(3))),
+              const SizedBox(width: 4),
+              Text('пік', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+              const SizedBox(width: 10),
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xff8fbf8f), borderRadius: BorderRadius.circular(3))),
+              const SizedBox(width: 4),
+              Text('трапляється', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
             ],
           ),
-          if (peak.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: AppTheme.darkGreen, borderRadius: BorderRadius.circular(3))),
-                const SizedBox(width: 4),
-                Text('пік', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
-                const SizedBox(width: 10),
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xff8fbf8f), borderRadius: BorderRadius.circular(3))),
-                const SizedBox(width: 4),
-                Text('трапляється', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
-              ],
-            ),
-          ],
         ],
-      );
+      ],
+    );
+  }
 }
 
 /// Гортання фото з крапками; дотик — на весь екран з масштабуванням.
