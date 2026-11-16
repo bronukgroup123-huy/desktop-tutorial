@@ -12,7 +12,7 @@
     іменами <id>-<n>.webp / <id>-0-t.webp, запаковані в архіви tar: <id>.tar — фото виду,
     thumbs.tar — мініатюри всіх видів. Архіви, а не окремі файли: GitHub обмежує кількість
     завантажень у реліз (сотні окремих фото впираються в ліміт). Їх викладає
-    .github/workflows/catalog.yml у реліз «catalog-data»; застосунок завантажує архів виду під
+    .github/workflows/catalog.yml у реліз «catalog-photos»; застосунок завантажує архів виду під
     час перегляду, розпаковує й зберігає фото на телефоні.
 
 Запуск: python3 scripts/catalog_sync/build_app_catalog.py [--photos dist/catalog]
@@ -131,7 +131,7 @@ def write_photos(photos: list[tuple[Path, str, int]], out_dir: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--photos", type=Path, help="куди покласти фото для релізу catalog-data")
+    ap.add_argument("--photos", type=Path, help="куди покласти фото для релізу catalog-photos")
     args = ap.parse_args()
     data, photos = build()
     OUT.parent.mkdir(parents=True, exist_ok=True)

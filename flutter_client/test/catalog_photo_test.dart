@@ -57,7 +57,7 @@ void main() {
       [11]
     ]);
     expect(urls, hasLength(1));
-    expect(urls.single, endsWith('/catalog-data/x.tar'));
+    expect(urls.single, endsWith('/catalog-photos/x.tar'));
     expect(File('${dir.path}/x-1.webp').readAsBytesSync(), [11]);
     // нове відкриття застосунку — з телефону, без мережі
     CatalogPhotoCache.clear();
