@@ -114,7 +114,8 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
   /// Перевірити, що вже на телефоні. Виклики виконуються по черзі: паралельні перевірки
   /// (під час відкриття і після завантаження) не перезаписують одна одну застарілим станом.
   Future<void> refresh() {
-    final next = (_refreshing ?? Future<void>.value()).then((_) => _refresh());
+    // Перевірка не кидає помилок: це лише показ стану (файли можуть змінюватись під час неї).
+    final next = (_refreshing ?? Future<void>.value()).then((_) => _refresh()).catchError((Object _) {});
     _refreshing = next;
     return next.whenComplete(() {
       if (identical(_refreshing, next)) _refreshing = null;
@@ -154,6 +155,8 @@ class CatalogOfflineController extends Notifier<CatalogOfflineState> {
   Future<void> start() async {
     if (state.downloading) return;
     _cancel = false;
+    // Не перетинатися з перевіркою, що ще йде (під час відкриття довідника).
+    await _refreshing;
     final c = await ref.read(catalogProvider.future);
     _sizes ??= await CatalogPhotoCache.manifest();
     final queue = missingBundles(c, await CatalogPhotoCache.savedNames());

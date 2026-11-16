@@ -146,7 +146,13 @@ class CatalogPhotoCache {
     if (dir == null || !await dir.exists()) return 0;
     var total = 0;
     await for (final f in dir.list()) {
-      if (f is File) total += await f.length();
+      // Тимчасові «.part» пропускаємо; фото могло щойно зникнути (перейменування, видалення).
+      if (f is! File || !f.path.endsWith('.webp')) continue;
+      try {
+        total += await f.length();
+      } on FileSystemException {
+        continue;
+      }
     }
     return total;
   }
