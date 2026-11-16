@@ -81,6 +81,8 @@ def build() -> tuple[dict, list[tuple[Path, str, int]]]:
             "peak_months": s.get("peak_months") or [],
             "tree": attrs.get("tree") or [],
             "season": attrs.get("season") or [],
+            # Області, де вид поширений (коди як у ukraine_oblasts.json) — карта на сторінці виду.
+            "zones": s.get("zones") or [],
             "photos": names,
             # Автор і ліцензія фото (CC BY — підпис обов'язковий).
             "license": {k: lic[k] for k in ("author", "type", "url") if lic.get(k)} or None,

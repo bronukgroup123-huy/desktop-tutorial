@@ -579,3 +579,58 @@ class WeatherScenePainter extends CustomPainter {
   @override
   bool shouldRepaint(WeatherScenePainter old) => old.kind != kind || old.sprouts != sprouts;
 }
+
+/// Гриб-маскот окремо, без сцени погоди — «порада» й «цікавий факт» у довіднику.
+/// Кілька разів підстрибує під час появи й зупиняється; без анімацій у системі — нерухомий.
+class Mascot extends StatefulWidget {
+  const Mascot({super.key, this.size = 56});
+
+  final double size;
+
+  @override
+  State<Mascot> createState() => _MascotState();
+}
+
+class _MascotState extends State<Mascot> with SingleTickerProviderStateMixin {
+  late final AnimationController _t = AnimationController(vsync: this, duration: const Duration(seconds: 6));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduce) {
+      _t.stop();
+    } else if (!_t.isAnimating && _t.value == 0) {
+      _t.repeat(count: 2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: CustomPaint(painter: _MascotPainter(_t)),
+      );
+}
+
+class _MascotPainter extends CustomPainter {
+  _MascotPainter(this.t)
+      : _scene = WeatherScenePainter(kind: WeatherSceneKind.partlyCloudy, sprouts: 0, t: t),
+        super(repaint: t);
+
+  final Animation<double> t;
+  final WeatherScenePainter _scene;
+
+  @override
+  void paint(Canvas canvas, Size size) =>
+      _scene._mascot(canvas, Offset(size.width / 2, size.height - 4), size.height * 0.78, t.value);
+
+  @override
+  bool shouldRepaint(covariant _MascotPainter old) => false;
+}

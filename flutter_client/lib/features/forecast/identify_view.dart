@@ -536,3 +536,18 @@ class _GlyphPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GlyphPainter old) => old.part != part || old.kind != kind || old.ring != ring;
 }
+
+/// Схема гриба з підсвіченою частиною (шапка, низ шапки, ніжка, кільце, м'якоть) — без анімації;
+/// для «паспорта» виду в довіднику.
+class PartGlyph extends StatelessWidget {
+  const PartGlyph({super.key, required this.part, this.kind});
+
+  final String part;
+
+  /// Для низу шапки: `tubes | gills | folds | spines`.
+  final String? kind;
+
+  @override
+  Widget build(BuildContext context) =>
+      _PartGlyph(part: part, kind: kind, colors: const [], anim: const AlwaysStoppedAnimation(0));
+}

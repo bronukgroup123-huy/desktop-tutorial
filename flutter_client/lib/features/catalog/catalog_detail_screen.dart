@@ -7,8 +7,16 @@ import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 import 'package:flutter_client/features/catalog/catalog_browser.dart' show EdibilityBadge;
-import 'package:flutter_client/features/catalog/catalog_description.dart';
+import 'package:flutter_client/features/catalog/catalog_article.dart';
+import 'package:flutter_client/features/catalog/catalog_forecast_link.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
+
+/// Значок дерева / лісу: хвойні — 🌲, листяні — 🌳, мішаний — обидва.
+String treeEmoji(String t) => switch (t) {
+      'pine' || 'spruce' || 'larch' || 'coniferous' => '🌲',
+      'mixed' || 'any' => '🌲🌳',
+      _ => '🌳',
+    };
 
 const _monthsShort = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
 
@@ -132,6 +140,8 @@ class _Detail extends StatelessWidget {
                 EdibilityBadge(label: badge.label, color: Color(badge.color)),
                 if (s.redListed)
                   _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
+                if (s.inSeason(DateTime.now().month))
+                  const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
                 if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
                 if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
               ],
@@ -142,20 +152,25 @@ class _Detail extends StatelessWidget {
             ],
             if (s.tree.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Wrap(
+                key: const ValueKey('catalog-trees'),
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  const Icon(Icons.park_outlined, size: 18, color: AppTheme.darkGreen),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text([for (final t in s.tree) kTreeLabels[t] ?? t].join(', '),
-                        style: const TextStyle(color: AppTheme.darkGreen)),
-                  ),
+                  for (final t in s.tree)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                      child: Text('${treeEmoji(t)} ${kTreeLabels[t] ?? t}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                    ),
                 ],
               ),
             ],
+            const SizedBox(height: 12),
+            CatalogForecastLink(speciesId: s.id),
             const SizedBox(height: 8),
-            CatalogDescription(text: s.description),
+            CatalogArticle(species: s),
             if (s.photoAuthor != null) ...[
               const SizedBox(height: 18),
               Text(
@@ -172,7 +187,7 @@ class _Detail extends StatelessWidget {
 }
 
 class _Tag extends StatelessWidget {
-  const _Tag({required this.text, required this.color});
+  const _Tag({super.key, required this.text, required this.color});
 
   final String text;
   final Color color;

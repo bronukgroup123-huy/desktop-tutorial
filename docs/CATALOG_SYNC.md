@@ -50,3 +50,7 @@
   реліз `catalog-photos`.
 * Реліз фото — `catalog-photos`. Старий `catalog-data` (окремі фото першої спроби) застосунок не
   використовує; його можна видалити вручну на сторінці Releases.
+* `python3 scripts/catalog_sync/build_ukraine_oblasts.py ne_10m_admin_1_states_provinces.geojson` —
+  карта областей для сторінки виду (`flutter_client/assets/catalog/ukraine_oblasts.json`, ~34 КБ) з
+  Natural Earth Admin 1 (суспільне надбання). Області — за кодом ISO `UA-*` (Крим і Севастополь у
+  складі України); Київ — разом із Київською областю. Перезапускати не потрібно, лише при зміні меж.

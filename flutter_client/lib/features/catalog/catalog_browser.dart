@@ -28,6 +28,7 @@ List<CatalogSpecies> filterCatalog(
   CatalogCategory category = CatalogCategory.all,
   Set<String> trees = const {},
   Set<String> seasons = const {},
+  int? inSeasonMonth,
 }) {
   final q = query.trim().toLowerCase();
   return [
@@ -41,7 +42,8 @@ List<CatalogSpecies> filterCatalog(
             CatalogCategory.red => s.redListed,
           } &&
           (trees.isEmpty || s.tree.any(trees.contains)) &&
-          (seasons.isEmpty || s.season.any(seasons.contains)))
+          (seasons.isEmpty || s.season.any(seasons.contains)) &&
+          (inSeasonMonth == null || s.inSeason(inSeasonMonth)))
         s,
   ];
 }
@@ -61,6 +63,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
   CatalogCategory _category = CatalogCategory.all;
   Set<String> _trees = {};
   Set<String> _seasons = {};
+  bool _nowOnly = false;
 
   @override
   void dispose() {
@@ -87,7 +90,9 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
       data: (c) {
         final trees = {for (final s in c.species) ...s.tree};
         final seasons = {for (final s in c.species) ...s.season};
-        final list = filterCatalog(c.species, query: _query, category: _category, trees: _trees, seasons: _seasons);
+        final month = DateTime.now().month;
+        final list = filterCatalog(c.species,
+            query: _query, category: _category, trees: _trees, seasons: _seasons, inSeasonMonth: _nowOnly ? month : null);
         return CustomScrollView(
           key: const ValueKey('catalog-browser'),
           slivers: [
@@ -165,6 +170,16 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                           _seasons,
                           (v) => _seasons = v),
                     ),
+                    const SizedBox(width: 6),
+                    FilterChip(
+                      key: const ValueKey('catalog-now'),
+                      label: const Text('Зараз сезон'),
+                      selected: _nowOnly,
+                      onSelected: (v) => setState(() => _nowOnly = v),
+                      selectedColor: const Color(0xffcfe8d2),
+                      showCheckmark: false,
+                      avatar: const Text('🍂'),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text('${list.length} ${_species(list.length)}',
@@ -232,7 +247,25 @@ class CatalogCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: SizedBox(width: double.infinity, child: CatalogPhoto(name: species.thumb, speciesId: species.id))),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CatalogPhoto(name: species.thumb, speciesId: species.id),
+                  if (species.inSeason(DateTime.now().month))
+                    Positioned(
+                      left: 6,
+                      top: 6,
+                      child: Container(
+                        key: ValueKey('season-now-${species.id}'),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(color: const Color(0xff2e7d32).withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Сезон', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(

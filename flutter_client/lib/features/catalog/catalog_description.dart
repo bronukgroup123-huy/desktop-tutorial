@@ -1,122 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 
-/// Книжковий опис виду — як у веб-довіднику (landing.html, renderDescription):
-/// розділи з емодзі-заголовками, таблиці (стовпці через табуляцію), списки, «Ключ: значення»,
-/// абзаци; кулінарні розділи (🍳 🍽️) згорнуті.
-class CatalogDescription extends StatelessWidget {
-  const CatalogDescription({super.key, required this.text});
+/// Розбір книжкового опису виду на розділи і базові блоки тексту (абзаци, списки,
+/// «Ключ: значення», таблиці). Текст показується дослівно — змінюється лише подача
+/// (рішення PO 2026-11-16: «без зміни тексту і сенсу, лише візуальна частина»).
 
-  final String text;
+const kDescHeadings = ['🍄', '✅', '🔍', '⚠️', '🗺️', '🪱', '🍳', '🍽️', '📋', '🧪', '📍', '💡'];
 
-  static const _headings = ['🍄', '✅', '🔍', '⚠️', '🗺️', '🪱', '🍳', '🍽️', '📋', '🧪', '📍', '💡'];
+/// Підзаголовки описів Червоної книги (рядки без емодзі, однакові в усіх описах).
+const kRedBookHeadings = [
+  'Чи може ви зламати закон?',
+  'Короткий опис',
+  'Чим цікавий?',
+  'Таксономія',
+  'Як виглядає?',
+  'Де росте?',
+  'Чому він такий рідкісний?',
+  'Що робити, якщо ви його знайшли?',
+];
 
-  static ({String emoji, String title})? heading(String line) {
-    if (line.contains('\t')) return null;
-    final t = line.trim();
-    for (final e in _headings) {
-      if (t.startsWith('$e ') || t.startsWith('$e ')) return (emoji: e, title: t.substring(e.length).trim());
-    }
-    return null;
-  }
+/// Розділ опису: емодзі-заголовок (`emoji`) або підзаголовок Червоної книги (`emoji == null`,
+/// `title` задано); вступ без заголовка — обидва `null`.
+class DescSection {
+  DescSection({this.emoji, this.title, List<String>? lines}) : lines = lines ?? [];
 
-  /// Розділи: (емодзі, заголовок, рядки); вступ без заголовка — з емодзі `null`.
-  static List<({String? emoji, String? title, List<String> lines})> sections(String raw) {
-    final out = <({String? emoji, String? title, List<String> lines})>[];
-    for (final line in raw.split(RegExp(r'\r?\n'))) {
-      final h = heading(line);
-      if (h != null) {
-        out.add((emoji: h.emoji, title: h.title, lines: <String>[]));
-      } else if (out.isEmpty) {
-        out.add((emoji: null, title: null, lines: [line]));
-      } else {
-        out.last.lines.add(line);
-      }
-    }
-    return out;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (text.trim().isEmpty) {
-      return Text('Опису ще немає.', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6)));
-    }
-    final children = <Widget>[];
-    for (final s in sections(text)) {
-      final body = _Blocks(lines: s.lines);
-      if (s.emoji == '🍳' || s.emoji == '🍽️') {
-        children.add(Card(
-          elevation: 0,
-          color: Colors.white,
-          margin: const EdgeInsets.only(top: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              key: ValueKey('desc-acc-${s.title}'),
-              leading: Text(s.emoji!, style: const TextStyle(fontSize: 20)),
-              title: Text(s.title ?? '', style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              children: [body],
-            ),
-          ),
-        ));
-      } else if (s.emoji == '🍄') {
-        // Назва виду вже в шапці сторінки — лише зміст (статус, короткий опис).
-        children.add(body);
-      } else if (s.emoji != null) {
-        children.add(Padding(
-          padding: const EdgeInsets.only(top: 18, bottom: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(s.emoji!, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  s.title ?? '',
-                  style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
-                ),
-              ),
-            ],
-          ),
-        ));
-        children.add(body);
-      } else {
-        children.add(body);
-      }
-    }
-    return Column(key: const ValueKey('catalog-description'), crossAxisAlignment: CrossAxisAlignment.start, children: children);
-  }
+  final String? emoji;
+  final String? title;
+  final List<String> lines;
 }
 
-final _bullet = RegExp(r'^\s*[-•*]\s+');
-final _kv = RegExp(r'^([^:\n]{1,45}):\s*(.+)$');
+({String emoji, String title})? descHeading(String line) {
+  if (line.contains('\t')) return null;
+  final t = line.trim();
+  for (final e in kDescHeadings) {
+    if (t.startsWith('$e ') || t.startsWith('$e ')) return (emoji: e, title: t.substring(e.length).trim());
+  }
+  return null;
+}
 
-/// Рядок із **жирним** → TextSpan.
-TextSpan inlineSpans(String s, TextStyle base) {
-  final spans = <TextSpan>[];
+List<DescSection> descSections(String raw) {
+  final out = <DescSection>[];
+  for (final line in raw.split(RegExp(r'\r?\n'))) {
+    final h = descHeading(line);
+    if (h != null) {
+      out.add(DescSection(emoji: h.emoji, title: h.title));
+    } else if (kRedBookHeadings.contains(line.trim())) {
+      out.add(DescSection(title: line.trim()));
+    } else if (out.isEmpty) {
+      out.add(DescSection(lines: [line]));
+    } else {
+      out.last.lines.add(line);
+    }
+  }
+  return out;
+}
+
+final descBullet = RegExp(r'^\s*[-•*]\s+');
+final descKv = RegExp(r'^([^:\n]{1,45}):\s*(.+)$');
+
+/// Час приготування в тексті («15–20 хвилин», «1 год») — підсвічується значком.
+final descTime = RegExp(r'(\d+(?:[,.]\d+)?(?:\s*[–-]\s*\d+)?\s*(?:хвилин[иу]?|хв\.?|годин[иу]?|год\.?))');
+
+/// Рядок із **жирним** (і, за потреби, підсвіченим часом) → TextSpan. Текст не змінюється.
+TextSpan inlineSpans(String s, TextStyle base, {bool time = false}) {
+  final spans = <InlineSpan>[];
+  void plain(String part) {
+    if (!time) {
+      spans.add(TextSpan(text: part));
+      return;
+    }
+    var i = 0;
+    for (final m in descTime.allMatches(part)) {
+      if (m.start > i) spans.add(TextSpan(text: part.substring(i, m.start)));
+      spans.add(const WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Padding(padding: EdgeInsets.only(right: 2), child: Icon(Icons.timer_outlined, size: 14, color: AppTheme.accentOrange)),
+      ));
+      spans.add(TextSpan(text: m.group(0), style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xffa35a00))));
+      i = m.end;
+    }
+    if (i < part.length) spans.add(TextSpan(text: part.substring(i)));
+  }
+
   final re = RegExp(r'\*\*([^*]+)\*\*');
   var i = 0;
   for (final m in re.allMatches(s)) {
-    if (m.start > i) spans.add(TextSpan(text: s.substring(i, m.start)));
+    if (m.start > i) plain(s.substring(i, m.start));
     spans.add(TextSpan(text: m.group(1), style: const TextStyle(fontWeight: FontWeight.w700)));
     i = m.end;
   }
-  if (i < s.length) spans.add(TextSpan(text: s.substring(i)));
+  if (i < s.length) plain(s.substring(i));
   return TextSpan(style: base, children: spans);
 }
 
-class _Blocks extends StatelessWidget {
-  const _Blocks({required this.lines});
+/// «Шапка: …» — ключ жирним.
+TextSpan kvSpan(String s, TextStyle base, {bool time = false}) {
+  final m = descKv.firstMatch(s);
+  if (m == null) return inlineSpans(s, base, time: time);
+  return TextSpan(style: base, children: [
+    TextSpan(text: '${m.group(1)}: ', style: const TextStyle(fontWeight: FontWeight.w700)),
+    inlineSpans(m.group(2)!, base, time: time),
+  ]);
+}
+
+const kDescText = TextStyle(color: AppTheme.darkGreen, fontSize: 14, height: 1.35);
+
+/// Рядки опису: абзаци, списки, «Ключ: значення», таблиці (стовпці через табуляцію).
+class DescBlocks extends StatelessWidget {
+  const DescBlocks({super.key, required this.lines, this.time = false});
 
   final List<String> lines;
 
+  /// Підсвічувати час приготування (кулінарні розділи).
+  final bool time;
+
   @override
   Widget build(BuildContext context) {
-    const base = TextStyle(color: AppTheme.darkGreen, fontSize: 14, height: 1.35);
+    const base = kDescText;
     final out = <Widget>[];
     var i = 0;
     while (i < lines.length) {
@@ -132,32 +133,20 @@ class _Blocks extends StatelessWidget {
           rows.add(lines[i].split(RegExp(r'\t+')).map((c) => c.trim()).toList());
           i++;
         }
-        out.add(_DescTable(rows: rows));
+        out.add(DescTable(rows: rows));
         continue;
       }
-      if (_bullet.hasMatch(t)) {
+      if (descBullet.hasMatch(t)) {
         final items = <String>[];
-        while (i < lines.length && _bullet.hasMatch(lines[i].trim())) {
-          items.add(lines[i].trim().replaceFirst(_bullet, ''));
+        while (i < lines.length && descBullet.hasMatch(lines[i].trim())) {
+          items.add(lines[i].trim().replaceFirst(descBullet, ''));
           i++;
         }
         out.add(Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final it in items)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(padding: EdgeInsets.only(top: 7, right: 8), child: Icon(Icons.circle, size: 5, color: AppTheme.darkGreen)),
-                      Expanded(child: Text.rich(_kvSpan(it, base))),
-                    ],
-                  ),
-                ),
-            ],
+            children: [for (final it in items) DescBullet(child: Text.rich(kvSpan(it, base, time: time)))],
           ),
         ));
         continue;
@@ -167,42 +156,53 @@ class _Blocks extends StatelessWidget {
       var j = i + 1;
       while (j < lines.length) {
         final n = lines[j].trim();
-        if (n.isEmpty || lines[j].contains('\t') || _bullet.hasMatch(n) || CatalogDescription.heading(n) != null) break;
-        if (_kv.hasMatch(n) && !_kv.hasMatch(t)) break;
+        if (n.isEmpty || lines[j].contains('\t') || descBullet.hasMatch(n) || descHeading(n) != null) break;
+        if (descKv.hasMatch(n) && !descKv.hasMatch(t)) break;
         buf.add(n);
         j++;
       }
       out.add(Padding(
         padding: const EdgeInsets.only(top: 6),
-        child: Text.rich(buf.length == 1 ? _kvSpan(buf.first, base) : inlineSpans(buf.join('\n'), base)),
+        child: Text.rich(buf.length == 1 ? kvSpan(buf.first, base, time: time) : inlineSpans(buf.join('\n'), base, time: time)),
       ));
       i = j;
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: out);
   }
-
-  /// «Шапка: …» — ключ жирним.
-  static TextSpan _kvSpan(String s, TextStyle base) {
-    final m = _kv.firstMatch(s);
-    if (m == null) return inlineSpans(s, base);
-    return TextSpan(style: base, children: [
-      TextSpan(text: '${m.group(1)}: ', style: const TextStyle(fontWeight: FontWeight.w700)),
-      inlineSpans(m.group(2)!, base),
-    ]);
-  }
 }
 
-/// Таблиця з опису: 2–3 стовпці (ключ — значення, двійники) — на ширину екрана; більше — прокручується вбік.
-class _DescTable extends StatelessWidget {
-  const _DescTable({required this.rows});
+class DescBullet extends StatelessWidget {
+  const DescBullet({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(padding: EdgeInsets.only(top: 7, right: 8), child: Icon(Icons.circle, size: 5, color: AppTheme.darkGreen)),
+            Expanded(child: child),
+          ],
+        ),
+      );
+}
+
+/// Таблиця з опису: 2–3 стовпці — на ширину екрана; більше — прокручується вбік.
+class DescTable extends StatelessWidget {
+  const DescTable({super.key, required this.rows});
 
   final List<List<String>> rows;
+
+  static bool hasHeader(List<List<String>> rows) =>
+      rows.length > 1 && rows.first.every((c) => c.length < 40 && !c.endsWith('.'));
 
   @override
   Widget build(BuildContext context) {
     const base = TextStyle(color: AppTheme.darkGreen, fontSize: 13, height: 1.3);
     final cols = rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
-    final header = rows.length > 1 && rows.first.every((c) => c.length < 40 && !c.endsWith('.'));
+    final header = hasHeader(rows);
     Widget cell(String c, {bool bold = false, Color? bg}) => Container(
           padding: const EdgeInsets.all(8),
           color: bg,
