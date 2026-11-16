@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 
 /// Категорії довідника — як чіпи у веб-довіднику (landing.html).
@@ -96,6 +97,8 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                 Text('Довідник грибів',
                     style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
                 const SizedBox(height: 10),
+                // Фото всіх грибів на телефон — щоб у лісі без зв'язку відкривався будь-який вид.
+                const CatalogOfflineCard(),
                 TextField(
                   key: const ValueKey('catalog-search'),
                   controller: _search,

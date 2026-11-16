@@ -56,7 +56,7 @@ jobs:
           # По одному архіву з паузою; незмінені (той самий розмір) — пропускаємо;
           # на ліміт GitHub — чекаємо й повторюємо.
           uploaded=0 skipped=0
-          for f in dist/catalog/*.tar; do
+          for f in dist/catalog/*.tar dist/catalog/manifest.json; do
             name=$(basename "$f")
             size=$(stat -c %s "$f")
             if grep -qx "$name $size" existing.txt; then skipped=$((skipped+1)); continue; fi

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -91,15 +92,15 @@ class CatalogPhotoCache {
     if (file != null && await file.exists()) return file.readAsBytes();
     final bundle = bundleOf(name);
     final files = await _bundles.putIfAbsent(bundle, () => _fetchBundle(bundle, dir));
+    // Збережено на телефоні — далі фото читаються звідти, архів у пам'яті не тримаємо
+    // (запити, що вже чекають, отримають фото з цього ж результату).
+    if (files == null || dir != null) _bundles.remove(bundle);
     final bytes = files?[name];
-    if (bytes == null) {
-      _memory.remove(name); // наступного разу спробувати ще
-      if (files == null) _bundles.remove(bundle);
-    }
+    if (bytes == null) _memory.remove(name); // наступного разу спробувати ще
     return bytes;
   }
 
-  /// Завантажити архів і розпакувати на телефон; збережено — архів у пам'яті більше не тримаємо.
+  /// Завантажити архів і розпакувати на телефон.
   static Future<Map<String, Uint8List>?> _fetchBundle(String bundle, Directory? dir) async {
     final raw = await fetcher('$kCatalogPhotosBase/$bundle');
     if (raw == null) return null;
@@ -109,13 +110,65 @@ class CatalogPhotoCache {
       try {
         await dir.create(recursive: true);
         for (final e in files.entries) {
-          await File('${dir.path}/${e.key}').writeAsBytes(e.value, flush: true);
+          // Спершу тимчасовий файл: обірване збереження не лишить «битого» фото.
+          final tmp = File('${dir.path}/${e.key}.part');
+          await tmp.writeAsBytes(e.value, flush: true);
+          await tmp.rename('${dir.path}/${e.key}');
         }
-        // Далі фото читаються з телефону; запит, що вже чекає, отримає їх із цього результату.
-        Future<void>.delayed(Duration.zero, () => _bundles.remove(bundle));
       } catch (_) {}
     }
     return files;
+  }
+
+  // ─── «Фото без інтернету»: увесь довідник на телефон ───────────────────────
+
+  /// Завантажити й зберегти на телефоні архів (`<id>.tar`, `thumbs.tar`); `false` — не вдалося.
+  static Future<bool> downloadBundle(String bundle) async {
+    final dir = await directory();
+    if (dir == null) return false;
+    final files = await _fetchBundle(bundle, dir);
+    return files != null && files.keys.every((n) => File('${dir.path}/$n').existsSync());
+  }
+
+  /// Імена фото, що вже лежать на телефоні.
+  static Future<Set<String>> savedNames() async {
+    final dir = await directory();
+    if (dir == null || !await dir.exists()) return {};
+    return {
+      await for (final f in dir.list())
+        if (f is File && f.path.endsWith('.webp')) f.uri.pathSegments.last,
+    };
+  }
+
+  /// Скільки займають збережені фото.
+  static Future<int> savedBytes() async {
+    final dir = await directory();
+    if (dir == null || !await dir.exists()) return 0;
+    var total = 0;
+    await for (final f in dir.list()) {
+      if (f is File) total += await f.length();
+    }
+    return total;
+  }
+
+  /// Розміри архівів у релізі (manifest.json); немає мережі / старий реліз — `null`.
+  static Future<Map<String, int>?> manifest() async {
+    final raw = await fetcher('$kCatalogPhotosBase/manifest.json');
+    if (raw == null) return null;
+    try {
+      final j = jsonDecode(utf8.decode(raw)) as Map<String, dynamic>;
+      return {for (final e in (j['bundles'] as Map<String, dynamic>).entries) e.key: (e.value as num).toInt()};
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Видалити всі збережені фото (звільнити місце).
+  static Future<void> deleteAll() async {
+    _memory.clear();
+    _bundles.clear();
+    final dir = await directory();
+    if (dir != null && await dir.exists()) await dir.delete(recursive: true);
   }
 
   @visibleForTesting
