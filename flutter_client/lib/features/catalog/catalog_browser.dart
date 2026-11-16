@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/catalog/catalog_motion.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 
@@ -91,6 +92,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
         final trees = {for (final s in c.species) ...s.tree};
         final seasons = {for (final s in c.species) ...s.seasons};
         final month = DateTime.now().month;
+        final sprout = '$_query|${_category.name}|${_trees.join(',')}|${_seasons.join(',')}|$_nowOnly';
         final list = filterCatalog(c.species,
             query: _query, category: _category, trees: _trees, seasons: _seasons, inSeasonMonth: _nowOnly ? month : null);
         return CustomScrollView(
@@ -211,7 +213,12 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                     crossAxisSpacing: 10,
                     childAspectRatio: 0.74,
                   ),
-                  itemBuilder: (context, i) => CatalogCard(species: list[i]),
+                  // Картки «проростають» хвилею; новий відбір — проростають заново.
+                  itemBuilder: (context, i) => Sprout(
+                    key: ValueKey('$sprout-${list[i].id}'),
+                    index: i,
+                    child: CatalogCard(species: list[i]),
+                  ),
                 ),
               ),
           ],

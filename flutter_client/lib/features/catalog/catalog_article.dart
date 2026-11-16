@@ -8,6 +8,7 @@ import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/weather_scene.dart' show Mascot;
 import 'package:flutter_client/features/catalog/catalog_description.dart';
+import 'package:flutter_client/features/catalog/catalog_motion.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/catalog/oblast_map.dart';
 import 'package:flutter_client/features/forecast/identify_view.dart' show PartGlyph;
@@ -169,7 +170,15 @@ class CatalogArticle extends StatelessWidget {
     final a = buildArticle(species);
     var mapShown = false;
     final children = <Widget>[_Summary(species: species, summary: a.summary)];
+    var sectionNo = 0;
     for (final (kind, s) in a.body) {
+      // Між розділами з заголовками — нитка грибниці, що проростає при гортанні.
+      if (s.title != null && kind != ArticleKind.intro && kind != ArticleKind.status && children.length > 1) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: MyceliumDivider(seed: species.id.hashCode ^ sectionNo++),
+        ));
+      }
       final w = switch (kind) {
         ArticleKind.intro => _Plain(section: s, headed: false),
         ArticleKind.status => _Callout.status(species, s),
@@ -623,6 +632,11 @@ class _Twins extends ConsumerWidget {
         );
       }
 
+      // Картка-перевертень: наш гриб — дотик — двійник.
+      children.add(Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: _TwinFlip(species: species, twinName: head[2], twin: twin),
+      ));
       // Підпис першого стовпця («Ознака») — над рядками порівняння.
       if (head[0].isNotEmpty) {
         children.add(Padding(
@@ -688,6 +702,120 @@ class _Twins extends ConsumerWidget {
       }
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+  }
+}
+
+/// Наш гриб і двійник на одній картці: дотик перевертає її (3D), на звороті — двійник
+/// з його фото, їстівністю і переходом у довідник.
+class _TwinFlip extends StatelessWidget {
+  const _TwinFlip({required this.species, required this.twinName, required this.twin});
+
+  final CatalogSpecies species;
+  final String twinName;
+  final CatalogSpecies? twin;
+
+  Widget _face({required String? photo, required String id, required String title, required Color color, required String chip, Widget? action, required String hint}) =>
+      ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CatalogPhoto(name: photo, speciesId: id),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.65)],
+                    stops: const [0.45, 1],
+                  ),
+                ),
+              ),
+              // Плашка «Наш гриб» / «Двійник · …» і підказка — в один рядок: довга плашка стискається.
+              Positioned(
+                left: 10,
+                right: 10,
+                top: 10,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+                        child: Text(chip,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.flip_rounded, size: 14, color: AppTheme.darkGreen),
+                          const SizedBox(width: 4),
+                          Text(hint, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 10,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.15)),
+                    ),
+                    if (action != null) action,
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final twinBadge = twin == null ? null : edibilityBadge(twin!);
+    return FlipCard(
+      front: _face(
+        photo: species.photos.isEmpty ? null : species.photos.first,
+        id: species.id,
+        title: species.name,
+        color: const Color(0xff2e7d32),
+        chip: 'Наш гриб',
+        hint: 'Торкніться — двійник',
+      ),
+      back: _face(
+        photo: twin == null || twin!.photos.isEmpty ? null : twin!.photos.first,
+        id: twin?.id ?? '',
+        title: twinName,
+        color: twinBadge == null ? const Color(0xffc62828) : Color(twinBadge.color),
+        chip: twinBadge == null ? 'Двійник' : 'Двійник · ${twinBadge.label}',
+        hint: 'Назад',
+        action: twin == null
+            ? null
+            : FilledButton(
+                key: ValueKey('flip-open-${twin!.id}'),
+                onPressed: () => context.push('/catalog/${twin!.id}'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
+                child: const Text('Відкрити'),
+              ),
+      ),
+    );
   }
 }
 
