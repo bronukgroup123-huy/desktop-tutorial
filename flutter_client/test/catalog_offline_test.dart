@@ -35,10 +35,11 @@ Future<Uint8List?> Function(String) release({Set<String> fail = const {}, List<S
       return tar({for (final p in s.photos) p: [2, 3]});
     };
 
-/// Дати завершитись справжньому вводу-виводу (файли) у віджет-тесті: кожен крок ланцюжка
-/// `await` продовжується лише на pump, тож чергуємо багато разів.
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 60; i++) {
+/// Дочекатися стану у віджет-тесті зі справжнім вводом-виводом (файли): кожен крок ланцюжка
+/// `await` продовжується лише на pump, тож чергуємо runAsync і pump, доки умова не справдиться
+/// (на повільній машині CI кроків потрібно більше — тому за умовою, а не фіксовано).
+Future<void> settleUntil(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 2000 && finder.evaluate().isEmpty; i++) {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
     await tester.pump();
   }
@@ -129,16 +130,16 @@ void main() {
       overrides: [catalogProvider.overrideWith((ref) => small)],
       child: const MaterialApp(home: Scaffold(body: CatalogOfflineCard())),
     ));
-    await settle(tester);
+    await settleUntil(tester, find.textContaining('2.9 МБ'));
     expect(find.text('Фото без інтернету'), findsOneWidget);
     expect(find.textContaining('2.9 МБ'), findsOneWidget); // 3 000 000 байт
     await tester.tap(find.byKey(const ValueKey('offline-download')));
-    await settle(tester);
+    await settleUntil(tester, find.byKey(const ValueKey('offline-complete')));
     expect(find.byKey(const ValueKey('offline-complete')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('offline-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('offline-delete-confirm')));
-    await settle(tester);
+    await settleUntil(tester, find.text('Фото без інтернету'));
     expect(find.text('Фото без інтернету'), findsOneWidget);
   });
 }
