@@ -4,6 +4,7 @@ import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_detail_screen.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
+import 'package:flutter_client/features/catalog/mushroom_character.dart';
 import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
 import 'package:flutter_client/features/catalog/oblast_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,7 +41,7 @@ void main() {
       expect(s.duration.inMilliseconds, greaterThanOrEqualTo(5000), reason: '${s.id}: історія, а не один рух');
       for (var i = 0; i <= 200; i++) {
         final p = s.pose(i / 200);
-        for (final v in [p.dx, p.dy, p.rot, p.sx, p.sy, p.opacity]) {
+        for (final v in [p.dx, p.dy, p.rot, p.sx, p.sy, p.opacity, p.left.a, p.left.b, p.right.a, p.right.b]) {
           expect(v.isFinite, isTrue, reason: '${s.id} t=${i / 200}');
         }
       }
@@ -61,7 +62,7 @@ void main() {
     }
   });
 
-  testWidgets('Довге натискання на значок → коло сценок → «Сон» грає на сцені, «Ще раз», «Закрити»', (tester) async {
+  testWidgets('Затиснути значок → коло сценок → «Сон» грає у віконці праворуч від назви, потім — спокій', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         catalogProvider.overrideWith((ref) => catalog),
@@ -70,20 +71,62 @@ void main() {
       child: const MaterialApp(home: CatalogDetailScreen(speciesId: 'flammulina_velutipes')),
     ));
     await tester.pumpAndSettle();
+    final slot = find.byKey(const ValueKey('character-slot'));
+    expect(slot, findsOneWidget);
+    StageView stage() => tester.widget<StageView>(find.descendant(of: slot, matching: find.byType(StageView)));
+    expect(stage().scene.id, 'idle');
     await tester.longPress(find.byKey(const ValueKey('icon-play')));
     await tester.pumpAndSettle();
     for (final s in kMushroomScenes) {
       expect(find.byKey(ValueKey('radial-${s.id}')), findsOneWidget);
     }
     await tester.tap(find.byKey(const ValueKey('radial-sleep')));
+    await tester.pump(const Duration(milliseconds: 600)); // коло закрилось
+    expect(stage().scene.id, 'sleep'); // не в окремому вікні — у віконці на сторінці
+    await tester.pump(const SleepScene().duration);
     await tester.pumpAndSettle();
-    expect(find.byType(MushroomStage), findsOneWidget);
-    expect(find.text('😴 Сон'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('scene-replay')));
+    expect(stage().scene.id, 'idle');
+    // Затиснути саме віконце — теж коло.
+    await tester.longPress(slot);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('scene-close')));
+    expect(find.byKey(const ValueKey('radial-rain')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('radial-rain')));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(stage().scene.id, 'rain');
+    await tester.pump(const RainScene().duration);
     await tester.pumpAndSettle();
-    expect(find.byType(MushroomStage), findsNothing);
+  });
+
+  testWidgets('Віконце з грибом — лише для Топ-20 (з власним персонажем)', (tester) async {
+    final other = catalog.species.firstWhere((s) => !s.top20);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        catalogProvider.overrideWith((ref) => catalog),
+        oblastsProvider.overrideWith((ref) => oblasts),
+      ],
+      child: MaterialApp(home: CatalogDetailScreen(speciesId: other.id)),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('character-slot')), findsNothing);
+    expect(find.byKey(const ValueKey('icon-play')), findsNothing);
+  });
+
+  test('Персонажі: рівно 20 видів Топ-20', () {
+    expect(kCharacterLooks.keys.toSet(), {for (final s in catalog.species.where((s) => s.top20)) s.id});
+  });
+
+  testWidgets('Кожен персонаж малюється з будь-якими емоціями й руками', (tester) async {
+    for (final look in kCharacterLooks.values) {
+      for (final eyes in Eyes.values) {
+        await tester.pumpWidget(MaterialApp(
+          home: Row(children: [
+            for (final mouth in Mouth.values)
+              MushroomCharacter(look: look, face: Face(eyes: eyes, mouth: mouth, blush: true, brows: 1), left: Arm.up, right: const Arm(1.2, 1.5), size: 40),
+          ]),
+        ));
+      }
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Перевертень: дотик — двійник, ще дотик — наш гриб', (tester) async {

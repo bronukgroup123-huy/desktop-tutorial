@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show seg;
+import 'package:flutter_client/features/catalog/mushroom_character.dart';
 
 /// Ігрові сценки зі значком гриба (рішення PO 2026-11-16): довге натискання на значок виду →
 /// коло анімацій → сценка-історія на окремій «сцені» з цим самим грибом:
@@ -16,11 +18,24 @@ const double kStageH = 230;
 const double kGround = 195;
 const double kMush = 76;
 
-/// Поза гриба: зсув від центру землі, поворот (навколо низу ніжки), масштаб, прозорість.
+/// Поза гриба: зсув від центру землі, поворот (навколо низу ніжки), масштаб, прозорість,
+/// вираз обличчя й руки.
 class Pose {
-  const Pose({this.dx = 0, this.dy = 0, this.rot = 0, this.sx = 1, this.sy = 1, this.opacity = 1});
+  const Pose({
+    this.dx = 0,
+    this.dy = 0,
+    this.rot = 0,
+    this.sx = 1,
+    this.sy = 1,
+    this.opacity = 1,
+    this.face = const Face(),
+    this.left = Arm.down,
+    this.right = Arm.down,
+  });
 
   final double dx, dy, rot, sx, sy, opacity;
+  final Face face;
+  final Arm left, right;
 }
 
 double _eo(double x) => Curves.easeOutCubic.transform(x);
@@ -120,28 +135,63 @@ class SleepScene extends MushroomScene {
   Pose pose(double t) {
     Offset base = const Offset(150, kGround);
     var rot = 0.0, sy = 1.0;
+    var face = const Face();
+    var l = Arm.down, r = Arm.down;
     if (t < 0.16) {
-      rot = -0.12 * math.sin(math.pi * seg(t, 0.08, 0.16)); // дивиться на ліжко
+      // Позіхає й потягується, дивиться на ліжко.
+      final yawn = math.sin(math.pi * seg(t, 0.02, 0.12));
+      face = yawn > 0.25 ? const Face(eyes: Eyes.squint, mouth: Mouth.yawn) : const Face(look: Offset(-1, 0), mouth: Mouth.smile);
+      l = Arm.lerp(Arm.down, const Arm(2.9, -0.3), yawn);
+      r = Arm.lerp(Arm.down, const Arm(2.9, -0.3), yawn);
+      rot = -0.12 * math.sin(math.pi * seg(t, 0.1, 0.16));
     } else if (t < 0.26) {
       base = _hop(const Offset(150, kGround), const Offset(150, _mattress), _eio(seg(t, 0.16, 0.26)), 36);
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.grin);
+      l = r = Arm.up;
     } else if (t < 0.34) {
       final p = _eio(seg(t, 0.26, 0.34));
       base = Offset.lerp(const Offset(150, _mattress), _lie, p)!;
       rot = -math.pi / 2 * p;
-    } else if (t < 0.9) {
+      face = const Face(eyes: Eyes.sleepy, mouth: Mouth.smile);
+    } else if (t < 0.44) {
+      // Натягує ковдру.
       base = _lie;
       rot = -math.pi / 2;
-      sy = 1 + 0.025 * math.sin(seg(t, 0.44, 0.84) * math.pi * 8); // дихає
-      if (t > 0.85 && t < 0.88) base += Offset(0, -9 * math.sin(math.pi * seg(t, 0.85, 0.88))); // будильник!
+      face = const Face(eyes: Eyes.sleepy, mouth: Mouth.smile, blush: true);
+      final p = seg(t, 0.34, 0.44);
+      l = const Arm(1.2, 0.8);
+      r = Arm.lerp(const Arm(1.7, 0.3), const Arm(0.9, 1.4), p);
+    } else if (t < 0.85) {
+      base = _lie;
+      rot = -math.pi / 2;
+      final k = seg(t, 0.44, 0.84);
+      sy = 1 + 0.025 * math.sin(k * math.pi * 8); // дихає
+      final snore = math.sin(k * math.pi * 8) > 0.3;
+      face = Face(eyes: Eyes.closed, mouth: snore ? Mouth.o : Mouth.smile, blush: true);
+      l = r = const Arm(0.9, 1.4);
+    } else if (t < 0.9) {
+      // Будильник! Очі навстіж, руки вгору.
+      base = _lie + Offset(0, -9 * math.sin(math.pi * seg(t, 0.85, 0.88)));
+      rot = -math.pi / 2;
+      face = const Face(eyes: Eyes.wide, mouth: Mouth.o, brows: 1);
+      l = r = Arm.up;
     } else if (t < 0.95) {
+      // Сідає, невдоволено тре очі.
       final p = _eio(seg(t, 0.9, 0.95));
       base = Offset.lerp(_lie, const Offset(150, _mattress), p)!;
       rot = -math.pi / 2 * (1 - p);
+      face = const Face(eyes: Eyes.squint, mouth: Mouth.wavy, brows: -1);
+      final rub = 0.25 * math.sin(seg(t, 0.9, 0.95) * math.pi * 6);
+      l = Arm(2.5 + rub, 1.8);
+      r = Arm(2.5 - rub, 1.8);
     } else {
       base = _hop(const Offset(150, _mattress), const Offset(150, kGround), _eio(seg(t, 0.95, 1.0)), 20);
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.smile);
+      l = r = Arm.lerp(Arm.out, Arm.down, seg(t, 0.97, 1.0));
     }
-    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sy: sy);
+    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sy: sy, face: face, left: l, right: r);
   }
+
 
   @override
   void back(Canvas c, double t) {
@@ -273,10 +323,17 @@ class TrampolineScene extends MushroomScene {
   Pose pose(double t) {
     var base = const Offset(150, kGround);
     var rot = 0.0, sx = 1.0, sy = 1.0;
+    var face = const Face();
+    var l = Arm.down, r = Arm.down;
     if (t < 0.1) {
-      sy = 1 - 0.12 * math.sin(math.pi * seg(t, 0.04, 0.1)); // присідає перед стрибком
+      // Зосереджується й присідає перед стрибком.
+      sy = 1 - 0.12 * math.sin(math.pi * seg(t, 0.04, 0.1));
+      face = const Face(mouth: Mouth.flat, brows: -1, look: Offset(0, 1));
+      l = r = const Arm(0.7, 0);
     } else if (t < 0.18) {
       base = _hop(const Offset(150, kGround), const Offset(150, _mat), _eio(seg(t, 0.1, 0.18)), 30);
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.grin);
+      l = r = Arm.up;
     } else if (t < 0.82) {
       for (final (i, (a, b, h)) in _bounces.indexed) {
         final p = seg(t, a, b);
@@ -285,21 +342,36 @@ class TrampolineScene extends MushroomScene {
           final stretch = math.sin(math.pi * p);
           sy = 1 + 0.12 * stretch;
           sx = 1 - 0.06 * stretch;
+          face = Face(eyes: i == 2 ? Eyes.squint : Eyes.happy, mouth: Mouth.grin, blush: i > 0);
+          final sway = 0.25 * math.sin(p * math.pi * 4);
+          l = Arm(2.7 + sway, 0.1);
+          r = Arm(2.7 - sway, 0.1);
           if (math.min(p, 1 - p) < 0.08) {
             sy = 0.82;
             sx = 1.12;
+            l = r = const Arm(1.4, 0.2);
           }
           if (i == 2) rot = 2 * math.pi * _eio(seg(p, 0.25, 0.75)); // сальто
         }
       }
     } else if (t < 0.9) {
+      // Зістрибує — махає руками для рівноваги.
       base = _hop(const Offset(150, _mat), const Offset(232, kGround), _eio(seg(t, 0.82, 0.9)), 40);
+      face = const Face(eyes: Eyes.wide, mouth: Mouth.open, brows: 1);
+      final flap = 0.5 * math.sin(seg(t, 0.82, 0.9) * math.pi * 6);
+      l = Arm(1.6 + flap, 0.1);
+      r = Arm(1.6 - flap, 0.1);
     } else {
+      // Уклін: одна рука на животі, друга — убік.
       base = const Offset(232, kGround);
-      rot = 0.45 * math.sin(math.pi * seg(t, 0.92, 1.0)); // уклін
+      rot = 0.45 * math.sin(math.pi * seg(t, 0.92, 1.0));
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.smile, blush: true);
+      l = const Arm(0.9, 1.6);
+      r = const Arm(1.3, 0.3);
     }
-    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sx: sx, sy: sy);
+    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sx: sx, sy: sy, face: face, left: l, right: r);
   }
+
 
   @override
   void back(Canvas c, double t) {
@@ -370,33 +442,54 @@ class DiscoScene extends MushroomScene {
   @override
   Pose pose(double t) {
     var dx = 0.0, dy = 0.0, rot = 0.0, sx = 1.0, sy = 1.0;
-    if (t >= 0.14 && t < 0.34) {
-      final p = seg(t, 0.14, 0.34); // кроки вбік з підскоками
+    var face = const Face();
+    var l = Arm.down, r = Arm.down;
+    if (t < 0.14) {
+      // Світло гасне — здивовано дивиться вгору на кулю.
+      face = Face(eyes: Eyes.wide, mouth: Mouth.o, brows: 1, look: Offset(0, -1 * seg(t, 0.02, 0.1)));
+    } else if (t < 0.34) {
+      final p = seg(t, 0.14, 0.34); // кроки вбік; диско-жест: рука вгору то ліва, то права
       dx = 34 * math.sin(2 * math.pi * 2 * p);
       dy = -10 * math.sin(2 * math.pi * 4 * p).abs();
       rot = 0.18 * math.sin(2 * math.pi * 2 * p);
-    } else if (t < 0.5 && t >= 0.34) {
-      final p = seg(t, 0.34, 0.5); // дві обертки на місці
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.grin);
+      final rightUp = math.sin(2 * math.pi * 2 * p) > 0;
+      l = rightUp ? const Arm(0.7, -1.2) : const Arm(2.9, 0);
+      r = rightUp ? const Arm(2.9, 0) : const Arm(0.7, -1.2);
+    } else if (t < 0.5) {
+      final p = seg(t, 0.34, 0.5); // дві обертки з розкинутими руками
       rot = 4 * math.pi * _eio(p);
       dy = -16 * math.sin(math.pi * p);
-    } else if (t < 0.72 && t >= 0.5) {
-      final p = seg(t, 0.5, 0.72); // пружинить у ритм
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.open);
+      l = r = Arm.out;
+    } else if (t < 0.72) {
+      final p = seg(t, 0.5, 0.72); // пружинить у ритм, махає руками, підморгує
       sy = 1 + 0.14 * math.sin(2 * math.pi * 6 * p);
       sx = 1 - 0.07 * math.sin(2 * math.pi * 6 * p);
       rot = 0.2 * math.sin(2 * math.pi * 3 * p);
-    } else if (t < 0.8 && t >= 0.72) {
+      face = Face(eyes: math.sin(2 * math.pi * 3 * p) > 0 ? Eyes.wink : Eyes.happy, mouth: Mouth.grin, blush: true);
+      l = Arm(1.5 + 0.9 * math.sin(2 * math.pi * 6 * p), 0.3);
+      r = Arm(1.5 + 0.9 * math.sin(2 * math.pi * 6 * p + math.pi), 0.3);
+    } else if (t < 0.8) {
       final p = seg(t, 0.72, 0.8); // стрибок у фінальну позу
       dy = -46 * 4 * p * (1 - p);
       rot = -0.3 * p;
-    } else if (t >= 0.8 && t < 0.9) {
+      face = const Face(eyes: Eyes.wide, mouth: Mouth.grin);
+      l = r = Arm.up;
+    } else if (t < 0.9) {
       rot = -0.3;
       sx = 1.06;
       sy = 0.96;
-    } else if (t >= 0.9) {
+      face = const Face(eyes: Eyes.wink, mouth: Mouth.grin, blush: true);
+      l = const Arm(0.9, -1.5); // рука на боці
+      r = const Arm(2.95, 0); // палець угору
+    } else {
       rot = -0.3 * (1 - _eio(seg(t, 0.9, 1.0)));
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.smile);
     }
-    return Pose(dx: dx, dy: dy, rot: rot, sx: sx, sy: sy);
+    return Pose(dx: dx, dy: dy, rot: rot, sx: sx, sy: sy, face: face, left: l, right: r);
   }
+
 
   @override
   void back(Canvas c, double t) {
@@ -469,28 +562,53 @@ class SneezeScene extends MushroomScene {
   @override
   Pose pose(double t) {
     var dx = 0.0, rot = 0.0, sx = 1.0, sy = 1.0;
-    if (t >= 0.14 && t < 0.2) {
+    var face = const Face();
+    var l = Arm.down, r = Arm.down;
+    if (t < 0.14) {
+      // Стежить очима за пушинкою.
+      final fall = seg(t, 0.0, 0.14);
+      face = Face(mouth: Mouth.o, look: Offset(-1 + 1.6 * fall, -1 + 0.4 * fall));
+    } else if (t < 0.2) {
       rot = 0.05 * math.sin(seg(t, 0.14, 0.2) * math.pi * 6); // лоскоче
-    } else if (t >= 0.2 && t < 0.42) {
-      // Три вдихи: «а…», «а-а…», «а-а-а…» — тягнеться вгору, відхиляється назад.
+      face = const Face(eyes: Eyes.squint, mouth: Mouth.wavy, brows: 1);
+      l = r = const Arm(1.0, 0.6);
+    } else if (t < 0.42) {
+      // Три вдихи: «а…», «а-а…», «а-а-а…» — тягнеться вгору, відхиляється назад, руки до обличчя.
       final stage = t < 0.27 ? 1 : (t < 0.34 ? 2 : 3);
       final p = seg(t, 0.2 + (stage - 1) * 0.07, 0.25 + (stage - 1) * 0.07);
       final k = (stage - 1 + _eo(p)) / 3;
       sy = 1 + 0.26 * k;
       sx = 1 - 0.08 * k;
       rot = -0.18 * k;
-    } else if (t >= 0.42 && t < 0.56) {
+      face = Face(eyes: Eyes.squint, mouth: stage == 3 ? Mouth.yawn : Mouth.open, brows: 1);
+      l = r = Arm(0.9 + 1.3 * k, 1.2 * k);
+    } else if (t < 0.56) {
       final p = seg(t, 0.42, 0.56); // АПЧХИ — ривок уперед і назад
       final snap = p < 0.15 ? p / 0.15 : 1 - _eo((p - 0.15) / 0.85);
       rot = 0.38 * snap;
       dx = 12 * snap;
       sy = 1 - 0.2 * snap;
       sx = 1 + 0.1 * snap;
-    } else if (t >= 0.86 && t < 0.94) {
-      dx = 3 * math.sin(seg(t, 0.86, 0.94) * math.pi * 6); // обтрушується
+      face = const Face(eyes: Eyes.closed, mouth: Mouth.open, brows: -1);
+      l = r = Arm(1.8 * snap + 0.3, 0);
+    } else if (t < 0.7) {
+      face = const Face(eyes: Eyes.dizzy, mouth: Mouth.wavy); // аж запаморочилось
+      l = r = const Arm(0.6, 0);
+    } else if (t < 0.86) {
+      // Дивиться, як із спор проростають грибочки.
+      face = const Face(eyes: Eyes.wide, mouth: Mouth.o, brows: 1, look: Offset(1, 1));
+      l = r = const Arm(1.0, 1.2);
+    } else if (t < 0.94) {
+      dx = 3 * math.sin(seg(t, 0.86, 0.94) * math.pi * 6); // радіє й плескає
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.grin, blush: true);
+      final clap = 0.3 * math.sin(seg(t, 0.86, 0.94) * math.pi * 10).abs();
+      l = r = Arm(1.3 + clap, 1.4);
+    } else {
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.smile);
     }
-    return Pose(dx: dx, rot: rot, sx: sx, sy: sy);
+    return Pose(dx: dx, rot: rot, sx: sx, sy: sy, face: face, left: l, right: r);
   }
+
 
   /// Спори: вилітають із шапки, падають і де-не-де проростають маленькими грибочками.
   List<({Offset pos, bool landed, int i})> _spores(double t) {
@@ -582,16 +700,41 @@ class GrowScene extends MushroomScene {
   @override
   Pose pose(double t) {
     if (t < 0.14) {
-      final p = _eio(seg(t, 0.02, 0.14)); // ховається в землю
-      return Pose(sy: 1 - p, sx: 1 - 0.3 * p, opacity: 1 - seg(t, 0.1, 0.14));
+      // Ховається в землю й махає «бувай».
+      final p = _eio(seg(t, 0.02, 0.14));
+      final wave = 0.35 * math.sin(seg(t, 0.0, 0.14) * math.pi * 6);
+      return Pose(
+        sy: 1 - p,
+        sx: 1 - 0.3 * p,
+        opacity: 1 - seg(t, 0.1, 0.14),
+        face: const Face(eyes: Eyes.happy, mouth: Mouth.open),
+        right: Arm(2.6 + wave, 0.2),
+      );
     }
     if (t < 0.7) return const Pose(sy: 0, opacity: 0);
     final p = seg(t, 0.7, 0.88); // виростає з пружинкою
     final g = _back(p);
-    var dy = 0.0;
-    if (t > 0.9) dy = -14 * math.sin(math.pi * seg(t, 0.9, 0.97));
-    return Pose(sx: 0.2 + 0.8 * g, sy: g, dy: dy, opacity: seg(p, 0, 0.1));
+    if (t < 0.88) {
+      // Маленький ще спить, потягується.
+      return Pose(
+        sx: 0.2 + 0.8 * g,
+        sy: g,
+        opacity: seg(p, 0, 0.1),
+        face: Face(eyes: p < 0.6 ? Eyes.closed : Eyes.sleepy, mouth: Mouth.o),
+        left: Arm.lerp(Arm.down, const Arm(2.4, 0.2), p),
+        right: Arm.lerp(Arm.down, const Arm(2.4, 0.2), p),
+      );
+    }
+    // «Та-дам!» — очі навстіж, руки вгору, підскок.
+    final dy = t > 0.9 ? -14 * math.sin(math.pi * seg(t, 0.9, 0.97)) : 0.0;
+    return Pose(
+      dy: dy,
+      face: const Face(eyes: Eyes.happy, mouth: Mouth.grin, blush: true),
+      left: const Arm(2.6, -0.2),
+      right: const Arm(2.6, -0.2),
+    );
   }
+
 
   @override
   void back(Canvas c, double t) {
@@ -699,23 +842,51 @@ class RainScene extends MushroomScene {
   Pose pose(double t) {
     var base = const Offset(150, kGround);
     var rot = 0.0, sx = 1.0, sy = 1.0;
-    if (t >= 0.14 && t < 0.42) {
-      final p = seg(t, 0.14, 0.42); // радісно підстрибує під дощем
+    var face = const Face();
+    var l = Arm.down, r = Arm.down;
+    if (t < 0.14) {
+      // Насувається хмара — дивиться вгору, трохи тривожно.
+      face = const Face(look: Offset(0, -1), mouth: Mouth.wavy, brows: 1);
+    } else if (t < 0.42) {
+      final p = seg(t, 0.14, 0.42); // радісно підстрибує й ловить краплі
       base += Offset(0, -16 * math.sin(math.pi * ((p * 3) % 1)));
       rot = -0.1;
-    } else if (t >= 0.44 && t < 0.54) {
+      face = const Face(eyes: Eyes.happy, mouth: Mouth.open, look: Offset(0, -1));
+      final catchUp = 0.3 * math.sin(p * math.pi * 8);
+      l = Arm(2.6 + catchUp, 0.2);
+      r = Arm(2.6 - catchUp, 0.2);
+    } else if (t < 0.54) {
       base = _hop(const Offset(150, kGround), _puddle, _eio(seg(t, 0.44, 0.54)), 50); // у калюжу!
-    } else if (t >= 0.54) {
+      face = const Face(eyes: Eyes.wide, mouth: Mouth.grin);
+      l = r = Arm.up;
+    } else {
       base = _puddle;
       final splat = seg(t, 0.54, 0.62);
       if (splat > 0 && splat < 1) {
         sy = 1 - 0.22 * math.sin(math.pi * splat);
         sx = 1 + 0.12 * math.sin(math.pi * splat);
+        face = const Face(eyes: Eyes.squint, mouth: Mouth.grin);
+        l = r = const Arm(1.7, 0);
+      } else if (t < 0.72) {
+        // Обтрушується від води.
+        final shake = math.sin(seg(t, 0.62, 0.72) * math.pi * 8);
+        rot = 0.06 * shake;
+        face = Face(eyes: Eyes.happy, mouth: Mouth.smile, look: Offset(shake, 0));
+        l = r = Arm(1.4 + 0.3 * shake, 0.3);
+      } else if (t < 0.92) {
+        // Веселка! Дивиться вгору, руки складені від захвату.
+        rot = -0.14 * math.sin(math.pi * seg(t, 0.72, 0.92));
+        face = const Face(eyes: Eyes.wide, mouth: Mouth.o, brows: 1, look: Offset(-1, -1), blush: true);
+        l = r = const Arm(1.1, 1.3);
+      } else {
+        // Махає веселці.
+        face = const Face(eyes: Eyes.happy, mouth: Mouth.grin, blush: true);
+        r = Arm(2.6 + 0.35 * math.sin(seg(t, 0.92, 1.0) * math.pi * 6), 0.2);
       }
-      if (t > 0.72 && t < 0.92) rot = -0.14 * math.sin(math.pi * seg(t, 0.72, 0.92)); // дивиться на веселку
     }
-    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sx: sx, sy: sy);
+    return Pose(dx: base.dx - 150, dy: base.dy - kGround, rot: rot, sx: sx, sy: sy, face: face, left: l, right: r);
   }
+
 
   @override
   void back(Canvas c, double t) {
@@ -789,30 +960,70 @@ const kMushroomScenes = <MushroomScene>[SleepScene(), TrampolineScene(), DiscoSc
 
 // ─── Сцена ──────────────────────────────────────────────────────────────────
 
-/// Сцена з небом і землею, на якій гриб виду грає [scene].
+/// Один кадр сцени: небо, земля, реквізит сценки і гриб-персонаж у позі моменту [t].
+/// [blink] — примусово закриті очі (кліпання в спокої).
+class StageView extends StatelessWidget {
+  const StageView({super.key, required this.look, required this.scene, required this.t, this.durationMs = 0, this.blink = false});
+
+  final CharacterLook look;
+  final MushroomScene scene;
+  final double t;
+
+  /// Тривалість сценки — щоб гриб кліпав і під час неї (раз на ~2,6 с).
+  final int durationMs;
+  final bool blink;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = scene.pose(t);
+    var face = p.face;
+    final ms = (t * durationMs).round();
+    final autoBlink = durationMs > 0 && ms % 2600 > 2480;
+    if ((blink || autoBlink) && face.eyes == Eyes.open) face = face.copyWith(eyes: Eyes.closed);
+    return SizedBox(
+      width: kStageW,
+      height: kStageH,
+      child: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: _StagePainter(scene, t, back: true))),
+          Positioned(
+            left: 150 + p.dx - kMush / 2,
+            top: kGround + p.dy - kMush,
+            width: kMush,
+            height: kMush,
+            child: Opacity(
+              opacity: p.opacity.clamp(0.0, 1.0),
+              child: Transform(
+                alignment: Alignment.bottomCenter,
+                transform: Matrix4.identity()
+                  ..rotateZ(p.rot)
+                  ..scaleByDouble(p.sx, math.max(p.sy, 0.001), 1, 1),
+                child: MushroomCharacter(look: look, face: face, left: p.left, right: p.right, size: kMush),
+              ),
+            ),
+          ),
+          Positioned.fill(child: CustomPaint(painter: _StagePainter(scene, t, back: false))),
+        ],
+      ),
+    );
+  }
+}
+
+/// Сцена, що сама програє [scene] (попередній перегляд і тести).
 class MushroomStage extends StatefulWidget {
-  const MushroomStage({super.key, required this.speciesId, required this.scene, this.autoplay = true});
+  const MushroomStage({super.key, required this.speciesId, required this.scene});
 
   final String speciesId;
   final MushroomScene scene;
-  final bool autoplay;
 
   @override
   State<MushroomStage> createState() => MushroomStageState();
 }
 
 class MushroomStageState extends State<MushroomStage> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: widget.scene.duration);
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.autoplay) _c.forward();
-  }
+  late final AnimationController _c = AnimationController(vsync: this, duration: widget.scene.duration)..forward();
 
   void replay() => _c.forward(from: 0);
-
-  bool get playing => _c.isAnimating;
 
   @override
   void dispose() {
@@ -823,40 +1034,43 @@ class MushroomStageState extends State<MushroomStage> with SingleTickerProviderS
   @override
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          width: kStageW,
-          height: kStageH,
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (context, _) {
-              final t = _c.value;
-              final p = widget.scene.pose(t);
-              return Stack(
-                children: [
-                  Positioned.fill(child: CustomPaint(painter: _StagePainter(widget.scene, t, back: true))),
-                  Positioned(
-                    left: 150 + p.dx - kMush / 2,
-                    top: kGround + p.dy - kMush,
-                    width: kMush,
-                    height: kMush,
-                    child: Opacity(
-                      opacity: p.opacity.clamp(0.0, 1.0),
-                      child: Transform(
-                        alignment: Alignment.bottomCenter,
-                        transform: Matrix4.identity()
-                          ..rotateZ(p.rot)
-                          ..scaleByDouble(p.sx, math.max(p.sy, 0.001), 1, 1),
-                        child: SpeciesIcon(type: widget.speciesId, fallbackColor: const Color(0xff8d6e63), size: kMush),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(child: CustomPaint(painter: _StagePainter(widget.scene, t, back: false))),
-                ],
-              );
-            },
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) => StageView(
+            look: kCharacterLooks[widget.speciesId]!,
+            scene: widget.scene,
+            t: _c.value,
+            durationMs: widget.scene.duration.inMilliseconds,
           ),
         ),
       );
+}
+
+/// Спокій: гриб стоїть, при появі махає рукою, роззирається.
+class IdleScene extends MushroomScene {
+  const IdleScene();
+
+  @override
+  String get id => 'idle';
+  @override
+  String get emoji => '';
+  @override
+  String get label => '';
+  @override
+  Duration get duration => const Duration(milliseconds: 2400);
+
+  @override
+  Pose pose(double t) {
+    final wave = seg(t, 0.1, 0.75);
+    if (wave > 0 && wave < 1) {
+      return Pose(
+        face: const Face(eyes: Eyes.happy, mouth: Mouth.grin, blush: true),
+        right: Arm(2.6 + 0.4 * math.sin(wave * math.pi * 6), 0.2),
+      );
+    }
+    final lookAround = math.sin(seg(t, 0.78, 1.0) * math.pi * 2);
+    return Pose(face: Face(look: Offset(lookAround, 0)));
+  }
 }
 
 class _StagePainter extends CustomPainter {
@@ -887,117 +1101,143 @@ class _StagePainter extends CustomPainter {
   bool shouldRepaint(covariant _StagePainter old) => old.t != t || old.scene != scene;
 }
 
-/// Відкрити сценку у вікні: назва, сцена, «Ще раз».
-Future<void> showMushroomScene(BuildContext context, {required String speciesId, required MushroomScene scene}) =>
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Закрити',
-      barrierColor: Colors.black45,
-      transitionDuration: const Duration(milliseconds: 320),
-      transitionBuilder: (context, a, _, child) => Transform.scale(
-        scale: 0.85 + 0.15 * Curves.easeOutBack.transform(a.value),
-        child: Opacity(opacity: a.value, child: child),
-      ),
-      pageBuilder: (context, _, __) => _SceneDialog(speciesId: speciesId, scene: scene),
-    );
+// ─── Віконце з грибом праворуч від назви ────────────────────────────────────
 
-class _SceneDialog extends StatefulWidget {
-  const _SceneDialog({required this.speciesId, required this.scene});
+/// Маленька сцена праворуч від назви виду: у спокої гриб стоїть і кліпає (при появі махає),
+/// сценка з кола грає тут же. Затиснути — коло сценок; торкнутися — помахає.
+class CharacterSlot extends StatefulWidget {
+  const CharacterSlot({super.key, required this.speciesId, this.width = 140});
 
   final String speciesId;
-  final MushroomScene scene;
+  final double width;
 
   @override
-  State<_SceneDialog> createState() => _SceneDialogState();
+  State<CharacterSlot> createState() => CharacterSlotState();
 }
 
-class _SceneDialogState extends State<_SceneDialog> {
-  final _stage = GlobalKey<MushroomStageState>();
+class CharacterSlotState extends State<CharacterSlot> with TickerProviderStateMixin {
+  late final AnimationController _scene = AnimationController(vsync: this);
+  late final AnimationController _idle = AnimationController(vsync: this, duration: const IdleScene().duration);
+  MushroomScene? _playing;
+  bool _blink = false;
+  Timer? _blinkTimer;
+  final _rnd = math.Random();
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Material(
-          color: AppTheme.backgroundColor,
-          borderRadius: BorderRadius.circular(22),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('${widget.scene.emoji} ${widget.scene.label}',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 56),
-                  child: FittedBox(
-                    child: MushroomStage(key: _stage, speciesId: widget.speciesId, scene: widget.scene),
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton.icon(
-                      key: const ValueKey('scene-replay'),
-                      onPressed: () => _stage.currentState?.replay(),
-                      icon: const Icon(Icons.replay_rounded),
-                      label: const Text('Ще раз'),
-                      style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
-                    ),
-                    TextButton(
-                      key: const ValueKey('scene-close'),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
-                      child: const Text('Закрити'),
-                    ),
-                  ],
-                ),
-              ],
+  void initState() {
+    super.initState();
+    _idle.forward();
+    _scheduleBlink();
+  }
+
+  void _scheduleBlink() {
+    _blinkTimer = Timer(Duration(milliseconds: 2200 + _rnd.nextInt(2400)), () {
+      if (!mounted) return;
+      setState(() => _blink = true);
+      _blinkTimer = Timer(const Duration(milliseconds: 140), () {
+        if (!mounted) return;
+        setState(() => _blink = false);
+        _scheduleBlink();
+      });
+    });
+  }
+
+  /// Програти сценку тут, у віконці; після неї — знову спокій.
+  Future<void> play(MushroomScene scene) async {
+    setState(() => _playing = scene);
+    _scene.duration = scene.duration;
+    await _scene.forward(from: 0).orCancel.catchError((_) {});
+    if (mounted && identical(_playing, scene)) setState(() => _playing = null);
+  }
+
+  void _wave() {
+    if (_playing == null) _idle.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _blinkTimer?.cancel();
+    _scene.dispose();
+    _idle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final look = kCharacterLooks[widget.speciesId]!;
+    return GestureDetector(
+      key: const ValueKey('character-slot'),
+      onTap: _wave,
+      onLongPress: () => openSceneMenu(context, speciesId: widget.speciesId, onPick: play),
+      child: SizedBox(
+        width: widget.width,
+        height: widget.width * kStageH / kStageW,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: FittedBox(
+            // «Камера»: у спокої — наближено до гриба (видно обличчя), під час сценки — вся сцена.
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: _playing == null ? 1.75 : 1.0),
+              duration: const Duration(milliseconds: 550),
+              curve: Curves.easeInOutCubic,
+              builder: (context, zoom, child) => Transform.scale(scale: zoom, alignment: const Alignment(0, 0.5), child: child),
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_scene, _idle]),
+                builder: (context, _) {
+                  final scene = _playing;
+                  return scene == null
+                      ? StageView(look: look, scene: const IdleScene(), t: _idle.value, blink: _blink)
+                      : StageView(look: look, scene: scene, t: _scene.value, durationMs: scene.duration.inMilliseconds);
+                },
+              ),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
-// ─── Значок гриба з колом анімацій ──────────────────────────────────────────
+// ─── Значок гриба з колом сценок ────────────────────────────────────────────
 
-/// Значок виду: довге натискання — дугою «вискакують» сценки; вибір — сценка грає.
+/// Коло сценок навколо [context] (значок або віконце); вибір — [onPick].
+Future<void> openSceneMenu(BuildContext context, {required String speciesId, required ValueChanged<MushroomScene> onPick}) async {
+  HapticFeedback.mediumImpact();
+  final box = context.findRenderObject()! as RenderBox;
+  final center = box.localToGlobal(box.size.center(Offset.zero));
+  final picked = await showGeneralDialog<MushroomScene>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'Закрити',
+    barrierColor: Colors.black38,
+    transitionDuration: const Duration(milliseconds: 480),
+    pageBuilder: (context, a, _) => _RadialMenu(center: center, animation: a, speciesId: speciesId),
+  );
+  if (picked != null) onPick(picked);
+}
+
+/// Значок виду: довге натискання — коло сценок; вибрана сценка грає у віконці ([onPick]).
 class PlayfulSpeciesIcon extends StatelessWidget {
-  const PlayfulSpeciesIcon({super.key, required this.speciesId, this.size = 40});
+  const PlayfulSpeciesIcon({super.key, required this.speciesId, required this.onPick, this.size = 40});
 
   final String speciesId;
+  final ValueChanged<MushroomScene> onPick;
   final double size;
-
-  Future<void> _openMenu(BuildContext context) async {
-    HapticFeedback.mediumImpact();
-    final box = context.findRenderObject()! as RenderBox;
-    final center = box.localToGlobal(box.size.center(Offset.zero));
-    final picked = await showGeneralDialog<MushroomScene>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Закрити',
-      barrierColor: Colors.black38,
-      transitionDuration: const Duration(milliseconds: 480),
-      pageBuilder: (context, a, _) => _RadialMenu(center: center, animation: a, speciesId: speciesId, iconSize: size),
-    );
-    if (picked != null && context.mounted) await showMushroomScene(context, speciesId: speciesId, scene: picked);
-  }
 
   @override
   Widget build(BuildContext context) => GestureDetector(
         key: const ValueKey('icon-play'),
-        onLongPress: () => _openMenu(context),
+        onLongPress: () => openSceneMenu(context, speciesId: speciesId, onPick: onPick),
         child: SpeciesIcon(type: speciesId, fallbackColor: const Color(0xff8d6e63), size: size),
       );
 }
 
 class _RadialMenu extends StatelessWidget {
-  const _RadialMenu({required this.center, required this.animation, required this.speciesId, required this.iconSize});
+  const _RadialMenu({required this.center, required this.animation, required this.speciesId});
 
   final Offset center;
   final Animation<double> animation;
   final String speciesId;
-  final double iconSize;
 
   static const _radius = 124.0;
 
@@ -1006,17 +1246,24 @@ class _RadialMenu extends StatelessWidget {
     final screen = MediaQuery.sizeOf(context);
     final right = center.dx < screen.width / 2; // дуга — у бік, де є місце
     final n = kMushroomScenes.length;
+    final look = kCharacterLooks[speciesId]!;
     return Stack(
       children: [
         Positioned.fill(child: GestureDetector(onTap: () => Navigator.of(context).pop())),
-        // Сам значок — над затемненням, злегка підстрибує.
+        // Гриб у центрі кола — радіє, що з ним граються.
         Positioned(
-          left: center.dx - iconSize / 2,
-          top: center.dy - iconSize / 2,
+          left: center.dx - 28,
+          top: center.dy - 34,
           child: AnimatedBuilder(
             animation: animation,
-            builder: (context, child) => Transform.scale(scale: 1 + 0.25 * Curves.easeOutBack.transform(animation.value), child: child),
-            child: SpeciesIcon(type: speciesId, fallbackColor: const Color(0xff8d6e63), size: iconSize),
+            builder: (context, child) => Transform.scale(scale: 0.6 + 0.4 * Curves.easeOutBack.transform(animation.value), child: child),
+            child: MushroomCharacter(
+              look: look,
+              face: const Face(eyes: Eyes.happy, mouth: Mouth.grin, blush: true),
+              left: Arm.up,
+              right: Arm.up,
+              size: 56,
+            ),
           ),
         ),
         for (var i = 0; i < n; i++)
@@ -1029,8 +1276,7 @@ class _RadialMenu extends StatelessWidget {
               animation: animation,
               builder: (context, child) {
                 final p = Interval(i * 0.07, 0.55 + i * 0.07, curve: Curves.easeOutBack).transform(animation.value);
-                // Кнопка вилітає від значка на своє місце.
-                final at = Offset.lerp(center, pos, p)!;
+                final at = Offset.lerp(center, pos, p)!; // кнопка вилітає від гриба на своє місце
                 return Positioned(
                   left: at.dx - 34,
                   top: at.dy - 30,

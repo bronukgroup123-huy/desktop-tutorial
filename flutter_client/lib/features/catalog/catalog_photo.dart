@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter_client/data/models/catalog.dart';
+import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion;
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
 /// Фото довідника: з телефону (якщо вже переглядали) або з релізу «catalog-photos» — і
@@ -84,7 +85,18 @@ class CatalogPhotoCache {
     }
   }
 
-  static Future<Uint8List?> get(String name) => _memory.putIfAbsent(name, () => _load(name));
+  /// Уже завантажені за цей сеанс — показуються одразу, без проміжного кадру з заглушкою.
+  static final Map<String, Uint8List> _ready = {};
+
+  static Uint8List? peek(String name) => _ready[name];
+
+  static Future<Uint8List?> get(String name) => _memory.putIfAbsent(
+        name,
+        () => _load(name).then((b) {
+          if (b != null) _ready[name] = b;
+          return b;
+        }),
+      );
 
   static Future<Uint8List?> _load(String name) async {
     final dir = await directory();
@@ -173,6 +185,7 @@ class CatalogPhotoCache {
   static Future<void> deleteAll() async {
     _memory.clear();
     _bundles.clear();
+    _ready.clear();
     final dir = await directory();
     if (dir != null && await dir.exists()) await dir.delete(recursive: true);
   }
@@ -181,11 +194,15 @@ class CatalogPhotoCache {
   static void clear() {
     _memory.clear();
     _bundles.clear();
+    _ready.clear();
   }
 }
 
 /// Фото виду; немає (офлайн і ще не переглядали) — стікер гриба на світлому тлі.
-class CatalogPhoto extends StatelessWidget {
+///
+/// Картка є одразу; нове фото один раз плавно проявляється поверх стікера (рішення PO 2026-11-16).
+/// Уже завантажене за сеанс (зокрема при гортанні назад) — одразу, без анімації й без блимання.
+class CatalogPhoto extends StatefulWidget {
   const CatalogPhoto({super.key, required this.name, required this.speciesId, this.fit = BoxFit.cover});
 
   final String? name;
@@ -193,20 +210,76 @@ class CatalogPhoto extends StatelessWidget {
   final BoxFit fit;
 
   @override
+  State<CatalogPhoto> createState() => _CatalogPhotoState();
+}
+
+class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 280))
+    ..addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted) setState(() {}); // заглушка більше не потрібна
+    });
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  @override
+  void didUpdateWidget(CatalogPhoto old) {
+    super.didUpdateWidget(old);
+    if (old.name != widget.name) _resolve();
+  }
+
+  void _resolve() {
+    final name = widget.name;
+    _bytes = null;
+    if (name == null) return;
+    final ready = CatalogPhotoCache.peek(name);
+    if (ready != null) {
+      _bytes = ready;
+      _fade.value = 1;
+      return;
+    }
+    _fade.value = 0;
+    CatalogPhotoCache.get(name).then((b) {
+      if (!mounted || widget.name != name || b == null) return;
+      setState(() => _bytes = b);
+      if (reduceMotion(context)) {
+        _fade.value = 1;
+      } else {
+        _fade.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final placeholder = Container(
+      key: const ValueKey('photo-placeholder'),
       color: const Color(0xfff1ece0),
       alignment: Alignment.center,
-      child: SpeciesIcon(type: speciesId, fallbackColor: const Color(0xff8d6e63), size: 44),
+      child: SpeciesIcon(type: widget.speciesId, fallbackColor: const Color(0xff8d6e63), size: 44),
     );
-    if (name == null) return placeholder;
-    return FutureBuilder<Uint8List?>(
-      future: CatalogPhotoCache.get(name!),
-      builder: (context, snap) {
-        final bytes = snap.data;
-        if (bytes == null) return placeholder;
-        return Image.memory(bytes, fit: fit, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder);
-      },
+    final bytes = _bytes;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (bytes == null || !_fade.isCompleted) placeholder,
+        if (bytes != null)
+          FadeTransition(
+            key: const ValueKey('photo-image'),
+            opacity: _fade,
+            child: Image.memory(bytes, fit: widget.fit, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
+          ),
+      ],
     );
   }
 }

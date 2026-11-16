@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Архів ustar, як пише tarfile.USTAR_FORMAT у build_app_catalog.py.
@@ -77,4 +79,27 @@ void main() {
     expect(await CatalogPhotoCache.get('y-0.webp'), isNull);
     expect(calls, 2);
   });
+
+  testWidgets('Фото проявляється плавно лише першого разу; далі — одразу, без заглушки', (tester) async {
+    CatalogPhotoCache.clear();
+    CatalogPhotoCache.directory = () async => null;
+    CatalogPhotoCache.fetcher = (_) async => tar({'z-0-t.webp': _png});
+    Widget card() => const MaterialApp(home: SizedBox(width: 100, height: 100, child: CatalogPhoto(name: 'z-0-t.webp', speciesId: 'z')));
+    await tester.pumpWidget(card());
+    expect(find.byKey(const ValueKey('photo-placeholder')), findsOneWidget);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    final fade = tester.widget<FadeTransition>(find.byKey(const ValueKey('photo-image')));
+    expect(fade.opacity.value, lessThan(1)); // починає проявлятися
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('photo-placeholder')), findsNothing);
+    // Картка пішла з екрана й повернулась — фото одразу, без анімації й заглушки.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.pumpWidget(card());
+    expect(find.byKey(const ValueKey('photo-placeholder')), findsNothing);
+    expect(tester.widget<FadeTransition>(find.byKey(const ValueKey('photo-image'))).opacity.value, 1);
+  });
 }
+
+/// Найменший PNG 1×1.
+final _png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');

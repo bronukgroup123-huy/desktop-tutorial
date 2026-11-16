@@ -2,105 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Анімації довідника (рішення PO 2026-11-16): картки «проростають», грибниця між розділами,
-/// картка-перевертень двійника. Кожна — один раз; без анімацій у системі — одразу кінцевий вигляд.
+/// Анімації довідника (рішення PO 2026-11-16): грибниця між розділами, картка-перевертень двійника.
+/// (Картки списку не анімуються — лише фото плавно проявляється: catalog_photo.dart.) Кожна — один раз; без анімацій у системі — одразу кінцевий вигляд.
 
 bool reduceMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
 double seg(double t, double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
-
-// ─── 1. Картки проростають із землі ─────────────────────────────────────────
-
-/// Картка «виростає» з землі: піднімається знизу з пружинкою, з-під неї розлітаються грудочки
-/// землі. Хвилею — кожна наступна трохи пізніше ([index]).
-class Sprout extends StatefulWidget {
-  const Sprout({super.key, required this.index, required this.child});
-
-  final int index;
-  final Widget child;
-
-  @override
-  State<Sprout> createState() => _SproutState();
-}
-
-class _SproutState extends State<Sprout> with SingleTickerProviderStateMixin {
-  static const _grow = 700;
-  late final int _delay = 55 * math.min(widget.index, 10);
-  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: _delay + _grow));
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (reduceMotion(context)) {
-      _c.value = 1;
-    } else {
-      _c.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _c,
-        child: widget.child,
-        builder: (context, child) {
-          final t = seg(_c.value * (_delay + _grow), _delay.toDouble(), (_delay + _grow).toDouble());
-          if (t >= 1) return child!;
-          final rise = Curves.easeOutBack.transform(t);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Opacity(
-                opacity: seg(t, 0, 0.35),
-                child: Transform(
-                  alignment: Alignment.bottomCenter,
-                  transform: Matrix4.identity()
-                    ..translateByDouble(0.0, (1 - rise) * 26, 0, 1)
-                    ..scaleByDouble(0.9 + 0.1 * rise, rise.clamp(0.0, 1.2), 1, 1),
-                  child: child,
-                ),
-              ),
-              // Грудочки землі розлітаються з-під картки.
-              Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _CrumbsPainter(t, widget.index)))),
-            ],
-          );
-        },
-      );
-}
-
-class _CrumbsPainter extends CustomPainter {
-  _CrumbsPainter(this.t, this.seed);
-
-  final double t;
-  final int seed;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = seg(t, 0.05, 0.75);
-    if (p <= 0 || p >= 1) return;
-    final r = math.Random(seed);
-    final paint = Paint()..color = const Color(0xff8b6b47).withValues(alpha: 1 - p);
-    for (var i = 0; i < 9; i++) {
-      final x0 = size.width * (0.15 + 0.7 * r.nextDouble());
-      final vx = (r.nextDouble() - 0.5) * 60;
-      final vy = 40 + r.nextDouble() * 50;
-      final x = x0 + vx * p;
-      final y = size.height - vy * p + 120 * p * p;
-      canvas.drawCircle(Offset(x, y), 2 + r.nextDouble() * 2.5, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CrumbsPainter old) => old.t != t;
-}
 
 // ─── Поява при гортанні ─────────────────────────────────────────────────────
 

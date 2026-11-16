@@ -12,7 +12,9 @@ import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_forecast_link.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion, seg;
+import 'package:flutter_client/features/catalog/mushroom_character.dart' show hasCharacter;
 import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
+import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
 /// Значок дерева / лісу: хвойні — 🌲, листяні — 🌳, мішаний — обидва.
 String treeEmoji(String t) => switch (t) {
@@ -72,7 +74,6 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = species;
-    final badge = edibilityBadge(s);
     final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
     return CustomScrollView(
       key: ValueKey('catalog-detail-${s.id}'),
@@ -118,38 +119,7 @@ class _Detail extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
           sliver: SliverList.list(children: [
-            Row(
-              children: [
-                // Довге натискання — коло ігрових сценок з цим грибом.
-                PlayfulSpeciesIcon(speciesId: s.id),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s.name,
-                          style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
-                      if (s.latin.isNotEmpty)
-                        Text(s.latin, style: TextStyle(fontStyle: FontStyle.italic, color: dim)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                EdibilityBadge(label: badge.label, color: Color(badge.color)),
-                if (s.redListed)
-                  _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
-                if (s.inSeason(DateTime.now().month))
-                  const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
-                if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
-                if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
-              ],
-            ),
+            _Header(species: s),
             // Отруйним сезон плодоношення не показуємо (рішення PO 2026-11-16).
             if (s.showsSeason && s.months.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -186,6 +156,75 @@ class _Detail extends StatelessWidget {
             ],
           ]),
         ),
+      ],
+    );
+  }
+}
+
+/// Шапка: значок, назва, латина й плашки. Для Топ-20 праворуч — віконце з грибом-персонажем:
+/// стоїть, кліпає; затиснути значок чи віконце — коло сценок, сценка грає тут же.
+class _Header extends StatefulWidget {
+  const _Header({required this.species});
+
+  final CatalogSpecies species;
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  final _slot = GlobalKey<CharacterSlotState>();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.species;
+    final badge = edibilityBadge(s);
+    final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
+    final playful = hasCharacter(s.id);
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (playful)
+              PlayfulSpeciesIcon(speciesId: s.id, onPick: (scene) => _slot.currentState?.play(scene))
+            else
+              SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.name, style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                  if (s.latin.isNotEmpty) Text(s.latin, style: TextStyle(fontStyle: FontStyle.italic, color: dim)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            EdibilityBadge(label: badge.label, color: Color(badge.color)),
+            if (s.redListed)
+              _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
+            if (s.inSeason(DateTime.now().month))
+              const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
+            if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
+            if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
+          ],
+        ),
+      ],
+    );
+    if (!playful) return info;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: info),
+        const SizedBox(width: 8),
+        CharacterSlot(key: _slot, speciesId: s.id),
       ],
     );
   }
