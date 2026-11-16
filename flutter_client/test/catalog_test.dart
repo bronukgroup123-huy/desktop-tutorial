@@ -77,6 +77,9 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('catalog-search')), 'зимовий оп');
     await tester.pump();
     expect(find.text('1 вид'), findsOneWidget);
+    // над сіткою — картка «Фото без інтернету»: гриб може бути нижче краю тестового екрана
+    await tester.ensureVisible(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('catalog-detail-flammulina_velutipes')), findsOneWidget);
