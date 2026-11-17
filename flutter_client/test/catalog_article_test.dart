@@ -237,6 +237,44 @@ void main() {
     expect(filterCatalog(catalog.species, seasons: {'summer', 'autumn'}).any((s) => s.poisonous), isFalse);
   });
 
+  test('Двійник у довіднику: народні назви, скорочена латина, синоніми', () {
+    expect(findByName(catalog, 'Сатанинський гриб (Боровик чортів)')?.id, 'rubroboletus_satanas');
+    expect(findByName(catalog, 'Сироїжка їстівна (R. vesca)')?.id, 'russula_vesca');
+    expect(findByName(catalog, 'Скрипиця (L. vellereus)')?.id, 'lactarius_vellereus');
+    expect(findByName(catalog, 'Небезпечний двійник (Inocybe patouillardii / Entoloma lividum)')?.id, 'inocybe_erubescens');
+    expect(findByName(catalog, 'Галерина облямована')?.id, 'galerina_marginata');
+    expect(findByName(catalog, 'Гірчак (жовчний гриб)'), isNull); // у довіднику немає
+  });
+
+  test('Кожна картка-перевертень: двійник знайдений з фото — або його справді немає в довіднику', () {
+    const notInCatalog = {'Гірчак (жовчний гриб)', 'Хрящ-молочник пухнастий', 'Неїстівний / перестиглий', 'Гіродон сизуватий'};
+    for (final sp in catalog.species) {
+      final s = descSections(sp.description).where((s) => articleKind(s) == ArticleKind.twins).firstOrNull;
+      final head = s?.lines.firstWhere((l) => l.contains('\t'), orElse: () => '');
+      if (head == null || head.isEmpty) continue;
+      final cells = head.split(RegExp(r'\t+')).map((c) => c.trim()).toList();
+      if (cells.length != 3) continue;
+      final twin = findByName(catalog, cells[2]);
+      expect(twin != null || notInCatalog.contains(cells[2]), isTrue, reason: '${sp.id}: «${cells[2]}»');
+      if (twin != null) expect(twin.photos, isNotEmpty, reason: twin.id);
+    }
+  });
+
+  testWidgets('Двійника немає в довіднику — зворот із назвою і відмінностями, без порожньої заглушки', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(host(CatalogArticle(species: catalog.byId('boletus_edulis')!)));
+    await tester.pumpAndSettle();
+    final card = find.byKey(const ValueKey('flip-card'));
+    await tester.ensureVisible(card);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('flip-no-photo')), findsOneWidget);
+    expect(find.text('Фото поки немає'), findsOneWidget);
+    expect(find.textContaining('Брудно-рожевий'), findsWidgets); // відмінність двійника з таблиці
+  });
+
   test('«Зараз сезон»: відбір за місяцем', () {
     final nov = filterCatalog(catalog.species, inSeasonMonth: 11);
     expect(nov.map((s) => s.id), contains('flammulina_velutipes'));
