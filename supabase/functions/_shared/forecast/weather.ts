@@ -21,6 +21,8 @@ export interface OpenMeteoResponse {
     /** Температура ґрунту: прогноз — 6 см, архів (ERA5) — шар 0–7 см. */
     soil_temperature_6cm?: number[];
     soil_temperature_0_to_7cm?: number[];
+    /** Код погоди WMO за годину — «зараз» і коли саме дощ сьогодні. */
+    weather_code?: Array<number | null>;
   };
   daily: {
     time: string[];
@@ -52,6 +54,7 @@ async function fetchOpenMeteo(
       "pressure_msl",
       "soil_moisture_0_to_7cm",
       "soil_temperature_6cm",
+      "weather_code",
     ].join(","),
     daily: [
       "temperature_2m_max",
@@ -219,10 +222,20 @@ export interface WeatherSeries {
   sunrise?: Array<string | null>;
   sunset?: Array<string | null>;
   daylightMin?: Array<number | null>;
+  /** Години днів прогнозу (від сьогодні): година доби, код WMO, опади мм, температура (немає — старий кеш). */
+  hours?: Record<string, DayHours>;
   /** Тиск о першій і останній годині доби — для тренду тиску. */
   pressureStart: number[];
   pressureEnd: number[];
   fetchedAt: string;
+}
+
+/** Погодинна погода дня (за київським часом): паралельні масиви. */
+export interface DayHours {
+  h: number[];
+  code: Array<number | null>;
+  rain: number[];
+  temp: number[];
 }
 
 export function isWeatherSeries(v: unknown): v is WeatherSeries {
@@ -272,6 +285,20 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
   });
 
   const todayIdx = Math.min(Math.max(pastDays, 0), dates.length - 1);
+  const hours: Record<string, DayHours> = {};
+  dates.slice(todayIdx).forEach((d) => {
+    const idx = byDay.get(d) ?? [];
+    if (idx.length === 0) return;
+    hours[d] = {
+      h: idx.map((i) => Number(String(hourly!.time[i]).slice(11, 13))),
+      code: idx.map((i) => {
+        const c = hourly?.weather_code?.[i];
+        return typeof c === "number" && Number.isFinite(c) ? c : null;
+      }),
+      rain: idx.map((i) => Math.round(num(hourly?.precipitation?.[i]) * 10) / 10),
+      temp: idx.map((i) => Math.round(num(hourly?.temperature_2m?.[i]) * 10) / 10),
+    };
+  });
   return {
     version: 3,
     dates: [...dates],
@@ -289,6 +316,7 @@ export function buildSeries(data: OpenMeteoResponse, pastDays: number, fetchedAt
       const v = data.daily.daylight_duration?.[k];
       return typeof v === "number" && Number.isFinite(v) ? Math.round(v / 60) : null;
     }),
+    hours,
     tmean,
     humidity,
     soil,
@@ -371,6 +399,7 @@ export function weatherAsOf(series: WeatherSeries, date: string, source: Weather
       sunrise: series.sunrise?.[i] ?? null,
       sunset: series.sunset?.[i] ?? null,
       daylightMin: series.daylightMin?.[i] ?? null,
+      hours: series.hours?.[date] ?? null,
     },
     recent: series.dates.slice(Math.max(0, i - 13), i + 1).map((d, k) => {
       const j = Math.max(0, i - 13) + k;

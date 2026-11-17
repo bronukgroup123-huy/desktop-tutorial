@@ -13,6 +13,7 @@
 
 import type { DayWeather, ForecastResult, ScoredSpecies } from "../forecast/types.ts";
 import { days as daysWord } from "./forecast-labels.ts";
+import { isPrecipCode, restOfDay } from "./weather-hours.ts";
 
 /** Дощ за добу, що промочує ґрунт (поштовх для більшості видів), мм. */
 export const SOAKING_RAIN_MM = 8;
@@ -41,13 +42,15 @@ export function dayTemp(d: DayWeather): DayTemp {
 
 /**
  * [results] — прогони рушія на дні горизонту (перший тип лісу), [top] — найкращий вид
- * сьогодні, [dayLabel] — «Сьогодні» / «Завтра» / «Вт 17».
+ * сьогодні, [dayLabel] — «Сьогодні» / «Завтра» / «Вт 17», [nowHour] — година за Києвом
+ * (для «що далі» враховується лише решта сьогоднішнього дня).
  */
 export function weatherInsight(
   results: ForecastResult[],
   today: string,
   top: ScoredSpecies | null,
   dayLabel: (date: string) => string,
+  nowHour = 0,
 ): Record<string, unknown> | null {
   const todayRes = results.find((r) => r.weather?.day?.date === today) ?? results[0];
   const w = todayRes?.weather;
@@ -133,17 +136,31 @@ export function weatherInsight(
     },
   ];
 
-  // Що далі.
-  const rainy = future.find((d) => d.rain >= 5);
+  // Що далі: решта сьогоднішнього дня і дні прогнозу — узгоджено з іконками днів (мряка
+  // за кодом погоди теж «опади»), щоб не було «Без дощу до чт», коли сьогодні ввечері дощ.
+  const todayW = list.find((d) => d.date === today);
+  const rest = todayW ? restOfDay(todayW, nowHour) : null;
+  const ahead: Array<{ date: string; rain: number; wet: boolean; tempMin: number }> = [];
+  if (todayW && rest) ahead.push({ date: today, rain: rest.mm, wet: rest.wet, tempMin: todayW.tempMin });
+  for (const d of future) {
+    ahead.push({ date: d.date, rain: d.rain, wet: d.rain >= 0.3 || isPrecipCode(d.code), tempMin: d.tempMin });
+  }
+  const rainy = ahead.find((d) => d.rain >= 5);
   const frost = future.find((d) => d.tempMin <= -1);
+  const wet = ahead.find((d) => d.wet || d.rain >= 1);
+  const lastLabel = (date: string) => dayLabel(date).toLowerCase();
   let outlook: string;
   if (rainy) {
     outlook = `${dayLabel(rainy.date)} — дощ ${mm(rainy.rain)}: ` +
       (fr?.phase === "flush" ? "підтримає хвилю" : "промочить ґрунт — за 1–2 тижні можлива хвиля");
   } else if (frost) {
     outlook = `${dayLabel(frost.date)} — заморозок ${deg(frost.tempMin)}: ріст пригальмує`;
-  } else if (future.length > 0 && future.every((d) => d.rain < 1)) {
-    outlook = `Без дощу до ${dayLabel(future[future.length - 1].date).toLowerCase()} — ґрунт підсихатиме`;
+  } else if (wet && wet.rain >= 1) {
+    outlook = `${dayLabel(wet.date)} — невеликий дощ ${mm(wet.rain)}: ґрунт не встигне пересохнути`;
+  } else if (wet) {
+    outlook = `${dayLabel(wet.date)} — лише мряка, ґрунт підсихатиме`;
+  } else if (future.length > 0) {
+    outlook = `Без дощу до ${lastLabel(future[future.length - 1].date)} — ґрунт підсихатиме`;
   } else {
     outlook = "Суттєвих змін погоди не очікується";
   }

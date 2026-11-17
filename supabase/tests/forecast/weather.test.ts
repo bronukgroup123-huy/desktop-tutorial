@@ -81,7 +81,8 @@ Deno.test("weatherAsOf: «сьогодні» не бачить дощів нас
   assertEquals(today.droughtDays, 31);
   assertEquals(today.daysAfterRain, 999);
   assertEquals(today.tempAvg7d, 15 + 5 / 7); // 6 минулих днів по 15° + сьогодні 20°
-  assertEquals(today.day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null, sunrise: null, sunset: null, daylightMin: null });
+  const { hours: _hours, ...day } = today.day!;
+  assertEquals(day, { date: "2026-08-31", tempMin: 10, tempMax: 22, rain: 0, humidity: 70, daysAhead: 0, code: null, sunrise: null, sunset: null, daylightMin: null });
 });
 
 Deno.test("weatherAsOf: день прогнозу бачить дощ, що випав до нього", () => {
@@ -137,4 +138,15 @@ Deno.test("parseEnsemble: діапазон 10–90 перцентилів уча
   assertEquals([r.rainMin, r.rainMax], [1, 14]);
   assertEquals([r.tMin, r.tMax], [0, 10]);
   assertEquals(parseEnsemble({}), {});
+});
+
+Deno.test("buildSeries: години днів прогнозу (код, опади, температура) — у погоду дня; минулі дні — без годин", () => {
+  const data = openMeteo();
+  data.hourly.weather_code = data.hourly.time.map((t) => (t === "2026-08-31T19:00" ? 61 : 0));
+  data.hourly.precipitation = data.hourly.time.map((t) => (t === "2026-08-31T19:00" ? 2.34 : 0));
+  const s = buildSeries(data, 30, new Date("2026-08-31T09:00:00Z"))!;
+  const hours = weatherAsOf(s, "2026-08-31").day?.hours!;
+  assertEquals(hours.h.length, 24);
+  assertEquals([hours.h[19], hours.code[19], hours.rain[19], hours.temp[19]], [19, 61, 2.3, 20]);
+  assertEquals(weatherAsOf(s, "2026-08-30").day?.hours, null);
 });

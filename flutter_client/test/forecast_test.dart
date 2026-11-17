@@ -319,6 +319,46 @@ void main() {
     expect(loads, greaterThanOrEqualTo(2)); // ділянки перечитано зі свіжим результатом
   });
 
+  testWidgets('Погоді понад 3 години — оновлюється лише погода, без списання (refresh: weather)', (tester) async {
+    final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': resultJson()}));
+    final n = DateTime.now();
+    final today = '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+    Map<String, dynamic> area(DateTime freshUntil) {
+      final a = areaJson(withResult: true);
+      a['last_result'] = {
+        ...(a['last_result'] as Map<String, dynamic>),
+        'date': today,
+        'result_version': kExpectedResultVersion,
+        'weather_fresh_until': freshUntil.toUtc().toIso8601String(),
+      };
+      return a;
+    }
+
+    Future<void> open(DateTime freshUntil) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          analysisOverviewProvider.overrideWith((ref) => overview(areas: [area(freshUntil)])),
+          analysisRepositoryProvider.overrideWithValue(AnalysisRepository(api)),
+        ],
+        child: const MaterialApp(home: ForecastScreen()),
+      ));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    // Погода ще свіжа — жодних запитів.
+    await open(n.add(const Duration(hours: 1)));
+    expect(adapter.requests, isEmpty);
+    // Минуло 3 години — лише погода.
+    await tester.pumpWidget(const SizedBox());
+    await open(n.subtract(const Duration(minutes: 5)));
+    expect(find.text('Оновлюємо погоду…'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 50));
+    final weather = adapter.requests.where((r) => r.data is Map && (r.data as Map)['refresh'] == 'weather').toList();
+    expect(weather.length, 1);
+    expect(adapter.requests.where(_isDaily), isEmpty);
+  });
+
   testWidgets('Щоденне оновлення без інтернету — банер, без запиту', (tester) async {
     final (api, adapter) = makeClient((req) => FakeResponse(200, {'data': resultJson()}));
     await tester.pumpWidget(ProviderScope(

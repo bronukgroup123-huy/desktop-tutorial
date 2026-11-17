@@ -401,6 +401,9 @@ class AnalysisWeather {
     this.rangeLabel,
     this.sunLabel,
     this.takeLabel,
+    this.parts = const [],
+    this.rainSpans = const [],
+    this.dryRestLabel,
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -417,7 +420,44 @@ class AnalysisWeather {
         rangeLabel: opt<String>(json, 'range_label'),
         sunLabel: opt<String>(json, 'sun_label'),
         takeLabel: opt<String>(json, 'take_label'),
+        parts: [
+          for (final p in (opt<List<dynamic>>(json, 'parts') ?? const []).cast<Map<String, dynamic>>())
+            WeatherPart.fromJson(p),
+        ],
+        rainSpans: [
+          for (final p in (opt<List<dynamic>>(json, 'rain_spans') ?? const []).cast<Map<String, dynamic>>())
+            (
+              fromHour: req<num>(p, 'from_hour').toInt(),
+              toHour: req<num>(p, 'to_hour').toInt(),
+              label: req<String>(p, 'label'),
+            ),
+        ],
+        dryRestLabel: opt<String>(json, 'dry_rest_label'),
       );
+
+  /// Ніч / ранок / день / вечір зі своєю сценою; порожньо — старий результат.
+  final List<WeatherPart> parts;
+
+  /// Проміжки опадів доби: «Дощ 18:00–21:00, ~5 мм».
+  final List<({int fromHour, int toHour, String label})> rainSpans;
+
+  /// «Далі сьогодні без опадів» — коли всі проміжки вже минули.
+  final String? dryRestLabel;
+
+  /// Частина доби, що триває о [hour]; немає годин — `null`.
+  WeatherPart? partAt(int hour) {
+    for (final p in parts) {
+      if (hour >= p.fromHour && hour < p.toHour) return p;
+    }
+    return null;
+  }
+
+  /// Що з опадів ще попереду (для сьогодні — від [hour]; для інших днів — усе): підписи сервера.
+  String? rainAhead(int? hour) {
+    final left = [for (final s in rainSpans) if (hour == null || s.toHour > hour) s.label];
+    if (left.isNotEmpty) return left.join(' · ');
+    return rainSpans.isNotEmpty && hour != null ? dryRestLabel : null;
+  }
 
   /// «Схід 07:12 · захід 16:08 · світла 8 год 56 хв».
   final String? sunLabel;
@@ -449,6 +489,43 @@ class AnalysisWeather {
   final String tempLabel;
   final String humidityLabel;
   final String rainLabel;
+}
+
+/// Частина доби (рішення PO 2026-11-17): сцена й температура з погодинного прогнозу.
+class WeatherPart {
+  const WeatherPart({
+    required this.key,
+    required this.label,
+    required this.fromHour,
+    required this.toHour,
+    required this.scene,
+    required this.sceneLabel,
+    required this.tempLabel,
+  });
+
+  factory WeatherPart.fromJson(Map<String, dynamic> json) => WeatherPart(
+        key: req<String>(json, 'key'),
+        label: req<String>(json, 'label'),
+        fromHour: req<num>(json, 'from_hour').toInt(),
+        toHour: req<num>(json, 'to_hour').toInt(),
+        scene: req<String>(json, 'scene'),
+        sceneLabel: req<String>(json, 'scene_label'),
+        tempLabel: req<String>(json, 'temp_label'),
+      );
+
+  /// `night | morning | day | evening`
+  final String key;
+
+  /// «Ранок»
+  final String label;
+  final int fromHour, toHour;
+  final String scene;
+
+  /// «Сонячно»
+  final String sceneLabel;
+
+  /// «5…11°»
+  final String tempLabel;
 }
 
 /// «Розширені дані погоди» (рішення PO 2026-11-15): дощ → гриби, що сталося, шкали, що далі.
@@ -656,7 +733,7 @@ class AreaFinds {
 typedef PastFind = ({LatLng point, String type, String name, String dateLabel});
 
 /// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
-const kExpectedResultVersion = 4;
+const kExpectedResultVersion = 5;
 
 List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
       final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],
@@ -761,6 +838,7 @@ class AnalysisResult {
     this.identify = const {},
     this.resultVersion = 0,
     this.finds,
+    this.weatherFreshUntil,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -810,6 +888,7 @@ class AnalysisResult {
           if (e.value is Map<String, dynamic>) e.key: IdentifyCard.fromJson(e.value as Map<String, dynamic>),
       },
       resultVersion: opt<num>(json, 'result_version')?.toInt() ?? 0,
+      weatherFreshUntil: DateTime.tryParse(opt<String>(json, 'weather_fresh_until') ?? ''),
       finds: switch (opt<Map<String, dynamic>>(json, 'finds')) {
         final f? => AreaFinds.fromJson(f),
         null => null,
@@ -849,6 +928,7 @@ class AnalysisResult {
         identify: identify,
         resultVersion: resultVersion,
         finds: finds,
+        weatherFreshUntil: weatherFreshUntil,
       );
 
   final AnalysisArea area;
@@ -909,4 +989,10 @@ class AnalysisResult {
 
   /// Аналіз не на сьогодні або зроблений до оновлення застосунку.
   bool isStale(String today) => date.compareTo(today) < 0 || resultVersion < kExpectedResultVersion;
+
+  /// Відколи погоду можна оновити безкоштовно (`refresh: "weather"`, раз на 3 год); `null` — старий результат.
+  final DateTime? weatherFreshUntil;
+
+  /// Погоді понад 3 години — оновити (гриби лишаються).
+  bool weatherStale(DateTime now) => weatherFreshUntil != null && !now.isBefore(weatherFreshUntil!);
 }

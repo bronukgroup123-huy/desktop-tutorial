@@ -234,6 +234,34 @@ void main() {
     expect([sproutCount('none'), sproutCount('few'), sproutCount('many')], [0, 2, 5]);
   });
 
+  test('Погода по годинах: частина доби за годиною; опади, що ще попереду', () {
+    final w = AnalysisWeather.fromJson(_hourlyWeather());
+    expect(w.partAt(13)!.key, 'day');
+    expect(w.partAt(23)!.key, 'evening');
+    expect(w.rainAhead(13), 'Дощ 18:00–21:00, ~5 мм');
+    expect(w.rainAhead(22), 'Далі сьогодні без опадів');
+    expect(w.rainAhead(null), 'Мряка 06:00–07:00 · Дощ 18:00–21:00, ~5 мм'); // інший день — усе
+    expect(AnalysisWeather.fromJson({...(_hourlyWeather()..remove('parts')), 'rain_spans': []}).rainAhead(13), isNull);
+  });
+
+  testWidgets('Сьогодні: сцена — частина доби, що триває (сонце), а не «Дощ» на весь день', (tester) async {
+    final n = DateTime.now();
+    final today = '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+    final json = daysJson();
+    final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
+    days[0]['date'] = today;
+    days[0]['weather'] = <String, dynamic>{...(days[0]['weather'] as Map), ..._hourlyWeather(hour: n.hour)};
+    json['days'] = days;
+    json['date'] = today;
+    await _pump(tester, AnalysisResult.fromJson(json));
+    expect(find.byKey(const ValueKey('weather-parts')), findsOneWidget);
+    expect(find.byKey(const ValueKey('weather-scene-sunny')), findsOneWidget); // зараз — сонце
+    expect(find.text('Зараз: сонячно, 11°'), findsOneWidget);
+    expect(find.text('Зараз'), findsOneWidget);
+    expect(find.byKey(const ValueKey('weather-rain-ahead')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('Картка гриба: «Чому середня» і смужка хвилі; подробиці — «Сприяє» / «Не вистачає»', (tester) async {
     final json = daysJson();
     final days = [for (final d in json['days'] as List) Map<String, dynamic>.from(d as Map)];
@@ -369,4 +397,40 @@ void main() {
     expect(find.text('Схід 07:12 · захід 16:08 · світла 8 год 56 хв'), findsOneWidget);
     expect(find.text('Візьміть: дощовик, гумові чоботи'), findsOneWidget);
   });
+}
+
+
+/// Погода дня з частинами доби: зараз (частина з годиною [hour]) — сонце, решта — дощ увечері.
+Map<String, dynamic> _hourlyWeather({int hour = 13}) {
+  final parts = [
+    ('night', 'Ніч', 0, 6),
+    ('morning', 'Ранок', 6, 12),
+    ('day', 'День', 12, 18),
+    ('evening', 'Вечір', 18, 24),
+  ];
+  return {
+    'icon': 'rain',
+    'temp_label': '4°…11°',
+    'humidity_label': 'Вологість 80%',
+    'rain_label': 'Опади: 5 мм',
+    'scene': 'rain',
+    'scene_label': 'Дощ',
+    'parts': [
+      for (final (key, label, from, to) in parts)
+        {
+          'key': key,
+          'label': label,
+          'from_hour': from,
+          'to_hour': to,
+          'scene': hour >= from && hour < to ? 'sunny' : 'rain',
+          'scene_label': hour >= from && hour < to ? 'Сонячно' : 'Дощ',
+          'temp_label': hour >= from && hour < to ? '11°' : '5°',
+        },
+    ],
+    'rain_spans': [
+      {'from_hour': 6, 'to_hour': 7, 'label': 'Мряка 06:00–07:00'},
+      {'from_hour': 18, 'to_hour': 21, 'label': 'Дощ 18:00–21:00, ~5 мм'},
+    ],
+    'dry_rest_label': 'Далі сьогодні без опадів',
+  };
 }

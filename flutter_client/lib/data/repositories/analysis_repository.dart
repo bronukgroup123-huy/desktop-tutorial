@@ -74,6 +74,21 @@ class AnalysisRepository {
     }
   }
 
+  /// Оновити лише погоду збереженого прогнозу — без списання, раз на 3 години (гриби дня
+  /// лишаються). `null` — ще рано (`409 already_fresh`).
+  Future<AnalysisResult?> weatherRefresh(String areaId, {Map<String, dynamic>? forest}) async {
+    try {
+      return AnalysisResult.fromJson(await _api.post('/v1-analysis', body: {
+        'area_id': areaId,
+        'refresh': 'weather',
+        if (forest != null) 'forest': forest,
+      }) as Map<String, dynamic>);
+    } on ApiException catch (e) {
+      if (e.code == 'already_fresh') return null;
+      rethrow;
+    }
+  }
+
   /// Уточнити ліс ділянки вручну й одразу переаналізувати (ADR-015 §15.6).
   /// [override] `null` — «Скинути до карти». Понад 2 на добу — `429 forest_edit_limit_reached`.
   Future<AnalysisResult> refineForest(String areaId, ForestOverride? override, {Map<String, dynamic>? forest}) async =>
