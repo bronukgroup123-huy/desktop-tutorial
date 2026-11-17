@@ -326,12 +326,6 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           const SizedBox(height: 8),
           ForecastInfoCard(icon: Icons.warning_amber_rounded, text: w, color: AppTheme.accentOrange),
         ],
-        const SizedBox(height: 16),
-        Text(
-          'Рівень показує, наскільки сприятливі умови для гриба цього дня, а не гарантію знахідки. '
-          'Збирайте лише гриби, які точно знаєте.',
-          style: TextStyle(fontSize: 12, color: muted),
-        ),
       ],
     );
   }
@@ -589,14 +583,6 @@ class _SpeciesBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ForecastSpeciesCard(species: item.species, primary: primary, identify: identify),
-          if (item.forestLabel != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 4),
-              child: Text(
-                'Шукати тут: ${item.forestLabel}',
-                style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
-              ),
-            ),
         ],
       );
 }
