@@ -38,6 +38,15 @@ jobs:
       - name: Build model, text embeddings, benchmark
         run: python3 scripts/ai_model/build_model.py --out dist/ai
 
+      # Застосунок містить onnxruntime 1.15.1 (пакет onnxruntime для Flutter): модель має запускатися саме ним.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check with mobile runtime (onnxruntime 1.15.1)
+        run: |
+          python3.11 -m pip install onnxruntime==1.15.1 "numpy<2"
+          python3.11 scripts/ai_model/check_mobile_runtime.py dist/ai
+
       - name: Publish to release «ai-model»
         env:
           GH_TOKEN: ${{ github.token }}

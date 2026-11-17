@@ -34,7 +34,7 @@ CATALOG_JS = ROOT / "web-guardian/public/mushroom_catalog.js"
 BAZA = next(ROOT.glob("baza200_json_*.json"))
 BENCH = ROOT / "docs/AI_BENCHMARK.md"
 MODEL_ID = "hf-hub:imageomics/bioclip-2"
-VERSION = time.strftime("%Y.%m.%d")
+VERSION = time.strftime("%Y.%m.%d.%H%M")  # з часом — повторна збірка в той самий день теж нова версія
 
 # «Не гриб»: якщо найближчий клас звідси — розпізнавання каже «Не схоже на гриб» (ADR-015 §18.4).
 NOT_MUSHROOM = [
@@ -181,6 +181,14 @@ def main() -> None:
 
     int8 = args.out / "bioclip2_vision_int8.onnx"
     quantize_dynamic(str(fp32), str(int8), weight_type=QuantType.QUInt8)
+    # На телефоні — ORT 1.15 (пакет onnxruntime для Flutter): читає моделі до IR 9.
+    # Новий onnx зберігає IR 10 — знижуємо версію формату (оператори opset 17 ті самі).
+    import onnx
+
+    m = onnx.load(str(int8))
+    if m.ir_version > 8:
+        m.ir_version = 8
+        onnx.save(m, str(int8))
     print(f"  ONNX: fp32 {fp32.stat().st_size / 1e6:.0f} МБ → int8 {int8.stat().st_size / 1e6:.0f} МБ")
 
     # ── Точність на фото довідника ───────────────────────────────────────────
