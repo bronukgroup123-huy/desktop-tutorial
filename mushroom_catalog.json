@@ -3,7 +3,7 @@
     "generated": "2026-09-24T12:05:00",
     "rows_total": 333,
     "total": 326,
-    "with_photos": 132,
+    "with_photos": 135,
     "cover": {
       "stem": 2,
       "color": 2,
@@ -7259,7 +7259,7 @@
       "edibility_label": "Їстівний",
       "red_listed": false,
       "rarity": "",
-      "has_photo": false,
+      "has_photo": true,
       "top20": false,
       "popular": false,
       "ai_recognition": false,
@@ -7286,7 +7286,48 @@
           "summer"
         ]
       },
-      "photos": []
+      "photos": [
+        "фото двійників (webp)/Гіродон сизуватий Gyrodon lividus/large.webp",
+        "фото двійників (webp)/Гіродон сизуватий Gyrodon lividus/large (1).webp",
+        "фото двійників (webp)/Гіродон сизуватий Gyrodon lividus/large (2).webp"
+      ],
+      "license": {
+        "raw": "Gyrodon lividus (Гіродон сизуватий).\nФото: ÖkopatóPál, iNaturalist.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://www.inaturalist.org/photos/436168024\n\nGyrodon lividus (Гіродон сизуватий).\nФото: inat_uralist, iNaturalist.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://www.inaturalist.org/photos/545049482\n\nGyrodon lividus (Гіродон сизуватий).\nФото: ÖkopatóPál, iNaturalist.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://www.inaturalist.org/photos/577687738",
+        "credits": [
+          {
+            "author": "ÖkopatóPál, iNaturalist",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/436168024"
+            ]
+          },
+          {
+            "author": "inat_uralist, iNaturalist",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/545049482"
+            ]
+          },
+          {
+            "author": "ÖkopatóPál, iNaturalist",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/577687738"
+            ]
+          }
+        ],
+        "author": "ÖkopatóPál, iNaturalist; inat_uralist, iNaturalist",
+        "type": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "sources": [
+          "https://www.inaturalist.org/photos/436168024",
+          "https://www.inaturalist.org/photos/545049482",
+          "https://www.inaturalist.org/photos/577687738"
+        ]
+      }
     },
     {
       "id": "boletinus_cavipes",
@@ -7333,7 +7374,7 @@
       "edibility_label": "Неїстівний",
       "red_listed": false,
       "rarity": "",
-      "has_photo": false,
+      "has_photo": true,
       "top20": false,
       "popular": false,
       "ai_recognition": false,
@@ -7366,7 +7407,48 @@
           "summer"
         ]
       },
-      "photos": []
+      "photos": [
+        "фото двійників (webp)/Тилопіл жовчний Tylopilus felleus/large.webp",
+        "фото двійників (webp)/Тилопіл жовчний Tylopilus felleus/large (1).webp",
+        "фото двійників (webp)/Тилопіл жовчний Tylopilus felleus/large (2).webp"
+      ],
+      "license": {
+        "raw": "Tylopilus felleus (Тилопіл жовчний).\nФото: creaturefeature97, Wikimedia Commons.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_3.jpg\n\nTylopilus felleus (Тилопіл жовчний).\nФото: rangersara, Wikimedia Commons.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_2.jpg\n\nTylopilus felleus (Тилопіл жовчний).\nФото: peter_gabler, Wikimedia Commons.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_6.jpg",
+        "credits": [
+          {
+            "author": "creaturefeature97, Wikimedia Commons",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_3.jpg"
+            ]
+          },
+          {
+            "author": "rangersara, Wikimedia Commons",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_2.jpg"
+            ]
+          },
+          {
+            "author": "peter_gabler, Wikimedia Commons",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_6.jpg"
+            ]
+          }
+        ],
+        "author": "creaturefeature97, Wikimedia Commons; rangersara, Wikimedia Commons; peter_gabler, Wikimedia Commons",
+        "type": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "sources": [
+          "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_3.jpg",
+          "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_2.jpg",
+          "https://commons.wikimedia.org/wiki/File:Tylopilus_felleus_6.jpg"
+        ]
+      }
     },
     {
       "id": "porphyrellus_porphyrosporus",
@@ -8389,7 +8471,7 @@
       "edibility_label": "Умовно їстівний",
       "red_listed": false,
       "rarity": "",
-      "has_photo": false,
+      "has_photo": true,
       "top20": false,
       "popular": false,
       "ai_recognition": false,
@@ -8412,7 +8494,48 @@
           "autumn"
         ]
       },
-      "photos": []
+      "photos": [
+        "фото двійників (webp)/Хрящ-молочник пухнастий Lactarius pubescens/large.webp",
+        "фото двійників (webp)/Хрящ-молочник пухнастий Lactarius pubescens/large (1).webp",
+        "фото двійників (webp)/Хрящ-молочник пухнастий Lactarius pubescens/large (2).webp"
+      ],
+      "license": {
+        "raw": "Lactarius pubescens (Хрящ-молочник пухнастий).\nФото: Worstbull, Wikimedia Commons.\nЛіцензія: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/\nДжерело: https://commons.wikimedia.org/wiki/File:Lactarius_pubescens_-_Pilzausstellung_Rostock_2015.jpg\n\nLactarius pubescens (Хрящ-молочник пухнастий).\nФото: James Sowerby, Wikimedia Commons.\nЛіцензія: Суспільне надбання (Public domain) — https://commons.wikimedia.org/wiki/Help:Public_domain\nДжерело: https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.png\n\nLactarius pubescens (Хрящ-молочник пухнастий).\nФото: James Sowerby, Wikimedia Commons.\nЛіцензія: Суспільне надбання (Public domain) — https://commons.wikimedia.org/wiki/Help:Public_domain\nДжерело: https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.jpg",
+        "credits": [
+          {
+            "author": "Worstbull, Wikimedia Commons",
+            "type": "CC0 1.0",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Lactarius_pubescens_-_Pilzausstellung_Rostock_2015.jpg"
+            ]
+          },
+          {
+            "author": "James Sowerby, Wikimedia Commons",
+            "type": "Суспільне надбання (Public domain)",
+            "url": "https://commons.wikimedia.org/wiki/Help:Public_domain",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.png"
+            ]
+          },
+          {
+            "author": "James Sowerby, Wikimedia Commons",
+            "type": "Суспільне надбання (Public domain)",
+            "url": "https://commons.wikimedia.org/wiki/Help:Public_domain",
+            "sources": [
+              "https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.jpg"
+            ]
+          }
+        ],
+        "author": "Worstbull, Wikimedia Commons; James Sowerby, Wikimedia Commons",
+        "type": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "sources": [
+          "https://commons.wikimedia.org/wiki/File:Lactarius_pubescens_-_Pilzausstellung_Rostock_2015.jpg",
+          "https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.png",
+          "https://commons.wikimedia.org/wiki/File:Coloured_Figures_of_English_Fungi_or_Mushrooms_-_t._103.jpg"
+        ]
+      }
     },
     {
       "id": "lactarius_controversus",
