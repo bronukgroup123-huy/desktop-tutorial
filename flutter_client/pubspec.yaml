@@ -29,6 +29,9 @@ dependencies:
   camera: ^0.12.2
   onnxruntime: ^1.4.1
   image: ^4.13.1
+  url_launcher: ^6.3.3
+  audioplayers: ^6.8.1
+  wakelock_plus: ^1.8.2
 
 dev_dependencies:
   flutter_test:
