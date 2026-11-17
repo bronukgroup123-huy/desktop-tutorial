@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -113,6 +115,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Шрифт підписів карти (SIL OFL 1.1) — у «Ліцензії бібліотек» поряд із пакетами.
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+        ['Noto Sans (підписи карти)'], await rootBundle.loadString('assets/map/glyphs/noto_sans_regular/LICENSE.txt'));
+  });
 
   if (!SupabaseConfig.isConfigured) {
     runApp(const _MisconfiguredApp());

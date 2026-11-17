@@ -243,11 +243,14 @@ void main() {
     expect(findByName(catalog, 'Скрипиця (L. vellereus)')?.id, 'lactarius_vellereus');
     expect(findByName(catalog, 'Небезпечний двійник (Inocybe patouillardii / Entoloma lividum)')?.id, 'inocybe_erubescens');
     expect(findByName(catalog, 'Галерина облямована')?.id, 'galerina_marginata');
-    expect(findByName(catalog, 'Гірчак (жовчний гриб)'), isNull); // у довіднику немає
+    // Фото двійників CC0 / суспільне надбання (рішення PO 2026-11-17): тепер у довіднику.
+    expect(findByName(catalog, 'Гірчак (жовчний гриб)')?.id, 'tylopilus_felleus');
+    expect(findByName(catalog, 'Хрящ-молочник пухнастий')?.id, 'lactarius_pubescens');
+    expect(findByName(catalog, 'Гіродон сизуватий')?.id, 'gyrodon_lividus');
   });
 
   test('Кожна картка-перевертень: двійник знайдений з фото — або його справді немає в довіднику', () {
-    const notInCatalog = {'Гірчак (жовчний гриб)', 'Хрящ-молочник пухнастий', 'Неїстівний / перестиглий', 'Гіродон сизуватий'};
+    const notInCatalog = {'Неїстівний / перестиглий'}; // не вид — «перестиглий дощовик»
     for (final sp in catalog.species) {
       final s = descSections(sp.description).where((s) => articleKind(s) == ArticleKind.twins).firstOrNull;
       final head = s?.lines.firstWhere((l) => l.contains('\t'), orElse: () => '');
@@ -264,7 +267,8 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(host(CatalogArticle(species: catalog.byId('boletus_edulis')!)));
+    // У дощовика двійник — «Неїстівний / перестиглий» (не вид довідника).
+    await tester.pumpWidget(host(CatalogArticle(species: catalog.byId('lycoperdon_perlatum')!)));
     await tester.pumpAndSettle();
     final card = find.byKey(const ValueKey('flip-card'));
     await tester.ensureVisible(card);
@@ -272,7 +276,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('flip-no-photo')), findsOneWidget);
     expect(find.text('Фото поки немає'), findsOneWidget);
-    expect(find.textContaining('Брудно-рожевий'), findsWidgets); // відмінність двійника з таблиці
   });
 
   test('«Зараз сезон»: відбір за місяцем', () {

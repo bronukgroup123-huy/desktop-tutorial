@@ -11,6 +11,7 @@ build_licenses.py
   - фото популярні 55 грибів (webp)/<вид>/
   - Червона книга (webp)/<вид>/
   - Отруйні та смертельно отруйні (webp)/<вид>/
+  - фото двійників (webp)/<вид>/   (лише CC0 / суспільне надбання — scripts/catalog_sync/fetch_free_photos.py)
 
 Файли:
   - ліцензія*.txt / *license*.txt
@@ -20,7 +21,6 @@ build_licenses.py
 import json
 import os
 import re
-from datetime import datetime
 from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,10 +30,11 @@ PHOTO_FOLDERS = [
     ("popular", "фото популярні 55 грибів (webp)"),
     ("red",     "Червона книга (webp)"),
     ("poison",  "Отруйні та смертельно отруйні (webp)"),
+    ("twins",   "фото двійників (webp)"),
 ]
 
 CATALOG_JSON = os.path.join(ROOT, "mushroom_catalog.json")
-CATALOG_JS   = os.path.join(ROOT, "mushroom_catalog.js")
+CATALOG_JS   = os.path.join(ROOT, "web-guardian", "public", "mushroom_catalog.js")
 
 
 def log(msg):
@@ -70,76 +71,64 @@ def read_utf8(path):
 
 
 def parse_license(text):
+    """Файл ліцензії → кожен блок (порожній рядок між ними) — окремий автор зі своєю
+    ліцензією й посиланнями: `credits`. Поля author/type/url/sources верхнього рівня — для
+    сумісності (author — усі автори через «; », sources — усі посилання)."""
     raw = text.strip()
     if not raw:
         return None, False
 
-    result = {"raw": raw}
-    author = None
-    license_type = None
-    license_url = None
-    sources = []
-    first_block_done = False
-
-    blocks = re.split(r"\n\s*\n", raw)
-    for block in blocks:
-        lines = block.strip().splitlines()
-        block_author = None
-        block_type = None
-        block_url = None
-        block_sources = []
+    credits = []
+    for block in re.split(r"\n\s*\n", raw):
+        author = license_type = license_url = None
+        sources = []
         in_sources = False
-
-        for line in lines:
+        for line in block.strip().splitlines():
             line = line.strip()
             if not line:
                 in_sources = False
                 continue
             if line.startswith("Фото:"):
-                block_author = line.split(":", 1)[1].strip()
+                author = line.split(":", 1)[1].strip().rstrip(".")
                 in_sources = False
             elif line.startswith("Ліцензія:"):
                 payload = line.split(":", 1)[1].strip()
                 if "—" in payload:
                     left, right = payload.split("—", 1)
-                elif "-" in payload:
-                    left, right = payload.split("-", 1)
+                elif " - " in payload:
+                    left, right = payload.split(" - ", 1)
                 else:
                     left, right = payload, None
-                block_type = left.strip() or None
-                block_url = right.strip() if right else None
+                license_type = left.strip() or None
+                license_url = right.strip() if right else None
                 in_sources = False
             elif line.startswith("Джерела:") or line.startswith("Джерело:"):
                 in_sources = True
-                # some files put URL right after the marker on the same line
+                # деякі файли мають URL одразу після мітки
                 rest = line.split(":", 1)[1].strip()
-                if rest and (rest.startswith("http://") or rest.startswith("https://")):
-                    block_sources.append(rest)
-            elif in_sources and (line.startswith("http://") or line.startswith("https://")):
-                block_sources.append(line)
+                if rest.startswith(("http://", "https://")):
+                    sources.append(rest)
+            elif in_sources and line.startswith(("http://", "https://")):
+                sources.append(line)
+        if author or license_type or license_url or sources:
+            credit = {"author": author, "type": license_type, "url": license_url, "sources": sources}
+            credits.append({k: v for k, v in credit.items() if v})
 
-        if not first_block_done:
-            if block_author:
-                author = block_author
-            if block_type:
-                license_type = block_type
-            if block_url:
-                license_url = block_url
-            if block_author or block_type or block_url or block_sources:
-                first_block_done = True
-        sources.extend(block_sources)
-
-    if author is not None:
-        result["author"] = author.rstrip(".")
-    if license_type is not None:
-        result["type"] = license_type
-    if license_url is not None:
-        result["url"] = license_url
+    if not credits:
+        return {"raw": raw}, False
+    result = {"raw": raw, "credits": credits}
+    authors = [c["author"] for c in credits if c.get("author")]
+    if authors:
+        result["author"] = "; ".join(dict.fromkeys(authors))
+    first = credits[0]
+    if first.get("type"):
+        result["type"] = first["type"]
+    if first.get("url"):
+        result["url"] = first["url"]
+    sources = [u for c in credits for u in c.get("sources", [])]
     if sources:
         result["sources"] = sources
-
-    parsed = bool(author or license_type or license_url or sources)
-    return result, parsed
+    return result, True
 
 
 def parse_source(text):
@@ -168,18 +157,16 @@ def parse_source(text):
 
 
 def write_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    trailing = Path(path).read_bytes().endswith(b"\n") if Path(path).exists() else True
+    Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=2) + ("\n" if trailing else ""), encoding="utf-8")
 
 
 def write_js(path, data):
-    meta = data.get("meta", {})
-    # keep generated updated
-    meta["generated"] = datetime.now().isoformat(timespec="seconds")
-    data["meta"] = meta
-    js = "// mushroom_catalog.js\n// Автогенеровано build_licenses.py з mushroom_catalog.json.\n// Не редагувати вручну.\nwindow.MUSHROOM_CATALOG = " + json.dumps(data, ensure_ascii=False, indent=4) + ";\n"
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(js)
+    """Копія для веб-довідника — у тому ж форматі, що й scripts/catalog_sync/sync.py."""
+    js = Path(path).read_text(encoding="utf-8")
+    head = js[: js.index("window.MUSHROOM_CATALOG")]
+    body = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</script", "<\\/script")
+    Path(path).write_text(f"{head}window.MUSHROOM_CATALOG = {body};\n", encoding="utf-8")
 
 
 def main():
@@ -218,15 +205,17 @@ def main():
             species = species_index[sid]
 
             if license_files:
-                text = read_utf8(license_files[0])
-                if text is not None:
+                # Усі файли ліцензій папки (кожен може мати кількох авторів).
+                texts = [read_utf8(f) for f in sorted(license_files)]
+                text = "\n\n".join(t.strip() for t in texts if t)
+                if text:
                     parsed, ok = parse_license(text)
                     if ok:
                         species["license"] = parsed
                         license_count += 1
                     else:
                         parse_failures += 1
-                        log(f"  [WARN] Не вдалося розпарсити ліцензію: {license_files[0]}")
+                        log(f"  [WARN] Не вдалося розпарсити ліцензію: {sub}")
 
             if source_files:
                 text = read_utf8(source_files[0])

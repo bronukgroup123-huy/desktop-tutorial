@@ -23,8 +23,8 @@ class CatalogSpecies {
     required this.season,
     required this.photos,
     required this.description,
-    this.photoAuthor,
-    this.photoLicense,
+    this.credits = const [],
+    this.redBookSource,
     this.zones = const [],
   });
 
@@ -43,8 +43,14 @@ class CatalogSpecies {
         season: [for (final t in (j['season'] as List? ?? const [])) t as String],
         photos: [for (final p in (j['photos'] as List? ?? const [])) p as String],
         description: (j['description'] as String?) ?? '',
-        photoAuthor: (j['license'] as Map?)?['author'] as String?,
-        photoLicense: (j['license'] as Map?)?['type'] as String?,
+        credits: [
+          for (final c in (j['credits'] as List? ?? const []).cast<Map<String, dynamic>>()) PhotoCredit.fromJson(c),
+        ],
+        redBookSource: switch (j['red_book_source']) {
+          final Map<String, dynamic> r when r['text'] != null || r['url'] != null =>
+            (text: (r['text'] as String?) ?? '', url: r['url'] as String?),
+          _ => null,
+        },
         zones: [for (final z in (j['zones'] as List? ?? const [])) z as String],
       );
 
@@ -75,9 +81,12 @@ class CatalogSpecies {
   /// Книжковий опис (розділи з емодзі-заголовками, таблиці через табуляцію).
   final String description;
 
-  /// Автор і ліцензія фото (CC BY — показуємо під галереєю); `null` — власні фото проєкту.
-  final String? photoAuthor;
-  final String? photoLicense;
+  /// Автори фото з ліцензіями (CC BY — підпис обов'язковий): КОЖЕН автор із файлу ліцензії
+  /// папки виду. Порожньо — фото з колекції проєкту без окремої ліцензії.
+  final List<PhotoCredit> credits;
+
+  /// Джерело статусу Червоної книги (бібліографія й посилання).
+  final ({String text, String? url})? redBookSource;
 
   /// Області, де вид поширений (`zhytomyrska`…) — карта на сторінці виду; порожньо — невідомо.
   final List<String> zones;
@@ -107,6 +116,29 @@ class CatalogSpecies {
 }
 
 /// Довідник: вбудований у застосунок (assets/catalog/catalog.json.gz) — працює без інтернету.
+/// Автор фото й ліцензія: «Paula Nimigean, iNaturalist» · CC BY 4.0 · посилання на фото.
+class PhotoCredit {
+  const PhotoCredit({required this.author, this.license, this.licenseUrl, this.sources = const []});
+
+  factory PhotoCredit.fromJson(Map<String, dynamic> j) => PhotoCredit(
+        author: (j['author'] as String?) ?? '',
+        license: j['type'] as String?,
+        licenseUrl: j['url'] as String?,
+        sources: [for (final u in (j['sources'] as List? ?? const [])) u as String],
+      );
+
+  final String author;
+
+  /// «CC BY 4.0»
+  final String? license;
+
+  /// https://creativecommons.org/licenses/by/4.0/
+  final String? licenseUrl;
+
+  /// Сторінки фото автора (iNaturalist).
+  final List<String> sources;
+}
+
 class Catalog {
   const Catalog(this.species);
 
