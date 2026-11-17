@@ -28,9 +28,12 @@ const _monthsShort = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер'
 /// Сторінка виду в довіднику (`/catalog/<id>`): фото, назва, значки, сезон і книжковий опис —
 /// як сторінка виду у веб-довіднику.
 class CatalogDetailScreen extends ConsumerWidget {
-  const CatalogDetailScreen({super.key, required this.speciesId});
+  const CatalogDetailScreen({super.key, required this.speciesId, this.focus});
 
   final String speciesId;
+
+  /// `twins` — одразу прокрутити до «Обережно, двійники» (з результату розпізнавання «Як відрізнити»).
+  final String? focus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,11 +46,51 @@ class CatalogDetailScreen extends ConsumerWidget {
         data: (c) {
           final s = c.byId(speciesId);
           if (s == null) return const _Missing(text: 'Цього гриба ще немає в довіднику');
-          return _Detail(species: s);
+          final detail = _Detail(species: s);
+          return focus == 'twins' ? _FocusTwins(child: detail) : detail;
         },
       ),
     );
   }
+}
+
+/// Відкрито з «Як відрізнити» (результат розпізнавання) — прокрутити до розділу двійників.
+class _FocusTwins extends StatefulWidget {
+  const _FocusTwins({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FocusTwins> createState() => _FocusTwinsState();
+}
+
+class _FocusTwinsState extends State<_FocusTwins> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scroll());
+  }
+
+  void _scroll() {
+    if (!mounted) return;
+    Element? target;
+    void visit(Element e) {
+      if (target != null) return;
+      if (e.widget.key == const ValueKey('article-twins-section')) {
+        target = e;
+        return;
+      }
+      e.visitChildren(visit);
+    }
+
+    context.visitChildElements(visit);
+    if (target != null) {
+      Scrollable.ensureVisible(target!, alignment: 0.05, duration: const Duration(milliseconds: 600), curve: Curves.easeInOutCubic);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _Missing extends StatelessWidget {

@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:flutter_client/core/app_theme.dart';
 
 /// ШІ-розпізнавач (ADR-006): модель BioCLIP 2 (ONNX int8) і відбитки видів лежать у релізі «ai-model»
 /// (.github/workflows/ai-model.yml); застосунок завантажує їх на телефон — як офлайн-карту й фото
@@ -26,7 +25,15 @@ class AiModelFile {
 
 /// Маніфест моделі (manifest.json у релізі).
 class AiModelManifest {
-  const AiModelManifest({required this.version, required this.files, required this.imageSize, required this.mean, required this.std, required this.species});
+  const AiModelManifest({
+    required this.version,
+    required this.files,
+    required this.imageSize,
+    required this.mean,
+    required this.std,
+    required this.species,
+    this.logitScale = 100,
+  });
 
   factory AiModelManifest.fromJson(Map<String, dynamic> j) => AiModelManifest(
         version: j['version'] as String,
@@ -42,6 +49,7 @@ class AiModelManifest {
         mean: [for (final v in (j['mean'] as List? ?? const [])) (v as num).toDouble()],
         std: [for (final v in (j['std'] as List? ?? const [])) (v as num).toDouble()],
         species: (j['species'] as num?)?.toInt() ?? 0,
+        logitScale: (j['logit_scale'] as num?)?.toDouble() ?? 100,
       );
 
   final String version;
@@ -50,6 +58,9 @@ class AiModelManifest {
   final List<double> mean, std;
   final int species;
 
+  /// «Температура» схожості (CLIP) — для рівнів кандидатів.
+  final double logitScale;
+
   int get totalBytes => files.fold(0, (a, f) => a + f.size);
 }
 
@@ -57,7 +68,7 @@ class AiModelManifest {
 class AiModelIo {
   AiModelIo._();
 
-  @visibleForTesting
+  /// Тека моделі на телефоні (у тестах підміняється).
   static Future<Directory?> Function() directory = () async {
     try {
       return Directory('${(await getApplicationSupportDirectory()).path}/ai_model');
@@ -287,140 +298,9 @@ class AiModelController extends Notifier<AiModelState> {
         'mean': m.mean,
         'std': m.std,
         'species': m.species,
+        'logit_scale': m.logitScale,
         'files': {for (final f in m.files) f.name: {'size': f.size, 'sha256': f.sha256}},
       };
 }
 
 final aiModelProvider = NotifierProvider<AiModelController, AiModelState>(AiModelController.new);
-
-String _mb(int bytes) => '${(bytes / (1024 * 1024)).round()} МБ';
-
-/// Картка «ШІ-розпізнавач»: розмір → «Завантажити», прогрес і «Зупинити», після — «готовий» з
-/// «Видалити»; нова версія в релізі — «Оновити».
-class AiModelCard extends ConsumerWidget {
-  const AiModelCard({super.key});
-
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, int bytes) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Видалити ШІ-розпізнавач?'),
-        content: Text('Звільнить ${_mb(bytes)}. Довідник лишиться, а розпізнавати за фото можна буде після нового завантаження.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
-          TextButton(key: const ValueKey('ai-delete-confirm'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Видалити')),
-        ],
-      ),
-    );
-    if (ok == true) await ref.read(aiModelProvider.notifier).deleteModel();
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(aiModelProvider);
-    final ctrl = ref.read(aiModelProvider.notifier);
-    if (!s.checked) return const SizedBox.shrink();
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.7);
-
-    if (s.ready && !s.downloading && !s.updateAvailable) {
-      return Padding(
-        key: const ValueKey('ai-ready'),
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            const Icon(Icons.auto_awesome_rounded, size: 18, color: Color(0xff2e7d32)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text('ШІ-розпізнавач на телефоні — працює без інтернету', style: TextStyle(fontSize: 12, color: muted)),
-            ),
-            TextButton(
-              key: const ValueKey('ai-delete'),
-              onPressed: () => _confirmDelete(context, ref, s.installed!.totalBytes),
-              style: TextButton.styleFrom(foregroundColor: muted, visualDensity: VisualDensity.compact),
-              child: const Text('Видалити'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final remote = s.remote;
-    final String title, subtitle;
-    if (s.downloading) {
-      title = 'Завантаження ШІ…';
-      subtitle = '${_mb(s.bytesDone)} з ${_mb(s.bytesTotal)}';
-    } else if (s.updateAvailable) {
-      title = 'Нова версія ШІ-розпізнавача';
-      subtitle = 'Оновлення · ${_mb(remote!.totalBytes)}';
-    } else if (remote == null) {
-      title = 'ШІ-розпізнавач';
-      subtitle = 'Модель ще готується або немає інтернету — спробуйте пізніше.';
-    } else {
-      title = 'ШІ-розпізнавач';
-      subtitle = 'Розпізнає гриб за фото прямо на телефоні, без інтернету · ${_mb(remote.totalBytes)}';
-    }
-    return Container(
-      key: const ValueKey('ai-card'),
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xff2f4a3a), Color(0xff4a6b54)]),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(s.downloading ? Icons.downloading_rounded : Icons.auto_awesome_rounded, color: Colors.white),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
-                    Text(subtitle, key: const ValueKey('ai-subtitle'), style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
-                  ],
-                ),
-              ),
-              if (s.downloading)
-                TextButton(
-                  key: const ValueKey('ai-stop'),
-                  onPressed: ctrl.stop,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
-                  child: const Text('Зупинити'),
-                ),
-            ],
-          ),
-          if (s.downloading) ...[
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: s.bytesTotal == 0 ? null : s.bytesDone / s.bytesTotal,
-              color: const Color(0xffa5d6a7),
-              backgroundColor: Colors.white24,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ] else if (remote != null) ...[
-            if (s.error != null) ...[
-              const SizedBox(height: 6),
-              Text(s.error!, key: const ValueKey('ai-error'), style: const TextStyle(fontSize: 12, color: Color(0xffffcdd2))),
-            ],
-            const SizedBox(height: 6),
-            Text('Краще через Wi‑Fi. Не закривайте застосунок до кінця завантаження.',
-                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.7))),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                key: const ValueKey('ai-download'),
-                onPressed: ctrl.start,
-                style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
-                icon: const Icon(Icons.download_rounded, size: 18),
-                label: Text(s.updateAvailable ? 'Оновити' : (s.bytesDone > 0 || s.error != null ? 'Продовжити' : 'Завантажити')),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}

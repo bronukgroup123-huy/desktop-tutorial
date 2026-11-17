@@ -90,7 +90,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
       GoRoute(path: Routes.onboarding, builder: (c, s) => const RegionSelectionScreen()),
       // Картка виду в довіднику — поверх вкладок (з «Розпізнати» і з «Як відрізнити» у прогнозі).
-      GoRoute(path: '/catalog/:id', builder: (c, s) => CatalogDetailScreen(speciesId: s.pathParameters['id']!)),
+      GoRoute(
+        path: '/catalog/:id',
+        builder: (c, s) => CatalogDetailScreen(speciesId: s.pathParameters['id']!, focus: s.uri.queryParameters['focus']),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainNavigationScreen(navigationShell: shell),
         branches: [

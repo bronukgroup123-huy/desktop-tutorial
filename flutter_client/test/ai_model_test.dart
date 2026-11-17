@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter/material.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
+import 'package:flutter_client/features/recognize/recognize_banner.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -123,9 +124,9 @@ void main() {
     expect(dir.existsSync(), isFalse);
   });
 
-  testWidgets('Картка: розмір → «Завантажити» → «на телефоні» → «Видалити»', (tester) async {
+  testWidgets('Банер: «Завантажити ШІ · розмір» → «Зробити 3 фото» → меню «Видалити»', (tester) async {
     FakeRelease().install();
-    await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: Scaffold(body: AiModelCard()))));
+    await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: Scaffold(body: SingleChildScrollView(child: RecognizeBanner())))));
     Future<void> until(Finder f) async {
       for (var i = 0; i < 2000 && f.evaluate().isEmpty; i++) {
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
@@ -134,10 +135,12 @@ void main() {
     }
 
     await until(find.byKey(const ValueKey('ai-download')));
-    expect(find.text('ШІ-розпізнавач'), findsOneWidget);
+    expect(find.textContaining('Завантажити ШІ'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('ai-download')));
     await until(find.byKey(const ValueKey('ai-ready')));
-    expect(find.byKey(const ValueKey('ai-ready')), findsOneWidget);
+    expect(find.text('Зробити 3 фото'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ai-menu')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('ai-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('ai-delete-confirm')));

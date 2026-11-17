@@ -15,6 +15,15 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+// Плагін onnxruntime (1.4.1) компілюється під android-33, а його androidx-залежності вимагають ≥ 34:
+// піднімаємо compileSdk бібліотек-плагінів до того, з яким збирається застосунок (minSdk не чіпаємо).
+subprojects {
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.library")) {
+            extensions.findByName("android")?.withGroovyBuilder { "compileSdkVersion"(36) }
+        }
+    }
+}
 subprojects {
     project.evaluationDependsOn(":app")
 }
