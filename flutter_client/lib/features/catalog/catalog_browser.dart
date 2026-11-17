@@ -7,6 +7,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
+import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 
 /// Категорії довідника — як чіпи у веб-довіднику (landing.html).
@@ -99,6 +100,8 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               sliver: SliverList.list(children: [
+                // ШІ-розпізнавач: завантажити модель на телефон (як карту й фото).
+                const AiModelCard(),
                 Text('Довідник грибів',
                     style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
                 const SizedBox(height: 10),
@@ -149,7 +152,11 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                // Фільтри переносяться на другий рядок на вузьких телефонах; лічильник — окремо праворуч.
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _FacetChip(
                       key: const ValueKey('catalog-facet-tree'),
@@ -158,7 +165,6 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                       count: _trees.length,
                       onTap: () => _pick('Дерево', {for (final t in trees) t: kTreeLabels[t] ?? t}, _trees, (v) => _trees = v),
                     ),
-                    const SizedBox(width: 6),
                     _FacetChip(
                       key: const ValueKey('catalog-facet-season'),
                       icon: Icons.calendar_month_outlined,
@@ -170,7 +176,6 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                           _seasons,
                           (v) => _seasons = v),
                     ),
-                    const SizedBox(width: 6),
                     FilterChip(
                       key: const ValueKey('catalog-now'),
                       label: const Text('Зараз сезон'),
@@ -180,17 +185,13 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                       showCheckmark: false,
                       avatar: const Text('🍂'),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text('${list.length} ${_species(list.length)}',
-                          key: const ValueKey('catalog-count'),
-                          textAlign: TextAlign.end,
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                          style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7), fontSize: 12)),
-                    ),
                   ],
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text('${list.length} ${_species(list.length)}',
+                      key: const ValueKey('catalog-count'),
+                      style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7), fontSize: 12)),
                 ),
                 const SizedBox(height: 8),
               ]),

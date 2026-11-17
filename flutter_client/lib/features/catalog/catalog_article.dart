@@ -7,6 +7,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/weather_scene.dart' show Mascot;
+import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/catalog/catalog_description.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
@@ -537,14 +538,68 @@ class _Passport extends StatelessWidget {
 
 // ─── Двійники поруч ─────────────────────────────────────────────────────────
 
-/// Вид довідника за назвою з таблиці («Гірчак (жовчний гриб)», «Галерина облямована»).
+/// Застарілі латинські назви (синоніми) у книжкових таблицях → назва в довіднику.
+const _latinSynonyms = {
+  'inocybe patouillardii': 'inocybe erubescens',
+  'entoloma lividum': 'entoloma sinuatum',
+  'cerioporus squamosus': 'polyporus squamosus',
+  'boletus satanas': 'rubroboletus satanas',
+  'xerocomus badius': 'imleria badia',
+  'boletus badius': 'imleria badia',
+  'leccinum versipelle': 'leccinum versipelle',
+};
+
+/// Народні назви двійників, що відрізняються від назви в довіднику.
+const _nameAliases = {
+  'сатанинський гриб': 'rubroboletus_satanas',
+  'боровик чортів': 'rubroboletus_satanas',
+  'бліда поганка': 'amanita_phalloides',
+  'мухомор червоний': 'amanita_muscaria',
+  'мухомор пантерний': 'amanita_pantherina',
+  'галерина облямована': 'galerina_marginata',
+};
+
+String _norm(String s) => s.toLowerCase().replaceAll('’', "'").replaceAll(RegExp(r'\s+'), ' ').trim();
+
+/// Вид довідника за назвою з таблиці двійників: «Гірчак (жовчний гриб)», «Сироїжка їстівна (R. vesca)»,
+/// «Небезпечний двійник (Inocybe patouillardii / Entoloma lividum)». Пробує народну назву, повну й
+/// скорочену латину, синоніми; кілька варіантів через «/» — перший знайдений.
 CatalogSpecies? findByName(Catalog? c, String text) {
-  if (c == null) return null;
-  final t = text.toLowerCase().replaceAll(RegExp(r'\s*\(.*'), '').trim();
-  if (t.isEmpty) return null;
-  final latin = RegExp(r'\(([A-Z][a-z]+ [a-z]+)').firstMatch(text)?.group(1)?.toLowerCase();
-  for (final s in c.species) {
-    if (s.name.toLowerCase() == t || (latin != null && s.latin.toLowerCase() == latin)) return s;
+  if (c == null || text.trim().isEmpty) return null;
+  // Латина в дужках: «Agaricus xanthodermus», «R. vesca», кілька через «/» чи «та».
+  final latins = <String>[
+    for (final m in RegExp(r'([A-Z][a-z]*\.?)\s([a-z]{3,})').allMatches(text)) '${m.group(1)} ${m.group(2)}',
+  ];
+  for (final raw in latins) {
+    var l = _norm(raw);
+    l = _latinSynonyms[l] ?? l;
+    final parts = l.split(' ');
+    for (final s in c.species) {
+      final sl = _norm(s.latin);
+      if (sl == l) return s;
+      // Скорочений рід: «r. vesca» → Russula vesca.
+      if (parts.first.endsWith('.') && sl.endsWith(' ${parts.last}') && sl.startsWith(parts.first.replaceAll('.', ''))) {
+        return s;
+      }
+    }
+  }
+  // Народні назви: до дужок; варіанти через «/».
+  final plain = _norm(text.replaceAll(RegExp(r'\(.*?\)'), ''));
+  for (final name in plain.split(RegExp(r'\s*/\s*'))) {
+    final alias = _nameAliases[name];
+    if (alias != null) return c.byId(alias);
+    for (final s in c.species) {
+      if (_norm(s.name) == name) return s;
+    }
+  }
+  // Назва в дужках («Гірчак (жовчний гриб)» — друга назва).
+  for (final m in RegExp(r'\(([^)]+)\)').allMatches(text)) {
+    final inner = _norm(m.group(1)!);
+    final alias = _nameAliases[inner];
+    if (alias != null) return c.byId(alias);
+    for (final s in c.species) {
+      if (_norm(s.name) == inner) return s;
+    }
   }
   return null;
 }
@@ -635,7 +690,15 @@ class _Twins extends ConsumerWidget {
       // Картка-перевертень: наш гриб — дотик — двійник.
       children.add(Padding(
         padding: const EdgeInsets.only(top: 10),
-        child: _TwinFlip(species: species, twinName: head[2], twin: twin),
+        child: _TwinFlip(
+          species: species,
+          twinName: head[2],
+          twin: twin,
+          facts: [
+            for (final r in rows.skip(1))
+              if (r.length > 2 && r[2].isNotEmpty) (r[0], r[2])
+          ],
+        ),
       ));
       // Підпис першого стовпця («Ознака») — над рядками порівняння.
       if (head[0].isNotEmpty) {
@@ -708,13 +771,23 @@ class _Twins extends ConsumerWidget {
 /// Наш гриб і двійник на одній картці: дотик перевертає її (3D), на звороті — двійник
 /// з його фото, їстівністю і переходом у довідник.
 class _TwinFlip extends StatelessWidget {
-  const _TwinFlip({required this.species, required this.twinName, required this.twin});
+  const _TwinFlip({required this.species, required this.twinName, required this.twin, this.facts = const []});
 
   final CatalogSpecies species;
+
+  /// Ознаки двійника з таблиці книги (назва ознаки → як у двійника) — для звороту без фото.
+  final List<(String, String)> facts;
   final String twinName;
   final CatalogSpecies? twin;
 
-  Widget _face({required String? photo, required String id, required String title, required Color color, required String chip, Widget? action, required String hint}) =>
+  Widget _face(
+          {required String? photo,
+          required String id,
+          required String title,
+          required Color color,
+          required String chip,
+          Widget? action,
+          required String hint}) =>
       ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: AspectRatio(
@@ -754,13 +827,16 @@ class _TwinFlip extends StatelessWidget {
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.flip_rounded, size: 14, color: AppTheme.darkGreen),
                           const SizedBox(width: 4),
-                          Text(hint, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                          Text(hint,
+                              style: const TextStyle(
+                                  fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
                         ],
                       ),
                     ),
@@ -775,8 +851,11 @@ class _TwinFlip extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
-                      child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.15)),
+                      child: Text(title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.15)),
                     ),
                     if (action != null) action,
                   ],
@@ -799,24 +878,121 @@ class _TwinFlip extends StatelessWidget {
         chip: 'Наш гриб',
         hint: 'Торкніться — двійник',
       ),
-      back: _face(
-        photo: twin == null || twin!.photos.isEmpty ? null : twin!.photos.first,
-        id: twin?.id ?? '',
-        title: twinName,
-        color: twinBadge == null ? const Color(0xffc62828) : Color(twinBadge.color),
-        chip: twinBadge == null ? 'Двійник' : 'Двійник · ${twinBadge.label}',
-        hint: 'Назад',
-        action: twin == null
-            ? null
-            : FilledButton(
-                key: ValueKey('flip-open-${twin!.id}'),
-                onPressed: () => context.push('/catalog/${twin!.id}'),
-                style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
-                child: const Text('Відкрити'),
-              ),
-      ),
+      back: twin == null || twin!.photos.isEmpty
+          ? _noPhotoFace()
+          : _face(
+              photo: twin!.photos.first,
+              id: twin?.id ?? '',
+              title: twinName,
+              color: twinBadge == null ? const Color(0xffc62828) : Color(twinBadge.color),
+              chip: twinBadge == null ? 'Двійник' : 'Двійник · ${twinBadge.label}',
+              hint: 'Назад',
+              action: twin == null
+                  ? null
+                  : FilledButton(
+                      key: ValueKey('flip-open-${twin!.id}'),
+                      onPressed: () => context.push('/catalog/${twin!.id}'),
+                      style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppTheme.darkGreen,
+                          visualDensity: VisualDensity.compact),
+                      child: const Text('Відкрити'),
+                    ),
+            ),
     );
   }
+
+  /// Зворот, коли фото двійника в довіднику немає: силует, назва і головні відмінності з таблиці.
+  Widget _noPhotoFace() => ClipRRect(
+        key: const ValueKey('flip-no-photo'),
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xff6d1f1f), Color(0xffa83232)]),
+            ),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Силует гриба зі знаком питання — фото ще немає.
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(Icons.circle, size: 74, color: Colors.white.withValues(alpha: 0.1)),
+                        const MushroomMarker(color: Color(0xffe0c4a8), isPrivate: false, size: 56),
+                        const Positioned(
+                          right: 4,
+                          top: 4,
+                          child: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.white,
+                            child: Text('?', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xffa83232))),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Фото поки немає',
+                        style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.75))),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(20)),
+                              child: const Text('Двійник',
+                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text('Назад', style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.8))),
+                          const SizedBox(width: 3),
+                          Icon(Icons.flip_rounded, size: 13, color: Colors.white.withValues(alpha: 0.8)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(twinName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, height: 1.15)),
+                      const SizedBox(height: 6),
+                      for (final (k, v) in facts.take(2))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text.rich(
+                            TextSpan(children: [
+                              TextSpan(text: '$k: ', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+                              TextSpan(
+                                  text: v, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                            ]),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, height: 1.25),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 /// «З ким можна сплутати» (отруйні): «B40 Рядовка майська (Calocybe gambosa)» + ознаки — картками.
@@ -1168,14 +1344,14 @@ class _Recipes extends StatelessWidget {
                               )
                             else
                               Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xffe3dccb)),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xffe3dccb)),
+                                ),
+                                child: Text(i, style: const TextStyle(fontSize: 12, color: AppTheme.darkGreen)),
                               ),
-                              child: Text(i, style: const TextStyle(fontSize: 12, color: AppTheme.darkGreen)),
-                            ),
                         ],
                       ),
                     ],

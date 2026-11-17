@@ -1,0 +1,59 @@
+# ШІ-розпізнавач (ADR-006): BioCLIP 2 → ONNX int8 + відбитки видів → реліз «ai-model».
+# Застосунок завантажує модель із релізу (як фото довідника й карти) і розпізнає на телефоні офлайн.
+# Важкий (≈ 20–30 хв): запускається, коли змінюється скрипт моделі, або вручну
+# (Actions → AI model → Run workflow).
+name: AI model
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'scripts/ai_model/**'
+      - '.github/workflows/ai-model.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-model
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dependencies (CPU)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          pip install open_clip_torch onnx onnxscript onnxruntime pillow numpy
+
+      - name: Build model, text embeddings, benchmark
+        run: python3 scripts/ai_model/build_model.py --out dist/ai
+
+      - name: Publish to release «ai-model»
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R="$GITHUB_REPOSITORY"
+          gh release view ai-model --repo "$R" >/dev/null 2>&1 || \
+            gh release create ai-model --repo "$R" --prerelease --latest=false \
+              --title "ШІ-розпізнавач (BioCLIP 2, ONNX int8)" \
+              --notes "Модель для офлайн-розпізнавання грибів на телефоні (ADR-006). Генерує .github/workflows/ai-model.yml. BioCLIP 2 — imageomics/bioclip-2 (MIT)."
+          for f in bioclip2_vision_int8.onnx species_text.f16 labels.json AI_BENCHMARK.md manifest.json; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              if gh release upload ai-model "dist/ai/$f" --clobber --repo "$R"; then ok=1; break; fi
+              echo "::warning::$f: спроба $attempt не вдалась, чекаю $((attempt*60)) с"
+              sleep $((attempt*60))
+            done
+            [ "$ok" = 1 ] || { echo "::error::Не вдалося викласти $f"; exit 1; }
+          done
+          { echo "### ШІ-розпізнавач"; echo; cat dist/ai/AI_BENCHMARK.md; } >> "$GITHUB_STEP_SUMMARY"
