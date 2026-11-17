@@ -92,7 +92,15 @@ def commons(latin: str) -> list[dict]:
             "url": info.get("thumburl") or info["url"], "page": info.get("descriptionurl"),
             "author": f"{author}, Wikimedia Commons", "license": lic, "size": info.get("width", 0),
         })
-    return sorted(out, key=lambda x: -x["size"])
+    # Той самий файл різними форматами (…t._103.png і …t._103.jpg) — один раз; фотографії
+    # (JPEG) — перед малюнками (PNG).
+    seen, unique = set(), []
+    for x in sorted(out, key=lambda x: (x["url"].lower().endswith(".png"), -x["size"])):
+        stem = re.sub(r"\.(jpe?g|png)$", "", (x["page"] or "").lower())
+        if stem not in seen:
+            seen.add(stem)
+            unique.append(x)
+    return unique
 
 
 def inaturalist(latin: str) -> list[dict]:
@@ -146,6 +154,8 @@ def main() -> int:
             continue
         folder = ROOT / FOLDER / f"{name} {latin}"
         folder.mkdir(parents=True, exist_ok=True)
+        for old in folder.glob("*.webp"):
+            old.unlink()  # повторний запуск — без залишків попереднього вибору
         blocks, rels = [], []
         for n, p in enumerate(picks):
             fname = "large.webp" if n == 0 else f"large ({n}).webp"
