@@ -44,6 +44,21 @@ def load_js_object(path: Path) -> dict:
     return json.loads(s[start:end])
 
 
+def photo_credits(lic: dict) -> list[dict]:
+    """Автори фото з `license` (scripts/build_licenses.py): `credits`, а для старого запису —
+    один автор із полів верхнього рівня."""
+    credits = lic.get("credits")
+    if not credits and lic.get("author"):
+        credits = [{k: lic[k] for k in ("author", "type", "url", "sources") if lic.get(k)}]
+    return [{k: c[k] for k in ("author", "type", "url", "sources") if c.get(k)} for c in credits or []]
+
+
+def red_book_source(src: dict | None) -> dict | None:
+    if not src or not (src.get("text") or src.get("url")):
+        return None
+    return {k: src[k].strip() for k in ("text", "url") if src.get(k)}
+
+
 def photo_name(species_id: str, n: int, thumb: bool = False) -> str:
     return f"{species_id}-{n}{'-t' if thumb else ''}.webp"
 
@@ -84,8 +99,11 @@ def build() -> tuple[dict, list[tuple[Path, str, int]]]:
             # Області, де вид поширений (коди як у ukraine_oblasts.json) — карта на сторінці виду.
             "zones": s.get("zones") or [],
             "photos": names,
-            # Автор і ліцензія фото (CC BY — підпис обов'язковий).
-            "license": {k: lic[k] for k in ("author", "type", "url") if lic.get(k)} or None,
+            # Автори й ліцензії фото (CC BY — підпис обов'язковий): КОЖЕН автор з файлу ліцензії
+            # папки виду — свій рядок із ліцензією та посиланнями на його фото.
+            "credits": photo_credits(lic),
+            # Джерело статусу Червоної книги (посилання.txt у папці виду).
+            "red_book_source": red_book_source(s.get("red_book_source")),
             # Ключі описів — через дефіс (agaricus-arvensis), id видів — через підкреслення.
             "description": descriptions.get(sid.replace("_", "-")) or descriptions.get(sid) or "",
         })

@@ -2073,6 +2073,8 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
          <div id="detail-license" class="mt-6 pt-4 border-t border-cream-300" style="display:none;">
            <div class="text-[11px] text-ink-muted leading-relaxed">
              <div class="font-semibold mb-1">📷 Фото</div>
+             <!-- Кожен автор — свій рядок з ліцензією і посиланнями (у файлі ліцензії їх може бути кілька) -->
+             <div id="license-credits"></div>
              <div id="license-author-wrap">Автор: <span id="license-author"></span></div>
              <div id="license-type-wrap">Ліцензія: <a id="license-url" href="#" target="_blank" rel="noopener" class="underline"></a></div>
              <div id="license-sources-wrap" class="mt-1" style="display:none;">
@@ -3197,7 +3199,21 @@ html, body { font-family: 'Inter', sans-serif; color: #1E1E1A; margin: 0; paddin
     const lic = (s.license && s.license.raw) ? s.license : null;
     if (licEl) {
       licEl.style.display = lic ? 'block' : 'none';
-      if (lic) {
+      const creditsEl = document.getElementById('license-credits');
+      const credits = lic && Array.isArray(lic.credits) ? lic.credits : [];
+      if (creditsEl) {
+        creditsEl.innerHTML = credits.map(c =>
+          '<div class="mb-2">' +
+            (c.author ? '<div>Автор: ' + esc(c.author) + '</div>' : '') +
+            (c.type ? '<div>Ліцензія: <a href="' + esc(c.url || '#') + '" target="_blank" rel="noopener" class="underline">' + esc(c.type) + '</a></div>' : '') +
+            ((c.sources || []).length ? '<ul class="list-disc pl-4">' + c.sources.map(u => '<li><a href="' + esc(u) + '" target="_blank" rel="noopener" class="underline">' + esc(u) + '</a></li>').join('') + '</ul>' : '') +
+          '</div>').join('');
+      }
+      ['license-author-wrap', 'license-type-wrap', 'license-sources-wrap'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && credits.length) el.style.display = 'none';
+      });
+      if (lic && !credits.length) {
         const authorEl = document.getElementById('license-author');
         const authorWrap = document.getElementById('license-author-wrap');
         if (authorEl) authorEl.textContent = lic.author || '';

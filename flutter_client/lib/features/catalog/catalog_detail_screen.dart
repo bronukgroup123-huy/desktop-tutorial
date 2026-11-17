@@ -14,6 +14,7 @@ import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion, seg;
 import 'package:flutter_client/features/catalog/mushroom_character.dart' show hasCharacter;
 import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
+import 'package:flutter_client/features/catalog/species_credits.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
 /// Значок дерева / лісу: хвойні — 🌲, листяні — 🌳, мішаний — обидва.
@@ -189,13 +190,9 @@ class _Detail extends StatelessWidget {
             CatalogForecastLink(speciesId: s.id),
             const SizedBox(height: 8),
             CatalogArticle(species: s),
-            if (s.photoAuthor != null) ...[
+            if (s.credits.isNotEmpty || s.redBookSource != null) ...[
               const SizedBox(height: 18),
-              Text(
-                'Фото: ${s.photoAuthor}${s.photoLicense == null ? '' : ' · ${s.photoLicense}'}',
-                key: const ValueKey('catalog-photo-credit'),
-                style: TextStyle(fontSize: 11, color: dim),
-              ),
+              SpeciesCredits(species: s, color: dim),
             ],
           ]),
         ),

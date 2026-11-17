@@ -2202,7 +2202,26 @@
       ],
       "license": {
         "raw": "Cantharellus friesii (Лисичка бархатиста).\nФото: serni bams, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/353615806\nhttps://www.inaturalist.org/photos/353615887\n\nCantharellus friesii (Лисичка бархатиста).\nФото: Jose Castro, Natusfera.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/139698282",
-        "author": "serni bams, iNaturalist",
+        "credits": [
+          {
+            "author": "serni bams, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/353615806",
+              "https://www.inaturalist.org/photos/353615887"
+            ]
+          },
+          {
+            "author": "Jose Castro, Natusfera",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/139698282"
+            ]
+          }
+        ],
+        "author": "serni bams, iNaturalist; Jose Castro, Natusfera",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -4364,6 +4383,17 @@
       ],
       "license": {
         "raw": "Rubroboletus lupinus (Боровик вовчий).\nФото: Kristian Bosak, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/437659570\nhttps://www.inaturalist.org/photos/436642666",
+        "credits": [
+          {
+            "author": "Kristian Bosak, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/437659570",
+              "https://www.inaturalist.org/photos/436642666"
+            ]
+          }
+        ],
         "author": "Kristian Bosak, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4405,7 +4435,33 @@
       ],
       "license": {
         "raw": "Butyriboletus appendiculatus (Боровик дівочий).\nФото: Petr Harant, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/231120702\n\nButyriboletus appendiculatus (Боровик дівочий).\nФото: Virn Stothers, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/542911370\n\nButyriboletus appendiculatus (Боровик дівочий).\nФото: vuikaan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/543383823",
-        "author": "Petr Harant, iNaturalist",
+        "credits": [
+          {
+            "author": "Petr Harant, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/231120702"
+            ]
+          },
+          {
+            "author": "Virn Stothers, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/542911370"
+            ]
+          },
+          {
+            "author": "vuikaan, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/543383823"
+            ]
+          }
+        ],
+        "author": "Petr Harant, iNaturalist; Virn Stothers, iNaturalist; vuikaan, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -4446,7 +4502,25 @@
       ],
       "license": {
         "raw": "Butyriboletus regius (Боровик королівський).\nФото: serni bams, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/448821583\n\nButyriboletus regius (Боровик королівський).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/629334747",
-        "author": "serni bams, iNaturalist",
+        "credits": [
+          {
+            "author": "serni bams, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/448821583"
+            ]
+          },
+          {
+            "author": "Paula Nimigean, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/629334747"
+            ]
+          }
+        ],
+        "author": "serni bams, iNaturalist; Paula Nimigean, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -4488,6 +4562,19 @@
       ],
       "license": {
         "raw": "Butyriboletus subappendiculatus (Боровик напівпридатковий).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/551921635\nhttps://www.inaturalist.org/photos/551921685\nhttps://www.inaturalist.org/photos/551921730\nhttps://www.inaturalist.org/photos/551921775",
+        "credits": [
+          {
+            "author": "Paula Nimigean, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/551921635",
+              "https://www.inaturalist.org/photos/551921685",
+              "https://www.inaturalist.org/photos/551921730",
+              "https://www.inaturalist.org/photos/551921775"
+            ]
+          }
+        ],
         "author": "Paula Nimigean, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4532,6 +4619,19 @@
       ],
       "license": {
         "raw": "Butyriboletus fuscoroseus (Боровик буро-рожевий).\nФото: ionafraser, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/572844370\nhttps://www.inaturalist.org/photos/572844409\nhttps://www.inaturalist.org/photos/572844461\nhttps://www.inaturalist.org/photos/572844515",
+        "credits": [
+          {
+            "author": "ionafraser, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/572844370",
+              "https://www.inaturalist.org/photos/572844409",
+              "https://www.inaturalist.org/photos/572844461",
+              "https://www.inaturalist.org/photos/572844515"
+            ]
+          }
+        ],
         "author": "ionafraser, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4575,6 +4675,18 @@
       ],
       "license": {
         "raw": "Rubroboletus rhodoxanthus (Боровик рожевошкірий).\nФото: Manuela Fiorini, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/563316275\nhttps://www.inaturalist.org/photos/563316359\nhttps://www.inaturalist.org/photos/563316492",
+        "credits": [
+          {
+            "author": "Manuela Fiorini, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/563316275",
+              "https://www.inaturalist.org/photos/563316359",
+              "https://www.inaturalist.org/photos/563316492"
+            ]
+          }
+        ],
         "author": "Manuela Fiorini, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4617,7 +4729,33 @@
       ],
       "license": {
         "raw": "Rubroboletus satanas (Чортів Гриб).\nФото: Алена Ручка, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/161474921\n\nRubroboletus satanas (Чортів Гриб).\nФото: Ondřej Křivan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/732691022\n\nRubroboletus satanas (Чортів Гриб).\nФото: Daniel Ghyselinck, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/728986588",
-        "author": "Алена Ручка, iNaturalist",
+        "credits": [
+          {
+            "author": "Алена Ручка, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/161474921"
+            ]
+          },
+          {
+            "author": "Ondřej Křivan, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/732691022"
+            ]
+          },
+          {
+            "author": "Daniel Ghyselinck, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/728986588"
+            ]
+          }
+        ],
+        "author": "Алена Ручка, iNaturalist; Ondřej Křivan, iNaturalist; Daniel Ghyselinck, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -4659,6 +4797,18 @@
       ],
       "license": {
         "raw": "Butyriboletus fechtneri (Боровик вицвітаючий).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/551943027\nhttps://www.inaturalist.org/photos/551943074\nhttps://www.inaturalist.org/photos/551943114",
+        "credits": [
+          {
+            "author": "Paula Nimigean, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/551943027",
+              "https://www.inaturalist.org/photos/551943074",
+              "https://www.inaturalist.org/photos/551943114"
+            ]
+          }
+        ],
         "author": "Paula Nimigean, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4700,7 +4850,25 @@
       ],
       "license": {
         "raw": "Rubroboletus rubrosanguineus (Боровик криваво-червоний).\nФото: Paula Nimigean, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/704743467\n\nRubroboletus rubrosanguineus (Боровик криваво-червоний).\nФото: Luisa Atzei, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/699718846",
-        "author": "Paula Nimigean, iNaturalist",
+        "credits": [
+          {
+            "author": "Paula Nimigean, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/704743467"
+            ]
+          },
+          {
+            "author": "Luisa Atzei, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/699718846"
+            ]
+          }
+        ],
+        "author": "Paula Nimigean, iNaturalist; Luisa Atzei, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -4742,6 +4910,16 @@
       ],
       "license": {
         "raw": "Phallus duplicatus.\nФото: Grze Swis, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/228526348",
+        "credits": [
+          {
+            "author": "Grze Swis, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/228526348"
+            ]
+          }
+        ],
         "author": "Grze Swis, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4782,6 +4960,18 @@
       ],
       "license": {
         "raw": "Hemileccinum depilatum (Боровик неопушений).\nФото: Bobo-X, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/421636434\nhttps://www.inaturalist.org/photos/421636086\nhttps://www.inaturalist.org/photos/421635974",
+        "credits": [
+          {
+            "author": "Bobo-X, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/421636434",
+              "https://www.inaturalist.org/photos/421636086",
+              "https://www.inaturalist.org/photos/421635974"
+            ]
+          }
+        ],
         "author": "Bobo-X, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -4987,7 +5177,27 @@
       ],
       "license": {
         "raw": "Morchella steppicola (Зморшок степовий).\nФото: Vasily Moryashkin, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/369709672\nhttps://www.inaturalist.org/photos/369709695\nhttps://www.inaturalist.org/photos/369709719\n\nMorchella steppicola (Зморшок степовий).\nФото: Evgeniy Meyke, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/370656263",
-        "author": "Vasily Moryashkin, iNaturalist",
+        "credits": [
+          {
+            "author": "Vasily Moryashkin, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/369709672",
+              "https://www.inaturalist.org/photos/369709695",
+              "https://www.inaturalist.org/photos/369709719"
+            ]
+          },
+          {
+            "author": "Evgeniy Meyke, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/370656263"
+            ]
+          }
+        ],
+        "author": "Vasily Moryashkin, iNaturalist; Evgeniy Meyke, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -5061,7 +5271,26 @@
       ],
       "license": {
         "raw": "Catathelasma imperiale.\nФото: Ирина Хохрякова, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/427546383\nhttps://www.inaturalist.org/photos/427546473\n\nCatathelasma imperiale.\nФото: Alan Rockefeller, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/6671915",
-        "author": "Ирина Хохрякова, iNaturalist",
+        "credits": [
+          {
+            "author": "Ирина Хохрякова, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/427546383",
+              "https://www.inaturalist.org/photos/427546473"
+            ]
+          },
+          {
+            "author": "Alan Rockefeller, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/6671915"
+            ]
+          }
+        ],
+        "author": "Ирина Хохрякова, iNaturalist; Alan Rockefeller, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -5168,7 +5397,26 @@
       ],
       "license": {
         "raw": "Calocybe favrei.\nФото: Manuela Fiorini, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/580481803\nhttps://www.inaturalist.org/photos/580481792\n\nCalocybe favrei.\nФото: Davide Puddu, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/6993857",
-        "author": "Manuela Fiorini, iNaturalist",
+        "credits": [
+          {
+            "author": "Manuela Fiorini, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/580481803",
+              "https://www.inaturalist.org/photos/580481792"
+            ]
+          },
+          {
+            "author": "Davide Puddu, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/6993857"
+            ]
+          }
+        ],
+        "author": "Manuela Fiorini, iNaturalist; Davide Puddu, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -5237,6 +5485,18 @@
       ],
       "license": {
         "raw": "Suillus plorans.\nФото: Виктория Билоус, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/90402308\nhttps://www.inaturalist.org/photos/90402305\nhttps://www.inaturalist.org/photos/90402330",
+        "credits": [
+          {
+            "author": "Виктория Билоус, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/90402308",
+              "https://www.inaturalist.org/photos/90402305",
+              "https://www.inaturalist.org/photos/90402330"
+            ]
+          }
+        ],
         "author": "Виктория Билоус, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -5409,6 +5669,19 @@
       ],
       "license": {
         "raw": "Chalciporus rubinus (Рубіноболет рубіново-червоний).\nФото: vuikaan, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/399063908\nhttps://www.inaturalist.org/photos/399063948\nhttps://www.inaturalist.org/photos/399064005\nhttps://www.inaturalist.org/photos/399064058",
+        "credits": [
+          {
+            "author": "vuikaan, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/399063908",
+              "https://www.inaturalist.org/photos/399063948",
+              "https://www.inaturalist.org/photos/399064005",
+              "https://www.inaturalist.org/photos/399064058"
+            ]
+          }
+        ],
         "author": "vuikaan, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -5485,6 +5758,19 @@
       ],
       "license": {
         "raw": "Tricholoma colossus.\nФото: Lucian Clanet, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/436985979\nhttps://www.inaturalist.org/photos/436985696\nhttps://www.inaturalist.org/photos/436985613\nhttps://www.inaturalist.org/photos/436985522",
+        "credits": [
+          {
+            "author": "Lucian Clanet, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/436985979",
+              "https://www.inaturalist.org/photos/436985696",
+              "https://www.inaturalist.org/photos/436985613",
+              "https://www.inaturalist.org/photos/436985522"
+            ]
+          }
+        ],
         "author": "Lucian Clanet, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -5599,6 +5885,17 @@
       ],
       "license": {
         "raw": "Russula turci (Сироїжка Синювата).\nФото: Nina Filippova, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/83274774\nhttps://www.inaturalist.org/photos/83274709",
+        "credits": [
+          {
+            "author": "Nina Filippova, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/83274774",
+              "https://www.inaturalist.org/photos/83274709"
+            ]
+          }
+        ],
         "author": "Nina Filippova, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -5740,7 +6037,34 @@
       ],
       "license": {
         "raw": "Tuber aestivum (Трюфель літній).\nФото: gerardbertrand, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/538619416\n\nTuber aestivum (Трюфель літній).\nФото: Brian C. Hunt, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/358689732\nhttps://www.inaturalist.org/photos/358689844\n\nTuber aestivum (Трюфель літній).\nФото: Daniel Ghyselinck, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/407785428",
-        "author": "gerardbertrand, iNaturalist",
+        "credits": [
+          {
+            "author": "gerardbertrand, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/538619416"
+            ]
+          },
+          {
+            "author": "Brian C. Hunt, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/358689732",
+              "https://www.inaturalist.org/photos/358689844"
+            ]
+          },
+          {
+            "author": "Daniel Ghyselinck, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/407785428"
+            ]
+          }
+        ],
+        "author": "gerardbertrand, iNaturalist; Brian C. Hunt, iNaturalist; Daniel Ghyselinck, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -5783,6 +6107,16 @@
       ],
       "license": {
         "raw": "Phellorinia herculeana.\nФото: linkie, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/54213605",
+        "credits": [
+          {
+            "author": "linkie, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/54213605"
+            ]
+          }
+        ],
         "author": "linkie, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
@@ -5856,7 +6190,26 @@
       ],
       "license": {
         "raw": "Phylloporus pelletieri (Філопор рожево-золотистий).\nФото: Enrico Tomschke, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/146957906\n\nPhylloporus pelletieri (Філопор рожево-золотистий).\nФото: Sarah Faulwetter, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерела:\nhttps://www.inaturalist.org/photos/20990939\nhttps://www.inaturalist.org/photos/20990948",
-        "author": "Enrico Tomschke, iNaturalist",
+        "credits": [
+          {
+            "author": "Enrico Tomschke, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/146957906"
+            ]
+          },
+          {
+            "author": "Sarah Faulwetter, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/20990939",
+              "https://www.inaturalist.org/photos/20990948"
+            ]
+          }
+        ],
+        "author": "Enrico Tomschke, iNaturalist; Sarah Faulwetter, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",
         "sources": [
@@ -6044,6 +6397,16 @@
       ],
       "license": {
         "raw": "Amanita verna (Поганка весняна).\nФото: Davide Puddu, iNaturalist.\nЛіцензія: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/\nДжерело: https://www.inaturalist.org/photos/29238677",
+        "credits": [
+          {
+            "author": "Davide Puddu, iNaturalist",
+            "type": "CC BY 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "sources": [
+              "https://www.inaturalist.org/photos/29238677"
+            ]
+          }
+        ],
         "author": "Davide Puddu, iNaturalist",
         "type": "CC BY 4.0",
         "url": "https://creativecommons.org/licenses/by/4.0/",

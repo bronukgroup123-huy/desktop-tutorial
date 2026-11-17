@@ -172,7 +172,7 @@ Deno.test("Чому висока / низька; холодний ґрунт; н
 
 Deno.test("Висновок погоди для грибів: сухо / холодно / свіжий дощ / волого / помірно", () => {
   assertEquals(weatherVerdict({ ...W, droughtDays: 12 })!.tone, "bad");
-  assertEquals(weatherVerdict({ ...W, tempAvg7d: 1 })!.label, "Холодно — ростуть лише зимові гриби (зимовий опеньок, глива)");
+  assertEquals(weatherVerdict({ ...W, tempAvg7d: 1 })!.label, "Холодно — ростуть лише зимові гриби (зимовий опеньок)");
   assertEquals(weatherVerdict({ ...W, rain3d: 16 })!.tone, "good");
   assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 18 })!.label, "Ґрунт вологий після дощів — добре для грибів");
   assertEquals(weatherVerdict({ ...W, rain3d: 2, rain7d: 6, rain14d: 10 })!.tone, "neutral");

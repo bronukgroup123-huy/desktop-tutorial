@@ -379,7 +379,7 @@ export function weatherVerdict(w: WeatherData | null | undefined): { label: stri
     return { label: "Сухо: дощу майже не було — гриби майже не ростуть", tone: "bad" };
   }
   if (w.tempAvg7d < 3) {
-    return { label: "Холодно — ростуть лише зимові гриби (зимовий опеньок, глива)", tone: "neutral" };
+    return { label: "Холодно — ростуть лише зимові гриби (зимовий опеньок)", tone: "neutral" };
   }
   if (w.tempAvg7d > 24 && w.rain7d < 10) return { label: "Спекотно й сухо — гриби ховаються", tone: "bad" };
   if (w.rain3d >= 10) return { label: "Свіжий дощ промочив ґрунт — за кілька днів можлива нова хвиля", tone: "good" };

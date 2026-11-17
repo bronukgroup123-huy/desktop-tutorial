@@ -14,6 +14,7 @@ on:
       - 'фото популярні 55 грибів (webp)/**'
       - 'Отруйні та смертельно отруйні (webp)/**'
       - 'Червона книга (webp)/**'
+      - 'фото двійників (webp)/**'
       - '.github/workflows/catalog.yml'
   workflow_dispatch:
 
