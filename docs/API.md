@@ -96,6 +96,8 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
 | `GET /v1-picks/species` | JWT | Список видів для вибору назви + `unknown_label` («Не знаю, що це») |
 | `GET /v1-analysis` | JWT | Аналіз ділянки: доступні розміри (10×10 — `lock_label: "Доступно в Pro"`), збережена ділянка, ліміт на сьогодні |
 | `POST /v1-analysis` | JWT | `{ lat, lng, size_km: 5 \| 10, date? }` → ліси в квадраті, погода, Top-1 / Top-2 рівнями (ADR-015) |
+| `GET /v1-app-config` | публічний | Тексти «Безпеки»: банер ДСНС (ADR-003), «Заблукали?», «Отруєння», «Інші небезпеки», чек-лист, поради на час тривоги; змінюються без релізу (`feature_flags`), ETag |
+| `GET /v1-air-alerts` | публічний | Повітряна тривога по областях (alerts.in.ua): `{ available, regions: [{ slug, scope, title }] }`; без ключа — `available: false` |
 
 Спільні правила v1:
 - Гість входить через `supabase.auth.signInAnonymously()` і має звичайний JWT (ADR-001).

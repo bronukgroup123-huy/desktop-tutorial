@@ -27,6 +27,7 @@ import 'package:flutter_client/features/map/region_camera.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/picks/pick_card_sheet.dart';
+import 'package:flutter_client/features/safety/hike/hike_controller.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
@@ -266,6 +267,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   Object? _pushedAreas;
   Object? _pushedAnalysis;
   Object? _pushedPin;
+  Object? _pushedRoute;
+  Object? _pushedTrack;
   final Set<String> _icons = {};
   bool _locating = false;
   bool _startingPick = false;
@@ -354,6 +357,11 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   /// Тап по карті MapLibre: спершу тук-тук чи підпис ділянки під пальцем, далі — як раніше.
   Future<void> _onMapClick(Point<double> screen, ml.LatLng at) async {
     final point = LatLng(at.latitude, at.longitude);
+    // «Створити маршрут на карті» (ADR-022 §22.3 п.4): дотик — нова точка маршруту.
+    if (ref.read(routeEditProvider)) {
+      ref.read(hikeProvider.notifier).addPoint(at.latitude, at.longitude);
+      return;
+    }
     final c = _ml;
     if (c != null && _styleReady && !_analysisMode) {
       try {
@@ -646,6 +654,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     required List<AnalysisArea> areas,
     required List<LatLng>? square,
     required ({LatLng point, ForestZone zone})? pin,
+    required HikeState hike,
   }) async {
     final c = _ml;
     if (c == null || !_styleReady || !mounted) return;
@@ -667,6 +676,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         _pushedPin = pin;
         await c.setGeoJsonSource(MapSources.forestPin, _pinGeoJson(pin));
       }
+      // Похід: маршрут і пройдений трек.
+      if (!identical(hike.route, _pushedRoute)) {
+        _pushedRoute = hike.route;
+        await c.setGeoJsonSource(MapSources.route, routeGeoJson(hike.route));
+      }
+      if (!identical(hike.track, _pushedTrack)) {
+        _pushedTrack = hike.track;
+        await c.setGeoJsonSource(MapSources.track, trackGeoJson([for (final p in hike.track) (lat: p.lat, lng: p.lng)]));
+      }
     } catch (e) {
       debugPrint('[map] overlay sync failed: $e');
     }
@@ -674,7 +692,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 
   void _onStyleLoaded() {
     _styleReady = true;
-    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = null;
+    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = null;
     _icons.clear();
     if (!mounted) return;
     setState(() {}); // перебудова передасть шари застосунку
@@ -703,12 +721,14 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final overview = ref.watch(analysisOverviewProvider);
     final areas = overview.valueOrNull?.areas ?? const <AnalysisArea>[];
     final forestLabel = _forestLabel;
+    final hike = ref.watch(hikeProvider);
+    final routeEdit = ref.watch(routeEditProvider);
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
     // Шари застосунку на карті — після кадру й лише змінене.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel),
+      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel, hike: hike),
     );
 
     return Scaffold(
@@ -785,7 +805,21 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               ],
             ),
           ),
-          if (_analysisMode)
+          if (routeEdit)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: _RoutePanel(
+                route: hike.route,
+                onUndo: ref.read(hikeProvider.notifier).removeLast,
+                onDone: () {
+                  ref.read(routeEditProvider.notifier).state = false;
+                  context.go('/safety');
+                },
+              ),
+            )
+          else if (_analysisMode)
             Positioned(
               left: 16,
               right: 16,
@@ -1215,3 +1249,57 @@ class _ForestCard extends StatelessWidget {
   }
 }
 
+
+
+/// Режим «Створити маршрут на карті» (ADR-022 §22.3 п.4): підказка, кількість точок,
+/// «Скасувати останню», «Готово» — назад на вкладку «Безпека».
+class _RoutePanel extends StatelessWidget {
+  const _RoutePanel({required this.route, required this.onUndo, required this.onDone});
+
+  final List<RoutePoint> route;
+  final VoidCallback onUndo;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        key: const ValueKey('route-panel'),
+        elevation: 4,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Маршрут походу', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen)),
+              const SizedBox(height: 4),
+              Text(
+                route.isEmpty
+                    ? 'Торкніться карти там, де лишаєте машину або входите в ліс, — це старт.'
+                    : 'Точок: ${route.length}. Додайте ще місця дотиком або натисніть «Готово».',
+                style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('route-undo'),
+                    onPressed: route.isEmpty ? null : onUndo,
+                    icon: const Icon(Icons.undo_rounded, size: 18),
+                    label: const Text('Скасувати останню'),
+                  ),
+                  const Spacer(),
+                  FilledButton(
+                    key: const ValueKey('route-done'),
+                    onPressed: onDone,
+                    style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen),
+                    child: const Text('Готово'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+}

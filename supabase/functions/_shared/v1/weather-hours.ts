@@ -120,3 +120,25 @@ export function restOfDay(day: DayWeather, fromHour: number): { mm: number; wet:
   });
   return { mm: Math.round(mm * 10) / 10, wet };
 }
+
+/**
+ * Небезпечна погода дня для вкладки «Безпека» (ADR-022 §22.3 п.12) — короткі підписи:
+ * гроза (коди WMO 95–99) з годинами, спека від 30°, мороз від −1°. Нічого — порожньо.
+ */
+export function dayHazards(day: DayWeather): string[] {
+  const out: string[] = [];
+  const hours = day.hours;
+  const storm = (c: number | null | undefined) => typeof c === "number" && c >= 95;
+  if (hours && hours.h.length) {
+    const idx = hours.h.map((h, i) => (storm(hours.code[i]) ? i : -1)).filter((i) => i >= 0);
+    if (idx.length) {
+      const from = hours.h[idx[0]], to = hours.h[idx[idx.length - 1]] + 1;
+      out.push(`Гроза ${hh(from)}–${hh(to)}: не стійте під поодинокими високими деревами, на галявинах і пагорбах`);
+    }
+  } else if (storm(day.code)) {
+    out.push("Гроза протягом дня: не стійте під поодинокими високими деревами, на галявинах і пагорбах");
+  }
+  if (day.tempMax >= 30) out.push(`Спека до ${Math.round(day.tempMax)}°: візьміть більше води й головний убір`);
+  if (day.tempMin <= -1) out.push(`Мороз до ${Math.round(day.tempMin)}°: тепло вдягніться, візьміть рукавиці й гарячий чай`);
+  return out;
+}

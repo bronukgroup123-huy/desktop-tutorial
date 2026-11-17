@@ -869,6 +869,23 @@ class _WeatherCardState extends State<_WeatherCard> {
                   ],
                 ),
               ),
+            // Небезпечна погода (ADR-022 §22.3 п.12): гроза з годинами, спека, мороз.
+            for (final h in weather.hazards)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xffb45309)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(h,
+                          key: const ValueKey('weather-hazard'),
+                          style: const TextStyle(fontSize: 12.5, color: Color(0xffb45309), fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
             if (weather.verdictLabel != null) ...[
               const SizedBox(height: 10),
               Container(

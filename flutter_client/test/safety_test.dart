@@ -172,6 +172,9 @@ void main() {
   testWidgets('Світловий сигнал: екран і спалах блимають за Морзе, дотик — вийти, спалах вимкнено', (tester) async {
     final d = FakeDevice();
     await tester.pumpWidget(app(d, const SafetyScreen()));
+    phone(tester);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('open-light-signal')), 300, scrollable: find.byType(Scrollable).first);
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('open-light-signal')));
     await tester.pump();
     await frames(tester);

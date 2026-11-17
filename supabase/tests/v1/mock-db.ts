@@ -35,6 +35,7 @@ export function mockDb(results: Results = {}) {
       builder.insert = chain("insert");
       builder.upsert = chain("upsert");
       builder.eq = (col: string, val: unknown) => { call.filters.push([col, val]); return builder; };
+      builder.in = (col: string, vals: unknown[]) => { call.filters.push([col, vals]); return builder; };
       // Сортування й обмеження не впливають на мок — лише запам'ятовуються.
       builder.order = (col: string) => { call.filters.push(["order", col]); return builder; };
       builder.limit = (n: number) => { call.filters.push(["limit", n]); return builder; };

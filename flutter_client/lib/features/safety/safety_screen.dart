@@ -4,17 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/features/safety/hike/compass_screen.dart';
+import 'package:flutter_client/features/safety/hike/hike_card.dart';
+import 'package:flutter_client/features/safety/safety_content.dart';
 import 'package:flutter_client/features/safety/safety_device.dart';
+import 'package:flutter_client/features/safety/safety_guides.dart';
 import 'package:flutter_client/features/safety/sos_screen.dart';
 
-/// Вкладка «Безпека» (ADR-022 §22.3), частина 1: SOS (утримати 3 с), мої координати, екстрені
-/// номери, світловий сигнал SOS. Усе працює без інтернету й без акаунта (гостю теж — ADR-001,
-/// уточнення 2026-11-17). Компас, маршрут, довідкові екрани й Наглядач — наступні частини.
-class SafetyScreen extends StatelessWidget {
+/// Вкладка «Безпека» (ADR-022 §22.3): повітряна тривога й банер ДСНС, SOS (утримати 3 с),
+/// небезпечна погода, похід (маршрут → трек → повернення), компас, мої координати, світловий
+/// сигнал, «Заблукали?», «Отруєння», «Інші небезпеки», небезпечні гриби, чек-лист перед походом,
+/// картка для рятувальників, екстрені номери. Усе працює без інтернету й без акаунта (гостю теж —
+/// ADR-001, уточнення 2026-11-17); тексти — із сервера з копією на телефоні.
+class SafetyScreen extends ConsumerWidget {
   const SafetyScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final content = ref.watch(safetyContentProvider).valueOrNull;
+    final done = ref.watch(checklistProvider).valueOrNull ?? const <String>{};
+    final checklist = content?.checklist ?? const <({String id, String label})>[];
+    final rescue = ref.watch(rescueCardProvider).valueOrNull;
+    Widget header(String t) => Padding(
+          padding: const EdgeInsets.only(top: 18, bottom: 8),
+          child: Text(t, style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+        );
+    void open(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     return Scaffold(
       appBar: AppBar(
         title: Text('Безпека', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
@@ -25,7 +40,11 @@ class SafetyScreen extends StatelessWidget {
         key: const ValueKey('safety-list'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          const Center(child: SosHoldButton()),
+          const AirAlertBanner(),
+          for (final n in content?.notices ?? const <SafetyNotice>[]) SafetyNoticeBanner(notice: n),
+          const SizedBox(height: 4),
+          // Ключі — щоб банери, що з'являються згодом, не скидали стан кнопки SOS посеред утримання.
+          const Center(key: ValueKey('sos-center'), child: SosHoldButton()),
           const SizedBox(height: 8),
           Text(
             'Утримайте 3 секунди: увімкнеться сирена, з\'являться ваші координати й дзвінок 112.',
@@ -33,19 +52,65 @@ class SafetyScreen extends StatelessWidget {
             style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
           ),
           const SizedBox(height: 18),
-          const MyCoordinatesCard(autoLocate: false),
+          const WeatherHazardsCard(),
+          const HikeCard(),
           const SizedBox(height: 12),
+          _ActionTile(
+            key: const ValueKey('open-compass'),
+            icon: Icons.explore_rounded,
+            title: 'Компас',
+            subtitle: 'Сторони світу — працює без інтернету',
+            onTap: () => open(const CompassScreen()),
+          ),
+          const SizedBox(height: 8),
+          const MyCoordinatesCard(autoLocate: false),
+          const SizedBox(height: 8),
           _ActionTile(
             key: const ValueKey('open-light-signal'),
             icon: Icons.flashlight_on_rounded,
             title: 'Світловий сигнал SOS',
             subtitle: 'Екран і спалах блимають азбукою Морзе ··· — — — ··· — щоб вас побачили вночі',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LightSignalScreen())),
+            onTap: () => open(const LightSignalScreen()),
           ),
-          const SizedBox(height: 18),
-          Text('Екстрені номери',
-              style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          header('Що робити, якщо'),
+          for (final g in content?.guides ?? const <SafetyGuide>[])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ActionTile(
+                key: ValueKey('open-guide-${g.id}'),
+                icon: switch (g.id) {
+                  'lost' => Icons.wrong_location_rounded,
+                  'poisoning' => Icons.sick_rounded,
+                  _ => Icons.pest_control_rounded,
+                },
+                title: g.title,
+                subtitle: g.subtitle,
+                onTap: () => open(SafetyGuideScreen(guide: g)),
+              ),
+            ),
+          header('Небезпечні гриби'),
+          const DangerousMushrooms(),
+          header('Перед походом'),
+          _ActionTile(
+            key: const ValueKey('open-checklist'),
+            icon: Icons.checklist_rounded,
+            title: 'Чек-лист',
+            subtitle: checklist.isEmpty
+                ? 'Що взяти й чи готові до лісу без інтернету'
+                : 'Готово ${done.where((d) => checklist.any((c) => c.id == d)).length} з ${checklist.length} · готовність без інтернету',
+            onTap: () => open(const ChecklistScreen()),
+          ),
           const SizedBox(height: 8),
+          _ActionTile(
+            key: const ValueKey('open-rescue-card'),
+            icon: Icons.medical_information_rounded,
+            title: 'Картка для рятувальників',
+            subtitle: rescue == null || rescue.isEmpty
+                ? 'Група крові, алергії, ліки — лише на телефоні, видно на екрані SOS'
+                : 'Заповнено · видно на екрані SOS',
+            onTap: () => open(const RescueCardScreen()),
+          ),
+          header('Екстрені номери'),
           const EmergencyNumbers(),
         ],
       ),
@@ -89,9 +154,11 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
           _c.forward(from: 0);
         },
         onPointerUp: (_) {
-          if (_c.status != AnimationStatus.completed) _c.reverse();
+          if (mounted && _c.status != AnimationStatus.completed) _c.reverse();
         },
-        onPointerCancel: (_) => _c.reverse(),
+        onPointerCancel: (_) {
+          if (mounted) _c.reverse();
+        },
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) => SizedBox(

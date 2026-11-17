@@ -123,6 +123,9 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   // створення точок + карта (кожен рух карти — запит точок)
   "v1-picks": 60,
   "v1-analysis": 20,
+  // вкладка «Безпека»: тексти й банери (ETag), повітряна тривога (застосунок — раз на хвилину)
+  "v1-app-config": 30,
+  "v1-air-alerts": 60,
 };
 
 /** Мінімальний тип клієнта, потрібний для rate limit (RPC + fallback upsert). */

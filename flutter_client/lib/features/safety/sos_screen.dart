@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flutter_client/features/safety/safety_device.dart';
+import 'package:flutter_client/features/safety/safety_guides.dart' show RescueCardView;
 
 const _sosRed = Color(0xffc62828);
 
@@ -77,6 +78,8 @@ class _SosScreenState extends ConsumerState<SosScreen> {
               ),
               const SizedBox(height: 14),
               const MyCoordinatesCard(dark: true),
+              // Картка для рятувальників (ADR-022 §22.3 п.16) — якщо заповнена.
+              const RescueCardView(),
               const SizedBox(height: 14),
               Row(
                 children: [

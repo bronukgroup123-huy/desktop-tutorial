@@ -404,6 +404,7 @@ class AnalysisWeather {
     this.parts = const [],
     this.rainSpans = const [],
     this.dryRestLabel,
+    this.hazards = const [],
   });
 
   factory AnalysisWeather.fromJson(Map<String, dynamic> json) => AnalysisWeather(
@@ -433,7 +434,11 @@ class AnalysisWeather {
             ),
         ],
         dryRestLabel: opt<String>(json, 'dry_rest_label'),
+        hazards: stringList(json, 'hazards'),
       );
+
+  /// Небезпечна погода дня для вкладки «Безпека»: «Гроза 15:00–18:00: …», «Спека до 32°: …».
+  final List<String> hazards;
 
   /// Ніч / ранок / день / вечір зі своєю сценою; порожньо — старий результат.
   final List<WeatherPart> parts;
@@ -733,7 +738,7 @@ class AreaFinds {
 typedef PastFind = ({LatLng point, String type, String name, String dateLabel});
 
 /// Версія результату, яку очікує застосунок: старіший результат оновлюється безкоштовно.
-const kExpectedResultVersion = 5;
+const kExpectedResultVersion = 6;
 
 List<AnalysisBasketSpecies>? _basket(Map<String, dynamic> json) => switch (opt<List<dynamic>>(json, 'basket')) {
       final list? => [for (final b in list.cast<Map<String, dynamic>>()) AnalysisBasketSpecies.fromJson(b)],

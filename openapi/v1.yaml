@@ -609,6 +609,117 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
+
+  /v1-app-config:
+    get:
+      operationId: getAppConfig
+      summary: Тексти вкладки «Безпека» — банер ДСНС, довідки, чек-лист, поради на час тривоги (ADR-003, ADR-022)
+      description: >
+        Публічний (гостю теж). Типові тексти + `feature_flags` `safety_notices` / `safety_content`;
+        змінюються без релізу застосунку. Застосунок вбудовує ті самі типові тексти (офлайн).
+      security:
+        - apikey: []
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        '200':
+          description: Тексти безпеки (кеш 1 год, ETag)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [safety]
+                    properties:
+                      safety:
+                        type: object
+                        required: [version, notices, guides, checklist, air_alert]
+                        properties:
+                          version: { type: integer }
+                          notices:
+                            type: array
+                            items:
+                              type: object
+                              required: [id, title, body, severity]
+                              properties:
+                                id: { type: string }
+                                title: { type: string }
+                                body: { type: string }
+                                link_label: { type: [string, 'null'] }
+                                link_url: { type: [string, 'null'], description: 'лише https' }
+                                severity: { type: string, enum: [danger, warning, info] }
+                          guides:
+                            type: array
+                            items:
+                              type: object
+                              required: [id, title, subtitle, sections]
+                              properties:
+                                id: { type: string, example: lost }
+                                title: { type: string }
+                                subtitle: { type: string }
+                                sections:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      title: { type: [string, 'null'] }
+                                      items: { type: array, items: { type: string } }
+                          checklist:
+                            type: array
+                            items:
+                              type: object
+                              required: [id, label]
+                              properties:
+                                id: { type: string }
+                                label: { type: string }
+                          air_alert:
+                            type: object
+                            properties:
+                              title: { type: string }
+                              tips: { type: array, items: { type: string } }
+        '304': { description: Не змінилось }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /v1-air-alerts:
+    get:
+      operationId: getAirAlerts
+      summary: Повітряна тривога по областях (alerts.in.ua, ADR-022 §22.5 п.5)
+      description: >
+        Публічний. Без ключа `ALERTS_IN_UA_TOKEN` на сервері або при збої джерела — `available: false`
+        (застосунок банер не показує). Кеш у функції 45 с.
+      security:
+        - apikey: []
+      responses:
+        '200':
+          description: Активні повітряні тривоги в областях застосунку
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [available, regions]
+                    properties:
+                      available: { type: boolean }
+                      updated_at: { type: [string, 'null'], format: date-time }
+                      regions:
+                        type: array
+                        items:
+                          type: object
+                          required: [slug, scope, title]
+                          properties:
+                            slug: { type: string, example: zhytomyrska }
+                            scope: { type: string, enum: [oblast, part] }
+                            title: { type: string, example: 'Повітряна тривога в області' }
+        '429': { $ref: '#/components/responses/Error' }
+
 components:
   securitySchemes:
     apikey:

@@ -32,6 +32,9 @@ dependencies:
   url_launcher: ^6.3.3
   audioplayers: ^6.8.1
   wakelock_plus: ^1.8.2
+  sensors_plus: ^7.1.1
+  flutter_local_notifications: ^23.0.2
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:
@@ -46,4 +49,5 @@ flutter:
     - assets/icons/
     - assets/stickers/
     - assets/catalog/
+    - assets/safety/
     - assets/map/glyphs/noto_sans_regular/

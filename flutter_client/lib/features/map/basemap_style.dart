@@ -28,6 +28,10 @@ abstract final class MapSources {
   static const analysis = 'app_analysis';
   static const picks = 'app_picks';
   static const forestPin = 'app_forest_pin';
+
+  /// Похід (ADR-022 §22.3 п.4): маршрут — лінія й точки; трек — пройдений шлях.
+  static const route = 'app_route';
+  static const track = 'app_track';
 }
 
 /// Шари, по яких обробляється тап.
@@ -154,6 +158,8 @@ Map<String, dynamic> offlineMapStyle({
         MapSources.analysis: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.picks: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.forestPin: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.route: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.track: {'type': 'geojson', 'data': emptyFeatureCollection},
       },
       'layers': [
         ...basemapLayers(),
@@ -336,6 +342,53 @@ List<Map<String, dynamic>> appLayers() => [
           'circle-stroke-width': 2.5,
         },
       },
+      // Похід: пройдений трек — суцільна синя лінія; маршрут — помаранчевий пунктир і точки
+      // (старт — зелена, підписи «Старт», «Точка 1»…).
+      {
+        'id': 'app_track_line',
+        'type': 'line',
+        'source': MapSources.track,
+        'layout': {'line-cap': 'round', 'line-join': 'round'},
+        'paint': {'line-color': '#1e6091', 'line-width': 4, 'line-opacity': 0.85},
+      },
+      {
+        'id': 'app_route_line',
+        'type': 'line',
+        'source': MapSources.route,
+        'filter': ['==', '\$type', 'LineString'],
+        'paint': {
+          'line-color': _orange,
+          'line-width': 3,
+          'line-dasharray': [2, 1.5],
+        },
+      },
+      {
+        'id': 'app_route_points',
+        'type': 'circle',
+        'source': MapSources.route,
+        'filter': ['==', '\$type', 'Point'],
+        'paint': {
+          'circle-radius': 7,
+          'circle-color': ['case', ['==', ['get', 'start'], true], '#2e7d32', _orange],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2.5,
+        },
+      },
+      {
+        'id': 'app_route_labels',
+        'type': 'symbol',
+        'source': MapSources.route,
+        'filter': ['==', '\$type', 'Point'],
+        'layout': {
+          'text-field': ['get', 'label'],
+          'text-font': _font,
+          'text-size': 12,
+          'text-anchor': 'top',
+          'text-offset': [0, 0.9],
+          'text-allow-overlap': true,
+        },
+        'paint': {'text-color': _textColor, 'text-halo-color': _halo, 'text-halo-width': 2},
+      },
       // Тук-туки: значок гриба (картинку додає екран карти; ім'я — у властивості `icon`).
       {
         'id': MapLayers.picks,
@@ -349,3 +402,43 @@ List<Map<String, dynamic>> appLayers() => [
         },
       },
     ];
+
+
+/// Маршрут походу для карти: лінія через точки + точки з підписами.
+Map<String, dynamic> routeGeoJson(List<({double lat, double lng, String label})> route) => {
+      'type': 'FeatureCollection',
+      'features': [
+        if (route.length > 1)
+          {
+            'type': 'Feature',
+            'properties': <String, Object>{},
+            'geometry': {
+              'type': 'LineString',
+              'coordinates': [for (final p in route) [p.lng, p.lat]],
+            },
+          },
+        for (final (i, p) in route.indexed)
+          {
+            'type': 'Feature',
+            'properties': {'label': p.label, 'start': i == 0},
+            'geometry': {'type': 'Point', 'coordinates': [p.lng, p.lat]},
+          },
+      ],
+    };
+
+/// Пройдений трек для карти.
+Map<String, dynamic> trackGeoJson(List<({double lat, double lng})> track) => track.length < 2
+    ? emptyFeatureCollection
+    : {
+        'type': 'FeatureCollection',
+        'features': [
+          {
+            'type': 'Feature',
+            'properties': <String, Object>{},
+            'geometry': {
+              'type': 'LineString',
+              'coordinates': [for (final p in track) [p.lng, p.lat]],
+            },
+          },
+        ],
+      };
