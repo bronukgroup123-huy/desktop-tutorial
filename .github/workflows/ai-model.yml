@@ -33,7 +33,7 @@ jobs:
       - name: Dependencies (CPU)
         run: |
           pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
-          pip install open_clip_torch onnx onnxruntime pillow numpy
+          pip install open_clip_torch onnx onnxscript onnxruntime pillow numpy
 
       - name: Build model, text embeddings, benchmark
         run: python3 scripts/ai_model/build_model.py --out dist/ai

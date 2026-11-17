@@ -175,6 +175,7 @@ def main() -> None:
         Vision(model), torch.zeros(1, 3, image_size, image_size), str(fp32),
         input_names=["image"], output_names=["embedding"],
         dynamic_axes={"image": {0: "batch"}, "embedding": {0: "batch"}}, opset_version=17,
+        dynamo=False,  # класичний експортер (TorchScript) — перевірений для ViT / CLIP
     )
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
