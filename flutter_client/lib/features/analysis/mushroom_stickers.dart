@@ -206,10 +206,6 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
       _names[s.type] = s.name;
     }
     final placed = widget.positions.keys.where((t) => t != _dragging || !_dragFromBasket).toList();
-    final hint = widget.positions.isEmpty
-        ? 'Торкніться кошика — там гриби дня. Затисніть гриб і перенесіть на своє місце.'
-        : 'Затисніть гриб, щоб пересунути, або перенесіть у кошик, щоб прибрати.';
-
     return Column(
       // Карта — рівно розміру камери: гриби й карта в одному масштабі.
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,8 +256,6 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(hint, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
       ],
     );
   }

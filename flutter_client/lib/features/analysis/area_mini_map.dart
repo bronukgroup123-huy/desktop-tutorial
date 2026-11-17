@@ -69,7 +69,7 @@ class MiniMapSnapshotStore {
 const double kSnapshotMargin = 48;
 
 /// Версія способу знімання — змінити, щоб перезняти всі знімки.
-const int kSnapshotVersion = 1;
+const int kSnapshotVersion = 2; // 2 — без пунктирної рамки ділянки
 
 /// Мінікарта ділянки у вкладці «Прогноз»: та сама офлайн карта з лісами, нерухома, рівно
 /// квадрат ділянки. Поверх неї — гриби, які грибник сам ставить на свої місця (ADR-015 §15.9).
@@ -308,38 +308,14 @@ class _MiniMapLibreState extends State<_MiniMapLibre> {
       );
 }
 
-/// Стиль мінікарти: підкладка з лісами (як на великій карті), без маски області, з контуром
-/// квадрата ділянки.
+/// Стиль мінікарти: підкладка з лісами (як на великій карті), без маски області. Пунктирну
+/// рамку квадрата прибрано (рішення PO 2026-11-17): карта й так рівно в межах ділянки.
 Map<String, dynamic> miniMapStyle({required String pmtilesPath, required String glyphsDir, required GeoBounds bounds}) {
   final style = offlineMapStyle(pmtilesPath: pmtilesPath, glyphsDir: glyphsDir, region: const []);
   final sources = Map<String, dynamic>.from(style['sources'] as Map)..remove('app_mask');
-  final sw = bounds.southWest, ne = bounds.northEast;
-  sources['mini_area'] = {
-    'type': 'geojson',
-    'data': {
-      'type': 'Feature',
-      'properties': <String, dynamic>{},
-      'geometry': {
-        'type': 'LineString',
-        'coordinates': [
-          [sw.longitude, sw.latitude],
-          [ne.longitude, sw.latitude],
-          [ne.longitude, ne.latitude],
-          [sw.longitude, ne.latitude],
-          [sw.longitude, sw.latitude],
-        ],
-      },
-    },
-  };
   final layers = [
     for (final l in (style['layers'] as List).cast<Map<String, dynamic>>())
       if (l['source'] != 'app_mask') l,
-    {
-      'id': 'mini_area_line',
-      'type': 'line',
-      'source': 'mini_area',
-      'paint': {'line-color': '#14532d', 'line-width': 2, 'line-dasharray': [3, 2]},
-    },
   ];
   return {...style, 'sources': sources, 'layers': layers};
 }

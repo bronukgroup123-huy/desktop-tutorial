@@ -208,38 +208,53 @@ String _mb(int bytes) {
   return mb >= 10 ? '${mb.round()} МБ' : '${mb.toStringAsFixed(1)} МБ';
 }
 
-/// Картка вгорі довідника: «Фото без інтернету» — розмір, «Завантажити», прогрес, «Зупинити»,
-/// після завантаження — тихий рядок «Усі фото на телефоні» з «Видалити».
-class CatalogOfflineCard extends ConsumerWidget {
+/// Картка вгорі довідника: «Фото без інтернету» — розмір, «Завантажити», прогрес, «Зупинити»;
+/// після завантаження — рядок «Усі фото збережено» з «Ок» (рішення PO 2026-11-17): натиснув —
+/// рядок зникає назавжди (позначка на телефоні).
+class CatalogOfflineCard extends ConsumerStatefulWidget {
   const CatalogOfflineCard({super.key});
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, String size) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Видалити фото довідника?'),
-        content: Text('Звільнить близько $size. Описи лишаться, а фото знову завантажуватимуться з інтернету.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
-          TextButton(
-            key: const ValueKey('offline-delete-confirm'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Видалити'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) await ref.read(catalogOfflineProvider.notifier).deleteAll();
+  /// Позначка в LocalStore: рядок «Усі фото збережено» вже прочитано.
+  static const doneKey = 'catalog_offline_done_ack';
+
+  @override
+  ConsumerState<CatalogOfflineCard> createState() => _CatalogOfflineCardState();
+}
+
+class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
+  /// Поки позначку не прочитано — рядок не показуємо (не блимає в того, хто вже натиснув «Ок»).
+  bool _acknowledged = true;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      ref.read(localStoreProvider).read(CatalogOfflineCard.doneKey).then((v) {
+        if (mounted) setState(() => _acknowledged = v?.data == true);
+      }, onError: (_) {
+        if (mounted) setState(() => _acknowledged = false);
+      });
+    } catch (_) {
+      _acknowledged = false; // немає сховища (тести) — рядок показуємо
+    }
+  }
+
+  Future<void> _acknowledge() async {
+    setState(() => _acknowledged = true);
+    try {
+      await ref.read(localStoreProvider).write(CatalogOfflineCard.doneKey, true);
+    } catch (_) {}
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final s = ref.watch(catalogOfflineProvider);
     final ctrl = ref.read(catalogOfflineProvider.notifier);
     final muted = AppTheme.darkGreen.withValues(alpha: 0.7);
     if (!s.checked) return const SizedBox.shrink();
 
     if (s.complete && !s.downloading) {
+      if (_acknowledged) return const SizedBox.shrink();
       return Padding(
         key: const ValueKey('offline-complete'),
         padding: const EdgeInsets.only(bottom: 4),
@@ -249,10 +264,10 @@ class CatalogOfflineCard extends ConsumerWidget {
             const SizedBox(width: 6),
             Expanded(child: Text('Усі фото збережено — довідник працює без інтернету', style: TextStyle(fontSize: 12, color: muted))),
             TextButton(
-              key: const ValueKey('offline-delete'),
-              onPressed: () => _confirmDelete(context, ref, _mb(s.savedBytes)),
-              style: TextButton.styleFrom(foregroundColor: muted, visualDensity: VisualDensity.compact),
-              child: const Text('Видалити'),
+              key: const ValueKey('offline-ok'),
+              onPressed: _acknowledge,
+              style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
+              child: const Text('Ок', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),

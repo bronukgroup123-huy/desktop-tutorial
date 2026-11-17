@@ -1,3 +1,4 @@
+import 'package:flutter_client/data/local/local_store.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -161,22 +162,49 @@ void main() {
     expect(dir.existsSync(), isFalse);
   });
 
-  testWidgets('Картка: розмір → «Завантажити» → «Усі фото збережено» → «Видалити»', (tester) async {
+  testWidgets('Картка: розмір → «Завантажити» → «Усі фото збережено» → «Ок» ховає рядок назавжди', (tester) async {
     CatalogPhotoCache.fetcher = release();
-    await tester.pumpWidget(ProviderScope(
-      overrides: [catalogProvider.overrideWith((ref) => small)],
-      child: const MaterialApp(home: Scaffold(body: CatalogOfflineCard())),
-    ));
+    final store = _MemoryStore();
+    Widget app() => ProviderScope(
+          overrides: [catalogProvider.overrideWith((ref) => small), localStoreProvider.overrideWithValue(store)],
+          child: const MaterialApp(home: Scaffold(body: CatalogOfflineCard())),
+        );
+    await tester.pumpWidget(app());
     await settleUntil(tester, find.textContaining('2.9 МБ'));
     expect(find.text('Фото без інтернету'), findsOneWidget);
     expect(find.textContaining('2.9 МБ'), findsOneWidget); // 3 000 000 байт
     await tester.tap(find.byKey(const ValueKey('offline-download')));
     await settleUntil(tester, find.byKey(const ValueKey('offline-complete')));
     expect(find.byKey(const ValueKey('offline-complete')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('offline-delete')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('offline-delete-confirm')));
-    await settleUntil(tester, find.text('Фото без інтернету'));
-    expect(find.text('Фото без інтернету'), findsOneWidget);
+    expect(find.text('Видалити'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('offline-ok')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('offline-complete')), findsNothing);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    expect(store.data[CatalogOfflineCard.doneKey], isTrue);
+    // Знову відкрили довідник — рядка вже немає.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(app());
+    for (var i = 0; i < 40; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
+      await tester.pump();
+    }
+    expect(find.byKey(const ValueKey('offline-complete')), findsNothing);
+    expect(find.text('Фото без інтернету'), findsNothing);
   });
+}
+
+
+/// Сховище в пам'яті (без файлів).
+class _MemoryStore extends LocalStore {
+  _MemoryStore() : super(Directory.systemTemp);
+
+  final Map<String, Object?> data = {};
+
+  @override
+  Future<StoredEntry?> read(String key) async =>
+      data.containsKey(key) ? StoredEntry(data: data[key], savedAt: DateTime(2026)) : null;
+
+  @override
+  Future<void> write(String key, Object? value, {String? etag, DateTime? savedAt}) async => data[key] = value;
 }
