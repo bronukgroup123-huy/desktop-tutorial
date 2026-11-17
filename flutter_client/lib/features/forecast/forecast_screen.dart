@@ -100,6 +100,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
   final Set<String> _autoTried = {};
   bool _autoRefreshing = false;
   bool _autoFailed = false;
+  bool _weatherOnly = false;
 
   /// Картку «Сповіщати про хвилі» закрито або вже ввімкнено (на телефоні, LocalStore).
   bool _pushHidden = true;
@@ -142,24 +143,35 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
   }
 
-  /// Аналіз не на сьогодні або до оновлення застосунку — оновити безкоштовно (раз на добу).
+  /// Аналіз не на сьогодні або до оновлення застосунку — оновити безкоштовно (раз на добу);
+  /// погоді понад 3 години — оновити лише погоду (теж безкоштовно, гриби лишаються).
   void _maybeAutoRefresh(AnalysisResult? result, bool offline) {
     if (result == null || offline || _busy || _autoRefreshing) return;
-    if (!result.isStale(_today()) || !_autoTried.add(_area.id)) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _autoRefresh());
+    if (result.isStale(_today())) {
+      if (!_autoTried.add(_area.id)) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoRefresh());
+    } else if (result.weatherStale(DateTime.now())) {
+      if (!_autoTried.add('${_area.id}@${result.weatherFreshUntil}')) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoRefresh(weatherOnly: true));
+    }
   }
 
-  Future<void> _autoRefresh() async {
+  Future<void> _autoRefresh({bool weatherOnly = false}) async {
     if (!mounted) return;
     setState(() {
       _autoRefreshing = true;
+      _weatherOnly = weatherOnly;
       _autoFailed = false;
     });
     try {
-      final fresh = await ref.read(analysisRepositoryProvider).dailyRefresh(_area.id, forest: _forestHint());
+      final repo = ref.read(analysisRepositoryProvider);
+      final fresh = weatherOnly
+          ? await repo.weatherRefresh(_area.id, forest: _forestHint())
+          : await repo.dailyRefresh(_area.id, forest: _forestHint());
       if (fresh != null) ref.invalidate(analysisOverviewProvider);
     } catch (_) {
-      if (mounted) setState(() => _autoFailed = true);
+      // Погода не оновилась — лишається попередня, без банера.
+      if (mounted && !weatherOnly) setState(() => _autoFailed = true);
     } finally {
       if (mounted) setState(() => _autoRefreshing = false);
     }
@@ -415,14 +427,16 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
             onClose: () => setState(() => _pushHidden = true),
           ),
         if (_autoRefreshing)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Row(
-              key: ValueKey('auto-refreshing'),
+              key: const ValueKey('auto-refreshing'),
               children: [
-                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
-                SizedBox(width: 8),
-                Text('Оновлюємо прогноз на сьогодні…', style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                const SizedBox(
+                    width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
+                const SizedBox(width: 8),
+                Text(_weatherOnly ? 'Оновлюємо погоду…' : 'Оновлюємо прогноз на сьогодні…',
+                    style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
               ],
             ),
           )

@@ -81,6 +81,8 @@ export interface DayWeather {
   sunrise?: string | null;
   sunset?: string | null;
   daylightMin?: number | null;
+  /** Погодинно (лише дні прогнозу): година доби, код WMO, опади мм, температура. */
+  hours?: { h: number[]; code: Array<number | null>; rain: number[]; temp: number[] } | null;
 }
 
 export interface WeatherData {

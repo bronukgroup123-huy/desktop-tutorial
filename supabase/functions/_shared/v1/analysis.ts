@@ -57,6 +57,7 @@ import {
   weatherVerdict,
 } from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
+import { dayParts, rainSpans } from "./weather-hours.ts";
 import { IDENTIFY } from "./identify-data.ts";
 import { type Terrain, terrainLabel } from "../forecast/terrain.ts";
 import type { DayRange } from "../forecast/weather.ts";
@@ -317,6 +318,11 @@ export function kyivToday(now: Date): string {
   return KYIV_DATE.format(now);
 }
 
+/** Година доби в Києві (0–23). */
+export function kyivHour(now: Date): number {
+  return Number(KYIV_CLOCK.format(now).slice(0, 2));
+}
+
 /** Скільки секунд до київської півночі (скидання добового ліміту). */
 export function secondsToKyivMidnight(now: Date): number {
   const [h, m, s] = KYIV_CLOCK.format(now).split(":").map(Number);
@@ -328,7 +334,7 @@ export function secondsToKyivMidnight(now: Date): number {
 /** Нова ділянка з центром у точці або повторний аналіз збереженої. */
 export type AnalysisTarget =
   | { kind: "create"; lat: number; lng: number; sizeKm: AnalysisSize }
-  | { kind: "area"; areaId: string; daily?: boolean };
+  | { kind: "area"; areaId: string; daily?: boolean; weather?: boolean };
 
 export interface AnalysisInput {
   target: AnalysisTarget;
@@ -399,8 +405,15 @@ export function validateAnalysisBody(body: unknown, now: Date): AnalysisInput {
     if (obj.lat !== undefined || obj.lng !== undefined || obj.size_km !== undefined) {
       throw validationError("Ділянку не можна змінити: передайте або area_id, або lat/lng/size_km для нової");
     }
-    if (obj.refresh !== undefined && obj.refresh !== "daily") throw validationError("refresh — лише \"daily\"");
-    target = { kind: "area", areaId: obj.area_id.toLowerCase(), daily: obj.refresh === "daily" };
+    if (obj.refresh !== undefined && obj.refresh !== "daily" && obj.refresh !== "weather") {
+      throw validationError("refresh — \"daily\" або \"weather\"");
+    }
+    target = {
+      kind: "area",
+      areaId: obj.area_id.toLowerCase(),
+      daily: obj.refresh === "daily",
+      weather: obj.refresh === "weather",
+    };
   } else {
     if (typeof obj.lat !== "number" || !Number.isFinite(obj.lat) || obj.lat < -90 || obj.lat > 90) {
       throw validationError("lat — широта від -90 до 90");
@@ -834,7 +847,57 @@ async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regi
  * Версія результату аналізу: змінюється, коли у відповіді з'являються нові дані (сцена погоди,
  * «як відрізнити»…). Збережений результат старішої версії оновлюється безкоштовно.
  */
-export const RESULT_VERSION = 4;
+export const RESULT_VERSION = 5;
+
+/** Погоду збереженого прогнозу можна безкоштовно оновити раз на 3 години (рішення PO 2026-11-17). */
+export const WEATHER_REFRESH_MS = 3 * 60 * 60 * 1000;
+
+/** Коли погоду збереженого результату вже можна оновлювати: `weather_as_of` + 3 год. */
+export function weatherFreshUntil(asOf: Date): string {
+  return new Date(asOf.getTime() + WEATHER_REFRESH_MS).toISOString();
+}
+
+/** Чи минуло 3 години від погоди збереженого результату (немає позначки — від останнього аналізу). */
+export function weatherRefreshAllowed(row: { last_result?: unknown; last_analyzed_at?: string | null }, now: Date): boolean {
+  const asOf = (row.last_result as { weather_as_of?: unknown } | null)?.weather_as_of;
+  const from = typeof asOf === "string" ? asOf : row.last_analyzed_at;
+  if (!from) return true;
+  const t = new Date(from).getTime();
+  return !Number.isFinite(t) || now.getTime() - t >= WEATHER_REFRESH_MS;
+}
+
+/**
+ * Оновлення лише погоди збереженого прогнозу: у днях — блок погоди (сцена, частини доби,
+ * опади по годинах), «Розширені дані погоди» й позначка часу; гриби, рівні, кошик, вікно хвилі
+ * й «молоді гриби» біля маскота — як були.
+ */
+export function mergeWeather(
+  stored: Record<string, unknown>,
+  fresh: Record<string, unknown>,
+  now: Date,
+): Record<string, unknown> {
+  const freshDays = new Map<string, Record<string, unknown>>();
+  for (const d of (fresh.days as Array<Record<string, unknown>> | undefined) ?? []) freshDays.set(String(d.date), d);
+  const patch = (day: Record<string, unknown>) => {
+    const f = freshDays.get(String(day.date));
+    const oldW = day.weather as Record<string, unknown> | null | undefined;
+    const newW = f?.weather as Record<string, unknown> | null | undefined;
+    if (!newW) return day;
+    return { ...day, weather: { ...newW, sprouts: oldW?.sprouts ?? newW.sprouts } };
+  };
+  const days = ((stored.days as Array<Record<string, unknown>> | undefined) ?? []).map(patch);
+  const selected = days.find((d) => d.date === stored.date);
+  const storedInsight = stored.weather_insight as Record<string, unknown> | null | undefined;
+  const freshInsight = fresh.weather_insight as Record<string, unknown> | null | undefined;
+  return {
+    ...stored,
+    days,
+    weather: selected ? selected.weather : stored.weather,
+    weather_insight: freshInsight ? { ...freshInsight, wave: storedInsight?.wave ?? null } : storedInsight ?? null,
+    weather_as_of: now.toISOString(),
+    weather_fresh_until: weatherFreshUntil(now),
+  };
+}
 
 /**
  * Щоденне оновлення збереженої ділянки — без списання аналізу (рішення PO 2026-11-15): раз
@@ -878,7 +941,33 @@ async function runAnalysis(
       throw new HttpError(403, "pro_required", "Ця ділянка доступна в Pro. Безкоштовно — одна ділянка 5×5 км.");
     }
     await assertInRegion(deps, point.lat, point.lng, regionId);
-    if (input.target.daily) {
+    const stored = row.last_result && typeof row.last_result === "object"
+      ? row.last_result as Record<string, unknown>
+      : null;
+    if (input.target.weather && stored && !dailyRefreshAllowed(row, now)) {
+      // Лише погода — безкоштовно, раз на 3 години; гриби дня лишаються як були.
+      if (!weatherRefreshAllowed(row, now)) {
+        throw new HttpError(409, "already_fresh", "Погоду вже оновлено — наступне оновлення за кілька годин.");
+      }
+      const ref: AreaRef = { id: row.id, slot: row.slot, lat: point.lat, lng: point.lng, sizeKm: row.size_km, terrain: row.terrain ?? null };
+      let data: Record<string, unknown>;
+      try {
+        const rating = await loadRating(deps.db, user.id);
+        const fresh = await analyzeArea(
+          deps, ref, regionId, { date: kyivToday(now), now, pro, rating }, input.forestRaw,
+          parseStoredOverride(row.forest_override), {},
+        );
+        data = mergeWeather(stored, fresh, now);
+      } catch (err) {
+        if (err instanceof HttpError) throw err;
+        console.error("[v1-analysis] weather refresh failed:", err);
+        throw new HttpError(500, "internal_error", "Не вдалося оновити погоду. Спробуйте пізніше.");
+      }
+      const saved = await deps.db.rpc("save_analysis_result", { p_user_id: user.id, p_area_id: row.id, p_result: data });
+      if (saved.error) console.warn("[v1-analysis] save_analysis_result failed:", saved.error);
+      return ok(data, req);
+    }
+    if (input.target.daily || input.target.weather) {
       // Щоденне оновлення — безкоштовно, але не частіше разу на добу.
       if (!dailyRefreshAllowed(row, now)) {
         throw new HttpError(409, "already_fresh", "Прогноз ділянки вже оновлено сьогодні.");
@@ -1044,7 +1133,12 @@ async function analyzeArea(
     result_version: RESULT_VERSION,
     // «Як відрізнити» — один раз на вид (не в кожному дні).
     identify: identifyFor(days.map((d) => d.view)),
-    weather_insight: weatherInsight(runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today)),
+    weather_insight: weatherInsight(
+      runs[0].results, today, days[0]?.topSpecies ?? null, (d) => dayLabel(d, today), kyivHour(when.now),
+    ),
+    // Погоду можна безкоштовно оновлювати раз на 3 години (`refresh: "weather"`).
+    weather_as_of: when.now.toISOString(),
+    weather_fresh_until: weatherFreshUntil(when.now),
   };
   if (when.userId) {
     // Прогноз сьогоднішнього дня — в історію (звірка зі знахідками, калібрування).
@@ -1125,6 +1219,10 @@ function analyzeDay(
           // «Коли їхати»: схід / захід сонця і що взяти.
           sun_label: dayW ? sunLabel(dayW) : null,
           take_label: dayW ? takeLabel(dayW, first.weather) : null,
+          // По годинах (дні прогнозу): ніч / ранок / день / вечір і коли саме опади.
+          parts: dayW ? dayParts(dayW, first.weather) : [],
+          rain_spans: dayW ? rainSpans(dayW) : [],
+          dry_rest_label: "Далі сьогодні без опадів",
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],

@@ -297,6 +297,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
           const SizedBox(height: 10),
           _WeatherCard(
             weather: r.weather!,
+            nowHour: _nowHourIfToday(r.date),
             insight: widget.result.weatherInsight,
             selected: _selected,
             selectable: {for (final d in widget.result.days) d.date},
@@ -704,6 +705,69 @@ class _ForestCard extends StatelessWidget {
       );
 }
 
+/// Година зараз, якщо [date] — сьогодні (за годинником телефона); інакше `null`.
+int? _nowHourIfToday(String date) {
+  final n = DateTime.now();
+  final today = '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  return date == today ? n.hour : null;
+}
+
+IconData _sceneIcon(String scene) => switch (scene) {
+      'rain' || 'heavy_rain' => Icons.water_drop_rounded,
+      'snow' || 'frost' => Icons.ac_unit_rounded,
+      'fog' => Icons.foggy,
+      'sunny' || 'heat' => Icons.wb_sunny_rounded,
+      'partly_cloudy' => Icons.wb_cloudy_outlined,
+      _ => Icons.cloud_rounded,
+    };
+
+/// Ніч · ранок · день · вечір (рішення PO 2026-11-17): сьогодні частина, що триває, — виділена,
+/// минулі — бліді.
+class _DayParts extends StatelessWidget {
+  const _DayParts({required this.parts, this.nowHour});
+
+  final List<WeatherPart> parts;
+  final int? nowHour;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        key: const ValueKey('weather-parts'),
+        children: [
+          for (final p in parts)
+            Expanded(
+              child: Builder(builder: (context) {
+                final current = nowHour != null && nowHour! >= p.fromHour && nowHour! < p.toHour;
+                final past = nowHour != null && nowHour! >= p.toHour;
+                final color = AppTheme.darkGreen.withValues(alpha: past ? 0.4 : 1);
+                return Tooltip(
+                  message: '${p.label}: ${p.sceneLabel}',
+                  child: Container(
+                    key: ValueKey('weather-part-${p.key}'),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: current ? AppTheme.darkGreen.withValues(alpha: 0.1) : null,
+                      borderRadius: BorderRadius.circular(10),
+                      border: current ? Border.all(color: AppTheme.darkGreen.withValues(alpha: 0.35)) : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Text(current ? 'Зараз' : p.label,
+                            style: TextStyle(fontSize: 11, fontWeight: current ? FontWeight.w800 : FontWeight.w500, color: color)),
+                        const SizedBox(height: 2),
+                        Icon(_sceneIcon(p.scene), size: 18, color: past ? color : AppTheme.accentOrange),
+                        const SizedBox(height: 2),
+                        Text(p.tempLabel, style: TextStyle(fontSize: 11.5, color: color)),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+        ],
+      );
+}
+
 /// Погода дня (рішення PO 2026-11-15): просто — анімована сцена з грибом-маскотом,
 /// температура й одне речення для грибів; графік і цифри тижня — у «Розширені дані погоди».
 class _WeatherCard extends StatefulWidget {
@@ -713,9 +777,13 @@ class _WeatherCard extends StatefulWidget {
     required this.onSelect,
     this.insight,
     this.selectable = const {},
+    this.nowHour,
   });
 
   final AnalysisWeather weather;
+
+  /// Година зараз, якщо показано сьогоднішній день (сцена — за частиною доби); інакше `null`.
+  final int? nowHour;
   final WeatherInsight? insight;
   final String selected;
   final Set<String> selectable;
@@ -739,7 +807,11 @@ class _WeatherCardState extends State<_WeatherCard> {
     final weather = widget.weather;
     final insight = widget.insight;
     final tone = _tone[weather.verdictTone] ?? _tone['neutral']!;
-    final scene = parseWeatherScene(weather.scene);
+    // Сьогодні — сцена частини доби, що триває (а не найгірша погода за всю добу).
+    final now = widget.nowHour == null ? null : weather.partAt(widget.nowHour!);
+    final scene = parseWeatherScene(now?.scene ?? weather.scene);
+    final subtitle = now != null ? 'Зараз: ${now.sceneLabel.toLowerCase()}, ${now.tempLabel}' : weather.sceneLabel;
+    final rainAhead = weather.rainAhead(widget.nowHour);
     final title = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -748,8 +820,10 @@ class _WeatherCardState extends State<_WeatherCard> {
           weather.dayLabel ?? weather.tempLabel,
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen),
         ),
-        if (weather.sceneLabel != null)
-          Text(weather.sceneLabel!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+        if (subtitle != null)
+          Text(subtitle,
+              key: const ValueKey('weather-now'),
+              style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.75))),
       ],
     );
     return Card(
@@ -789,6 +863,25 @@ class _WeatherCardState extends State<_WeatherCard> {
                   const SizedBox(width: 12),
                   Expanded(child: title),
                 ],
+              ),
+            if (weather.parts.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _DayParts(parts: weather.parts, nowHour: widget.nowHour),
+            ],
+            if (rainAhead != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.water_drop_outlined, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(rainAhead,
+                          key: const ValueKey('weather-rain-ahead'),
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+                    ),
+                  ],
+                ),
               ),
             if (weather.verdictLabel != null) ...[
               const SizedBox(height: 10),
