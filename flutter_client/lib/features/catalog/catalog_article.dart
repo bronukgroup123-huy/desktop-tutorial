@@ -190,8 +190,9 @@ class CatalogArticle extends StatelessWidget {
             child: DescBlocks(lines: s.lines),
           ),
         ArticleKind.passport => _Passport(section: s),
-        ArticleKind.twins => _Twins(species: species, section: s),
-        ArticleKind.confusions => _Confusions(section: s),
+        // Ключ — щоб «Як відрізнити» з розпізнавання прокрутило саме сюди.
+        ArticleKind.twins => KeyedSubtree(key: const ValueKey('article-twins-section'), child: _Twins(species: species, section: s)),
+        ArticleKind.confusions => KeyedSubtree(key: const ValueKey('article-twins-section'), child: _Confusions(section: s)),
         ArticleKind.where => _Where(section: s),
         ArticleKind.worms => _Tips(section: s),
         ArticleKind.culinary => _Accordion(section: s, child: DescBlocks(lines: s.lines, time: true)),

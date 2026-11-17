@@ -7,7 +7,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
-import 'package:flutter_client/features/recognize/ai_model.dart';
+import 'package:flutter_client/features/recognize/recognize_banner.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 
 /// Категорії довідника — як чіпи у веб-довіднику (landing.html).
@@ -100,8 +100,8 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               sliver: SliverList.list(children: [
-                // ШІ-розпізнавач: завантажити модель на телефон (як карту й фото).
-                const AiModelCard(),
+                // ШІ-розпізнавання: банер-камера (завантаження моделі — прямо на ньому).
+                const RecognizeBanner(),
                 Text('Довідник грибів',
                     style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
                 const SizedBox(height: 10),

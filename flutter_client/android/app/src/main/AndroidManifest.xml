@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Мережа: Supabase, тайли карти -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- ШІ-розпізнавання: знімок гриба у 3 кроки (камера в застосунку, фото не залишають телефон). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
     <!-- «Моє місцезнаходження» на карті (geolocator) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
