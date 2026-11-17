@@ -558,6 +558,8 @@ const _nameAliases = {
   'мухомор червоний': 'amanita_muscaria',
   'мухомор пантерний': 'amanita_pantherina',
   'галерина облямована': 'galerina_marginata',
+  'гірчак': 'tylopilus_felleus',
+  'жовчний гриб': 'tylopilus_felleus',
 };
 
 String _norm(String s) => s.toLowerCase().replaceAll('’', "'").replaceAll(RegExp(r'\s+'), ' ').trim();
