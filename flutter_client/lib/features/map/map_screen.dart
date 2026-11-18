@@ -27,6 +27,7 @@ import 'package:flutter_client/features/map/region_camera.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/picks/pick_card_sheet.dart';
+import 'package:flutter_client/features/safety/hike/compass_screen.dart' show routePath;
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
@@ -359,7 +360,18 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final point = LatLng(at.latitude, at.longitude);
     // «Створити маршрут на карті» (ADR-022 §22.3 п.4): дотик — нова точка маршруту.
     if (ref.read(routeEditProvider)) {
-      ref.read(hikeProvider.notifier).addPoint(at.latitude, at.longitude);
+      final ctrl = ref.read(hikeProvider.notifier);
+      if (!ref.read(routeAutoProvider) || ref.read(hikeProvider).route.isEmpty) {
+        ctrl.addPoint(at.latitude, at.longitude);
+        return;
+      }
+      final found = await ctrl.addAutoPoint(at.latitude, at.longitude);
+      if (!mounted) return;
+      if (found == null) {
+        showToast(context, 'Стежок області ще немає на телефоні — з\'єднали прямою. Оновіть офлайн-карту.', isError: true);
+      } else if (!found) {
+        showToast(context, 'Поруч немає доріг і стежок — з\'єднали прямою', isError: true);
+      }
       return;
     }
     final c = _ml;
@@ -677,9 +689,13 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         await c.setGeoJsonSource(MapSources.forestPin, _pinGeoJson(pin));
       }
       // Похід: маршрут і пройдений трек.
-      if (!identical(hike.route, _pushedRoute)) {
-        _pushedRoute = hike.route;
-        await c.setGeoJsonSource(MapSources.route, routeGeoJson(hike.route));
+      // Лінія — те, чим веде компас: шлях додому стежками або маршрут (стежками / прямими).
+      final routeKey = (hike.route, hike.routeLegs, hike.returnMode == ReturnMode.auto ? hike.home : null);
+      if (routeKey != _pushedRoute) {
+        _pushedRoute = routeKey;
+        final home = routeKey.$3;
+        final path = home != null ? home.points : (hike.route.length > 1 ? routePath(hike).points : null);
+        await c.setGeoJsonSource(MapSources.route, routeGeoJson(hike.route, path: path));
       }
       if (!identical(hike.track, _pushedTrack)) {
         _pushedTrack = hike.track;
@@ -723,6 +739,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final forestLabel = _forestLabel;
     final hike = ref.watch(hikeProvider);
     final routeEdit = ref.watch(routeEditProvider);
+    // Мережа стежок області — тихо разом з офлайн-картою (маршрут «Додому» без інтернету).
+    ref.watch(trailsSyncProvider(_g.slug));
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
@@ -812,6 +830,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
               bottom: 24,
               child: _RoutePanel(
                 route: hike.route,
+                auto: ref.watch(routeAutoProvider),
+                onAuto: (v) => ref.read(routeAutoProvider.notifier).state = v,
                 onUndo: ref.read(hikeProvider.notifier).removeLast,
                 onDone: () {
                   ref.read(routeEditProvider.notifier).state = false;
@@ -1254,9 +1274,13 @@ class _ForestCard extends StatelessWidget {
 /// Режим «Створити маршрут на карті» (ADR-022 §22.3 п.4): підказка, кількість точок,
 /// «Скасувати останню», «Готово» — назад на вкладку «Безпека».
 class _RoutePanel extends StatelessWidget {
-  const _RoutePanel({required this.route, required this.onUndo, required this.onDone});
+  const _RoutePanel({required this.route, required this.auto, required this.onAuto, required this.onUndo, required this.onDone});
 
   final List<RoutePoint> route;
+
+  /// «Стежками» — між точками шлях прокладається автоматично; «Власний» — прямі.
+  final bool auto;
+  final ValueChanged<bool> onAuto;
   final VoidCallback onUndo;
   final VoidCallback onDone;
 
@@ -1280,7 +1304,25 @@ class _RoutePanel extends StatelessWidget {
                     : 'Точок: ${route.length}. Додайте ще місця дотиком або натисніть «Готово».',
                 style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75)),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                key: const ValueKey('route-mode'),
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: true, label: Text('Автоматичний'), icon: Icon(Icons.alt_route_rounded)),
+                  ButtonSegment(value: false, label: Text('Власний'), icon: Icon(Icons.timeline_rounded)),
+                ],
+                selected: {auto},
+                onSelectionChanged: (s) => onAuto(s.first),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  auto ? 'Між точками — дорогами й стежками, в обхід води й боліт' : 'Між точками — прямі лінії, як ви поставили',
+                  style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.65)),
+                ),
+              ),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   TextButton.icon(

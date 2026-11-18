@@ -65,17 +65,20 @@ class PhoneHikeDevice implements HikeDevice {
     List<double>? g, m;
     final out = StreamController<double?>();
     final subs = <StreamSubscription<dynamic>>[];
+    // Фільтр низьких частот: крок і тремтіння руки не смикають стрілку (ADR-022 §22.7).
+    List<double> lowPass(List<double>? prev, List<double> next, double k) =>
+        prev == null ? next : [for (var i = 0; i < 3; i++) prev[i] + (next[i] - prev[i]) * k];
     void emit() {
       if (g != null && m != null) out.add(headingFromSensors(g!, m!));
     }
 
     try {
       subs.add(accelerometerEventStream(samplingPeriod: SensorInterval.uiInterval).listen((e) {
-        g = [e.x, e.y, e.z];
+        g = lowPass(g, [e.x, e.y, e.z], 0.15);
         emit();
       }, onError: (_) => out.add(null)));
       subs.add(magnetometerEventStream(samplingPeriod: SensorInterval.uiInterval).listen((e) {
-        m = [e.x, e.y, e.z];
+        m = lowPass(m, [e.x, e.y, e.z], 0.2);
         emit();
       }, onError: (_) => out.add(null)));
     } catch (_) {

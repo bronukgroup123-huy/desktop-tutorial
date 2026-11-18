@@ -29,6 +29,7 @@ class RegionGeometry {
     required this.polygons,
     this.forests,
     this.basemap,
+    this.trails,
   });
 
   factory RegionGeometry.fromJson(Map<String, dynamic> json) {
@@ -43,6 +44,7 @@ class RegionGeometry {
       polygons: parseGeoPolygons(opt<Map<String, dynamic>>(json, 'geometry')),
       forests: RegionForestFiles.fromJson(opt<Map<String, dynamic>>(json, 'forests')),
       basemap: RegionForestFiles.fromJson(opt<Map<String, dynamic>>(json, 'basemap')),
+      trails: RegionForestFiles.fromJson(opt<Map<String, dynamic>>(json, 'trails')),
     );
   }
 
@@ -61,6 +63,9 @@ class RegionGeometry {
 
   /// Карта-підкладка області для роботи без інтернету (той самий формат посилань: опис + файл).
   final RegionForestFiles? basemap;
+
+  /// Мережа доріг і стежок області для маршруту «Додому» без інтернету (ADR-022 §22.7).
+  final RegionForestFiles? trails;
 }
 
 /// Де лежить файл лісів області: опис (`version`, `sha256`) і сам GeoJSON.gz.

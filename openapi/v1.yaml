@@ -1404,6 +1404,16 @@ components:
           properties:
             meta_url: { type: string, format: uri }
             data_url: { type: string, format: uri }
+
+        trails:
+          type: object
+          description: >-
+            Мережа доріг і стежок області з водою й болотами (двійковий граф MRT1, gzip) — маршрут
+            «Додому» прокладається на телефоні без інтернету (ADR-022 §22.7). Качається разом з картою.
+          required: [meta_url, data_url]
+          properties:
+            meta_url: { type: string, format: uri }
+            data_url: { type: string, format: uri }
     ForestFeatureCollection:
       type: object
       required: [type, features]

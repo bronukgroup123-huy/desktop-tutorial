@@ -89,7 +89,12 @@ jobs:
           TEXTBEE_DEVICE_ID: ${{ secrets.TEXTBEE_DEVICE_ID }}
           # Тестування: сповіщення «Почалась хвиля» всім, не лише Pro / «Слідопит».
           WAVE_ALERTS_FOR_ALL: ${{ secrets.WAVE_ALERTS_FOR_ALL || 'false' }}
+          # Повітряна тривога (alerts.in.ua, ADR-022 §22.5 п.5): лише якщо задано — не затирає ключ із панелі Supabase.
+          ALERTS_IN_UA_TOKEN: ${{ secrets.ALERTS_IN_UA_TOKEN }}
         run: |
+          if [ -n "$ALERTS_IN_UA_TOKEN" ]; then
+            supabase secrets set ALERTS_IN_UA_TOKEN="$ALERTS_IN_UA_TOKEN" --project-ref "$PROJECT_ID"
+          fi
           supabase secrets set \
             GUARDIAN_JWT_SECRET="$GUARDIAN_JWT_SECRET" \
             GUARDIAN_BASE_URL="https://desktop-tutorial-eta-tan.vercel.app" \

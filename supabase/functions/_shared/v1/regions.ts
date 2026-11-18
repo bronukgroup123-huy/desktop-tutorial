@@ -60,6 +60,18 @@ export function basemapFiles(slug: string, baseUrl?: string): { meta_url: string
   };
 }
 
+/** Де лежить мережа доріг і стежок областей — маршрут «Додому» без інтернету (ADR-022 §22.7). */
+export const DEFAULT_TRAILS_BASE_URL =
+  "https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/trails-data";
+
+export function trailsFiles(slug: string, baseUrl?: string): { meta_url: string; data_url: string } {
+  const base = (baseUrl || DEFAULT_TRAILS_BASE_URL).replace(/\/+$/, "");
+  return {
+    meta_url: `${base}/trails-${slug}.json`,
+    data_url: `${base}/trails-${slug}.bin.gz`,
+  };
+}
+
 /** Рекомендований початковий zoom, щоб область вмістилась на екрані. */
 export function zoomForBbox(bbox: [number, number, number, number]): number {
   const lngSpan = Math.max(bbox[2] - bbox[0], 1e-6);
@@ -116,6 +128,8 @@ export async function handleRegionGeometry(
     forests: forestFiles(row.slug, deps.forestsBaseUrl),
     // Карта-підкладка області — один файл, завантажується один раз і працює без інтернету.
     basemap: basemapFiles(row.slug, deps.basemapBaseUrl),
+    // Дороги й стежки області (граф MRT1) — прокладання маршруту «Додому» на телефоні.
+    trails: trailsFiles(row.slug),
   };
 
   const body = JSON.stringify({ data: payload });

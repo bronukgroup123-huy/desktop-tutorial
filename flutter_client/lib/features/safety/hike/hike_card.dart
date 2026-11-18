@@ -213,15 +213,20 @@ class _HikeCardState extends ConsumerState<HikeCard> {
               child: FilledButton.icon(
                 key: const ValueKey('hike-return'),
                 onPressed: () {
-                  if (hike.returnMode == null) {
-                    ctrl.startReturn(hike.track.length >= 2 ? ReturnMode.track : ReturnMode.direct);
-                  }
+                  if (hike.returnMode == null) ctrl.goHome();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReturnScreen()));
                 },
                 style: FilledButton.styleFrom(backgroundColor: const Color(0xffd97706), padding: const EdgeInsets.symmetric(vertical: 12)),
-                icon: const Icon(Icons.u_turn_left_rounded),
-                label: const Text('Повернутися'),
+                icon: const Icon(Icons.home_rounded),
+                label: const Text('Додому'),
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.outlined(
+              key: const ValueKey('hike-compass'),
+              tooltip: 'Компас за маршрутом',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompassScreen())),
+              icon: const Icon(Icons.explore_rounded),
             ),
             const SizedBox(width: 8),
             OutlinedButton(
