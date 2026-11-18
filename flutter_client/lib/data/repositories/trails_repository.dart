@@ -86,4 +86,11 @@ class TrailsRepository {
     debugPrint('[trails] $slug: saved ${meta.version} (${bytes.length} bytes)');
     return true;
   }
+
+  /// Видалити мережу стежок з телефону («Дані без інтернету» в «Профілі»).
+  Future<void> delete(String slug) async {
+    await _store.delete(metaKey(slug));
+    final file = await _fileFor(slug);
+    if (await file.exists()) await file.delete();
+  }
 }

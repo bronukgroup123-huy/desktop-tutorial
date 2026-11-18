@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const icons = ['forecast', 'map', 'recognize', 'safety', 'community', 'profile'];
+  const icons = ['forecast', 'map', 'recognize', 'safety', 'profile'];
 
   for (final name in icons) {
     test('assets/icons/ic_$name.svg у бандлі', () async {

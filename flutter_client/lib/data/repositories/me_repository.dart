@@ -63,6 +63,25 @@ class MeRepository {
 
   Future<Me> updateName(String name) => _patch({'name': name});
 
+  /// Ім'я й нік (ADR-021 §21.2.1). 409 handle_taken / handle_change_too_soon — у [ApiException].
+  Future<Me> updateIdentity({required String name, required String handle}) => _patch({'name': name, 'handle': handle});
+
+  Future<Me> setAvatar(int standardId) => _patch({
+        'avatar': {'kind': 'standard', 'id': standardId},
+      });
+
+  /// Чи вільний нік — підказка під полем вводу.
+  Future<({bool available, String? reason})> checkHandle(String handle) async {
+    final data = await _api.get('/v1-me', query: {'check_handle': handle}) as Map<String, dynamic>;
+    return (available: data['available'] == true, reason: data['reason'] as String?);
+  }
+
+  /// Видалити акаунт назавжди (вимога Google Play).
+  Future<void> deleteAccount() async {
+    await _api.delete('/v1-me');
+    await clearCache();
+  }
+
   Future<Me> _patch(Map<String, Object> body) async => _save(await _api.patch('/v1-me', body: body));
 
   Future<Me> _save(Object? raw) async {

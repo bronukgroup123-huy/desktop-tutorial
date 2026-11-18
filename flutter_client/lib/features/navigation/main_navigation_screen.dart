@@ -15,7 +15,6 @@ class MainNavigationScreen extends ConsumerWidget {
     _TabItem(id: 'map', label: 'Карта', iconAsset: 'assets/icons/ic_map.svg'),
     _TabItem(id: 'recognize', label: 'Розпізнати', iconAsset: 'assets/icons/ic_recognize.svg'),
     _TabItem(id: 'safety', label: 'Безпека', iconAsset: 'assets/icons/ic_safety.svg'),
-    _TabItem(id: 'community', label: 'Спільнота', iconAsset: 'assets/icons/ic_community.svg'),
     _TabItem(id: 'profile', label: 'Профіль', iconAsset: 'assets/icons/ic_profile.svg'),
   ];
 

@@ -25,7 +25,15 @@ paths:
   /v1-me:
     get:
       operationId: getMe
-      summary: Профіль, стан онбордингу і право змінити область
+      summary: Профіль (ім'я, @нік, аватар, рівень), стан онбордингу і право змінити область
+      parameters:
+        - name: check_handle
+          in: query
+          required: false
+          description: >-
+            Перевірити, чи вільний нік (підказка під полем вводу) — тоді відповідь
+            `{ data: { handle, available, reason } }` замість профілю.
+          schema: { type: string, example: Олена_лісова }
       responses:
         '200':
           description: Профіль
@@ -37,8 +45,12 @@ paths:
         '429': { $ref: '#/components/responses/Error' }
     patch:
       operationId: updateMe
-      summary: Онбординг і профіль (ім'я, Home Region, згода з умовами)
+      summary: Онбординг і профіль (ім'я, нік, аватар, Home Region, згода з умовами)
       description: |
+        * Ім'я, нік і аватар — лише після входу через Google / Apple; гостю `403 registration_required`
+          (ADR-021 §21.2.1). Нік — лише українські літери, цифри, `_`, `.`, апостроф; 3–20; унікальний
+          без урахування великих літер (`409 handle_taken`); змінювати раз на 30 днів
+          (`409 handle_change_too_soon`). Ім'я — українські літери, пробіл, дефіс, апостроф; 2–30.
         * Перший вибір області — вільний.
         * Повторна зміна (ADR-016): одне безкоштовне виправлення протягом 24 год після першого
           вибору; далі — тільки Pro (один раз) або підтримка → `403 region_change_not_allowed`.
@@ -60,6 +72,14 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deleteMe
+      summary: Видалити акаунт назавжди (вимога Google Play)
+      description: 'Каскадно — профіль, точки, ділянки, згоди. Відповідь { data: { deleted: true } }.'
+      responses:
+        '200': { description: Акаунт видалено }
+        '401': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
   /v1-regions/{slug}/geometry:
@@ -777,6 +797,27 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: [string, 'null'] }
+        handle: { type: [string, 'null'], description: "Нік без «@»; у гостя — null" }
+        avatar:
+          type: object
+          properties:
+            kind: { type: string, enum: [standard] }
+            id: { type: integer }
+        level:
+          type: object
+          description: Рівень за рейтингом (ADR-013) і підпис прогресу
+          properties:
+            id: { type: string }
+            label: { type: string, example: Слідопит }
+            from: { type: integer }
+            to: { type: [integer, 'null'] }
+            next_label: { type: [string, 'null'] }
+            progress_label: { type: string, example: '120 балів · ще 81 бал до рівня «Лісовик»' }
+        handle_change:
+          type: object
+          properties:
+            allowed: { type: boolean }
+            reason_label: { type: string }
         rating: { type: integer }
         total_verified_picks: { type: integer }
         home_region:
@@ -792,7 +833,7 @@ components:
             region_done: { type: boolean }
             terms_done: { type: boolean }
             terms_version: { type: string }
-            next_step: { type: string, enum: [select_region, accept_terms, done] }
+            next_step: { type: string, enum: [select_region, accept_terms, profile, done] }
             next_step_label: { type: string }
         region_change:
           type: object
@@ -811,7 +852,14 @@ components:
       type: object
       minProperties: 1
       properties:
-        name: { type: string, minLength: 1, maxLength: 50 }
+        name: { type: string, minLength: 2, maxLength: 30, description: "Українськими літерами" }
+        handle: { type: string, minLength: 3, maxLength: 20, description: "Нік без «@», українськими літерами" }
+        avatar:
+          type: object
+          required: [kind, id]
+          properties:
+            kind: { type: string, enum: [standard] }
+            id: { type: integer, minimum: 1, maximum: 20 }
         home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
         accept_terms_version: { type: string }
 

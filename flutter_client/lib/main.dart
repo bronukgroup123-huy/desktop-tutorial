@@ -17,11 +17,11 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/auth/auth_screen.dart';
 import 'package:flutter_client/features/auth/region_selection_screen.dart';
 import 'package:flutter_client/features/catalog/catalog_detail_screen.dart';
-import 'package:flutter_client/features/community/community_screen.dart';
 import 'package:flutter_client/features/forecast/forecast_screen.dart';
 import 'package:flutter_client/features/map/map_screen.dart';
 import 'package:flutter_client/features/navigation/main_navigation_screen.dart';
 import 'package:flutter_client/features/profile/profile_screen.dart';
+import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/recognize/recognize_screen.dart';
 import 'package:flutter_client/features/safety/safety_screen.dart';
 import 'package:flutter_client/features/splash/splash_screen.dart';
@@ -36,7 +36,7 @@ abstract final class Routes {
   static const map = '/map';
 }
 
-const _shellPrefixes = ['/forecast', '/map', '/recognize', '/safety', '/community', '/profile', '/catalog'];
+const _shellPrefixes = ['/forecast', '/map', '/recognize', '/safety', '/profile', '/catalog'];
 
 /// Куди вести користувача. Чиста функція — тестується без UI.
 ///
@@ -90,7 +90,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: Routes.auth, builder: (c, s) => const AuthScreen()),
       GoRoute(path: Routes.splash, builder: (c, s) => const SplashScreen()),
-      GoRoute(path: Routes.onboarding, builder: (c, s) => const RegionSelectionScreen()),
+      // Крок онбордингу вирішує сервер: область і згода → (після входу) ім'я й нік.
+      GoRoute(path: Routes.onboarding, builder: (c, s) => const _OnboardingStepScreen()),
       // Картка виду в довіднику — поверх вкладок (з «Розпізнати» і з «Як відрізнити» у прогнозі).
       GoRoute(
         path: '/catalog/:id',
@@ -103,7 +104,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [GoRoute(path: Routes.map, builder: (c, s) => const MapScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/recognize', builder: (c, s) => const RecognizeScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/safety', builder: (c, s) => const SafetyScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/community', builder: (c, s) => const CommunityScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen())]),
         ],
       ),
@@ -178,5 +178,16 @@ class _MisconfiguredApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Екран кроку онбордингу за `onboarding.next_step` з сервера.
+class _OnboardingStepScreen extends ConsumerWidget {
+  const _OnboardingStepScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final step = ref.watch(meProvider.select((m) => m.valueOrNull?.onboarding.nextStep));
+    return step == OnboardingStep.profile ? const ProfileSetupScreen() : const RegionSelectionScreen();
   }
 }

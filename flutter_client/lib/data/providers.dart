@@ -127,7 +127,8 @@ final meProvider = AsyncNotifierProvider<MeNotifier, Me?>(MeNotifier.new);
 class MeNotifier extends AsyncNotifier<Me?> {
   @override
   Future<Me?> build() async {
-    ref.watch(authStateProvider.select((s) => s.valueOrNull?.session?.user.id));
+    // Гість → акаунт (linkIdentity): той самий id, але інший профіль (ім'я, нік) — перечитати.
+    ref.watch(authStateProvider.select((s) => (s.valueOrNull?.session?.user.id, s.valueOrNull?.session?.user.isAnonymous)));
     if (!ref.read(authRepositoryProvider).isSignedIn) return null;
     final repo = ref.read(meRepositoryProvider);
 
@@ -158,6 +159,22 @@ class MeNotifier extends AsyncNotifier<Me?> {
           termsVersion: current.onboarding.termsVersion,
         );
     state = AsyncData(updated);
+  }
+
+  /// Ім'я й нік — крок онбордингу «profile» і редагування в «Профілі».
+  Future<void> updateIdentity({required String name, required String handle}) async {
+    state = AsyncData(await ref.read(meRepositoryProvider).updateIdentity(name: name, handle: handle));
+  }
+
+  Future<void> setAvatar(int standardId) async {
+    state = AsyncData(await ref.read(meRepositoryProvider).setAvatar(standardId));
+  }
+
+  /// Видалити акаунт і вийти.
+  Future<void> deleteAccount() async {
+    await ref.read(meRepositoryProvider).deleteAccount();
+    await ref.read(authRepositoryProvider).signOut();
+    state = const AsyncData(null);
   }
 
   /// «Повторити» на заставці: з сервера, а без інтернету — збережений профіль.

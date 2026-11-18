@@ -26,10 +26,6 @@ class AuthScreen extends StatelessWidget {
     }
   }
 
-  void _showPhoneLoginDialog(BuildContext context) {
-    showToast(context, 'Вхід за номером телефону — скоро');
-  }
-
   /// Гість — Anonymous Sign-In (ADR-001). Далі роутер сам відкриє онбординг
   /// за `onboarding.next_step` з сервера.
   Future<void> _continueAsGuest(BuildContext context) async {
@@ -62,8 +58,6 @@ class AuthScreen extends StatelessWidget {
               _buildSubtitle(),
               const Spacer(flex: 3),
               _buildSocialButtons(context),
-              const SizedBox(height: 16),
-              _buildPhoneButton(context),
               const SizedBox(height: 24),
               _buildGuestButton(context),
               const Spacer(flex: 2),
@@ -161,27 +155,6 @@ class AuthScreen extends StatelessWidget {
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-
-  Widget _buildPhoneButton(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: () => _showPhoneLoginDialog(context),
-      icon: const Icon(Icons.phone_rounded, size: 24, color: Colors.white),
-      label: const Text('Увійти за номером телефону'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppTheme.darkGreen,
-        foregroundColor: Colors.white,
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        elevation: 0,
       ),
     );
   }
