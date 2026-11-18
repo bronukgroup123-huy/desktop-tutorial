@@ -63,6 +63,17 @@ void main() {
       expect(p.legs.single.bearing, closeTo(0, 2));
     });
 
+    test('Короткі відрізки (крок зі стежки на дорогу, 3 м навпростець) — без окремих підказок', () {
+      final p = NavPlan(
+        [at(0, 0), at(0, 3), at(200, 3), at(210, 3), at(210, 300)],
+        kinds: const ['direct', 'track', 'road', 'road'],
+        destination: 'Старт',
+        toleranceM: 0,
+      );
+      expect([for (final l in p.legs) l.kind], ['track', 'road']);
+      expect(p.legs.first.lengthM, closeTo(213, 3));
+    });
+
     test('Шлях проходить поруч сам із собою — ведемо далі, а не назад на пройдене', () {
       // Туди на північ, назад на південь за 20 м східніше.
       final p = NavPlan([at(0, 0), at(300, 0), at(300, 20), at(0, 20)], kinds: const ['own'], destination: 'Старт', toleranceM: 0);

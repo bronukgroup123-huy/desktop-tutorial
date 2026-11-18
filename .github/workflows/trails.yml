@@ -108,23 +108,27 @@ jobs:
             -o osm/trails.osm.pbf --overwrite
           ls -lh osm/trails.osm.pbf
 
-      - name: Cut regions (osmium extract, one pass)
+      - name: Region frames
         run: |
           ONLY=""
           if [ "$REGION" != "all" ]; then ONLY="--only $REGION"; fi
           deno run --config scripts/trails/deno.json -A scripts/trails/regions_config.ts $ONLY --dir osm/regions > osm/extract.json
           jq '.extracts | length' osm/extract.json
-          mkdir -p osm/regions
-          osmium extract -c osm/extract.json -s complete_ways osm/trails.osm.pbf --overwrite
 
+      # По одній області: вирізання всіх 27 одним проходом (complete_ways) вичерпувало пам'ять
+      # машини GitHub і її зупиняло. 27 коротких проходів по ~260 МБ — кілька хвилин.
       - name: Build region files
         run: |
-          for pbf in osm/regions/*.osm.pbf; do
-            slug=$(basename "$pbf" .osm.pbf)
+          mkdir -p osm/regions
+          jq -c '.extracts[]' osm/extract.json | while read -r ex; do
+            slug=$(jq -r '.output' <<<"$ex" | sed 's/\.osm\.pbf$//')
+            bbox=$(jq -r '.bbox | map(tostring) | join(",")' <<<"$ex")
+            pbf="osm/regions/$slug.osm.pbf"
+            osmium extract -b "$bbox" -s complete_ways osm/trails.osm.pbf -o "$pbf" --overwrite
             osmium export "$pbf" -f geojsonseq -o "osm/regions/$slug.geojsonseq" --overwrite
             deno run --config scripts/trails/deno.json --v8-flags=--max-old-space-size=6144 -A \
               scripts/trails/build_region.ts --input "osm/regions/$slug.geojsonseq" --slug "$slug" --out dist
-            rm -f "osm/regions/$slug.geojsonseq"
+            rm -f "osm/regions/$slug.geojsonseq" "$pbf"
           done
 
       - name: Summary
