@@ -56,7 +56,7 @@ jobs:
       IN_TO: ${{ github.event.inputs.to || '2025-11-15' }}
       IN_FOREST: ${{ github.event.inputs.forest || 'pine,deciduous,mixed' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

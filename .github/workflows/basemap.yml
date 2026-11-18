@@ -49,7 +49,7 @@ jobs:
     outputs:
       matrix: ${{ steps.list.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Supabase public config
         uses: ./.github/actions/supabase-public-config
         with:
@@ -85,7 +85,7 @@ jobs:
     env:
       REGION: ${{ matrix.region }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check input
         run: |
           printf '%s' "$REGION" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $REGION"; exit 1; }
