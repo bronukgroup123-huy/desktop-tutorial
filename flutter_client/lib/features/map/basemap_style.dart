@@ -405,16 +405,17 @@ List<Map<String, dynamic>> appLayers() => [
 
 
 /// Маршрут походу для карти: лінія через точки + точки з підписами.
-Map<String, dynamic> routeGeoJson(List<({double lat, double lng, String label})> route) => {
+/// [path] — лінія маршруту стежками (ADR-022 §22.7); без неї — прямі між точками.
+Map<String, dynamic> routeGeoJson(List<({double lat, double lng, String label})> route, {List<({double lat, double lng})>? path}) => {
       'type': 'FeatureCollection',
       'features': [
-        if (route.length > 1)
+        if ((path?.length ?? route.length) > 1)
           {
             'type': 'Feature',
             'properties': <String, Object>{},
             'geometry': {
               'type': 'LineString',
-              'coordinates': [for (final p in route) [p.lng, p.lat]],
+              'coordinates': [for (final p in path ?? [for (final r in route) (lat: r.lat, lng: r.lng)]) [p.lng, p.lat]],
             },
           },
         for (final (i, p) in route.indexed)

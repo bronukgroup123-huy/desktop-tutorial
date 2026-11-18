@@ -20,6 +20,7 @@ import 'models/region.dart';
 import 'repositories/analysis_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/basemap_repository.dart';
+import 'repositories/trails_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
@@ -77,6 +78,14 @@ final basemapRepositoryProvider = Provider(
 /// Карта області на телефоні (`null` — ще не завантажена).
 final localBasemapProvider = FutureProvider.family<LocalBasemap?, String>(
   (ref, slug) => ref.watch(basemapRepositoryProvider).local(slug),
+);
+
+final trailsRepositoryProvider = Provider(
+  (ref) => TrailsRepository(
+    ref.watch(localStoreProvider),
+    files: Dio(BaseOptions(connectTimeout: const Duration(seconds: 15))),
+    directory: () async => Directory('${(await getApplicationSupportDirectory()).path}/trails'),
+  ),
 );
 
 /// Опис офлайн карти області на сервері — розмір для кнопки «Завантажити»; `null` — карти для

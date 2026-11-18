@@ -46,6 +46,15 @@ final navTargetProvider = Provider.autoDispose<NavTarget?>((ref) {
   final here = hike.here == null ? null : geoOf(hike.here!);
   final start = (lat: hike.route.first.lat, lng: hike.route.first.lng);
   final mode = hike.returnMode;
+  final home = hike.home;
+  if (mode == ReturnMode.auto && home != null && home.points.length >= 2) {
+    return (
+      plan: NavPlan(home.points, kinds: home.kinds, destination: hike.route.first.label),
+      label: 'до «${hike.route.first.label}» дорогами й стежками',
+      key: 'auto-${home.points.length}-${home.points.first.lat}-${home.points.first.lng}',
+    );
+  }
+  if (mode == ReturnMode.auto) return null; // ще прокладаємо
   if (mode == ReturnMode.track && hike.outbound.length >= 2) {
     final pts = [for (final p in hike.outbound.reversed) geoOf(p)];
     if (distanceM(pts.last, start) > 10) pts.add(start);
@@ -64,14 +73,35 @@ final navTargetProvider = Provider.autoDispose<NavTarget?>((ref) {
     return (plan: NavPlan([from, to], kinds: const ['direct'], destination: p.label), label: 'до «${p.label}» навпростець', key: 'direct-${hike.target}');
   }
   if (hike.route.length >= 2) {
+    final path = routePath(hike);
     return (
-      plan: NavPlan([for (final p in hike.route) (lat: p.lat, lng: p.lng)], kinds: const ['route'], destination: hike.route.last.label, toleranceM: 0),
+      plan: NavPlan(path.points, kinds: path.kinds, destination: hike.route.last.label, toleranceM: 0),
       label: 'до «${hike.route.last.label}» за маршрутом',
       key: 'route',
     );
   }
   return null;
 });
+
+/// Увесь маршрут: між точками — шлях стежками (якщо прокладено), інакше — пряма.
+PathLeg routePath(HikeState hike) {
+  final pts = <Geo>[(lat: hike.route.first.lat, lng: hike.route.first.lng)];
+  final kinds = <NavKind>[];
+  for (var i = 1; i < hike.route.length; i++) {
+    final leg = i - 1 < hike.routeLegs.length ? hike.routeLegs[i - 1] : null;
+    final to = (lat: hike.route[i].lat, lng: hike.route[i].lng);
+    if (leg != null && leg.points.length >= 2) {
+      for (var k = 1; k < leg.points.length; k++) {
+        pts.add(leg.points[k]);
+        kinds.add(leg.kinds[k - 1]);
+      }
+    } else {
+      pts.add(to);
+      kinds.add('route');
+    }
+  }
+  return (points: pts, kinds: kinds);
+}
 
 /// Повернення додому (ADR-022 §22.3 п.4, §22.7): «Своїм слідом» — назад тим самим шляхом;
 /// «Навпростець» — компасом прямо до машини чи точки маршруту. Покрокові підказки, без інтернету.
@@ -83,6 +113,7 @@ class ReturnScreen extends ConsumerWidget {
     final hike = ref.watch(hikeProvider);
     final ctrl = ref.read(hikeProvider.notifier);
     final mode = hike.returnMode ?? (hike.outbound.length >= 2 ? ReturnMode.track : ReturnMode.direct);
+    const warnings = {'water': 'через воду', 'wetland': 'через болото', 'river': 'через річку'};
     return Scaffold(
       appBar: AppBar(title: Text('Додому', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)), actions: const [VoiceToggle()]),
       body: ListView(
@@ -91,18 +122,46 @@ class ReturnScreen extends ConsumerWidget {
         children: [
           SegmentedButton<ReturnMode>(
             key: const ValueKey('return-mode'),
+            showSelectedIcon: false,
             segments: [
+              const ButtonSegment(value: ReturnMode.auto, label: Text('Стежками')),
               ButtonSegment(
                 value: ReturnMode.track,
-                label: const Text('Своїм слідом'),
-                icon: const Icon(Icons.timeline_rounded),
+                label: const Text('Слідом'),
                 enabled: hike.outbound.length >= 2,
               ),
-              const ButtonSegment(value: ReturnMode.direct, label: Text('Навпростець'), icon: Icon(Icons.explore_rounded)),
+              const ButtonSegment(value: ReturnMode.direct, label: Text('Прямо')),
             ],
             selected: {mode},
-            onSelectionChanged: (s) => ctrl.startReturn(s.first, target: hike.target),
+            onSelectionChanged: (s) {
+              ctrl.startReturn(s.first, target: hike.target);
+              if (s.first == ReturnMode.auto) ctrl.planHome();
+            },
           ),
+          if (hike.homeReason != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(hike.homeReason!,
+                  key: const ValueKey('home-reason'), style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+            ),
+          if (mode == ReturnMode.auto && hike.home == null && hike.homeReason == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Row(children: [
+                SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 10),
+                Text('Прокладаємо маршрут стежками…'),
+              ]),
+            ),
+          if (mode == ReturnMode.auto && hike.homeWarning != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Обережно: до найближчої стежки — ${warnings[hike.homeWarning] ?? 'через перешкоду'}. Інших доріг поруч немає.',
+                key: const ValueKey('home-warning'),
+                style: const TextStyle(fontSize: 12.5, color: Color(0xffb45309)),
+              ),
+            ),
           if (mode == ReturnMode.direct && hike.route.length > 1) ...[
             const SizedBox(height: 10),
             Wrap(
@@ -358,7 +417,7 @@ class CompassScreen extends ConsumerWidget {
                   FilledButton.icon(
                     key: const ValueKey('compass-home'),
                     onPressed: () {
-                      ref.read(hikeProvider.notifier).startReturn(hike.track.length >= 2 ? ReturnMode.track : ReturnMode.direct);
+                      ref.read(hikeProvider.notifier).goHome();
                       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ReturnScreen()));
                     },
                     style: FilledButton.styleFrom(backgroundColor: const Color(0xffd97706), padding: const EdgeInsets.symmetric(vertical: 14)),

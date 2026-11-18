@@ -11,6 +11,7 @@ import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show Sp
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
+import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailsSyncProvider;
 import 'package:flutter_client/features/safety/safety_content.dart';
 
 const kSosRed = Color(0xffc62828);
@@ -315,8 +316,11 @@ final offlineReadinessProvider = Provider<List<ReadinessItem>>((ref) {
   final map = slug == null ? null : ref.watch(localBasemapProvider(slug)).valueOrNull;
   final photos = ref.watch(catalogOfflineProvider);
   final ai = ref.watch(aiModelProvider);
+  final trails = slug != null && map != null && (ref.watch(trailsSyncProvider(slug)).valueOrNull ?? false);
   return [
     (id: 'map', label: 'Офлайн карта області', ready: map != null, action: 'Завантажити', route: '/map'),
+    // Мережа стежок — разом з офлайн-картою (ADR-022 §22.7): маршрут «Додому» без інтернету.
+    (id: 'trails', label: 'Стежки для маршруту «Додому»', ready: trails, action: 'Завантажити', route: '/map'),
     (id: 'photos', label: 'Фото довідника', ready: photos.complete, action: 'Завантажити', route: '/recognize'),
     (id: 'ai', label: 'ШІ-розпізнавання', ready: ai.ready, action: 'Завантажити', route: '/recognize'),
   ];

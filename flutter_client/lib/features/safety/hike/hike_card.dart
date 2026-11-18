@@ -213,9 +213,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
               child: FilledButton.icon(
                 key: const ValueKey('hike-return'),
                 onPressed: () {
-                  if (hike.returnMode == null) {
-                    ctrl.startReturn(hike.track.length >= 2 ? ReturnMode.track : ReturnMode.direct);
-                  }
+                  if (hike.returnMode == null) ctrl.goHome();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReturnScreen()));
                 },
                 style: FilledButton.styleFrom(backgroundColor: const Color(0xffd97706), padding: const EdgeInsets.symmetric(vertical: 12)),

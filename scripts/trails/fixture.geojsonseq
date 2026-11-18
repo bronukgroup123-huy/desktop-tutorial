@@ -1,0 +1,12 @@
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.52,50.45],[30.52,50.453],[30.52,50.456]]},"properties":{"highway":"unclassified","name":"Дорога до машини"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.52,50.456],[30.525,50.456],[30.53,50.456]]},"properties":{"highway":"track"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.53,50.456],[30.53,50.453],[30.53,50.45]]},"properties":{"highway":"path"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.52,50.45],[30.525,50.45],[30.53,50.45]]},"properties":{"highway":"track","note":"через болото"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.52,50.456],[30.516,50.456]]},"properties":{"highway":"path"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.516,50.456],[30.514,50.456]]},"properties":{"highway":"path","bridge":"yes"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.514,50.456],[30.51,50.456]]},"properties":{"highway":"path"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.5,50.44],[30.5,50.46]]},"properties":{"highway":"motorway"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[30.515,50.44],[30.515,50.47]]},"properties":{"waterway":"river","name":"Річка"}}
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[30.5225,50.4515],[30.5275,50.4515],[30.5275,50.4545],[30.5225,50.4545],[30.5225,50.4515]]]},"properties":{"natural":"water","name":"Озеро"}}
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[30.523,50.4495],[30.527,50.4495],[30.527,50.4505],[30.523,50.4505],[30.523,50.4495]]]},"properties":{"natural":"wetland"}}
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[30.5,50.4],[30.6,50.4],[30.6,50.5],[30.5,50.4]]]},"properties":{"landuse":"forest"}}
