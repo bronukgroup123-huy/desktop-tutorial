@@ -174,7 +174,7 @@ jobs:
           cat "dist/basemap-$REGION.json"
           echo "| $REGION | $(( $(stat -c %s "$F") / 1048576 )) МБ | ${BUILD_SECONDS} с |" >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: basemap-${{ env.REGION }}
           path: dist/

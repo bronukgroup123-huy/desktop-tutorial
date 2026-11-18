@@ -107,7 +107,7 @@ jobs:
           { echo '### Повтор сезону'; echo '`.` недостатньо даних · `l` низька · `M` середня · `H` висока · `P` пік · `R` дощ ≥ 10 мм';
             echo '```'; cat out/replay.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: season-replay
