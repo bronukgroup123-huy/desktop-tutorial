@@ -378,7 +378,7 @@ Deno.test("analysis POST: базова погода — температура, 
   const forecast = () => Promise.resolve(result({ weather: weather as unknown as ForecastResult["weather"] }));
   const { json } = await run(db(), req("POST", URL_, body()), { forecast });
   assertEquals(Object.keys(json.data.weather ?? {}).sort(), [
-    "day_label", "dry_rest_label", "humidity_label", "icon", "parts", "rain_label", "rain_spans", "range_label", "scene",
+    "day_label", "dry_rest_label", "hazards", "humidity_label", "icon", "parts", "rain_label", "rain_spans", "range_label", "scene",
     "scene_label", "sprouts", "sun_label", "take_label", "temp_label", "verdict_label", "verdict_tone",
   ]);
 });
@@ -751,7 +751,7 @@ Deno.test("analysis POST refresh=daily: раз на добу без списан
   const yesterday = "2026-11-10T18:00:00Z"; // NOW — 2026-11-11 12:00 за Києвом
   const d = db({
     "analysis_areas.select": {
-      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 5 } }],
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: yesterday, last_result: { result_version: 6 } }],
       error: null,
     },
     "rpc.analysis_used_today": { data: 5, error: null },
@@ -760,12 +760,12 @@ Deno.test("analysis POST refresh=daily: раз на добу без списан
   assertEquals(res.status, 200);
   assertEquals(find(d, "rpc.consume_analysis"), undefined); // ліміт не витрачено
   assertEquals(json.data.usage.used, 5); // навіть коли ліміт вичерпано
-  assertEquals(json.data.result_version, 5);
+  assertEquals(json.data.result_version, 6);
 
   // сьогодні вже оновлено і версія свіжа → 409
   const fresh = db({
     "analysis_areas.select": {
-      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 5 } }],
+      data: [{ id: AREA, slot: 1, size_km: 5, center: EWKB, last_analyzed_at: "2026-11-11T07:00:00Z", last_result: { result_version: 6 } }],
       error: null,
     },
   });
@@ -790,7 +790,7 @@ Deno.test("analysis POST refresh=daily: раз на добу без списан
 Deno.test("analysis POST refresh=weather: лише погода раз на 3 години без списання; гриби — як були", async () => {
   // NOW — 2026-11-11 12:00 за Києвом (10:00 UTC); результат сьогоднішній.
   const stored = {
-    result_version: 5,
+    result_version: 6,
     date: "2026-11-11",
     top1: { mushroom_type: "boletus_edulis" },
     days: [{ date: "2026-11-11", level: "high", weather: { scene: "rain", sprouts: "many" } }],

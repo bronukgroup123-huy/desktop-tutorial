@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Сповіщення «Почалась хвиля» (Android 13+ питає дозвіл) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- «Похід»: запис треку, поки екран вимкнено, — постійне сповіщення (ADR-022 §22.2) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <!-- Камера, сповіщення, фоновий трек Наглядача — додаються разом із цими функціями
          (Google Play вимагає обґрунтування кожного дозволу). -->
 
@@ -68,6 +71,10 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
+        </intent>
+        <!-- Голосові підказки компаса (ADR-022 §22.3 п.3) -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
         <!-- «Безпека»: дзвінок 112 / 101 / 102 / 103 — відкриває набір номера (ADR-022) -->
         <intent>

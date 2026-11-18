@@ -57,7 +57,7 @@ import {
   weatherVerdict,
 } from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
-import { dayParts, rainSpans } from "./weather-hours.ts";
+import { dayHazards, dayParts, rainSpans } from "./weather-hours.ts";
 import { IDENTIFY } from "./identify-data.ts";
 import { type Terrain, terrainLabel } from "../forecast/terrain.ts";
 import type { DayRange } from "../forecast/weather.ts";
@@ -847,7 +847,7 @@ async function assertInRegion(deps: AnalysisDeps, lat: number, lng: number, regi
  * Версія результату аналізу: змінюється, коли у відповіді з'являються нові дані (сцена погоди,
  * «як відрізнити»…). Збережений результат старішої версії оновлюється безкоштовно.
  */
-export const RESULT_VERSION = 5;
+export const RESULT_VERSION = 6;
 
 /** Погоду збереженого прогнозу можна безкоштовно оновити раз на 3 години (рішення PO 2026-11-17). */
 export const WEATHER_REFRESH_MS = 3 * 60 * 60 * 1000;
@@ -1223,6 +1223,8 @@ function analyzeDay(
           parts: dayW ? dayParts(dayW, first.weather) : [],
           rain_spans: dayW ? rainSpans(dayW) : [],
           dry_rest_label: "Далі сьогодні без опадів",
+          // Небезпечна погода для вкладки «Безпека»: гроза з годинами, спека, мороз.
+          hazards: dayW ? dayHazards(dayW) : [],
         }
         : null,
       warnings: [...new Set(runs.flatMap((r) => r.result.warnings))],
