@@ -124,9 +124,31 @@ class AirAlertBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final slug = ref.watch(homeRegionSlugProvider);
-    final alerts = ref.watch(airAlertsProvider).valueOrNull ?? const <AirAlert>[];
-    final alert = alerts.where((a) => a.slug == slug).firstOrNull;
-    if (slug == null || alert == null) return const SizedBox.shrink();
+    final state = ref.watch(airAlertsProvider).valueOrNull ?? kNoAirAlertData;
+    final alert = state.alerts.where((a) => a.slug == slug).firstOrNull;
+    if (slug == null || !state.available) return const SizedBox.shrink();
+    if (alert == null) {
+      // Тривоги немає — спокійний рядок: видно, що перевірка працює і для якої області.
+      final region = ref.watch(homeRegionNameProvider) ?? 'Ваша область';
+      final at = state.updatedAt;
+      final time = at == null ? '' : ' · оновлено ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+      return Padding(
+        key: const ValueKey('air-alert-clear'),
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.verified_user_rounded, size: 18, color: Color(0xff2e7d32)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '$region: повітряної тривоги немає$time',
+                style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final content = ref.watch(safetyContentProvider).valueOrNull;
     return Container(
       key: const ValueKey('air-alert'),

@@ -127,29 +127,42 @@ final safetyContentProvider = AsyncNotifierProvider<SafetyContentNotifier, Safet
 /// Область застосунку (Home Region) — гість теж її має (ADR-001).
 final homeRegionSlugProvider = Provider<String?>((ref) => ref.watch(meProvider.select((m) => m.valueOrNull?.homeRegion?.slug)));
 
+/// Назва області застосунку («Житомирська область»).
+final homeRegionNameProvider = Provider<String?>((ref) => ref.watch(meProvider.select((m) => m.valueOrNull?.homeRegion?.name)));
+
 /// Повітряна тривога в області застосунку (ADR-022 §22.5 п.5): `scope` — `oblast` (уся) або `part`.
 typedef AirAlert = ({String slug, String scope, String title});
 
+/// Стан тривог: [available] — сервер має свіжі дані (є ключ і зв'язок із alerts.in.ua);
+/// [updatedAt] — коли дані оновлено; [alerts] — тривоги (лише область застосунку).
+typedef AirAlertState = ({bool available, DateTime? updatedAt, List<AirAlert> alerts});
+
+const kNoAirAlertData = (available: false, updatedAt: null, alerts: <AirAlert>[]);
+
 /// Тривоги з `GET v1-air-alerts`; оновлюється раз на хвилину, поки вкладка відкрита.
-/// Без мережі / без ключа на сервері — порожньо (банера немає).
-final airAlertsProvider = StreamProvider.autoDispose<List<AirAlert>>((ref) {
+/// Без мережі / без ключа на сервері — `available: false` (ні банера, ні рядка стану).
+final airAlertsProvider = StreamProvider.autoDispose<AirAlertState>((ref) {
   final api = ref.watch(apiClientProvider);
   // Сервер бере один список на всю Україну й віддає лише область застосунку.
   final slug = ref.watch(homeRegionSlugProvider);
-  final controller = StreamController<List<AirAlert>>();
+  final controller = StreamController<AirAlertState>();
   Future<void> load() async {
     try {
       final data = await api.get('/v1-air-alerts', query: slug == null ? null : {'region': slug}) as Map<String, dynamic>;
       if (data['available'] != true) {
-        controller.add(const []);
+        controller.add(kNoAirAlertData);
         return;
       }
-      controller.add([
-        for (final r in (data['regions'] as List? ?? const []).cast<Map<String, dynamic>>())
-          (slug: r['slug'] as String, scope: (r['scope'] as String?) ?? 'oblast', title: r['title'] as String),
-      ]);
+      controller.add((
+        available: true,
+        updatedAt: DateTime.tryParse((data['updated_at'] as String?) ?? '')?.toLocal(),
+        alerts: [
+          for (final r in (data['regions'] as List? ?? const []).cast<Map<String, dynamic>>())
+            (slug: r['slug'] as String, scope: (r['scope'] as String?) ?? 'oblast', title: r['title'] as String),
+        ],
+      ));
     } catch (_) {
-      if (!controller.isClosed) controller.add(const []);
+      if (!controller.isClosed) controller.add(kNoAirAlertData);
     }
   }
 
