@@ -148,7 +148,7 @@ class HikeState {
 const kSunsetNotification = 7001;
 const kBatteryNotification = 7002;
 
-/// Похід: маршрут → «Почати похід» (запис треку) → «Повернутися» → «Я вдома».
+/// Похід: маршрут → «Почати похід» (запис треку) → «Додому» → «Я вдома».
 class HikeController extends Notifier<HikeState> {
   static const storeKey = 'hike';
   StreamSubscription<TrackPoint>? _sub;
@@ -263,7 +263,7 @@ class HikeController extends Notifier<HikeState> {
       state = state.copyWith(sunsetWarned: true);
       final mins = left.inMinutes.clamp(0, 60);
       _device.notify(kSunsetNotification, 'Час повертатися',
-          mins > 0 ? 'До заходу сонця $mins хв. Увімкніть «Повернутися» на вкладці «Безпека».' : 'Сонце вже зайшло — повертайтеся.');
+          mins > 0 ? 'До заходу сонця $mins хв. Натисніть «Додому» на вкладці «Безпека».' : 'Сонце вже зайшло — повертайтеся.');
     }
   }
 

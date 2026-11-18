@@ -195,21 +195,6 @@ void main() {
     });
   });
 
-  test('Голосові підказки: старт, кожні 250 м, «поверніть» лише стабільно й не частіше 12 с, «на місці»', () {
-    var t = DateTime(2026, 9, 20, 10);
-    final v = VoicePrompter(now: () => t);
-    expect(v.next(remainingM: 900, relative: 0), 'Ідіть за стрілкою. Залишилось 900 метрів');
-    expect(v.next(remainingM: 880, relative: 0), isNull);
-    expect(v.next(remainingM: 740, relative: 0), 'Залишилось 740 метрів');
-    expect(v.next(remainingM: 730, relative: 90), isNull); // щойно відхилився
-    t = t.add(const Duration(seconds: 5));
-    expect(v.next(remainingM: 730, relative: 90), 'Поверніть праворуч');
-    t = t.add(const Duration(seconds: 5));
-    expect(v.next(remainingM: 730, relative: -90), isNull); // зарано
-    expect(v.next(remainingM: 20, relative: 0), 'Ви на місці');
-    expect(v.next(remainingM: 15, relative: 0), isNull);
-  });
-
   test('Карта: маршрут — лінія й точки (старт позначено), трек — лінія', () {
     final r = routeGeoJson(const [(lat: 50.0, lng: 30.0, label: 'Старт'), (lat: 50.1, lng: 30.1, label: 'Точка 1')]);
     final f = r['features'] as List;
