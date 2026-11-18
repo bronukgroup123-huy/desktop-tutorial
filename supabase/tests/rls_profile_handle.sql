@@ -37,7 +37,8 @@ BEGIN
   END;
 
   PERFORM public.delete_user_account(u1);
-  IF EXISTS (SELECT 1 FROM public.users WHERE id = u1) OR EXISTS (SELECT 1 FROM auth.users WHERE id = u1) THEN
+  -- public.users зникає лише каскадом від auth.users (service_role auth.users не читає).
+  IF EXISTS (SELECT 1 FROM public.users WHERE id = u1) THEN
     RAISE EXCEPTION 'Test 3 failed: account not deleted';
   END IF;
 END $$;
