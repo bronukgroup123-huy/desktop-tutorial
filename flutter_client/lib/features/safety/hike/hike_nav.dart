@@ -88,13 +88,20 @@ class NavPlan {
   double get lengthM => cum.last;
 }
 
-/// Відрізки коротші за 20 м (тремтіння на поворотах) — частина попереднього.
+/// Відрізки коротші за 30 м (тремтіння на поворотах, крок із дороги на стежку) — без окремої
+/// підказки: частина попереднього (перший — частина наступного). Тип — того, що довший.
 List<NavLeg> _mergeShort(List<NavLeg> legs, List<Geo> pts, List<double> cum) {
+  NavLeg join(NavLeg a, NavLeg b) => (
+        from: a.from,
+        to: b.to,
+        bearing: bearingDeg(pts[a.from], pts[b.to]),
+        lengthM: cum[b.to] - cum[a.from],
+        kind: a.lengthM >= b.lengthM ? a.kind : b.kind,
+      );
   final out = <NavLeg>[];
   for (final l in legs) {
-    if (out.isNotEmpty && l.lengthM < 20 && l.kind == out.last.kind) {
-      final p = out.removeLast();
-      out.add((from: p.from, to: l.to, bearing: bearingDeg(pts[p.from], pts[l.to]), lengthM: cum[l.to] - cum[p.from], kind: p.kind));
+    if (out.isNotEmpty && (l.lengthM < 30 || out.last.lengthM < 30 && out.length == 1)) {
+      out.add(join(out.removeLast(), l));
     } else {
       out.add(l);
     }
