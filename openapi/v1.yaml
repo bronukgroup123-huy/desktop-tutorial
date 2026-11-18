@@ -691,9 +691,16 @@ paths:
       summary: Повітряна тривога по областях (alerts.in.ua, ADR-022 §22.5 п.5)
       description: >
         Публічний. Без ключа `ALERTS_IN_UA_TOKEN` на сервері або при збої джерела — `available: false`
-        (застосунок банер не показує). Кеш у функції 45 с.
+        (застосунок банер не показує). Один запит до alerts.in.ua на всю Україну, кеш 45 с спільний для
+        всіх копій функції (таблиця air_alerts_cache), If-Modified-Since, пауза після 429.
       security:
         - apikey: []
+      parameters:
+        - name: region
+          in: query
+          required: false
+          description: slug області — лише її тривоги
+          schema: { type: string, example: zhytomyrska }
       responses:
         '200':
           description: Активні повітряні тривоги в областях застосунку

@@ -134,10 +134,12 @@ typedef AirAlert = ({String slug, String scope, String title});
 /// Без мережі / без ключа на сервері — порожньо (банера немає).
 final airAlertsProvider = StreamProvider.autoDispose<List<AirAlert>>((ref) {
   final api = ref.watch(apiClientProvider);
+  // Сервер бере один список на всю Україну й віддає лише область застосунку.
+  final slug = ref.watch(homeRegionSlugProvider);
   final controller = StreamController<List<AirAlert>>();
   Future<void> load() async {
     try {
-      final data = await api.get('/v1-air-alerts') as Map<String, dynamic>;
+      final data = await api.get('/v1-air-alerts', query: slug == null ? null : {'region': slug}) as Map<String, dynamic>;
       if (data['available'] != true) {
         controller.add(const []);
         return;

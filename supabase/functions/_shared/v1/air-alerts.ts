@@ -3,8 +3,10 @@
 //
 // Дані — офіційний сервіс тривог alerts.in.ua (`GET /v1/alerts/active.json`, ключ —
 // секрет `ALERTS_IN_UA_TOKEN`). Ключа немає або сервіс недоступний — `available: false`,
-// застосунок банер не показує (без помилок). Відповідь кешується в пам'яті функції 45 с
-// (ліміти сервісу), клієнт питає раз на хвилину.
+// застосунок банер не показує (без помилок). ОДИН запит на всю Україну розкладається по
+// областях; кеш 45 с — спільний для всіх копій функції (таблиця air_alerts_cache, оновлює
+// одна копія за раз), If-Modified-Since, пауза після 429. Клієнт питає раз на хвилину.
+// GET ?region=<slug> — лише своя область.
 // 200 { data: { available, updated_at, regions: [{ slug, scope: "oblast" | "part", title }] } }
 // Публічний: стан тривог — відкриті дані, без даних користувача (гостю теж).
 // ============================================================================
@@ -95,47 +97,144 @@ export function parseAlerts(raw: unknown): AirAlertRegion[] {
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-export type AlertsFetcher = (url: string, token: string) => Promise<unknown>;
+/** Відповідь alerts.in.ua: 200 — список; 304 — без змін (If-Modified-Since); 429 — забагато запитів. */
+export interface AlertsResponse {
+  status: number;
+  body?: unknown;
+  lastModified?: string | null;
+  retryAfterS?: number | null;
+}
+export type AlertsFetcher = (url: string, token: string, ifModifiedSince?: string | null) => Promise<AlertsResponse>;
 
-const defaultFetcher: AlertsFetcher = async (url, token) => {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
-  if (!res.ok) throw new Error(`alerts.in.ua ${res.status}`);
-  return await res.json();
+const defaultFetcher: AlertsFetcher = async (url, token, ifModifiedSince) => {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (ifModifiedSince) headers["If-Modified-Since"] = ifModifiedSince;
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+  const retry = Number(res.headers.get("Retry-After"));
+  return {
+    status: res.status,
+    body: res.status === 200 ? await res.json() : (await res.body?.cancel(), undefined),
+    lastModified: res.headers.get("Last-Modified"),
+    retryAfterS: Number.isFinite(retry) && retry > 0 ? retry : null,
+  };
 };
 
-let cache: { at: number; regions: AirAlertRegion[] } | null = null;
+/** Скільки віддаємо останні дані, якщо alerts.in.ua недоступний або просить паузу. */
+export const ALERTS_STALE_MS = 10 * 60_000;
+/** Оренда оновлення: поки одна копія функції йде до alerts.in.ua, інші не йдуть. */
+const LEASE_S = 15;
+/** Пауза після 429 без Retry-After. */
+const BACKOFF_S = 120;
 
-/** Для тестів: скинути кеш. */
+interface Snapshot { at: number; regions: AirAlertRegion[] }
+
+/** Кеш у пам'яті копії функції — найшвидший шлях; спільний кеш — таблиця air_alerts_cache. */
+let memory: Snapshot | null = null;
+
+/** Для тестів: скинути кеш у пам'яті. */
 export function _resetAirAlertsCache(): void {
-  cache = null;
+  memory = null;
 }
+
+// deno-lint-ignore no-explicit-any
+type Db = any;
+
+interface CacheRow { regions: AirAlertRegion[] | null; fetched_at: string | null; last_modified: string | null }
+
+async function readRow(db: Db): Promise<CacheRow | null> {
+  try {
+    const { data, error } = await db.from("air_alerts_cache").select("regions, fetched_at, last_modified").eq("id", 1).maybeSingle();
+    return error ? null : (data as CacheRow | null);
+  } catch {
+    return null;
+  }
+}
+
+async function writeRow(db: Db, patch: Record<string, unknown>): Promise<void> {
+  try {
+    const { error } = await db.from("air_alerts_cache").update(patch).eq("id", 1);
+    if (error) console.warn("[v1-air-alerts] cache write failed:", error);
+  } catch (err) {
+    console.warn("[v1-air-alerts] cache write failed:", err);
+  }
+}
+
+const snapshotOf = (row: CacheRow | null): Snapshot | null =>
+  row?.fetched_at ? { at: Date.parse(row.fetched_at), regions: row.regions ?? [] } : null;
 
 export async function handleAirAlerts(
   req: Request,
   deps: { db: unknown; token?: string; fetcher?: AlertsFetcher; now?: () => number },
 ): Promise<Response> {
   assertMethod(req, ["GET"]);
-  // deno-lint-ignore no-explicit-any
-  await enforceRateLimit(deps.db as any, req, "v1-air-alerts");
+  const db = deps.db as Db;
+  await enforceRateLimit(db, req, "v1-air-alerts");
   const now = (deps.now ?? Date.now)();
-  if (!deps.token) {
-    return ok({ available: false, updated_at: null, regions: [] }, req, 200, { "Cache-Control": "no-store" });
+  // ?region=<slug> — лише своя область (телефон показує банер для області застосунку).
+  const region = new URL(req.url).searchParams.get("region");
+  const only = region && /^[a-z0-9][a-z0-9-]{1,39}$/.test(region) ? region : null;
+  const unavailable = () => ok({ available: false, updated_at: null, regions: [] }, req, 200, { "Cache-Control": "no-store" });
+  const answer = (s: Snapshot) =>
+    ok(
+      {
+        available: true,
+        updated_at: new Date(s.at).toISOString(),
+        regions: only ? s.regions.filter((r) => r.slug === only) : s.regions,
+      },
+      req,
+      200,
+      { "Cache-Control": "no-store" },
+    );
+  if (!deps.token) return unavailable();
+  if (memory && now - memory.at <= ALERTS_TTL_MS) return answer(memory);
+
+  // Спільний кеш: інша копія функції вже оновила — беремо її дані.
+  const row = await readRow(db);
+  const shared = snapshotOf(row);
+  if (shared && now - shared.at <= ALERTS_TTL_MS) {
+    memory = shared;
+    return answer(shared);
   }
-  if (!cache || now - cache.at > ALERTS_TTL_MS) {
+
+  // До alerts.in.ua йде лише одна копія (оренда); база недоступна — ідемо самі (як раніше).
+  let claimed = true;
+  try {
+    const { data, error } = await db.rpc("air_alerts_claim_refresh", { p_ttl_seconds: ALERTS_TTL_MS / 1000, p_lease_seconds: LEASE_S });
+    if (!error) claimed = data === true;
+  } catch {
+    // залишаємо claimed = true
+  }
+
+  if (claimed) {
     try {
-      const raw = await (deps.fetcher ?? defaultFetcher)(ALERTS_URL, deps.token);
-      cache = { at: now, regions: parseAlerts(raw) };
+      const res = await (deps.fetcher ?? defaultFetcher)(ALERTS_URL, deps.token, row?.last_modified ?? null);
+      const at = new Date(now).toISOString();
+      if (res.status === 200) {
+        const regions = parseAlerts(res.body);
+        memory = { at: now, regions };
+        await writeRow(db, { regions, fetched_at: at, last_modified: res.lastModified ?? null, refreshing_until: null, backoff_until: null });
+        return answer(memory);
+      }
+      if (res.status === 304 && shared) {
+        memory = { at: now, regions: shared.regions };
+        await writeRow(db, { fetched_at: at, refreshing_until: null });
+        return answer(memory);
+      }
+      if (res.status === 429) {
+        console.warn("[v1-air-alerts] alerts.in.ua: 429, pause");
+        const pause = new Date(now + (res.retryAfterS ?? BACKOFF_S) * 1000).toISOString();
+        await writeRow(db, { backoff_until: pause, refreshing_until: null });
+      } else {
+        console.warn("[v1-air-alerts] alerts.in.ua:", res.status);
+        await writeRow(db, { refreshing_until: null });
+      }
     } catch (err) {
       console.warn("[v1-air-alerts] source unavailable:", err);
-      if (!cache || now - cache.at > 10 * 60_000) {
-        return ok({ available: false, updated_at: null, regions: [] }, req, 200, { "Cache-Control": "no-store" });
-      }
+      await writeRow(db, { refreshing_until: null });
     }
   }
-  return ok(
-    { available: true, updated_at: new Date(cache.at).toISOString(), regions: cache.regions },
-    req,
-    200,
-    { "Cache-Control": "no-store" },
-  );
+
+  // Оновлює інша копія, пауза або збій — останні відомі дані, якщо вони не старші за 10 хв.
+  const last = [memory, shared].filter((s): s is Snapshot => s !== null).sort((a, b) => b.at - a.at)[0];
+  return last && now - last.at <= ALERTS_STALE_MS ? answer(last) : unavailable();
 }

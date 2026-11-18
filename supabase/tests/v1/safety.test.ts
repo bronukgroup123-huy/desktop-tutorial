@@ -82,32 +82,102 @@ Deno.test("Повітряна тривога: лише air_raid і активн�
   assertEquals(parseAlerts({ nope: 1 }), []);
 });
 
-Deno.test("v1-air-alerts: без ключа — available:false; з ключем — області з кешем 45 с; збій джерела — без помилки", async () => {
+/** Стан таблиці air_alerts_cache + RPC оренди — як у міграції 20261118120000. */
+function alertsDb(clock: () => number) {
+  const row: Record<string, unknown> = { regions: [], fetched_at: null, last_modified: null, refreshing_until: null, backoff_until: null };
+  const ts = (v: unknown) => (typeof v === "string" ? Date.parse(v) : -Infinity);
+  const db = mockDb({
+    ...RL_OK,
+    "air_alerts_cache.select": () => ({ data: { regions: row.regions, fetched_at: row.fetched_at, last_modified: row.last_modified }, error: null }),
+    "air_alerts_cache.update": (call) => {
+      Object.assign(row, call.args[0] as Record<string, unknown>);
+      return { data: null, error: null };
+    },
+    "rpc.air_alerts_claim_refresh": (call) => {
+      const { p_ttl_seconds, p_lease_seconds } = call.args[0] as { p_ttl_seconds: number; p_lease_seconds: number };
+      const t = clock();
+      const ok = ts(row.fetched_at) < t - p_ttl_seconds * 1000 && ts(row.refreshing_until) < t && ts(row.backoff_until) < t;
+      if (ok) row.refreshing_until = new Date(t + p_lease_seconds * 1000).toISOString();
+      return { data: ok, error: null };
+    },
+  });
+  return { db, row };
+}
+
+Deno.test("v1-air-alerts: без ключа — available:false; один запит на всю Україну, кеш 45 с спільний для всіх копій функції", async () => {
   _resetAirAlertsCache();
-  const run = (deps: Partial<Parameters<typeof handleAirAlerts>[1]>) =>
-    handle((r) => handleAirAlerts(r, { db: mockDb(RL_OK), ...deps }))(new Request("http://localhost/v1-air-alerts"));
+  let t = 1_000_000;
+  const { db, row } = alertsDb(() => t);
+  const run = (deps: Partial<Parameters<typeof handleAirAlerts>[1]>, url = "http://localhost/v1-air-alerts") =>
+    handle((r) => handleAirAlerts(r, { db, now: () => t, ...deps }))(new Request(url));
   assertEquals((await (await run({})).json()).data, { available: false, updated_at: null, regions: [] });
 
-  let calls = 0;
-  let t = 1_000_000;
-  const fetcher = (url: string, token: string) => {
-    calls++;
+  const seen: Array<string | null | undefined> = [];
+  const fetcher = (url: string, token: string, since?: string | null) => {
+    seen.push(since);
     assertEquals([url, token], [ALERTS_URL, "secret"]);
-    return Promise.resolve(SAMPLE);
+    return Promise.resolve({ status: 200, body: SAMPLE, lastModified: "Wed, 18 Nov 2026 16:00:00 GMT" });
   };
-  const body = (await (await run({ token: "secret", fetcher, now: () => t })).json()).data;
+  const body = (await (await run({ token: "secret", fetcher })).json()).data;
   assertEquals(body.available, true);
   assertEquals(body.regions.map((r: { slug: string }) => r.slug), ["kyivska", "zhytomyrska"]);
-  t += 10_000;
-  await run({ token: "secret", fetcher, now: () => t });
-  assertEquals(calls, 1); // кеш
-  t += 60_000;
-  const failing = () => Promise.reject(new Error("down"));
-  const stale = (await (await run({ token: "secret", fetcher: failing, now: () => t })).json()).data;
-  assertEquals(stale.available, true); // недавні дані лишаються
+  assertEquals(row.last_modified, "Wed, 18 Nov 2026 16:00:00 GMT");
+
+  // Інша копія функції (без кешу в пам'яті) бере дані зі спільного кешу — без запиту.
   _resetAirAlertsCache();
-  const none = (await (await run({ token: "secret", fetcher: failing, now: () => t })).json()).data;
-  assertEquals(none.available, false);
+  t += 10_000;
+  await run({ token: "secret", fetcher });
+  assertEquals(seen.length, 1);
+
+  // Лише своя область.
+  const mine = (await (await run({ token: "secret", fetcher }, "http://localhost/v1-air-alerts?region=zhytomyrska")).json()).data;
+  assertEquals(mine.regions.map((r: { slug: string }) => r.slug), ["zhytomyrska"]);
+});
+
+Deno.test("v1-air-alerts: оновлює лише одна копія; 304 — без змін; 429 — пауза й останні дані; давні дані — available:false", async () => {
+  _resetAirAlertsCache();
+  let t = 2_000_000;
+  const { db, row } = alertsDb(() => t);
+  const run = (fetcher: Parameters<typeof handleAirAlerts>[1]["fetcher"]) =>
+    handle((r) => handleAirAlerts(r, { db, now: () => t, token: "secret", fetcher }))(new Request("http://localhost/v1-air-alerts"));
+  let calls = 0;
+  const ok200 = () => (calls++, Promise.resolve({ status: 200, body: SAMPLE, lastModified: "LM1" }));
+  await run(ok200);
+  assertEquals(calls, 1);
+
+  // Кеш застарів, але оренду вже взяла інша копія — ця не йде до alerts.in.ua, віддає останні дані.
+  t += 60_000;
+  row.refreshing_until = new Date(t + 10_000).toISOString();
+  _resetAirAlertsCache();
+  const busy = (await (await run(ok200)).json()).data;
+  assertEquals([calls, busy.available], [1, true]);
+  row.refreshing_until = null;
+
+  // 304 — If-Modified-Since зі спільного кешу, дані ті самі, час оновлено.
+  let since: string | null | undefined;
+  const not304 = (_u: string, _t: string, s?: string | null) => (calls++, since = s, Promise.resolve({ status: 304 }));
+  const same = (await (await run(not304)).json()).data;
+  assertEquals([since, same.regions.length, same.updated_at], ["LM1", 2, new Date(t).toISOString()]);
+
+  // 429 — пауза (Retry-After), тим часом останні дані й жодних запитів.
+  t += 60_000;
+  _resetAirAlertsCache();
+  const tooMany = () => (calls++, Promise.resolve({ status: 429, retryAfterS: 300 }));
+  const paused = (await (await run(tooMany)).json()).data;
+  assertEquals(paused.available, true);
+  assertEquals(Date.parse(row.backoff_until as string), t + 300_000);
+  const before = calls;
+  t += 60_000;
+  _resetAirAlertsCache();
+  await run(ok200);
+  assertEquals(calls, before); // пауза ще триває
+
+  // Пауза минула, але джерело лежить, а дані давні (> 10 хв) — банера немає.
+  t += 15 * 60_000;
+  _resetAirAlertsCache();
+  const down = (await (await run(() => Promise.reject(new Error("down")))).json()).data;
+  assertEquals(down.available, false);
+  assertEquals(row.refreshing_until, null); // оренду звільнено
 });
 
 // ─── Небезпечна погода ─────────────────────────────────────────────────────
