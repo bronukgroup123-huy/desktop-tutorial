@@ -152,8 +152,7 @@ class _Header extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(me.name ?? '', style: GoogleFonts.merriweather(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
-                    if (me.handle != null)
-                      Text('@${me.handle}', key: const ValueKey('profile-handle'), style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                    if (me.handle != null) Text('@${me.handle}', key: const ValueKey('profile-handle'), style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
                     if (level != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -226,48 +225,86 @@ class _GuestCard extends ConsumerWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => Container(
-        key: const ValueKey('profile-guest'),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Створіть профіль', style: GoogleFonts.merriweather(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
-            const SizedBox(height: 8),
-            for (final t in const [
-              'Ім\'я, нік і свій грибний аватар',
-              'Друзі й Наглядач у поході',
-              'Рейтинг, рівні й публічні точки',
-              'Ваші точки й ділянки збережуться',
-            ])
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(children: [
-                  const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xff2e7d32)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(t)),
-                ]),
-              ),
-            const SizedBox(height: 10),
-            FilledButton.icon(
-              key: const ValueKey('profile-google'),
-              onPressed: () => _google(context, ref),
-              icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-              label: const Text('Увійти через Google'),
-              style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, padding: const EdgeInsets.symmetric(vertical: 12)),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const ValueKey('profile-apple'),
-              onPressed: () => showToast(context, 'Вхід через Apple — скоро'),
-              icon: const Icon(Icons.apple_rounded),
-              label: const Text('Увійти через Apple'),
-            ),
-          ],
+  /// Google уже має свій акаунт: прив'язати до гостя не можна — увійти в той акаунт.
+  Future<void> _offerExisting(BuildContext context, WidgetRef ref) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        key: const ValueKey('google-taken'),
+        title: const Text('Цей Google уже має профіль'),
+        content: const Text(
+          'З цим Google-акаунтом ви вже входили раніше. Увійти в той профіль?\n\n'
+          'Точки й ділянки, збережені зараз у гостьовому режимі, туди не перенесуться.',
         ),
-      );
+        actions: [
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Скасувати')),
+          FilledButton(key: const ValueKey('google-taken-signin'), onPressed: () => Navigator.of(c).pop(true), child: const Text('Увійти в нього')),
+        ],
+      ),
+    );
+    if (yes != true || !context.mounted) return;
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle(redirectTo: kIsWeb ? Uri.base.origin : SupabaseConfig.authRedirectUrl);
+    } catch (e) {
+      if (context.mounted) showToast(context, authErrorMessage(e, action: 'увійти через Google'), isError: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Повернення зі сторінки Google з помилкою приходить у потік стану входу — показати її,
+    // а не мовчки лишитися гостем.
+    ref.listen(authStateProvider, (_, next) {
+      final e = next.error;
+      if (e == null || !context.mounted) return;
+      if (isIdentityTaken(e)) {
+        _offerExisting(context, ref);
+      } else {
+        showToast(context, authErrorMessage(e, action: 'увійти через Google'), isError: true);
+      }
+    });
+    return Container(
+      key: const ValueKey('profile-guest'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Створіть профіль', style: GoogleFonts.merriweather(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          const SizedBox(height: 8),
+          for (final t in const [
+            'Ім\'я, нік і свій грибний аватар',
+            'Друзі й Наглядач у поході',
+            'Рейтинг, рівні й публічні точки',
+            'Ваші точки й ділянки збережуться',
+          ])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(children: [
+                const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xff2e7d32)),
+                const SizedBox(width: 8),
+                Expanded(child: Text(t)),
+              ]),
+            ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: const ValueKey('profile-google'),
+            onPressed: () => _google(context, ref),
+            icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+            label: const Text('Увійти через Google'),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, padding: const EdgeInsets.symmetric(vertical: 12)),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('profile-apple'),
+            onPressed: () => showToast(context, 'Вхід через Apple — скоро'),
+            icon: const Icon(Icons.apple_rounded),
+            label: const Text('Увійти через Apple'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Що лежить на телефоні для роботи без інтернету — з розміром; оновити / видалити.
@@ -389,8 +426,7 @@ class _DataRow extends StatelessWidget {
                     children: [
                       Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
                       Row(children: [
-                        Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined,
-                            size: 14, color: ready ? const Color(0xff2e7d32) : const Color(0xffb45309)),
+                        Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? const Color(0xff2e7d32) : const Color(0xffb45309)),
                         const SizedBox(width: 4),
                         Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)))),
                       ]),
@@ -398,8 +434,7 @@ class _DataRow extends StatelessWidget {
                   ),
                 ),
                 if (!ready) TextButton(onPressed: onGet, child: const Text('Завантажити')),
-                if (onDelete != null)
-                  IconButton(tooltip: 'Видалити з телефону', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded)),
+                if (onDelete != null) IconButton(tooltip: 'Видалити з телефону', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded)),
               ],
             ),
           ),

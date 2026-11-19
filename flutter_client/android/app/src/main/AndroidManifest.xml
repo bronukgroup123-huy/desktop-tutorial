@@ -35,6 +35,9 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Посилання повернення після Google обробляє Supabase (app_links), а не маршрутизатор
+                 застосунку: інакше GoRouter перехоплює його й перекидає на стартовий екран. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <!-- Повернення після входу через Google (Supabase OAuth):
                  ua.mushroomradar.app://login-callback/ — SupabaseConfig.authRedirectUrl.
                  Ця адреса має бути в Supabase → Authentication → URL Configuration → Redirect URLs. -->

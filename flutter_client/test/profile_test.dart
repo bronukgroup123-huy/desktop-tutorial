@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
@@ -8,6 +10,7 @@ import 'package:flutter_client/features/profile/profile_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthException, AuthState;
 import 'package:google_fonts/google_fonts.dart';
 
 import 'data/fake_adapter.dart';
@@ -95,7 +98,7 @@ void main() {
   late List<String> checked;
   var available = true;
 
-  Widget app(Widget home, Map<String, dynamic> me) {
+  Widget app(Widget home, Map<String, dynamic> me, {Stream<AuthState>? auth}) {
     fake = FakeMe(Me.fromJson(me));
     checked = [];
     final (api, _) = makeClient((r) {
@@ -109,6 +112,7 @@ void main() {
         meProvider.overrideWith(() => fake),
         meRepositoryProvider.overrideWithValue(MeRepository(api)),
         avatarCatalogProvider.overrideWith((ref) async => AvatarCatalog.fromJson(catalogJson())),
+        if (auth != null) authStateProvider.overrideWith((ref) => auth),
       ],
       child: MaterialApp(home: home),
     );
@@ -147,6 +151,23 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const ValueKey('data-ai')), 200);
     expect(find.byKey(const ValueKey('data-map')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-delete')), findsNothing);
+  });
+
+  testWidgets('Гість: Google уже має свій профіль — пропонуємо увійти в нього, а не мовчимо', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    final auth = StreamController<AuthState>();
+    addTearDown(auth.close);
+    await tester.pumpWidget(app(const ProfileScreen(), meJson(region: {'id': 1, 'slug': 'zhytomyrska', 'name': 'Житомирська область'}), auth: auth.stream));
+    await frames(tester);
+    auth.addError(const AuthException('Identity is already linked to another user', statusCode: 'identity_already_exists', code: 'server_error'));
+    await frames(tester);
+    expect(find.byKey(const ValueKey('google-taken')), findsOneWidget);
+    expect(find.textContaining('не перенесуться'), findsOneWidget);
+    await tester.tap(find.text('Скасувати'));
+    await frames(tester);
+    expect(find.byKey(const ValueKey('google-taken')), findsNothing);
   });
 
   testWidgets('Видалити акаунт — лише після підтвердження', (tester) async {
