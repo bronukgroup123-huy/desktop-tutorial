@@ -199,17 +199,25 @@ class _Detail extends StatelessWidget {
   }
 }
 
-/// Фото Топ-20 у довіднику (без тла, `scripts/species_photos/cutout.py`): дорослий гриб
-/// (`assets/species/large/<id>.webp`) — праворуч від назви, на місці колишньої анімації;
-/// молодий (`assets/species/small/<id>.webp`) — замість значка біля назви.
-const kSpeciesPhotos = {
+/// Фото в довіднику (без тла, `scripts/species_photos/cutout.py`): дорослий гриб
+/// (`assets/species/large/<id>.webp`) — праворуч від назви; молодий (`assets/species/small/<id>.webp`)
+/// — замість значка біля назви. Топ-20 — обидва; отруйні — поки дорослий.
+const _top20 = {
   'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
   'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
   'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
   'pleurotus_ostreatus', 'russula_vesca', 'suillus_bovinus', 'suillus_luteus', 'xerocomus_subtomentosus',
 };
+const _poisonous = {
+  'amanita_phalloides', 'galerina_marginata', 'amanita_verna', 'amanita_virosa', 'gyromitra_esculenta',
+  'inocybe_geophylla', 'rubroboletus_rhodoxanthus', 'rubroboletus_satanas', 'rubroboletus_rubrosanguineus',
+  'inocybe_erubescens', 'clitocybe_candicans', 'clitocybe_dealbata', 'entoloma_sinuatum',
+  'hygrophoropsis_aurantiaca', 'amanita_pantherina', 'amanita_muscaria', 'paxillus_involutus',
+};
+const kSpeciesLargePhotos = {..._top20, ..._poisonous};
+const kSpeciesSmallPhotos = _top20;
 
-/// Шапка: значок, назва, латина й плашки; для Топ-20 праворуч — фото дорослого гриба
+/// Шапка: значок, назва, латина й плашки; праворуч — фото дорослого гриба (Топ-20, отруйні)
 /// (анімацію з грибом-персонажем прибрано — рішення PO 2026-11-19).
 class _Header extends StatelessWidget {
   const _Header({required this.species});
@@ -226,7 +234,7 @@ class _Header extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (kSpeciesPhotos.contains(s.id))
+            if (kSpeciesSmallPhotos.contains(s.id))
               Image.asset(
                 'assets/species/small/${s.id}.webp',
                 key: const ValueKey('species-photo-small'),
@@ -265,7 +273,7 @@ class _Header extends StatelessWidget {
         ),
       ],
     );
-    if (!kSpeciesPhotos.contains(s.id)) return info;
+    if (!kSpeciesLargePhotos.contains(s.id)) return info;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
