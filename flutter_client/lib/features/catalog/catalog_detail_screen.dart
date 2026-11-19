@@ -199,8 +199,17 @@ class _Detail extends StatelessWidget {
   }
 }
 
-/// Шапка: значок, назва, латина й плашки (анімацію з грибом-персонажем прибрано — рішення PO
-/// 2026-11-19; на її місце стане фото дорослого гриба, на місце значка — фото молодого).
+/// Фото дорослого гриба (Топ-20) — праворуч від назви, на місці колишньої анімації.
+/// Файли — `assets/species/large/<id>.webp` без тла (`scripts/species_photos/cutout.py`).
+const kSpeciesLargePhotos = {
+  'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
+  'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
+  'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
+  'pleurotus_ostreatus', 'russula_vesca', 'suillus_bovinus', 'suillus_luteus', 'xerocomus_subtomentosus',
+};
+
+/// Шапка: значок, назва, латина й плашки; для Топ-20 праворуч — фото дорослого гриба
+/// (анімацію з грибом-персонажем прибрано — рішення PO 2026-11-19).
 class _Header extends StatelessWidget {
   const _Header({required this.species});
 
@@ -211,7 +220,7 @@ class _Header extends StatelessWidget {
     final s = species;
     final badge = edibilityBadge(s);
     final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
-    return Column(
+    final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -242,6 +251,23 @@ class _Header extends StatelessWidget {
             if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
             if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
           ],
+        ),
+      ],
+    );
+    if (!kSpeciesLargePhotos.contains(s.id)) return info;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: info),
+        const SizedBox(width: 8),
+        Image.asset(
+          'assets/species/large/${s.id}.webp',
+          key: const ValueKey('species-photo'),
+          width: 150,
+          height: 150,
+          fit: BoxFit.contain,
+          semanticLabel: s.name,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
         ),
       ],
     );

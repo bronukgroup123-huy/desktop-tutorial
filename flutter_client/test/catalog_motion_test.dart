@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/catalog/catalog_article.dart';
@@ -35,7 +37,15 @@ void main() {
     CatalogPhotoCache.directory = () async => null;
   });
 
-  testWidgets('Картка Топ-20 — без анімації: ні віконця з грибом-персонажем, ні кола сценок', (tester) async {
+  test('Фото дорослого гриба є для кожного виду Топ-20 (assets/species/large)', () {
+    final top = {for (final s in catalog.species.where((s) => s.top20)) s.id};
+    expect(kSpeciesLargePhotos, top);
+    for (final id in top) {
+      expect(File('assets/species/large/$id.webp').existsSync(), isTrue, reason: id);
+    }
+  });
+
+  testWidgets('Картка Топ-20 — без анімації: ні віконця з грибом-персонажем, ні кола сценок; праворуч фото', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         catalogProvider.overrideWith((ref) => catalog),
@@ -47,6 +57,20 @@ void main() {
     expect(find.byKey(const ValueKey('character-slot')), findsNothing);
     expect(find.byKey(const ValueKey('icon-play')), findsNothing);
     expect(find.byType(SpeciesIcon), findsWidgets);
+    expect(find.byKey(const ValueKey('species-photo')), findsOneWidget);
+  });
+
+  testWidgets('Вид поза Топ-20 — без фото праворуч', (tester) async {
+    final other = catalog.species.firstWhere((s) => !s.top20);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        catalogProvider.overrideWith((ref) => catalog),
+        oblastsProvider.overrideWith((ref) => oblasts),
+      ],
+      child: MaterialApp(home: CatalogDetailScreen(speciesId: other.id)),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('species-photo')), findsNothing);
   });
 
   test('Персонажі: рівно 20 видів Топ-20', () {

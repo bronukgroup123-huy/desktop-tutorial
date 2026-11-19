@@ -86,7 +86,10 @@ void main() {
     expect(find.byKey(const ValueKey('catalog-detail-flammulina_velutipes')), findsOneWidget);
     expect(find.text('Flammulina velutipes'), findsOneWidget);
     expect(find.text('⭐ Топ-20'), findsOneWidget);
+    expect(find.byKey(const ValueKey('species-photo')), findsOneWidget); // фото дорослого гриба праворуч
     expect(find.byKey(const ValueKey('catalog-season')), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('catalog-description')), 200,
+        scrollable: find.descendant(of: find.byKey(const ValueKey('catalog-detail-flammulina_velutipes')), matching: find.byType(Scrollable)).first);
     expect(find.byKey(const ValueKey('catalog-description')), findsOneWidget);
     expect(find.text('Швидка картка (як визначити)'), findsOneWidget);
     // двійники — поруч картками (замість таблиці)
