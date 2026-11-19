@@ -12,8 +12,6 @@ import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_forecast_link.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion, seg;
-import 'package:flutter_client/features/catalog/mushroom_character.dart' show hasCharacter;
-import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
 import 'package:flutter_client/features/catalog/species_credits.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
@@ -201,33 +199,42 @@ class _Detail extends StatelessWidget {
   }
 }
 
-/// Шапка: значок, назва, латина й плашки. Для Топ-20 праворуч — віконце з грибом-персонажем:
-/// стоїть, кліпає; затиснути значок чи віконце — коло сценок, сценка грає тут же.
-class _Header extends StatefulWidget {
+/// Фото Топ-20 у довіднику (без тла, `scripts/species_photos/cutout.py`): дорослий гриб
+/// (`assets/species/large/<id>.webp`) — праворуч від назви, на місці колишньої анімації;
+/// молодий (`assets/species/small/<id>.webp`) — замість значка біля назви.
+const kSpeciesPhotos = {
+  'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
+  'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
+  'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
+  'pleurotus_ostreatus', 'russula_vesca', 'suillus_bovinus', 'suillus_luteus', 'xerocomus_subtomentosus',
+};
+
+/// Шапка: значок, назва, латина й плашки; для Топ-20 праворуч — фото дорослого гриба
+/// (анімацію з грибом-персонажем прибрано — рішення PO 2026-11-19).
+class _Header extends StatelessWidget {
   const _Header({required this.species});
 
   final CatalogSpecies species;
 
   @override
-  State<_Header> createState() => _HeaderState();
-}
-
-class _HeaderState extends State<_Header> {
-  final _slot = GlobalKey<CharacterSlotState>();
-
-  @override
   Widget build(BuildContext context) {
-    final s = widget.species;
+    final s = species;
     final badge = edibilityBadge(s);
     final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
-    final playful = hasCharacter(s.id);
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            if (playful)
-              PlayfulSpeciesIcon(speciesId: s.id, onPick: (scene) => _slot.currentState?.play(scene))
+            if (kSpeciesPhotos.contains(s.id))
+              Image.asset(
+                'assets/species/small/${s.id}.webp',
+                key: const ValueKey('species-photo-small'),
+                width: 56,
+                height: 56,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+              )
             else
               SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
             const SizedBox(width: 10),
@@ -258,13 +265,21 @@ class _HeaderState extends State<_Header> {
         ),
       ],
     );
-    if (!playful) return info;
+    if (!kSpeciesPhotos.contains(s.id)) return info;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: info),
         const SizedBox(width: 8),
-        CharacterSlot(key: _slot, speciesId: s.id),
+        Image.asset(
+          'assets/species/large/${s.id}.webp',
+          key: const ValueKey('species-photo'),
+          width: 150,
+          height: 150,
+          fit: BoxFit.contain,
+          semanticLabel: s.name,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
       ],
     );
   }
