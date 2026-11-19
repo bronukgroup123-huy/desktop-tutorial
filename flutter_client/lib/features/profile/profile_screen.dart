@@ -11,6 +11,7 @@ import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
+import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
@@ -404,37 +405,6 @@ class _DataRow extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// Вибір аватара: 20 стандартних грибів (ADR-021 §21.7). Конструктор — окремим кроком.
-class AvatarPickerScreen extends ConsumerWidget {
-  const AvatarPickerScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(meProvider.select((m) => m.valueOrNull?.avatar.id));
-    return Scaffold(
-      appBar: AppBar(title: Text('Аватар', style: GoogleFonts.merriweather(color: AppTheme.darkGreen))),
-      body: GridView.builder(
-        key: const ValueKey('avatar-grid'),
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 12, crossAxisSpacing: 12),
-        itemCount: kStandardAvatarSpecies.length,
-        itemBuilder: (context, i) => GestureDetector(
-          key: ValueKey('avatar-${i + 1}'),
-          onTap: () async {
-            try {
-              await ref.read(meProvider.notifier).setAvatar(i + 1);
-              if (context.mounted) Navigator.of(context).pop();
-            } catch (_) {
-              if (context.mounted) showToast(context, 'Не вдалося зберегти аватар. Перевірте інтернет.', isError: true);
-            }
-          },
-          child: UserAvatar(avatar: Avatar(kind: 'standard', id: i + 1), size: 72, selected: current == i + 1),
-        ),
-      ),
-    );
-  }
 }
 
 class _Section extends StatelessWidget {

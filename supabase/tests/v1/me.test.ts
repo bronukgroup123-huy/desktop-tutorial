@@ -169,7 +169,8 @@ Deno.test("v1-me GET: після Google без ніка (ім'я з Google ла�
   const { data } = await (await run(d, req("GET", URL))).json();
   assertEquals(data.onboarding.next_step, "profile");
   assertEquals(data.name, null); // латиницю не показуємо — людина введе ім'я українською
-  assertEquals(data.avatar.kind, "standard");
+  assertEquals(data.avatar.kind, "custom"); // за замовчуванням — безкоштовна наліпка
+  assertEquals(typeof data.avatar.sticker, "string");
   assertEquals(data.level.label, "Мандрівник");
   const guest = await (await run(db({ ...consented, "users.select": { data: fresh, error: null } }), req("GET", URL), true)).json();
   assertEquals(guest.data.onboarding.next_step, "done");
@@ -230,4 +231,24 @@ Deno.test("v1-me GET ?check_handle: вільний / зайнятий / неко
   assertEquals([busy.data.available, busy.data.reason], [false, "Нік @грибник уже зайнятий"]);
   const bad = await (await run(db(), req("GET", `${URL}?check_handle=gribnyk`))).json();
   assertEquals([bad.data.available, bad.data.reason], [false, "Нік — лише українськими літерами, без латиниці"]);
+});
+
+Deno.test("v1-me: конструктор — каталог із замками; закрита деталь → 403; відкрита — зберігається", async () => {
+  const cat = await (await run(db(), req("GET", `${URL}?avatar_catalog=1`))).json();
+  const hats = cat.data.categories.find((c: { id: string }) => c.id === "hat");
+  assertEquals(hats.parts.find((p: { id: string }) => p.id === "ranger").lock_label, "З рівня «Лісовик»");
+  const locked = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", sticker: "cosmic" } }));
+  assertEquals([locked.status, (await locked.json()).error], [403, "avatar_part_locked"]);
+  const d = db();
+  const saved = await run(d, req("PATCH", URL, { avatar: { kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: "none" } }));
+  assertEquals(saved.status, 200);
+  assertEquals((find(d, "users.update")?.args[0] as Record<string, unknown>).avatar, {
+    kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: null,
+  });
+});
+
+Deno.test("v1-me GET: старий «стандартний» гриб показується наліпкою", async () => {
+  const d = db({ ...consented, "users.select": { data: { ...userRow(10), avatar: { kind: "standard", id: 3 } }, error: null } });
+  const { data } = await (await run(d, req("GET", URL))).json();
+  assertEquals(data.avatar, { kind: "custom", sticker: "wow", hat: null, item: null, fx: null });
 });

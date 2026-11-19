@@ -166,8 +166,8 @@ class MeNotifier extends AsyncNotifier<Me?> {
     state = AsyncData(await ref.read(meRepositoryProvider).updateIdentity(name: name, handle: handle));
   }
 
-  Future<void> setAvatar(int standardId) async {
-    state = AsyncData(await ref.read(meRepositoryProvider).setAvatar(standardId));
+  Future<void> setCustomAvatar(Map<String, String?> parts) async {
+    state = AsyncData(await ref.read(meRepositoryProvider).setCustomAvatar(parts));
   }
 
   /// Видалити акаунт і вийти.
