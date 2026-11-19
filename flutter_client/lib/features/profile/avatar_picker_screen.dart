@@ -181,7 +181,7 @@ class _PartTile extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Opacity(opacity: locked ? 0.35 : 1, child: UserAvatar(avatar: Avatar(kind: 'custom', parts: parts), size: 70)),
+                  UserAvatar(avatar: Avatar(kind: 'custom', parts: parts), size: 70, dimmed: locked),
                   if (locked) const Icon(Icons.lock_rounded, color: AppTheme.darkGreen, size: 26),
                 ],
               ),

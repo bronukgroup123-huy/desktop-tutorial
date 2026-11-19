@@ -8,6 +8,7 @@ import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/custom_avatar.dart';
 import 'package:flutter_client/features/profile/profile_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
+import 'package:flutter_client/features/profile/sticker_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException, AuthState;
@@ -230,6 +231,16 @@ void main() {
     expect(a.parts['sticker'], 'dizzy');
     expect(a.toJson(), {'kind': 'custom', 'sticker': 'dizzy', 'hat': null, 'item': 'basket', 'fx': 'notes'});
     expect(kStickers.length, inInclusiveRange(25, 30));
+  });
+
+  testWidgets('Наліпка малюється один раз і далі береться готовою (прокрутка не перемальовує)', (tester) async {
+    const parts = {'sticker': 'dizzy', 'hat': 'cap', 'item': null, 'fx': 'notes'};
+    final a = StickerCache.instance.image(parts, 120);
+    expect(identical(StickerCache.instance.image(parts, 120), a), isTrue);
+    expect(identical(StickerCache.instance.image(parts, 240), a), isFalse); // інший розмір — своя картинка
+    expect([a.width, a.height], [120, 120]);
+    await tester.pumpWidget(const MaterialApp(home: Center(child: StickerImage(parts, size: 60, opacity: 0.35))));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Невідома деталь (новіша за застосунок) — малюється без неї, без збою', (tester) async {
