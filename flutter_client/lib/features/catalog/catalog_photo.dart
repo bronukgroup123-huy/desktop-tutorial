@@ -199,6 +199,12 @@ class CatalogPhotoCache {
   }
 }
 
+/// Тло навколо цілого фото: розмите те саме фото ([kWholeBackdropOpacity]) під світлою
+/// вуаллю кольору картки ([kWholeVeil]), знизу плавно переходить у картку.
+const kCardColor = Color(0xFFF4F1E1);
+const kWholeBackdropOpacity = 0.9;
+const kWholeVeil = 0.45;
+
 /// Фото виду; немає (офлайн і ще не переглядали) — стікер гриба на світлому тлі.
 ///
 /// Картка є одразу; нове фото один раз плавно проявляється поверх стікера (рішення PO 2026-11-16).
@@ -285,13 +291,31 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
             opacity: _fade,
             child: widget.whole
                 ? Stack(fit: StackFit.expand, children: [
-                    ClipRect(
-                      child: ImageFiltered(
-                        imageFilter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22, tileMode: TileMode.mirror),
-                        child: Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    if (kWholeBackdropOpacity > 0)
+                      Opacity(
+                        opacity: kWholeBackdropOpacity,
+                        child: ClipRect(
+                          child: ImageFiltered(
+                            imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30, tileMode: TileMode.mirror),
+                            child: Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          ),
+                        ),
+                      ),
+                    // світла «вуаль» кольору картки й плавний перехід фону в картку знизу
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            kCardColor.withValues(alpha: kWholeVeil),
+                            kCardColor.withValues(alpha: kWholeVeil),
+                            kCardColor,
+                          ],
+                          stops: const [0, 0.72, 1],
+                        ),
                       ),
                     ),
-                    const ColoredBox(color: Color(0x33000000)),
                     Padding(
                       padding: widget.inset,
                       // Center дає вільні межі — фото бере свій розмір із пропорціями, тож кути й тінь — по фото.
@@ -299,7 +323,7 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
-                            boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 18, offset: Offset(0, 6))],
+                            boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8))],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
