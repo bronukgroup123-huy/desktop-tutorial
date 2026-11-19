@@ -84,8 +84,9 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
 
 | Ендпоінт | Auth | Що робить |
 |---|---|---|
-| `GET /v1-me` | JWT | Профіль, `is_guest`, `onboarding.next_step` (`select_region` → `accept_terms` → `done`), `region_change.allowed` |
-| `PATCH /v1-me` | JWT | `{ name?, home_region_slug?, accept_terms_version? }`; зміна області — ADR-016 (`403 region_change_not_allowed`) |
+| `GET /v1-me` | JWT | Профіль: ім'я, `handle` (нік), `avatar`, `level` (рівень і прогрес), `is_guest`, `onboarding.next_step` (`select_region` → `accept_terms` → `profile` → `done`), `region_change`, `handle_change`; `?check_handle=` — чи вільний нік |
+| `PATCH /v1-me` | JWT | `{ name?, handle?, avatar?, home_region_slug?, accept_terms_version? }`; ім'я/нік/аватар — лише після Google / Apple (`403 registration_required`); `409 handle_taken`, `409 handle_change_too_soon`; зміна області — ADR-016 |
+| `DELETE /v1-me` | JWT | Видалити акаунт назавжди (вимога Google Play) |
 | `GET /v1-regions/{slug}/geometry?detail=` | публічний | Кордон області (маска «острова»): `bbox`, `center`, `zoom`, `geometry`; кеш + ETag |
 | `GET /v1-forest-zones?bbox=&z=&limit=` | JWT | Ліси **тільки Home Region**: `{ data: FeatureCollection }` з `type_label`/`type_color` |
 | `POST /v1-forecast` | JWT | Прогноз у межах Home Region; рівні з підписами, **без** `score`/`probability` |

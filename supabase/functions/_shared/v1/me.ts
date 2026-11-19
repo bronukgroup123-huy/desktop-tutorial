@@ -2,8 +2,12 @@
 // GET / PATCH v1-me — профіль, онбординг і Home Region
 // (BACKEND_PLAN B1.3, B1.6, B1.9; ADR-001, ADR-016)
 //
-// GET   → { data: profile }
-// PATCH { name?, home_region_slug?, accept_terms_version? } → { data: profile }
+// GET    → { data: profile }   (ім'я, @нік, аватар, рівень, онбординг, область)
+// GET    ?check_handle=<нік> → { data: { handle, available, reason } }
+// PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
+// DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
+//
+// Ім'я, нік і аватар — лише після входу через Google / Apple (ADR-021 §21.2.1): гостю 403.
 //
 // Клієнт не вирішує, який екран онбордингу показати і чи можна змінити область:
 // сервер віддає onboarding.next_step і region_change.allowed (Thin Client).
@@ -19,20 +23,31 @@ import {
   type AuthUser,
   type TokenVerifier,
 } from "../http.ts";
+import {
+  type Avatar,
+  defaultAvatar,
+  HANDLE_CHANGE_DAYS,
+  handleKey,
+  isValidName,
+  levelOf,
+  validateAvatar,
+  validateHandle,
+  validateName,
+} from "./profile-rules.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
 export const CURRENT_TERMS_VERSION = "2026-11";
 export const CONSENT_DOCS = ["eula", "privacy"] as const;
 
-export const ME_NAME_MAX = 50;
 export const ME_SLUG_REGEX = /^[a-z0-9][a-z0-9_-]{1,31}$/;
 export const ONBOARDING_FIX_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export type NextStep = "select_region" | "accept_terms" | "done";
+export type NextStep = "select_region" | "accept_terms" | "profile" | "done";
 
 export const NEXT_STEP_LABEL: Record<NextStep, string> = {
   select_region: "Оберіть свою область",
   accept_terms: "Прийміть умови користування та політику конфіденційності",
+  profile: "Як вас звати? Придумайте нік",
   done: "Готово",
 };
 
@@ -97,6 +112,8 @@ export function decideRegionChange(
 
 export interface UpdateMeInput {
   name?: string;
+  handle?: string;
+  avatar?: Avatar;
   home_region_slug?: string;
   accept_terms_version?: string;
 }
@@ -108,14 +125,9 @@ export function validateUpdateMe(body: unknown): UpdateMeInput {
   const obj = body as Record<string, unknown>;
   const input: UpdateMeInput = {};
 
-  if (obj.name !== undefined) {
-    if (typeof obj.name !== "string") throw new HttpError(400, "invalid_name", "Ім'я — рядок");
-    const name = obj.name.trim();
-    if (name.length < 1 || name.length > ME_NAME_MAX) {
-      throw new HttpError(400, "invalid_name", `Ім'я — від 1 до ${ME_NAME_MAX} символів`);
-    }
-    input.name = name;
-  }
+  if (obj.name !== undefined) input.name = validateName(obj.name);
+  if (obj.handle !== undefined) input.handle = validateHandle(obj.handle);
+  if (obj.avatar !== undefined) input.avatar = validateAvatar(obj.avatar);
   if (obj.home_region_slug !== undefined) {
     if (typeof obj.home_region_slug !== "string" || !ME_SLUG_REGEX.test(obj.home_region_slug)) {
       throw new HttpError(400, "invalid_region_slug", "Некоректний slug області");
@@ -166,6 +178,9 @@ function dbFail(what: string, error: unknown): never {
 interface UserRow {
   id: string;
   name: string | null;
+  handle: string | null;
+  handle_changed_at: string | null;
+  avatar: Avatar | null;
   rating: number;
   total_verified_picks: number;
   home_region_id: number | null;
@@ -175,7 +190,7 @@ interface UserRow {
 async function loadUser(db: MeDb, userId: string): Promise<UserRow> {
   const { data, error } = await db
     .from("users")
-    .select("id, name, rating, total_verified_picks, home_region_id, created_at")
+    .select("id, name, handle, handle_changed_at, avatar, rating, total_verified_picks, home_region_id, created_at")
     .eq("id", userId)
     .maybeSingle();
   if (error) dbFail("users select", error);
@@ -223,15 +238,29 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
   ]);
 
   const regionDone = homeRegion !== null;
-  const nextStep: NextStep = !regionDone ? "select_region" : !termsDone ? "accept_terms" : "done";
+  // Ім'я й нік — лише в акаунті (Google / Apple); гість їх не має (ADR-021 §21.2.1).
+  const profileDone = ctx.user.isAnonymous || (row.handle !== null && isValidName(row.name));
+  const nextStep: NextStep = !regionDone
+    ? "select_region"
+    : !termsDone
+    ? "accept_terms"
+    : !profileDone
+    ? "profile"
+    : "done";
   const change = regionDone
     ? decideRegionChange(log, ctx.now, ctx.hasProRegionChange)
     : { allowed: true, reason_label: "Оберіть свою область" };
 
+  const rating = Number(row.rating);
   return {
     id: row.id,
-    name: row.name,
-    rating: Number(row.rating),
+    // Гостю — без імені й ніка (старі імена з Google латиницею — до кроку «Профіль» не показуємо).
+    name: ctx.user.isAnonymous || !isValidName(row.name) ? null : row.name,
+    handle: ctx.user.isAnonymous ? null : row.handle,
+    avatar: row.avatar ?? defaultAvatar(row.id),
+    level: levelOf(rating),
+    handle_change: handleChangeInfo(row, ctx.now),
+    rating,
     total_verified_picks: Number(row.total_verified_picks),
     home_region: homeRegion,
     created_at: row.created_at,
@@ -239,12 +268,22 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     onboarding: {
       region_done: regionDone,
       terms_done: termsDone,
+      profile_done: profileDone,
       terms_version: CURRENT_TERMS_VERSION,
       next_step: nextStep,
       next_step_label: NEXT_STEP_LABEL[nextStep],
     },
     region_change: { allowed: change.allowed, reason_label: change.reason_label },
   };
+}
+
+/** Чи можна зараз змінити нік (раз на 30 днів; перший раз — будь-коли). */
+function handleChangeInfo(row: UserRow, now: Date): { allowed: boolean; reason_label: string } {
+  if (!row.handle || !row.handle_changed_at) return { allowed: true, reason_label: "Нік можна змінити раз на 30 днів" };
+  const next = new Date(new Date(row.handle_changed_at).getTime() + HANDLE_CHANGE_DAYS * 86_400_000);
+  if (now >= next) return { allowed: true, reason_label: "Нік можна змінити раз на 30 днів" };
+  const d = `${String(next.getUTCDate()).padStart(2, "0")}.${String(next.getUTCMonth() + 1).padStart(2, "0")}.${next.getUTCFullYear()}`;
+  return { allowed: false, reason_label: `Нік можна буде змінити з ${d}` };
 }
 
 async function resolveRegionId(db: MeDb, slug: string): Promise<number> {
@@ -257,7 +296,23 @@ async function resolveRegionId(db: MeDb, slug: string): Promise<number> {
 
 export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promise<void> {
   const patch: Record<string, unknown> = {};
+  const personal = input.name !== undefined || input.handle !== undefined || input.avatar !== undefined;
+  if (personal && ctx.user.isAnonymous) {
+    throw new HttpError(403, "registration_required", "Ім'я, нік і аватар — після входу через Google або Apple");
+  }
   if (input.name !== undefined) patch.name = input.name;
+  if (input.avatar !== undefined) patch.avatar = input.avatar;
+  if (input.handle !== undefined) {
+    const current = await loadUser(ctx.db, ctx.user.id);
+    const key = handleKey(input.handle);
+    if (current.handle === null || handleKey(current.handle) !== key) {
+      const change = handleChangeInfo(current, ctx.now);
+      if (!change.allowed) throw new HttpError(409, "handle_change_too_soon", change.reason_label);
+      patch.handle_changed_at = ctx.now.toISOString();
+    }
+    patch.handle = input.handle;
+    patch.handle_key = key;
+  }
 
   let logRow: Record<string, unknown> | null = null;
   if (input.home_region_slug !== undefined) {
@@ -292,6 +347,9 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
 
   if (Object.keys(patch).length > 0) {
     const { error } = await ctx.db.from("users").update(patch).eq("id", ctx.user.id);
+    if (error && (error as { code?: string }).code === "23505") {
+      throw new HttpError(409, "handle_taken", `Нік @${input.handle} уже зайнятий — оберіть інший`);
+    }
     if (error) dbFail("users update", error);
   }
   if (logRow) {
@@ -312,11 +370,25 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
   }
 }
 
+/** Чи вільний нік — для підказки під полем вводу (остаточно перевіряє унікальний індекс). */
+export async function checkHandle(ctx: MeContext, raw: string): Promise<{ handle: string; available: boolean; reason: string | null }> {
+  let h: string;
+  try {
+    h = validateHandle(raw);
+  } catch (e) {
+    return { handle: raw, available: false, reason: e instanceof HttpError ? e.message : "Некоректний нік" };
+  }
+  const { data, error } = await ctx.db.from("users").select("id").eq("handle_key", handleKey(h)).limit(1);
+  if (error) dbFail("users handle check", error);
+  const taken = ((data ?? []) as Array<{ id: string }>).some((r) => r.id !== ctx.user.id);
+  return { handle: h, available: !taken, reason: taken ? `Нік @${h} уже зайнятий` : null };
+}
+
 export async function handleMe(
   req: Request,
   deps: { db: MeDb; verify: TokenVerifier; now?: () => Date },
 ): Promise<Response> {
-  assertMethod(req, ["GET", "PATCH"]);
+  assertMethod(req, ["GET", "PATCH", "DELETE"]);
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-me");
   const user = await requireUser(req, deps.verify);
@@ -327,6 +399,14 @@ export async function handleMe(
     hasProRegionChange: false, // entitlements з'являться в B6.3
   };
 
+  if (req.method === "DELETE") {
+    // Видалити акаунт: auth.users → каскадом профіль, точки, ділянки, згоди (вимога Google Play).
+    const { error } = await deps.db.rpc("delete_user_account", { p_user_id: user.id });
+    if (error) dbFail("delete_user_account", error);
+    return ok({ deleted: true }, req);
+  }
+  const check = new URL(req.url).searchParams.get("check_handle");
+  if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
   if (req.method === "PATCH") {
     const input = validateUpdateMe(await readJson(req));
     await updateProfile(ctx, input);

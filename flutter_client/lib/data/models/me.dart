@@ -4,6 +4,9 @@ import 'json.dart';
 enum OnboardingStep {
   selectRegion('select_region'),
   acceptTerms('accept_terms'),
+
+  /// Після входу через Google / Apple — ім'я й нік (ADR-021 §21.2.1).
+  profile('profile'),
   done('done'),
 
   /// Невідомий новий крок із сервера — клієнт показує онбординг, а не пропускає його.
@@ -59,6 +62,45 @@ class Onboarding {
   bool get isComplete => nextStep == OnboardingStep.done;
 }
 
+/// Аватар: один із 20 стандартних грибів (ADR-021 §21.7); конструктор — окремим кроком.
+class Avatar {
+  const Avatar({required this.kind, required this.id});
+
+  factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(
+        kind: req<String>(json, 'kind'),
+        id: (opt<num>(json, 'id') ?? 1).toInt(),
+      );
+
+  final String kind;
+  final int id;
+
+  Map<String, dynamic> toJson() => {'kind': kind, 'id': id};
+}
+
+/// Рівень за рейтингом (ADR-013) — підписи з сервера.
+class Level {
+  const Level({required this.id, required this.label, required this.from, required this.to, required this.nextLabel, required this.progressLabel});
+
+  factory Level.fromJson(Map<String, dynamic> json) => Level(
+        id: req<String>(json, 'id'),
+        label: req<String>(json, 'label'),
+        from: req<num>(json, 'from').toInt(),
+        to: opt<num>(json, 'to')?.toInt(),
+        nextLabel: opt<String>(json, 'next_label'),
+        progressLabel: req<String>(json, 'progress_label'),
+      );
+
+  final String id;
+  final String label;
+  final int from;
+  final int? to;
+  final String? nextLabel;
+  final String progressLabel;
+
+  /// Частка шляху до наступного рівня, 0…1.
+  double progress(int rating) => to == null ? 1 : ((rating - from) / (to! + 1 - from)).clamp(0.0, 1.0);
+}
+
 class RegionChange {
   const RegionChange({required this.allowed, required this.reasonLabel});
 
@@ -76,6 +118,10 @@ class Me {
   const Me({
     required this.id,
     required this.name,
+    this.handle,
+    this.avatar = const Avatar(kind: 'standard', id: 1),
+    this.level,
+    this.handleChange,
     required this.rating,
     required this.totalVerifiedPicks,
     required this.homeRegion,
@@ -90,6 +136,10 @@ class Me {
     return Me(
       id: req<String>(json, 'id'),
       name: opt<String>(json, 'name'),
+      handle: opt<String>(json, 'handle'),
+      avatar: opt<Map<String, dynamic>>(json, 'avatar') == null ? const Avatar(kind: 'standard', id: 1) : Avatar.fromJson(opt<Map<String, dynamic>>(json, 'avatar')!),
+      level: opt<Map<String, dynamic>>(json, 'level') == null ? null : Level.fromJson(opt<Map<String, dynamic>>(json, 'level')!),
+      handleChange: opt<Map<String, dynamic>>(json, 'handle_change') == null ? null : RegionChange.fromJson(opt<Map<String, dynamic>>(json, 'handle_change')!),
       rating: req<num>(json, 'rating').toInt(),
       totalVerifiedPicks: req<num>(json, 'total_verified_picks').toInt(),
       homeRegion: region == null ? null : HomeRegion.fromJson(region),
@@ -102,6 +152,14 @@ class Me {
 
   final String id;
   final String? name;
+
+  /// Нік без «@» (`Олена_лісова`); у гостя — немає.
+  final String? handle;
+  final Avatar avatar;
+  final Level? level;
+
+  /// Чи можна змінити нік зараз (раз на 30 днів).
+  final RegionChange? handleChange;
   final int rating;
   final int totalVerifiedPicks;
   final HomeRegion? homeRegion;

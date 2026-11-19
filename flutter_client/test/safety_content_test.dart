@@ -70,21 +70,36 @@ void main() {
     expect(find.text('Офіційна інформація — ДСНС'), findsOneWidget);
   });
 
-  testWidgets('Повітряна тривога: банер лише для своєї області, з порадами для лісу', (tester) async {
-    Widget withAlerts(String? home) => app(
+  testWidgets('Повітряна тривога: банер лише для своєї області, з порадами; тривоги немає — рядок «немає» з назвою області', (tester) async {
+    Widget withAlerts(String? home, String? name, {bool available = true}) => app(
           const Scaffold(body: AirAlertBanner()),
           extra: [
             homeRegionSlugProvider.overrideWithValue(home),
-            airAlertsProvider.overrideWith((ref) => Stream.value([(slug: 'zhytomyrska', scope: 'oblast', title: 'Повітряна тривога в області')])),
+            homeRegionNameProvider.overrideWithValue(name),
+            airAlertsProvider.overrideWith((ref) => Stream.value((
+                  available: available,
+                  updatedAt: DateTime(2026, 11, 18, 19, 41),
+                  alerts: available ? [(slug: 'zhytomyrska', scope: 'oblast', title: 'Повітряна тривога в області')] : <AirAlert>[],
+                ))),
           ],
         );
-    await tester.pumpWidget(withAlerts('lvivska'));
+    await tester.pumpWidget(withAlerts('lvivska', 'Львівська область'));
     await tester.pump();
     expect(find.byKey(const ValueKey('air-alert')), findsNothing);
-    await tester.pumpWidget(withAlerts('zhytomyrska'));
+    expect(find.text('Львівська область: повітряної тривоги немає · оновлено 19:41'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(withAlerts('zhytomyrska', 'Житомирська область'));
     await tester.pump();
+    await tester.pump(); // тексти порад — новий ProviderScope
     expect(find.byKey(const ValueKey('air-alert')), findsOneWidget);
+    expect(find.byKey(const ValueKey('air-alert-clear')), findsNothing);
     expect(find.textContaining('Відійдіть від доріг'), findsOneWidget);
+    // Сервер без ключа чи без зв'язку — ні банера, ні рядка (не обманюємо «тривоги немає»).
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(withAlerts('zhytomyrska', 'Житомирська область', available: false));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('air-alert')), findsNothing);
+    expect(find.byKey(const ValueKey('air-alert-clear')), findsNothing);
   });
 
   testWidgets('Чек-лист: позначки на сьогодні зберігаються; готовність без інтернету — з кнопкою завантажити', (tester) async {
