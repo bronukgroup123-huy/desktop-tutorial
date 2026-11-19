@@ -199,9 +199,10 @@ class _Detail extends StatelessWidget {
   }
 }
 
-/// Фото дорослого гриба (Топ-20) — праворуч від назви, на місці колишньої анімації.
-/// Файли — `assets/species/large/<id>.webp` без тла (`scripts/species_photos/cutout.py`).
-const kSpeciesLargePhotos = {
+/// Фото Топ-20 у довіднику (без тла, `scripts/species_photos/cutout.py`): дорослий гриб
+/// (`assets/species/large/<id>.webp`) — праворуч від назви, на місці колишньої анімації;
+/// молодий (`assets/species/small/<id>.webp`) — замість значка біля назви.
+const kSpeciesPhotos = {
   'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
   'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
   'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
@@ -225,7 +226,17 @@ class _Header extends StatelessWidget {
       children: [
         Row(
           children: [
-            SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+            if (kSpeciesPhotos.contains(s.id))
+              Image.asset(
+                'assets/species/small/${s.id}.webp',
+                key: const ValueKey('species-photo-small'),
+                width: 56,
+                height: 56,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+              )
+            else
+              SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -254,7 +265,7 @@ class _Header extends StatelessWidget {
         ),
       ],
     );
-    if (!kSpeciesLargePhotos.contains(s.id)) return info;
+    if (!kSpeciesPhotos.contains(s.id)) return info;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

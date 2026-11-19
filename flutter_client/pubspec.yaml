@@ -49,6 +49,7 @@ flutter:
     - assets/icons/
     - assets/stickers/
     - assets/species/large/
+    - assets/species/small/
     - assets/catalog/
     - assets/safety/
     - assets/map/glyphs/noto_sans_regular/

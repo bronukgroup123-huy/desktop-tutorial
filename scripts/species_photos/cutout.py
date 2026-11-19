@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Фото гриба на білому тлі → WebP із прозорим тлом (довідник, ADR-015 §15.8 п.20).
 
-  python3 scripts/species_photos/cutout.py OUT_DIR SIZE species_id=photo.png [...]
+  python3 scripts/species_photos/cutout.py OUT_DIR SIZE species_id=photo.png[#solid] [...]
+
+#solid — гриб суцільний (без просвітів між ніжками): білі блиски всередині силуету не чіпати.
 
 Тло — майже біле, з'єднане з краями кадру (світлі ніжки й білі шапки всередині силуету
 лишаються); замкнені «кишені» тла між ніжками — лише чисто білі. Край пом'якшено, колір краю
@@ -16,7 +18,7 @@ from PIL import Image
 from scipy import ndimage
 
 
-def cutout(path):
+def cutout(path, pockets=True):
     rgb = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
     lo, hi = rgb.min(-1), rgb.max(-1)
     near_white = (lo >= 238) & (hi - lo <= 14)
@@ -26,7 +28,7 @@ def cutout(path):
     # замкнені кишені тла (між ніжками куща) — лише чисто білі й не крихітні
     pure = (lo >= 250) & (hi - lo <= 5) & ~bg
     pl, pn = ndimage.label(pure)
-    if pn:
+    if pn and pockets:
         sizes = ndimage.sum(np.ones_like(lo), pl, index=np.arange(1, pn + 1))
         bg |= np.isin(pl, np.nonzero(sizes > 250)[0] + 1)
     fg = ~bg
@@ -57,7 +59,8 @@ def main():
     os.makedirs(out, exist_ok=True)
     for arg in sys.argv[3:]:
         sid, path = arg.split('=', 1)
-        im = frame(cutout(path), size)
+        path, _, flag = path.partition('#')
+        im = frame(cutout(path, pockets=flag != 'solid'), size)
         dst = os.path.join(out, f'{sid}.webp')
         im.save(dst, 'WEBP', quality=86, alpha_quality=90, method=6)
         print(f'{sid}: {os.path.getsize(dst) // 1024} КБ')

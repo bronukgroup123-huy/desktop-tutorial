@@ -37,11 +37,12 @@ void main() {
     CatalogPhotoCache.directory = () async => null;
   });
 
-  test('Фото дорослого гриба є для кожного виду Топ-20 (assets/species/large)', () {
+  test('Фото дорослого й молодого гриба є для кожного виду Топ-20', () {
     final top = {for (final s in catalog.species.where((s) => s.top20)) s.id};
-    expect(kSpeciesLargePhotos, top);
+    expect(kSpeciesPhotos, top);
     for (final id in top) {
-      expect(File('assets/species/large/$id.webp').existsSync(), isTrue, reason: id);
+      expect(File('assets/species/large/$id.webp').existsSync(), isTrue, reason: 'large $id');
+      expect(File('assets/species/small/$id.webp').existsSync(), isTrue, reason: 'small $id');
     }
   });
 
@@ -56,8 +57,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('character-slot')), findsNothing);
     expect(find.byKey(const ValueKey('icon-play')), findsNothing);
-    expect(find.byType(SpeciesIcon), findsWidgets);
     expect(find.byKey(const ValueKey('species-photo')), findsOneWidget);
+    expect(find.byKey(const ValueKey('species-photo-small')), findsOneWidget); // молодий — замість значка
   });
 
   testWidgets('Вид поза Топ-20 — без фото праворуч', (tester) async {
@@ -71,6 +72,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('species-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('species-photo-small')), findsNothing);
+    expect(find.byType(SpeciesIcon), findsWidgets); // значок, як було
   });
 
   test('Персонажі: рівно 20 видів Топ-20', () {
