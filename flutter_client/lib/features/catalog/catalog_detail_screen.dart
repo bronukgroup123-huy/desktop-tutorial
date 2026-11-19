@@ -12,8 +12,6 @@ import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_forecast_link.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion, seg;
-import 'package:flutter_client/features/catalog/mushroom_character.dart' show hasCharacter;
-import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
 import 'package:flutter_client/features/catalog/species_credits.dart';
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 
@@ -201,35 +199,24 @@ class _Detail extends StatelessWidget {
   }
 }
 
-/// Шапка: значок, назва, латина й плашки. Для Топ-20 праворуч — віконце з грибом-персонажем:
-/// стоїть, кліпає; затиснути значок чи віконце — коло сценок, сценка грає тут же.
-class _Header extends StatefulWidget {
+/// Шапка: значок, назва, латина й плашки (анімацію з грибом-персонажем прибрано — рішення PO
+/// 2026-11-19; на її місце стане фото дорослого гриба, на місце значка — фото молодого).
+class _Header extends StatelessWidget {
   const _Header({required this.species});
 
   final CatalogSpecies species;
 
   @override
-  State<_Header> createState() => _HeaderState();
-}
-
-class _HeaderState extends State<_Header> {
-  final _slot = GlobalKey<CharacterSlotState>();
-
-  @override
   Widget build(BuildContext context) {
-    final s = widget.species;
+    final s = species;
     final badge = edibilityBadge(s);
     final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
-    final playful = hasCharacter(s.id);
-    final info = Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            if (playful)
-              PlayfulSpeciesIcon(speciesId: s.id, onPick: (scene) => _slot.currentState?.play(scene))
-            else
-              SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
+            SpeciesIcon(type: s.id, fallbackColor: const Color(0xff8d6e63), size: 40),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -256,15 +243,6 @@ class _HeaderState extends State<_Header> {
             if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
           ],
         ),
-      ],
-    );
-    if (!playful) return info;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: info),
-        const SizedBox(width: 8),
-        CharacterSlot(key: _slot, speciesId: s.id),
       ],
     );
   }

@@ -4,8 +4,8 @@ import 'package:flutter_client/features/catalog/catalog_article.dart';
 import 'package:flutter_client/features/catalog/catalog_detail_screen.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
+import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
 import 'package:flutter_client/features/catalog/mushroom_character.dart';
-import 'package:flutter_client/features/catalog/mushroom_scenes.dart';
 import 'package:flutter_client/features/catalog/oblast_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,34 +35,7 @@ void main() {
     CatalogPhotoCache.directory = () async => null;
   });
 
-  test('Сценки: кожна поза — скінченні числа на всьому проміжку; 6 різних історій', () {
-    expect(kMushroomScenes.map((s) => s.id).toSet().length, 6);
-    for (final s in kMushroomScenes) {
-      expect(s.duration.inMilliseconds, greaterThanOrEqualTo(5000), reason: '${s.id}: історія, а не один рух');
-      for (var i = 0; i <= 200; i++) {
-        final p = s.pose(i / 200);
-        for (final v in [p.dx, p.dy, p.rot, p.sx, p.sy, p.opacity, p.left.a, p.left.b, p.right.a, p.right.b]) {
-          expect(v.isFinite, isTrue, reason: '${s.id} t=${i / 200}');
-        }
-      }
-      // Наприкінці гриб повертається на місце (сцена можна повторити).
-      final end = s.pose(1);
-      expect(end.opacity, closeTo(1, 0.01), reason: s.id);
-      expect(end.rot.abs(), lessThan(0.05), reason: s.id);
-    }
-  });
-
-  testWidgets('Сценки програються до кінця без помилок', (tester) async {
-    for (final s in kMushroomScenes) {
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: MushroomStage(key: ValueKey(s.id), speciesId: 'boletus_edulis', scene: s)))));
-      for (var i = 0; i < 25; i++) {
-        await tester.pump(s.duration ~/ 24);
-      }
-      expect(tester.takeException(), isNull, reason: s.id);
-    }
-  });
-
-  testWidgets('Затиснути значок → коло сценок → «Сон» грає у віконці праворуч від назви, потім — спокій', (tester) async {
+  testWidgets('Картка Топ-20 — без анімації: ні віконця з грибом-персонажем, ні кола сценок', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         catalogProvider.overrideWith((ref) => catalog),
@@ -71,44 +44,9 @@ void main() {
       child: const MaterialApp(home: CatalogDetailScreen(speciesId: 'flammulina_velutipes')),
     ));
     await tester.pumpAndSettle();
-    final slot = find.byKey(const ValueKey('character-slot'));
-    expect(slot, findsOneWidget);
-    StageView stage() => tester.widget<StageView>(find.descendant(of: slot, matching: find.byType(StageView)));
-    expect(stage().scene.id, 'idle');
-    await tester.longPress(find.byKey(const ValueKey('icon-play')));
-    await tester.pumpAndSettle();
-    for (final s in kMushroomScenes) {
-      expect(find.byKey(ValueKey('radial-${s.id}')), findsOneWidget);
-    }
-    await tester.tap(find.byKey(const ValueKey('radial-sleep')));
-    await tester.pump(const Duration(milliseconds: 600)); // коло закрилось
-    expect(stage().scene.id, 'sleep'); // не в окремому вікні — у віконці на сторінці
-    await tester.pump(const SleepScene().duration);
-    await tester.pumpAndSettle();
-    expect(stage().scene.id, 'idle');
-    // Затиснути саме віконце — теж коло.
-    await tester.longPress(slot);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('radial-rain')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('radial-rain')));
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(stage().scene.id, 'rain');
-    await tester.pump(const RainScene().duration);
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets('Віконце з грибом — лише для Топ-20 (з власним персонажем)', (tester) async {
-    final other = catalog.species.firstWhere((s) => !s.top20);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        catalogProvider.overrideWith((ref) => catalog),
-        oblastsProvider.overrideWith((ref) => oblasts),
-      ],
-      child: MaterialApp(home: CatalogDetailScreen(speciesId: other.id)),
-    ));
-    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('character-slot')), findsNothing);
     expect(find.byKey(const ValueKey('icon-play')), findsNothing);
+    expect(find.byType(SpeciesIcon), findsWidgets);
   });
 
   test('Персонажі: рівно 20 видів Топ-20', () {
