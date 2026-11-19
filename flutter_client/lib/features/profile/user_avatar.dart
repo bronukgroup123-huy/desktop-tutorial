@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/features/catalog/mushroom_character.dart';
+import 'package:flutter_client/features/profile/custom_avatar.dart';
 
 /// 20 стандартних аватарів (ADR-021 §21.7) — гриби-персонажі Топ-20 довідника, статичні.
 /// Номер аватара на сервері: 1…20 у цьому порядку.
@@ -28,6 +29,9 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = avatar.id.clamp(1, kStandardAvatarSpecies.length);
     final look = kCharacterLooks[kStandardAvatarSpecies[id - 1]]!;
+    final picture = avatar.isCustom
+        ? SizedBox(width: size * 0.92, height: size * 0.92, child: CustomPaint(painter: CustomAvatarPainter(avatar.parts)))
+        : MushroomCharacter(look: look, face: _faceFor(id), size: size * 0.82);
     return Container(
       width: size,
       height: size,
@@ -37,7 +41,7 @@ class UserAvatar extends StatelessWidget {
         border: Border.all(color: selected ? const Color(0xffd97706) : AppTheme.darkGreen.withValues(alpha: 0.25), width: selected ? 3 : 1.5),
       ),
       alignment: Alignment.center,
-      child: MushroomCharacter(look: look, face: _faceFor(id), size: size * 0.82),
+      child: picture,
     );
   }
 }

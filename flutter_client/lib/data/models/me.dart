@@ -62,19 +62,53 @@ class Onboarding {
   bool get isComplete => nextStep == OnboardingStep.done;
 }
 
-/// Аватар: один із 20 стандартних грибів (ADR-021 §21.7); конструктор — окремим кроком.
+/// Аватар (ADR-021 §21.7): один із 20 стандартних грибів (`kind: standard`, [id]) або з
+/// конструктора (`kind: custom`, [parts]: shape, color, face, arms, hat, item).
 class Avatar {
-  const Avatar({required this.kind, required this.id});
+  const Avatar({required this.kind, this.id = 1, this.parts = const {}});
 
   factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(
         kind: req<String>(json, 'kind'),
         id: (opt<num>(json, 'id') ?? 1).toInt(),
+        parts: {
+          for (final e in json.entries)
+            if (e.key != 'kind' && e.key != 'id' && (e.value == null || e.value is String)) e.key: e.value as String?,
+        },
       );
 
   final String kind;
   final int id;
+  final Map<String, String?> parts;
 
-  Map<String, dynamic> toJson() => {'kind': kind, 'id': id};
+  bool get isCustom => kind == 'custom';
+
+  Map<String, dynamic> toJson() => isCustom ? {'kind': kind, ...parts} : {'kind': kind, 'id': id};
+}
+
+/// Деталі конструктора з сервера: що відкрито, а що під замком і чому.
+class AvatarCatalog {
+  const AvatarCatalog(this.categories);
+
+  factory AvatarCatalog.fromJson(Map<String, dynamic> json) => AvatarCatalog([
+        for (final c in (json['categories'] as List).cast<Map<String, dynamic>>())
+          (
+            id: c['id'] as String,
+            label: c['label'] as String,
+            optional: c['optional'] == true,
+            parts: [
+              for (final p in (c['parts'] as List).cast<Map<String, dynamic>>())
+                (
+                  id: p['id'] as String,
+                  label: p['label'] as String,
+                  open: p['open'] == true,
+                  badge: p['badge'] as String?,
+                  lockLabel: p['lock_label'] as String?,
+                ),
+            ],
+          ),
+      ]);
+
+  final List<({String id, String label, bool optional, List<({String id, String label, bool open, String? badge, String? lockLabel})> parts})> categories;
 }
 
 /// Рівень за рейтингом (ADR-013) — підписи з сервера.

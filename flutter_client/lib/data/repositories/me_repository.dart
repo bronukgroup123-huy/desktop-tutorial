@@ -70,6 +70,15 @@ class MeRepository {
         'avatar': {'kind': 'standard', 'id': standardId},
       });
 
+  /// Аватар із конструктора; закрита деталь — 403 avatar_part_locked з причиною.
+  Future<Me> setCustomAvatar(Map<String, String?> parts) => _patch({
+        'avatar': {'kind': 'custom', ...parts},
+      });
+
+  /// Каталог деталей конструктора з замками (рівень, «спори», Pro, сезон).
+  Future<AvatarCatalog> avatarCatalog() async =>
+      AvatarCatalog.fromJson(await _api.get('/v1-me', query: {'avatar_catalog': '1'}) as Map<String, dynamic>);
+
   /// Чи вільний нік — підказка під полем вводу.
   Future<({bool available, String? reason})> checkHandle(String handle) async {
     final data = await _api.get('/v1-me', query: {'check_handle': handle}) as Map<String, dynamic>;

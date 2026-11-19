@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
+import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
+import 'package:flutter_client/features/profile/custom_avatar.dart';
 import 'package:flutter_client/features/profile/profile_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,7 +42,32 @@ class FakeMe extends MeNotifier {
 
   @override
   Future<void> deleteAccount() async => calls.add('delete');
+
+  @override
+  Future<void> setCustomAvatar(Map<String, String?> parts) async => calls.add('custom:${parts['shape']}:${parts['hat']}');
 }
+
+/// Каталог конструктора, як віддає сервер (скорочено).
+Map<String, dynamic> catalogJson() => {
+      'categories': [
+        {
+          'id': 'shape', 'label': 'Гриб', 'optional': false,
+          'parts': [
+            {'id': 'bolete', 'label': 'Боровик', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'amanita', 'label': 'Мухомор', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'morel', 'label': 'Зморшок', 'open': false, 'badge': null, 'lock_label': 'З рівня «Слідопит»'},
+          ],
+        },
+        {
+          'id': 'hat', 'label': 'Капелюх', 'optional': true,
+          'parts': [
+            {'id': 'cap', 'label': 'Кепка', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'ranger', 'label': 'Лісника', 'open': true, 'badge': 'За рівень «Лісовик»', 'lock_label': null},
+            {'id': 'wizard', 'label': 'Чарівника', 'open': false, 'badge': null, 'lock_label': '80 спор — скоро'},
+          ],
+        },
+      ],
+    };
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -70,6 +97,7 @@ void main() {
       overrides: [
         meProvider.overrideWith(() => fake),
         meRepositoryProvider.overrideWithValue(MeRepository(api)),
+        avatarCatalogProvider.overrideWith((ref) async => AvatarCatalog.fromJson(catalogJson())),
       ],
       child: MaterialApp(home: home),
     );
@@ -165,5 +193,46 @@ void main() {
     await frames(tester);
     expect(find.text('Нік можна буде змінити з 10.12.2026'), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(const ValueKey('identity-handle'))).enabled, isFalse);
+  });
+
+  test('Аватар із конструктора: розбір і назад у JSON', () {
+    final a = Avatar.fromJson({'kind': 'custom', 'shape': 'amanita', 'color': 'red', 'face': 'sly', 'arms': 'wave', 'hat': null, 'item': 'basket'});
+    expect(a.isCustom, isTrue);
+    expect(a.parts['shape'], 'amanita');
+    expect(a.toJson(), {'kind': 'custom', 'shape': 'amanita', 'color': 'red', 'face': 'sly', 'arms': 'wave', 'hat': null, 'item': 'basket'});
+  });
+
+  testWidgets('Невідома деталь (новіша за застосунок) — малюється без неї, без збою', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: CustomPaint(size: const Size(100, 100), painter: CustomAvatarPainter({...kDefaultAvatarParts, 'hat': 'unicorn_horn', 'shape': 'new_shape'})),
+    ));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Конструктор: деталь змінює попередній перегляд; закрита — з причиною, не вибирається; «Зберегти»', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app(const AvatarPickerScreen(), registered()));
+    await frames(tester);
+    await tester.tap(find.byKey(const ValueKey('tab-builder')));
+    await frames(tester);
+    expect(find.byKey(const ValueKey('builder-preview')), findsOneWidget);
+    expect(find.text('З рівня «Слідопит»'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('part-shape-morel')));
+    await frames(tester);
+    expect(find.textContaining('«Зморшок» — З рівня «Слідопит»'), findsOneWidget); // підказка, не вибір
+    await tester.pump(const Duration(seconds: 5)); // підказка зникла — не закриває кнопку
+    await frames(tester);
+    await tester.tap(find.byKey(const ValueKey('part-shape-amanita')));
+    await tester.tap(find.byKey(const ValueKey('cat-hat')));
+    await frames(tester);
+    expect(find.text('Без нічого'), findsOneWidget);
+    expect(find.text('За рівень «Лісовик»'), findsOneWidget);
+    expect(find.text('80 спор — скоро'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('part-hat-ranger')));
+    await tester.tap(find.byKey(const ValueKey('builder-save')));
+    await frames(tester);
+    expect(fake.calls, ['custom:amanita:ranger']);
   });
 }

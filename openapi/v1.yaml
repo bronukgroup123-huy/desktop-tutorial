@@ -34,6 +34,11 @@ paths:
             Перевірити, чи вільний нік (підказка під полем вводу) — тоді відповідь
             `{ data: { handle, available, reason } }` замість профілю.
           schema: { type: string, example: Олена_лісова }
+        - name: avatar_catalog
+          in: query
+          required: false
+          description: 'Каталог деталей конструктора аватара з замками — відповідь { data: { categories: [{ id, label, optional, parts: [{ id, label, open, badge, lock_label }] }] } }'
+          schema: { type: string, example: '1' }
       responses:
         '200':
           description: Профіль
@@ -856,10 +861,17 @@ components:
         handle: { type: string, minLength: 3, maxLength: 20, description: "Нік без «@», українськими літерами" }
         avatar:
           type: object
-          required: [kind, id]
+          required: [kind]
+          description: 'standard — id 1…20; custom — деталі конструктора (закрита — 403 avatar_part_locked)'
           properties:
-            kind: { type: string, enum: [standard] }
+            kind: { type: string, enum: [standard, custom] }
             id: { type: integer, minimum: 1, maximum: 20 }
+            shape: { type: string }
+            color: { type: string }
+            face: { type: string }
+            arms: { type: string }
+            hat: { type: [string, 'null'] }
+            item: { type: [string, 'null'] }
         home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
         accept_terms_version: { type: string }
 

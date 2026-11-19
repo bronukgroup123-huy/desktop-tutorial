@@ -4,6 +4,7 @@
 //
 // GET    → { data: profile }   (ім'я, @нік, аватар, рівень, онбординг, область)
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
+// GET    ?avatar_catalog=1 → { data: { categories: [...] } } — деталі конструктора з замками
 // PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
@@ -34,6 +35,7 @@ import {
   validateHandle,
   validateName,
 } from "./profile-rules.ts";
+import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, type Viewer } from "./avatar-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
 export const CURRENT_TERMS_VERSION = "2026-11";
@@ -113,7 +115,7 @@ export function decideRegionChange(
 export interface UpdateMeInput {
   name?: string;
   handle?: string;
-  avatar?: Avatar;
+  avatar?: Avatar | CustomAvatar;
   home_region_slug?: string;
   accept_terms_version?: string;
 }
@@ -127,7 +129,10 @@ export function validateUpdateMe(body: unknown): UpdateMeInput {
 
   if (obj.name !== undefined) input.name = validateName(obj.name);
   if (obj.handle !== undefined) input.handle = validateHandle(obj.handle);
-  if (obj.avatar !== undefined) input.avatar = validateAvatar(obj.avatar);
+  if (obj.avatar !== undefined) {
+    const a = obj.avatar as Record<string, unknown> | null;
+    input.avatar = a && typeof a === "object" && a.kind === "custom" ? parseCustomAvatar(a) : validateAvatar(obj.avatar);
+  }
   if (obj.home_region_slug !== undefined) {
     if (typeof obj.home_region_slug !== "string" || !ME_SLUG_REGEX.test(obj.home_region_slug)) {
       throw new HttpError(400, "invalid_region_slug", "Некоректний slug області");
@@ -180,7 +185,7 @@ interface UserRow {
   name: string | null;
   handle: string | null;
   handle_changed_at: string | null;
-  avatar: Avatar | null;
+  avatar: Avatar | CustomAvatar | null;
   rating: number;
   total_verified_picks: number;
   home_region_id: number | null;
@@ -301,7 +306,14 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
     throw new HttpError(403, "registration_required", "Ім'я, нік і аватар — після входу через Google або Apple");
   }
   if (input.name !== undefined) patch.name = input.name;
-  if (input.avatar !== undefined) patch.avatar = input.avatar;
+  if (input.avatar !== undefined) {
+    if (input.avatar.kind === "custom") {
+      // Закриті деталі (рівень, «спори», Pro, не сезон) — 403 з причиною.
+      const current = await loadUser(ctx.db, ctx.user.id);
+      assertAvatarAllowed(input.avatar, viewerOf(current, ctx.now), current.avatar as Record<string, unknown> | null);
+    }
+    patch.avatar = input.avatar;
+  }
   if (input.handle !== undefined) {
     const current = await loadUser(ctx.db, ctx.user.id);
     const key = handleKey(input.handle);
@@ -370,6 +382,11 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
   }
 }
 
+/** Хто вибирає деталі аватара: рівень за рейтингом; «спор» і Pro поки немає. */
+function viewerOf(row: UserRow, now: Date): Viewer {
+  return { rating: Number(row.rating), pro: false, owned: new Set(), now };
+}
+
 /** Чи вільний нік — для підказки під полем вводу (остаточно перевіряє унікальний індекс). */
 export async function checkHandle(ctx: MeContext, raw: string): Promise<{ handle: string; available: boolean; reason: string | null }> {
   let h: string;
@@ -405,8 +422,12 @@ export async function handleMe(
     if (error) dbFail("delete_user_account", error);
     return ok({ deleted: true }, req);
   }
-  const check = new URL(req.url).searchParams.get("check_handle");
+  const params = new URL(req.url).searchParams;
+  const check = params.get("check_handle");
   if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
+  if (req.method === "GET" && params.has("avatar_catalog")) {
+    return ok(catalogFor(viewerOf(await loadUser(ctx.db, ctx.user.id), ctx.now)), req);
+  }
   if (req.method === "PATCH") {
     const input = validateUpdateMe(await readJson(req));
     await updateProfile(ctx, input);

@@ -231,3 +231,17 @@ Deno.test("v1-me GET ?check_handle: вільний / зайнятий / неко
   const bad = await (await run(db(), req("GET", `${URL}?check_handle=gribnyk`))).json();
   assertEquals([bad.data.available, bad.data.reason], [false, "Нік — лише українськими літерами, без латиниці"]);
 });
+
+Deno.test("v1-me: конструктор — каталог із замками; закрита деталь → 403; відкрита — зберігається", async () => {
+  const cat = await (await run(db(), req("GET", `${URL}?avatar_catalog=1`))).json();
+  const hats = cat.data.categories.find((c: { id: string }) => c.id === "hat");
+  assertEquals(hats.parts.find((p: { id: string }) => p.id === "ranger").lock_label, "З рівня «Лісовик»");
+  const locked = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", shape: "bolete", color: "brown", face: "kind", arms: "down", hat: "ranger" } }));
+  assertEquals([locked.status, (await locked.json()).error], [403, "avatar_part_locked"]);
+  const d = db();
+  const saved = await run(d, req("PATCH", URL, { avatar: { kind: "custom", shape: "amanita", color: "red", face: "sly", arms: "wave", hat: "cap", item: "basket" } }));
+  assertEquals(saved.status, 200);
+  assertEquals((find(d, "users.update")?.args[0] as Record<string, unknown>).avatar, {
+    kind: "custom", shape: "amanita", color: "red", face: "sly", arms: "wave", hat: "cap", item: "basket",
+  });
+});

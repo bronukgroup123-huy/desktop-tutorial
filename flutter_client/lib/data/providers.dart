@@ -170,6 +170,10 @@ class MeNotifier extends AsyncNotifier<Me?> {
     state = AsyncData(await ref.read(meRepositoryProvider).setAvatar(standardId));
   }
 
+  Future<void> setCustomAvatar(Map<String, String?> parts) async {
+    state = AsyncData(await ref.read(meRepositoryProvider).setCustomAvatar(parts));
+  }
+
   /// Видалити акаунт і вийти.
   Future<void> deleteAccount() async {
     await ref.read(meRepositoryProvider).deleteAccount();
