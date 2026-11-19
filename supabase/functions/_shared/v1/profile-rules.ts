@@ -19,16 +19,64 @@ export const NAME_RE = new RegExp(`^[${UA_LETTER}${APOSTROPHE}]+(?:[ -][${UA_LET
 export const NAME_MAX = 30;
 export const HANDLE_CHANGE_DAYS = 30;
 
-/** Корені нецензурних і образливих слів та зарезервовані ніки (без урахування регістру). */
-const BLOCKED_ROOTS = [
-  "хуй", "хуя", "хує", "хуї", "хуйн", "пизд", "пізд", "єба", "їба", "ебан", "єбан", "бляд", "блят",
-  "муда", "підор", "підар", "педик", "залуп", "шлюх", "курв", "гандон", "сучар", "сучк",
-  "дебіл", "дебил", "срак", "гівн", "жоп", "дроч",
+/**
+ * Заборонені корені (мат, образи, нацистське) — у «скелетному» вигляді ([skeleton]): без
+ * розділювачів, цифри → схожі літери, повтори стягнуто, і/ї/й → и, є → е, ґ → г. Тож «х_у_й»,
+ * «хууууй», «п1зда», «пи3да», «бл9дь», «су4ка», «е6ать» ловляться так само, як звичайне написання.
+ * Корені довші за 3 літери, щоб не ловити звичайні слова («рибак», «небагато», «мандарин»).
+ * Список — на сервері: доповнюється без нового застосунку.
+ */
+const BLOCKED_ROOTS_RAW = [
+  // мат
+  "хуй", "хуя", "хує", "хую", "хуйн", "хуйл", "пизд", "пізд", "ебан", "ебат", "ебал", "ебуч", "ебло", "еблан",
+  "їбан", "їбат", "їбал", "заеб", "наеб", "уеб", "виеб", "заїб", "наїб", "бляд", "блят", "бляд", "мудак", "мудил",
+  "залуп", "шлюх", "курв", "гандон", "сучар", "сучк", "сука", "срак", "гівн", "говн", "жопа", "жопу",
+  "дроч", "дрочи", "пердол", "пердун",
+  // образи
+  "підор", "підар", "пидор", "пидар", "педик", "педрил", "дебіл", "дебил", "дегенерат", "уйоб", "виродок",
+  // нацистське
+  "гітлер", "гитлер", "нацист", "зігхайль", "свастик",
 ];
-const RESERVED = [
+const RESERVED_RAW = [
   "адмін", "адміністратор", "модератор", "підтримка", "служба_підтримки", "грибний_радар",
-  "грибнийрадар", "радар", "наглядач", "система", "офіційний",
+  "грибнийрадар", "радар", "наглядач", "система", "офіційний", "розробник",
 ];
+
+const DIGIT_LOOKALIKES: Record<string, string> = { "0": "о", "1": "і", "3": "з", "4": "ч", "6": "б", "9": "я" };
+
+/**
+ * «Скелет» слова для перевірки: малі літери; без `_ . ʼ` пробілів і дефісів; цифри → схожі літери;
+ * і/ї/й → и, є → е, ґ → г, ь прибрано; повтори літер стягнуто («хууууй» → «хуи»).
+ */
+export function skeleton(s: string): string {
+  const lower = normalizeApostrophes(s).toLocaleLowerCase("uk");
+  let out = "";
+  for (const ch of lower) {
+    if ("_.ʼ -".includes(ch)) continue;
+    let c = DIGIT_LOOKALIKES[ch] ?? ch;
+    if (c === "і" || c === "ї" || c === "й") c = "и";
+    else if (c === "є") c = "е";
+    else if (c === "ґ") c = "г";
+    else if (c === "ь") continue;
+    if (out.endsWith(c)) continue;
+    out += c;
+  }
+  return out;
+}
+
+const BLOCKED_ROOTS = [...new Set(BLOCKED_ROOTS_RAW.map(skeleton))];
+const RESERVED = new Set(RESERVED_RAW.map(skeleton));
+
+/** Чи є в тексті заборонений корінь (після зведення до «скелета»). */
+export function hasBlockedWord(s: string): boolean {
+  const k = skeleton(s);
+  return BLOCKED_ROOTS.some((r) => k.includes(r));
+}
+
+/** Чи нік зарезервований (адмін, підтримка…), з урахуванням обходів. */
+export function isReserved(handle: string): boolean {
+  return RESERVED.has(skeleton(handle));
+}
 
 export function normalizeApostrophes(s: string): string {
   return s.replace(APOSTROPHES, APOSTROPHE);
@@ -59,11 +107,10 @@ export function validateHandle(raw: unknown): string {
       "Нік починається з літери; можна українські літери, цифри, «_», «.» і апостроф",
     );
   }
-  const key = handleKey(h);
-  if (BLOCKED_ROOTS.some((r) => key.includes(r))) {
+  if (hasBlockedWord(h)) {
     throw new HttpError(400, "handle_not_allowed", "Такий нік не можна — оберіть інший");
   }
-  if (RESERVED.includes(key)) {
+  if (isReserved(h)) {
     throw new HttpError(400, "handle_not_allowed", "Цей нік зарезервовано — оберіть інший");
   }
   return h;
@@ -79,7 +126,7 @@ export function validateName(raw: unknown): string {
   if (!NAME_RE.test(n)) {
     throw new HttpError(400, "invalid_name", "Ім'я — українськими літерами (можна пробіл, дефіс і апостроф)");
   }
-  if (BLOCKED_ROOTS.some((r) => n.toLocaleLowerCase("uk").includes(r))) {
+  if (hasBlockedWord(n)) {
     throw new HttpError(400, "name_not_allowed", "Таке ім'я не можна — напишіть інше");
   }
   return n;
