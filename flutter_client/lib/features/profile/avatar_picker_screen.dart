@@ -13,53 +13,16 @@ import 'package:flutter_client/features/profile/user_avatar.dart';
 /// Каталог деталей конструктора з замками — з сервера.
 final avatarCatalogProvider = FutureProvider.autoDispose<AvatarCatalog>((ref) => ref.watch(meRepositoryProvider).avatarCatalog());
 
-/// Аватар (ADR-021 §21.7): «Готові» — 20 стандартних грибів; «Конструктор» — свій гриб із деталей
-/// (безкоштовні, за рівень, за «спори», у Pro, сезонні). Статичний.
-class AvatarPickerScreen extends ConsumerWidget {
+/// Аватар (ADR-021 §21.7): грибна наліпка — персонаж (безкоштовні, за рівень, у Pro) і деталі
+/// поверх (капелюх, річ, ефект; ще й за «спори» та сезонні). Статичний.
+class AvatarPickerScreen extends StatelessWidget {
   const AvatarPickerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final custom = ref.watch(meProvider.select((m) => m.valueOrNull?.avatar.isCustom ?? false));
-    return DefaultTabController(
-      length: 2,
-      initialIndex: custom ? 1 : 0,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Аватар', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
-          bottom: const TabBar(tabs: [Tab(key: ValueKey('tab-standard'), text: 'Готові'), Tab(key: ValueKey('tab-builder'), text: 'Конструктор')]),
-        ),
-        body: const TabBarView(children: [_StandardGrid(), AvatarBuilder()]),
-      ),
-    );
-  }
-}
-
-class _StandardGrid extends ConsumerWidget {
-  const _StandardGrid();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final avatar = ref.watch(meProvider.select((m) => m.valueOrNull?.avatar));
-    return GridView.builder(
-      key: const ValueKey('avatar-grid'),
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 12, crossAxisSpacing: 12),
-      itemCount: kStandardAvatarSpecies.length,
-      itemBuilder: (context, i) => GestureDetector(
-        key: ValueKey('avatar-${i + 1}'),
-        onTap: () async {
-          try {
-            await ref.read(meProvider.notifier).setAvatar(i + 1);
-            if (context.mounted) Navigator.of(context).pop();
-          } catch (_) {
-            if (context.mounted) showToast(context, 'Не вдалося зберегти аватар. Перевірте інтернет.', isError: true);
-          }
-        },
-        child: UserAvatar(avatar: Avatar(kind: 'standard', id: i + 1), size: 72, selected: avatar?.isCustom == false && avatar?.id == i + 1),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: Text('Аватар', style: GoogleFonts.merriweather(color: AppTheme.darkGreen))),
+        body: const AvatarBuilder(),
+      );
 }
 
 /// Конструктор: попередній перегляд, категорії, деталі (кожна — мініатюра аватара з нею).
@@ -71,15 +34,18 @@ class AvatarBuilder extends ConsumerStatefulWidget {
 }
 
 class _AvatarBuilderState extends ConsumerState<AvatarBuilder> {
-  late Map<String, String?> _draft;
-  String _category = 'shape';
+  Map<String, String?> _draft = kDefaultAvatarParts;
+  bool _seeded = false;
+  String _category = 'sticker';
   bool _saving = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final a = ref.read(meProvider).valueOrNull?.avatar;
-    _draft = {...kDefaultAvatarParts, if (a != null && a.isCustom) ...a.parts};
+  /// Почати з поточного аватара (профіль міг довантажитися вже після відкриття екрана).
+  void _seed() {
+    if (_seeded) return;
+    final a = ref.watch(meProvider).valueOrNull?.avatar;
+    if (a == null) return;
+    _seeded = true;
+    if (a.isCustom) _draft = {...kDefaultAvatarParts, ...a.parts};
   }
 
   Future<void> _save() async {
@@ -98,6 +64,7 @@ class _AvatarBuilderState extends ConsumerState<AvatarBuilder> {
 
   @override
   Widget build(BuildContext context) {
+    _seed();
     final catalog = ref.watch(avatarCatalogProvider);
     return catalog.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -114,21 +81,19 @@ class _AvatarBuilderState extends ConsumerState<AvatarBuilder> {
             const SizedBox(height: 12),
             UserAvatar(key: const ValueKey('builder-preview'), avatar: Avatar(kind: 'custom', parts: _draft), size: 150),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   for (final c in cat.categories)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
-                        key: ValueKey('cat-${c.id}'),
-                        label: Text(c.label),
-                        selected: c.id == current.id,
-                        onSelected: (_) => setState(() => _category = c.id),
-                      ),
+                    ChoiceChip(
+                      key: ValueKey('cat-${c.id}'),
+                      label: Text(c.label),
+                      selected: c.id == current.id,
+                      onSelected: (_) => setState(() => _category = c.id),
                     ),
                 ],
               ),
@@ -136,11 +101,11 @@ class _AvatarBuilderState extends ConsumerState<AvatarBuilder> {
             Expanded(
               child: GridView.count(
                 key: const ValueKey('builder-parts'),
-                crossAxisCount: 3,
+                crossAxisCount: current.id == 'sticker' ? 4 : 3,
                 padding: const EdgeInsets.all(12),
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
-                childAspectRatio: 0.78,
+                childAspectRatio: current.id == 'sticker' ? 0.72 : 0.78,
                 children: [
                   if (current.optional)
                     _PartTile(
@@ -221,7 +186,10 @@ class _PartTile extends StatelessWidget {
                 ],
               ),
             ),
-            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+            ),
             Text(
               lockLabel ?? badge ?? '',
               maxLines: 1,

@@ -805,9 +805,13 @@ components:
         handle: { type: [string, 'null'], description: "Нік без «@»; у гостя — null" }
         avatar:
           type: object
+          description: 'Завжди наліпка (ADR-021 §21.7); старий «стандартний» гриб — безкоштовним персонажем'
           properties:
-            kind: { type: string, enum: [standard] }
-            id: { type: integer }
+            kind: { type: string, enum: [custom] }
+            sticker: { type: string, example: laugh }
+            hat: { type: [string, 'null'] }
+            item: { type: [string, 'null'] }
+            fx: { type: [string, 'null'] }
         level:
           type: object
           description: Рівень за рейтингом (ADR-013) і підпис прогресу
@@ -862,16 +866,14 @@ components:
         avatar:
           type: object
           required: [kind]
-          description: 'standard — id 1…20; custom — деталі конструктора (закрита — 403 avatar_part_locked)'
+          description: 'custom — наліпка: персонаж + капелюх, річ, ефект ("none"/null — без); закрита — 403 avatar_part_locked. standard (1…20) — лише для старих застосунків'
           properties:
-            kind: { type: string, enum: [standard, custom] }
-            id: { type: integer, minimum: 1, maximum: 20 }
-            shape: { type: string }
-            color: { type: string }
-            face: { type: string }
-            arms: { type: string }
+            kind: { type: string, enum: [custom, standard] }
+            sticker: { type: string }
             hat: { type: [string, 'null'] }
             item: { type: [string, 'null'] }
+            fx: { type: [string, 'null'] }
+            id: { type: integer, minimum: 1, maximum: 20 }
         home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
         accept_terms_version: { type: string }
 

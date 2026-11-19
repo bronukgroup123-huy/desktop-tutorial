@@ -66,11 +66,7 @@ class MeRepository {
   /// Ім'я й нік (ADR-021 §21.2.1). 409 handle_taken / handle_change_too_soon — у [ApiException].
   Future<Me> updateIdentity({required String name, required String handle}) => _patch({'name': name, 'handle': handle});
 
-  Future<Me> setAvatar(int standardId) => _patch({
-        'avatar': {'kind': 'standard', 'id': standardId},
-      });
-
-  /// Аватар із конструктора; закрита деталь — 403 avatar_part_locked з причиною.
+  /// Аватар-наліпка: персонаж + деталі; закрита деталь — 403 avatar_part_locked з причиною.
   Future<Me> setCustomAvatar(Map<String, String?> parts) => _patch({
         'avatar': {'kind': 'custom', ...parts},
       });

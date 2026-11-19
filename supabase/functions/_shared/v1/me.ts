@@ -35,7 +35,7 @@ import {
   validateHandle,
   validateName,
 } from "./profile-rules.ts";
-import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, type Viewer } from "./avatar-catalog.ts";
+import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, publicAvatar, type Viewer } from "./avatar-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
 export const CURRENT_TERMS_VERSION = "2026-11";
@@ -262,7 +262,8 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     // Гостю — без імені й ніка (старі імена з Google латиницею — до кроку «Профіль» не показуємо).
     name: ctx.user.isAnonymous || !isValidName(row.name) ? null : row.name,
     handle: ctx.user.isAnonymous ? null : row.handle,
-    avatar: row.avatar ?? defaultAvatar(row.id),
+    // Завжди наліпка: старий «стандартний» гриб — безкоштовним персонажем за номером.
+    avatar: publicAvatar((row.avatar ?? defaultAvatar(row.id)) as Record<string, unknown>),
     level: levelOf(rating),
     handle_change: handleChangeInfo(row, ctx.now),
     rating,

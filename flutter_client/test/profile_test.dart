@@ -19,7 +19,7 @@ Map<String, dynamic> registered({String? handle = 'Олена_лісова', boo
       'is_guest': false,
       'name': 'Олена Лісова',
       'handle': handle,
-      'avatar': {'kind': 'standard', 'id': 3},
+      'avatar': {'kind': 'custom', 'sticker': 'wow', 'hat': null, 'item': null, 'fx': null},
       'rating': 120,
       'total_verified_picks': 7,
       'level': {'id': 'tracker', 'label': 'Слідопит', 'from': 51, 'to': 200, 'next_label': 'Лісовик', 'progress_label': '120 балів · ще 81 бал до рівня «Лісовик»'},
@@ -38,24 +38,23 @@ class FakeMe extends MeNotifier {
   Future<void> updateIdentity({required String name, required String handle}) async => calls.add('identity:$name:$handle');
 
   @override
-  Future<void> setAvatar(int standardId) async => calls.add('avatar:$standardId');
-
-  @override
   Future<void> deleteAccount() async => calls.add('delete');
 
   @override
-  Future<void> setCustomAvatar(Map<String, String?> parts) async => calls.add('custom:${parts['shape']}:${parts['hat']}');
+  Future<void> setCustomAvatar(Map<String, String?> parts) async => calls.add('custom:${parts['sticker']}:${parts['hat']}:${parts['fx']}');
 }
 
 /// Каталог конструктора, як віддає сервер (скорочено).
 Map<String, dynamic> catalogJson() => {
       'categories': [
         {
-          'id': 'shape', 'label': 'Гриб', 'optional': false,
+          'id': 'sticker', 'label': 'Персонаж', 'optional': false,
           'parts': [
-            {'id': 'bolete', 'label': 'Боровик', 'open': true, 'badge': null, 'lock_label': null},
-            {'id': 'amanita', 'label': 'Мухомор', 'open': true, 'badge': null, 'lock_label': null},
-            {'id': 'morel', 'label': 'Зморшок', 'open': false, 'badge': null, 'lock_label': 'З рівня «Слідопит»'},
+            {'id': 'kind', 'label': 'Добряк', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'wow', 'label': 'Здивована', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'dizzy', 'label': 'Запаморочений', 'open': true, 'badge': null, 'lock_label': null},
+            {'id': 'excited', 'label': 'Захоплений', 'open': true, 'badge': 'За рівень «Слідопит»', 'lock_label': null},
+            {'id': 'cosmic', 'label': 'Космічний', 'open': false, 'badge': null, 'lock_label': 'У Pro'},
           ],
         },
         {
@@ -66,6 +65,18 @@ Map<String, dynamic> catalogJson() => {
             {'id': 'wizard', 'label': 'Чарівника', 'open': false, 'badge': null, 'lock_label': '80 спор — скоро'},
           ],
         },
+        {
+          'id': 'item', 'label': 'Річ', 'optional': true,
+          'parts': [
+            {'id': 'basket', 'label': 'Кошик', 'open': true, 'badge': null, 'lock_label': null},
+          ],
+        },
+        {
+          'id': 'fx', 'label': 'Ефект', 'optional': true,
+          'parts': [
+            {'id': 'hearts', 'label': 'Сердечка', 'open': true, 'badge': null, 'lock_label': null},
+          ],
+        },
       ],
     };
 
@@ -74,7 +85,7 @@ void main() {
 
   test('Профіль із сервера: нік, аватар, рівень, крок «profile»', () {
     final me = Me.fromJson(registered());
-    expect([me.handle, me.avatar.id, me.level!.label], ['Олена_лісова', 3, 'Слідопит']);
+    expect([me.handle, me.avatar.isCustom, me.avatar.parts['sticker'], me.level!.label], ['Олена_лісова', true, 'wow', 'Слідопит']);
     expect(me.level!.progress(120), closeTo((120 - 51) / 150, 1e-9));
     expect(Me.fromJson(meJson(nextStep: 'profile')).onboarding.nextStep, OnboardingStep.profile);
     expect(Me.fromJson(meJson()).avatar.kind, 'standard'); // старий сервер без аватара
@@ -103,7 +114,7 @@ void main() {
     );
   }
 
-  testWidgets('Профіль: ім\'я, @нік, рівень із прогресом; аватар — вибір із 20 грибів', (tester) async {
+  testWidgets('Профіль: ім\'я, @нік, рівень із прогресом; аватар — до наліпок', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
@@ -121,10 +132,7 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-avatar')), -200);
     await tester.tap(find.byKey(const ValueKey('profile-avatar')));
     await frames(tester);
-    expect(find.byKey(const ValueKey('avatar-20')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('avatar-5')));
-    await frames(tester);
-    expect(fake.calls, ['avatar:5']);
+    expect(find.byKey(const ValueKey('part-sticker-wow')), findsOneWidget);
   });
 
   testWidgets('Гість: «Увійти через Google / Apple», без видалення акаунта; дані без інтернету — є', (tester) async {
@@ -195,16 +203,17 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(const ValueKey('identity-handle'))).enabled, isFalse);
   });
 
-  test('Аватар із конструктора: розбір і назад у JSON', () {
-    final a = Avatar.fromJson({'kind': 'custom', 'shape': 'amanita', 'color': 'red', 'face': 'sly', 'arms': 'wave', 'hat': null, 'item': 'basket'});
+  test('Аватар-наліпка: розбір і назад у JSON; кожен персонаж має малюнок', () {
+    final a = Avatar.fromJson({'kind': 'custom', 'sticker': 'dizzy', 'hat': null, 'item': 'basket', 'fx': 'notes'});
     expect(a.isCustom, isTrue);
-    expect(a.parts['shape'], 'amanita');
-    expect(a.toJson(), {'kind': 'custom', 'shape': 'amanita', 'color': 'red', 'face': 'sly', 'arms': 'wave', 'hat': null, 'item': 'basket'});
+    expect(a.parts['sticker'], 'dizzy');
+    expect(a.toJson(), {'kind': 'custom', 'sticker': 'dizzy', 'hat': null, 'item': 'basket', 'fx': 'notes'});
+    expect(kStickers.length, inInclusiveRange(25, 30));
   });
 
   testWidgets('Невідома деталь (новіша за застосунок) — малюється без неї, без збою', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      home: CustomPaint(size: const Size(100, 100), painter: CustomAvatarPainter({...kDefaultAvatarParts, 'hat': 'unicorn_horn', 'shape': 'new_shape'})),
+      home: CustomPaint(size: const Size(100, 100), painter: CustomAvatarPainter({...kDefaultAvatarParts, 'hat': 'unicorn_horn', 'sticker': 'new_one', 'fx': 'fireworks'})),
     ));
     expect(tester.takeException(), isNull);
   });
@@ -215,24 +224,26 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app(const AvatarPickerScreen(), registered()));
     await frames(tester);
-    await tester.tap(find.byKey(const ValueKey('tab-builder')));
-    await frames(tester);
     expect(find.byKey(const ValueKey('builder-preview')), findsOneWidget);
-    expect(find.text('З рівня «Слідопит»'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('part-shape-morel')));
+    expect(find.text('У Pro'), findsOneWidget);
+    expect(find.text('За рівень «Слідопит»'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('part-sticker-cosmic')));
     await frames(tester);
-    expect(find.textContaining('«Зморшок» — З рівня «Слідопит»'), findsOneWidget); // підказка, не вибір
+    expect(find.textContaining('«Космічний» — У Pro'), findsOneWidget); // підказка, не вибір
     await tester.pump(const Duration(seconds: 5)); // підказка зникла — не закриває кнопку
     await frames(tester);
-    await tester.tap(find.byKey(const ValueKey('part-shape-amanita')));
+    await tester.tap(find.byKey(const ValueKey('part-sticker-dizzy')));
     await tester.tap(find.byKey(const ValueKey('cat-hat')));
     await frames(tester);
     expect(find.text('Без нічого'), findsOneWidget);
     expect(find.text('За рівень «Лісовик»'), findsOneWidget);
     expect(find.text('80 спор — скоро'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('part-hat-ranger')));
+    await tester.tap(find.byKey(const ValueKey('cat-fx')));
+    await frames(tester);
+    await tester.tap(find.byKey(const ValueKey('part-fx-hearts')));
     await tester.tap(find.byKey(const ValueKey('builder-save')));
     await frames(tester);
-    expect(fake.calls, ['custom:amanita:ranger']);
+    expect(fake.calls, ['custom:dizzy:ranger:hearts']);
   });
 }

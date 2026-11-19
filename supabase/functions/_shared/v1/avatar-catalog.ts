@@ -1,12 +1,12 @@
 // ============================================================================
-// Конструктор грибного аватара (ADR-021 §21.7): каталог деталей і хто що може вибрати.
+// Грибний аватар-наліпка (ADR-021 §21.7): персонаж + деталі, і хто що може вибрати.
 //
-// Кожна деталь відкривається рівно одним способом: безкоштовно · за рівень (ADR-013, не
-// купується) · за «спори» (поки «спор» немає — замок «скоро») · у Pro (поки Pro немає — замок).
-// Сезонні деталі — лише у свій сезон. Каталог — на сервері: нові деталі без релізу застосунку
-// (малює застосунок; невідомий йому id просто не малюється). Аватар статичний.
+// Персонаж — одна з наліпок (форма, колір, емоція, поза вже намальовані). Деталі — капелюх, річ,
+// ефект — додаються поверх. Кожна позиція відкривається рівно одним способом: безкоштовно · за
+// рівень (ADR-013, не купується) · за «спори» (поки «спор» немає — замок «скоро») · у Pro (поки Pro
+// немає — замок). Сезонні — лише у свій сезон. Каталог — на сервері: нові наліпки й деталі без
+// релізу застосунку (малює застосунок; невідомий йому id просто не малюється). Аватар статичний.
 // ============================================================================
-
 import { HttpError } from "../http.ts";
 import { type Level, levelOf } from "./profile-rules.ts";
 
@@ -25,70 +25,51 @@ export interface Part {
 }
 
 export interface Category {
-  id: "shape" | "color" | "face" | "arms" | "hat" | "item";
+  id: "sticker" | "hat" | "item" | "fx";
   label: string;
-  /** Деталь, яку можна не вибирати (капелюх, річ). */
+  /** Деталь, яку можна не вибирати (капелюх, річ, ефект). */
   optional: boolean;
   parts: Part[];
 }
 
 const free: Unlock = { type: "free" };
+const level = (l: Level["id"]): Unlock => ({ type: "level", level: l });
+const pro: Unlock = { type: "pro" };
 
 export const AVATAR_CATALOG: Category[] = [
   {
-    id: "shape",
-    label: "Гриб",
+    id: "sticker",
+    label: "Персонаж",
     optional: false,
     parts: [
-      { id: "bolete", label: "Боровик", unlock: free },
-      { id: "amanita", label: "Мухомор", unlock: free },
-      { id: "chanterelle", label: "Лисичка", unlock: free },
-      { id: "honey", label: "Опеньок", unlock: free },
-      { id: "puffball", label: "Дощовик", unlock: free },
-      { id: "morel", label: "Зморшок", unlock: { type: "level", level: "tracker" } },
-    ],
-  },
-  {
-    id: "color",
-    label: "Колір шапки",
-    optional: false,
-    parts: [
-      { id: "brown", label: "Коричневий", unlock: free },
-      { id: "chestnut", label: "Каштановий", unlock: free },
-      { id: "red", label: "Червоний", unlock: free },
-      { id: "orange", label: "Помаранчевий", unlock: free },
-      { id: "yellow", label: "Жовтий", unlock: free },
-      { id: "cream", label: "Кремовий", unlock: free },
-      { id: "violet", label: "Фіолетовий", unlock: { type: "spores", price: 30 } },
-      { id: "gold", label: "Золотий", unlock: { type: "level", level: "keeper" } },
-      { id: "night", label: "Нічний", unlock: { type: "pro" } },
-    ],
-  },
-  {
-    id: "face",
-    label: "Обличчя",
-    optional: false,
-    parts: [
-      { id: "kind", label: "Добрий", unlock: free },
-      { id: "happy", label: "Веселий", unlock: free },
-      { id: "sly", label: "Хитрий", unlock: free },
-      { id: "angry", label: "Злий", unlock: free },
-      { id: "sleepy", label: "Сонний", unlock: free },
-      { id: "surprised", label: "Здивований", unlock: free },
-      { id: "wink", label: "Підморгує", unlock: { type: "level", level: "tracker" } },
-      { id: "dizzy", label: "Запаморочений", unlock: { type: "spores", price: 20 } },
-    ],
-  },
-  {
-    id: "arms",
-    label: "Руки",
-    optional: false,
-    parts: [
-      { id: "down", label: "Спокійно", unlock: free },
-      { id: "wave", label: "Вітається", unlock: free },
-      { id: "up", label: "Ура", unlock: free },
-      { id: "hips", label: "Руки в боки", unlock: free },
-      { id: "out", label: "Обійми", unlock: { type: "level", level: "tracker" } },
+      { id: "kind", label: "Добряк", unlock: free },
+      { id: "laugh", label: "Реготун", unlock: free },
+      { id: "wow", label: "Здивована", unlock: free },
+      { id: "cool", label: "Крутий", unlock: free },
+      { id: "love", label: "Закоханий", unlock: free },
+      { id: "sleepy", label: "Сплюх", unlock: free },
+      { id: "tease", label: "Пустунка", unlock: free },
+      { id: "sly", label: "Хитрун", unlock: free },
+      { id: "dizzy", label: "Запаморочений", unlock: free },
+      { id: "scared", label: "Боягуз", unlock: free },
+      { id: "grumpy", label: "Бурчуни", unlock: free },
+      { id: "cry", label: "Плакса", unlock: free },
+      { id: "hello", label: "Привітна", unlock: free },
+      { id: "shy", label: "Сором'язливий", unlock: free },
+      { id: "excited", label: "Захоплений", unlock: level("tracker") },
+      { id: "friends", label: "Друзі-опеньки", unlock: level("tracker") },
+      { id: "sage", label: "Мудрець", unlock: level("expert") },
+      { id: "strong", label: "Силач", unlock: level("expert") },
+      { id: "fashion", label: "Модниця", unlock: level("forester") },
+      { id: "brave", label: "Сміливець", unlock: level("forester") },
+      { id: "golden", label: "Золотий боровик", unlock: level("keeper") },
+      { id: "giant", label: "Велетень", unlock: level("master") },
+      { id: "cosmic", label: "Космічний", unlock: pro },
+      { id: "firefly", label: "Світлячок", unlock: pro },
+      { id: "frost", label: "Морозко", unlock: pro },
+      { id: "rainbow", label: "Райдужний", unlock: pro },
+      { id: "sorceress", label: "Чарівниця", unlock: pro },
+      { id: "nightcap", label: "Нічний мухомор", unlock: pro },
     ],
   },
   {
@@ -96,12 +77,15 @@ export const AVATAR_CATALOG: Category[] = [
     label: "Капелюх",
     optional: true,
     parts: [
+      { id: "leaf", label: "Листочок", unlock: free },
+      { id: "wreath", label: "Віночок", unlock: free },
       { id: "cap", label: "Кепка", unlock: free },
-      { id: "straw", label: "Солом'яний", unlock: free },
       { id: "beanie", label: "Шапочка", unlock: free },
-      { id: "ranger", label: "Лісника", unlock: { type: "level", level: "forester" } },
+      { id: "straw", label: "Солом'яний", unlock: free },
+      { id: "ranger", label: "Лісника", unlock: level("forester") },
       { id: "wizard", label: "Чарівника", unlock: { type: "spores", price: 80 } },
-      { id: "crown", label: "Корона Грибного Майстра", unlock: { type: "level", level: "master" } },
+      { id: "tophat", label: "Циліндр", unlock: pro },
+      { id: "crown", label: "Корона Грибного Майстра", unlock: level("master") },
       { id: "santa", label: "Новорічна", unlock: free, season: { from: "12-01", to: "01-15", label: "1 грудня — 15 січня" } },
       { id: "pumpkin", label: "Гарбуз", unlock: free, season: { from: "10-15", to: "11-05", label: "15 жовтня — 5 листопада" } },
     ],
@@ -114,12 +98,28 @@ export const AVATAR_CATALOG: Category[] = [
       { id: "basket", label: "Кошик", unlock: free },
       { id: "glasses", label: "Окуляри", unlock: free },
       { id: "scarf", label: "Шарф", unlock: free },
-      { id: "boots", label: "Чоботи", unlock: free },
       { id: "flower", label: "Квітка", unlock: free },
-      { id: "backpack", label: "Наплічник", unlock: { type: "level", level: "forester" } },
+      { id: "map", label: "Мапа", unlock: level("tracker") },
+      { id: "magnifier", label: "Лупа", unlock: level("expert") },
+      { id: "backpack", label: "Наплічник", unlock: level("forester") },
+      { id: "medal", label: "Медаль Хранителя", unlock: level("keeper") },
       { id: "bowtie", label: "Метелик", unlock: { type: "spores", price: 40 } },
-      { id: "lantern", label: "Ліхтарик", unlock: { type: "pro" } },
-      { id: "medal", label: "Медаль Хранителя", unlock: { type: "level", level: "keeper" } },
+      { id: "lantern", label: "Ліхтарик", unlock: pro },
+    ],
+  },
+  {
+    id: "fx",
+    label: "Ефект",
+    optional: true,
+    parts: [
+      { id: "sparkle", label: "Іскри", unlock: free },
+      { id: "hearts", label: "Сердечка", unlock: free },
+      { id: "notes", label: "Ноти", unlock: free },
+      { id: "leaves", label: "Листопад", unlock: free },
+      { id: "cloud", label: "Хмаринка", unlock: free },
+      { id: "butterfly", label: "Метелики", unlock: level("tracker") },
+      { id: "fireflies", label: "Світлячки", unlock: pro },
+      { id: "snow", label: "Сніжинки", unlock: free, season: { from: "12-01", to: "02-28", label: "1 грудня — 28 лютого" } },
     ],
   },
 ];
@@ -183,13 +183,13 @@ export function catalogFor(v: Viewer) {
 
 export type CustomAvatar = {
   kind: "custom";
-  shape: string;
-  color: string;
-  face: string;
-  arms: string;
+  sticker: string;
   hat: string | null;
   item: string | null;
+  fx: string | null;
 };
+
+const ids = (cat: Category["id"]) => AVATAR_CATALOG.find((c) => c.id === cat)!.parts;
 
 /** Перевірка форми запиту (без прав) — у validateUpdateMe. */
 export function parseCustomAvatar(raw: Record<string, unknown>): CustomAvatar {
@@ -202,15 +202,26 @@ export function parseCustomAvatar(raw: Record<string, unknown>): CustomAvatar {
     }
     return v;
   };
-  return {
-    kind: "custom",
-    shape: pick("shape")!,
-    color: pick("color")!,
-    face: pick("face")!,
-    arms: pick("arms")!,
-    hat: pick("hat"),
-    item: pick("item"),
-  };
+  return { kind: "custom", sticker: pick("sticker")!, hat: pick("hat"), item: pick("item"), fx: pick("fx") };
+}
+
+/** Безкоштовні персонажі — для аватара за замовчуванням і старих «стандартних» (1…20). */
+export const FREE_STICKERS = ids("sticker").filter((p) => p.unlock.type === "free").map((p) => p.id);
+
+/**
+ * Аватар для відповіді: завжди наліпка. Старий «стандартний» гриб (id 1…20, до наліпок) —
+ * безкоштовний персонаж за номером; невідомі деталі (прибрали з каталогу) — без них.
+ */
+export function publicAvatar(stored: Record<string, unknown> | null | undefined): CustomAvatar {
+  if (stored?.kind === "custom") {
+    const known = (cat: Category["id"]) => {
+      const v = stored[cat];
+      return typeof v === "string" && ids(cat).some((p) => p.id === v) ? v : null;
+    };
+    return { kind: "custom", sticker: known("sticker") ?? FREE_STICKERS[0], hat: known("hat"), item: known("item"), fx: known("fx") };
+  }
+  const n = Number.isInteger(stored?.id) ? (stored!.id as number) : 1;
+  return { kind: "custom", sticker: FREE_STICKERS[(Math.max(n, 1) - 1) % FREE_STICKERS.length], hat: null, item: null, fx: null };
 }
 
 /**
@@ -218,10 +229,11 @@ export function parseCustomAvatar(raw: Record<string, unknown>): CustomAvatar {
  * в аватарі ([current]), лишається — навіть якщо сезон минув чи підписка скінчилась.
  */
 export function assertAvatarAllowed(a: CustomAvatar, v: Viewer, current: Record<string, unknown> | null): void {
+  const was = current ? publicAvatar(current) : null;
   for (const c of AVATAR_CATALOG) {
     const id = a[c.id];
     if (id === null) continue;
-    if (current?.kind === "custom" && current[c.id] === id) continue;
+    if (was?.[c.id] === id) continue;
     const part = c.parts.find((p) => p.id === id)!;
     const access = partAccess(part, v);
     if (!access.open) {
