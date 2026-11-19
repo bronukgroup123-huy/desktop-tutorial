@@ -122,7 +122,8 @@ class _Detail extends StatelessWidget {
       slivers: [
         SliverAppBar(
           pinned: true,
-          expandedHeight: 320,
+          // Висота — за шириною екрана (≈ квадрат), щоб гриб на фото був великий і цілий.
+          expandedHeight: (MediaQuery.sizeOf(context).width * 0.95).clamp(300.0, 440.0),
           backgroundColor: AppTheme.backgroundColor,
           foregroundColor: AppTheme.darkGreen,
           automaticallyImplyLeading: false,
@@ -470,7 +471,13 @@ class _GalleryState extends State<_Gallery> {
               fullscreenDialog: true,
               builder: (_) => _FullscreenPhotos(species: s, initial: i),
             )),
-            child: CatalogPhoto(name: s.photos[i], speciesId: s.id),
+            child: CatalogPhoto(
+              name: s.photos[i],
+              speciesId: s.id,
+              whole: true,
+              // зверху — статус-бар і кнопка «назад», знизу — крапки гортання
+              inset: EdgeInsets.fromLTRB(12, MediaQuery.paddingOf(context).top + 10, 12, 26),
+            ),
           ),
         ),
         if (s.photos.length > 1)
