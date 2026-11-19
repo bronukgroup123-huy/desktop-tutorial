@@ -202,8 +202,8 @@ class CatalogPhotoCache {
 /// Тло навколо цілого фото: розмите те саме фото ([kWholeBackdropOpacity]) під світлою
 /// вуаллю кольору картки ([kWholeVeil]), знизу плавно переходить у картку.
 const kCardColor = Color(0xFFF4F1E1);
-const kWholeBackdropOpacity = 0.9;
-const kWholeVeil = 0.45;
+const kWholeBackdropOpacity = 1.0;
+const kWholeVeil = 0.04;
 
 /// Фото виду; немає (офлайн і ще не переглядали) — стікер гриба на світлому тлі.
 ///
