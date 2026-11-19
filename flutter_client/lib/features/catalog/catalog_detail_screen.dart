@@ -201,7 +201,7 @@ class _Detail extends StatelessWidget {
 
 /// Фото в довіднику (без тла, `scripts/species_photos/cutout.py`): дорослий гриб
 /// (`assets/species/large/<id>.webp`) — праворуч від назви; молодий (`assets/species/small/<id>.webp`)
-/// — замість значка біля назви. Топ-20 — обидва; отруйні — поки дорослий.
+/// — замість значка біля назви. Топ-20 і отруйні — обидва.
 const _top20 = {
   'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
   'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
@@ -215,7 +215,7 @@ const _poisonous = {
   'hygrophoropsis_aurantiaca', 'amanita_pantherina', 'amanita_muscaria', 'paxillus_involutus',
 };
 const kSpeciesLargePhotos = {..._top20, ..._poisonous};
-const kSpeciesSmallPhotos = _top20;
+const kSpeciesSmallPhotos = {..._top20, ..._poisonous};
 
 /// Шапка: значок, назва, латина й плашки; праворуч — фото дорослого гриба (Топ-20, отруйні)
 /// (анімацію з грибом-персонажем прибрано — рішення PO 2026-11-19).

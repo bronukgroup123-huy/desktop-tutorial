@@ -37,12 +37,12 @@ void main() {
     CatalogPhotoCache.directory = () async => null;
   });
 
-  test('Фото: Топ-20 — дорослий і молодий; отруйні — дорослий; кожен файл існує', () {
+  test('Фото: Топ-20 і отруйні — дорослий і молодий; кожен файл існує', () {
     final top = {for (final s in catalog.species.where((s) => s.top20)) s.id};
     final poison = {
       for (final s in catalog.species.where((s) => s.edibility == 'poisonous' || s.edibility == 'deadly_poisonous')) s.id,
     };
-    expect(kSpeciesSmallPhotos, top);
+    expect(kSpeciesSmallPhotos, {...top, ...poison});
     expect(kSpeciesLargePhotos, {...top, ...poison});
     for (final id in kSpeciesLargePhotos) {
       expect(File('assets/species/large/$id.webp').existsSync(), isTrue, reason: 'large $id');
@@ -52,7 +52,7 @@ void main() {
     }
   });
 
-  testWidgets('Отруйний вид: дорослий гриб праворуч, біля назви — значок', (tester) async {
+  testWidgets('Отруйний вид: дорослий гриб праворуч, молодий біля назви', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         catalogProvider.overrideWith((ref) => catalog),
@@ -62,7 +62,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('species-photo')), findsOneWidget);
-    expect(find.byKey(const ValueKey('species-photo-small')), findsNothing);
+    expect(find.byKey(const ValueKey('species-photo-small')), findsOneWidget);
   });
 
   testWidgets('Картка Топ-20 — без анімації: ні віконця з грибом-персонажем, ні кола сценок; праворуч фото', (tester) async {
