@@ -37,13 +37,32 @@ void main() {
     CatalogPhotoCache.directory = () async => null;
   });
 
-  test('Фото дорослого й молодого гриба є для кожного виду Топ-20', () {
+  test('Фото: Топ-20 і отруйні — дорослий і молодий; кожен файл існує', () {
     final top = {for (final s in catalog.species.where((s) => s.top20)) s.id};
-    expect(kSpeciesPhotos, top);
-    for (final id in top) {
+    final poison = {
+      for (final s in catalog.species.where((s) => s.edibility == 'poisonous' || s.edibility == 'deadly_poisonous')) s.id,
+    };
+    expect(kSpeciesSmallPhotos, {...top, ...poison});
+    expect(kSpeciesLargePhotos, {...top, ...poison});
+    for (final id in kSpeciesLargePhotos) {
       expect(File('assets/species/large/$id.webp').existsSync(), isTrue, reason: 'large $id');
+    }
+    for (final id in kSpeciesSmallPhotos) {
       expect(File('assets/species/small/$id.webp').existsSync(), isTrue, reason: 'small $id');
     }
+  });
+
+  testWidgets('Отруйний вид: дорослий гриб праворуч, молодий біля назви', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        catalogProvider.overrideWith((ref) => catalog),
+        oblastsProvider.overrideWith((ref) => oblasts),
+      ],
+      child: const MaterialApp(home: CatalogDetailScreen(speciesId: 'amanita_phalloides')),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('species-photo')), findsOneWidget);
+    expect(find.byKey(const ValueKey('species-photo-small')), findsOneWidget);
   });
 
   testWidgets('Картка Топ-20 — без анімації: ні віконця з грибом-персонажем, ні кола сценок; праворуч фото', (tester) async {
@@ -61,8 +80,8 @@ void main() {
     expect(find.byKey(const ValueKey('species-photo-small')), findsOneWidget); // молодий — замість значка
   });
 
-  testWidgets('Вид поза Топ-20 — без фото праворуч', (tester) async {
-    final other = catalog.species.firstWhere((s) => !s.top20);
+  testWidgets('Вид без фото (не Топ-20 і не отруйний) — значок, як було', (tester) async {
+    final other = catalog.species.firstWhere((s) => !kSpeciesLargePhotos.contains(s.id));
     await tester.pumpWidget(ProviderScope(
       overrides: [
         catalogProvider.overrideWith((ref) => catalog),
