@@ -32,6 +32,9 @@ jwt_expiry = 3600
 enable_signup = true
 # ADR-001: гостьовий режим через Anonymous Sign-In (на продакшні увімкнено в Dashboard)
 enable_anonymous_sign_ins = true
+# Гість → Google зі збереженням id (linkIdentity). На продакшні: Dashboard → Authentication →
+# Sign In / Providers → Allow manual linking (деплой цей перемикач не змінює).
+enable_manual_linking = true
 
 [auth.email]
 enable_signup = true

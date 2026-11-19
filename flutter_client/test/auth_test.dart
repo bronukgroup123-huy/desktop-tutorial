@@ -35,6 +35,22 @@ void main() {
       );
       expect(msg, 'Не вдалося увійти через Google: Something odd (HTTP 500, unexpected_failure)');
     });
+
+    test('Google уже має свій акаунт (помилка з адреси повернення) — розпізнано', () {
+      // getSessionFromUrl: code = error, statusCode = error_code.
+      const e = AuthException('Identity is already linked to another user', statusCode: 'identity_already_exists', code: 'server_error');
+      expect(isIdentityTaken(e), isTrue);
+      expect(authErrorMessage(e, action: 'x'), contains('уже має свій профіль'));
+      expect(isIdentityTaken(const AuthApiException('odd', statusCode: '500', code: 'unexpected_failure')), isFalse);
+    });
+
+    test('ручну прив\'язку вимкнено — куди натиснути в Supabase', () {
+      const api = AuthApiException('Manual linking is disabled', statusCode: '404', code: 'manual_linking_disabled');
+      const url = AuthException('Manual linking is disabled', statusCode: 'manual_linking_disabled', code: 'invalid_request');
+      for (final e in [api, url]) {
+        expect(authErrorMessage(e, action: 'x'), contains('Allow manual linking'));
+      }
+    });
   });
 
   test('deep link OAuth збігається з intent-filter в AndroidManifest', () {
@@ -43,5 +59,7 @@ void main() {
     expect(manifest, contains('android:scheme="${uri.scheme}"'));
     expect(manifest, contains('android:host="${uri.host}"'));
     expect(manifest, contains('android.permission.INTERNET'));
+    // Посилання повернення — Supabase, не маршрутизатору.
+    expect(manifest, contains('android:name="flutter_deeplinking_enabled" android:value="false"'));
   });
 }
