@@ -11,15 +11,14 @@ import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
-import 'package:flutter_client/features/profile/licenses_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailGraphProvider;
 
 /// Вкладка «Профіль» (ADR-021 §21.2.1): шапка (аватар, ім'я, @нік, рівень), мій сезон, дані без
-/// інтернету, налаштування, про застосунок. У гостя — «Увійти через Google / Apple» і що дає
-/// акаунт; дані без інтернету й «Про застосунок» — теж.
+/// інтернету, налаштування, акаунт (вийти, видалити). У гостя — «Увійти через Google / Apple» і що
+/// дає акаунт. Автори й ліцензії фото — на картці виду в Довіднику.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -58,16 +57,8 @@ class ProfileScreen extends ConsumerWidget {
             title: me?.homeRegion?.name ?? 'Область не вибрано',
             subtitle: me?.regionChange.reasonLabel ?? '',
           ),
-          const _Section('Про застосунок'),
-          _Tile(
-            key: const ValueKey('profile-licenses'),
-            icon: Icons.copyright_rounded,
-            title: 'Джерела та ліцензії',
-            subtitle: 'Фото, карти, погода, ШІ — автори й ліцензії',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LicensesScreen())),
-          ),
           if (!guest) ...[
-            const SizedBox(height: 8),
+            const _Section('Акаунт'),
             _Tile(
               key: const ValueKey('profile-sign-out'),
               icon: Icons.logout_rounded,
