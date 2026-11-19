@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -198,16 +199,27 @@ class CatalogPhotoCache {
   }
 }
 
+/// Тло навколо цілого фото: розмите те саме фото ([kWholeBackdropOpacity]) під світлою
+/// вуаллю кольору картки ([kWholeVeil]), знизу плавно переходить у картку.
+const kCardColor = Color(0xFFF4F1E1);
+const kWholeBackdropOpacity = 1.0;
+const kWholeVeil = 0.04;
+
 /// Фото виду; немає (офлайн і ще не переглядали) — стікер гриба на світлому тлі.
 ///
 /// Картка є одразу; нове фото один раз плавно проявляється поверх стікера (рішення PO 2026-11-16).
 /// Уже завантажене за сеанс (зокрема при гортанні назад) — одразу, без анімації й без блимання.
 class CatalogPhoto extends StatefulWidget {
-  const CatalogPhoto({super.key, required this.name, required this.speciesId, this.fit = BoxFit.cover});
+  const CatalogPhoto({super.key, required this.name, required this.speciesId, this.fit = BoxFit.cover, this.whole = false, this.inset = EdgeInsets.zero});
 
   final String? name;
   final String speciesId;
   final BoxFit fit;
+
+  /// Гриб цілим (без обрізки): фото вписане повністю, а місце довкола заповнює те саме фото,
+  /// збільшене й розмите — без порожніх смуг. [inset] — відступ для цілого фото (статус-бар).
+  final bool whole;
+  final EdgeInsets inset;
 
   @override
   State<CatalogPhoto> createState() => _CatalogPhotoState();
@@ -277,7 +289,52 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
           FadeTransition(
             key: const ValueKey('photo-image'),
             opacity: _fade,
-            child: Image.memory(bytes, fit: widget.fit, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
+            child: widget.whole
+                ? Stack(fit: StackFit.expand, children: [
+                    if (kWholeBackdropOpacity > 0)
+                      Opacity(
+                        opacity: kWholeBackdropOpacity,
+                        child: ClipRect(
+                          child: ImageFiltered(
+                            imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30, tileMode: TileMode.mirror),
+                            child: Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          ),
+                        ),
+                      ),
+                    // світла «вуаль» кольору картки й плавний перехід фону в картку знизу
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            kCardColor.withValues(alpha: kWholeVeil),
+                            kCardColor.withValues(alpha: kWholeVeil),
+                            kCardColor,
+                          ],
+                          stops: const [0, 0.72, 1],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: widget.inset,
+                      // Center дає вільні межі — фото бере свій розмір із пропорціями, тож кути й тінь — по фото.
+                      child: Center(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8))],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.memory(bytes,
+                                key: const ValueKey('photo-whole'), fit: BoxFit.contain, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ])
+                : Image.memory(bytes, fit: widget.fit, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
           ),
       ],
     );
