@@ -24,8 +24,7 @@ class CatalogPhotoCache {
   static final Map<String, Future<Map<String, Uint8List>?>> _bundles = {};
 
   /// Архів, у якому лежить фото.
-  static String bundleOf(String name) =>
-      name.endsWith('-t.webp') ? 'thumbs.tar' : '${name.replaceFirst(RegExp(r'-\d+\.webp$'), '')}.tar';
+  static String bundleOf(String name) => name.endsWith('-t.webp') ? 'thumbs.tar' : '${name.replaceFirst(RegExp(r'-\d+\.webp$'), '')}.tar';
 
   /// Розпакувати tar (ustar): ім'я файлу → вміст.
   static Map<String, Uint8List> untar(Uint8List b) {
@@ -210,7 +209,7 @@ const kWholeVeil = 0.04;
 /// Картка є одразу; нове фото один раз плавно проявляється поверх стікера (рішення PO 2026-11-16).
 /// Уже завантажене за сеанс (зокрема при гортанні назад) — одразу, без анімації й без блимання.
 class CatalogPhoto extends StatefulWidget {
-  const CatalogPhoto({super.key, required this.name, required this.speciesId, this.fit = BoxFit.cover, this.whole = false, this.inset = EdgeInsets.zero});
+  const CatalogPhoto({super.key, required this.name, required this.speciesId, this.fit = BoxFit.cover, this.whole = false, this.inset = EdgeInsets.zero, this.backdrop = true});
 
   final String? name;
   final String speciesId;
@@ -220,6 +219,10 @@ class CatalogPhoto extends StatefulWidget {
   /// збільшене й розмите — без порожніх смуг. [inset] — відступ для цілого фото (статус-бар).
   final bool whole;
   final EdgeInsets inset;
+
+  /// Розмите тло довкола цілого фото. У галереї — false: там одне спільне тло під усіма
+  /// сторінками, що плавно перетікає з фото на фото (без шва посередині при гортанні).
+  final bool backdrop;
 
   @override
   State<CatalogPhoto> createState() => _CatalogPhotoState();
@@ -276,7 +279,7 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final placeholder = Container(
       key: const ValueKey('photo-placeholder'),
-      color: const Color(0xfff1ece0),
+      color: widget.whole && !widget.backdrop ? Colors.transparent : const Color(0xfff1ece0),
       alignment: Alignment.center,
       child: SpeciesIcon(type: widget.speciesId, fallbackColor: const Color(0xff8d6e63), size: 44),
     );
@@ -291,7 +294,7 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
             opacity: _fade,
             child: widget.whole
                 ? Stack(fit: StackFit.expand, children: [
-                    if (kWholeBackdropOpacity > 0)
+                    if (widget.backdrop && kWholeBackdropOpacity > 0)
                       Opacity(
                         opacity: kWholeBackdropOpacity,
                         child: ClipRect(
@@ -302,20 +305,7 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
                         ),
                       ),
                     // світла «вуаль» кольору картки й плавний перехід фону в картку знизу
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            kCardColor.withValues(alpha: kWholeVeil),
-                            kCardColor.withValues(alpha: kWholeVeil),
-                            kCardColor,
-                          ],
-                          stops: const [0, 0.72, 1],
-                        ),
-                      ),
-                    ),
+                    if (widget.backdrop) const WholePhotoVeil(),
                     Padding(
                       padding: widget.inset,
                       // Center дає вільні межі — фото бере свій розмір із пропорціями, тож кути й тінь — по фото.
@@ -327,8 +317,7 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
-                            child: Image.memory(bytes,
-                                key: const ValueKey('photo-whole'), fit: BoxFit.contain, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
+                            child: Image.memory(bytes, key: const ValueKey('photo-whole'), fit: BoxFit.contain, gaplessPlayback: true, errorBuilder: (_, __, ___) => placeholder),
                           ),
                         ),
                       ),
@@ -339,4 +328,39 @@ class _CatalogPhotoState extends State<CatalogPhoto> with SingleTickerProviderSt
       ],
     );
   }
+}
+
+/// Вуаль над розмитим тлом: ледь світліше й плавний перехід у колір картки знизу.
+class WholePhotoVeil extends StatelessWidget {
+  const WholePhotoVeil({super.key});
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [kCardColor.withValues(alpha: kWholeVeil), kCardColor.withValues(alpha: kWholeVeil), kCardColor],
+            stops: const [0, 0.72, 1],
+          ),
+        ),
+      );
+}
+
+/// Розмите тло з фото — дешево: картинка декодується крихітною (32 px) і масштабується з
+/// плавною інтерполяцією, без розмиття на кожному кадрі. Для галереї, де тло рухається з пальцем.
+class BlurredPhotoBackdrop extends StatelessWidget {
+  const BlurredPhotoBackdrop({super.key, required this.bytes});
+
+  final Uint8List bytes;
+
+  @override
+  Widget build(BuildContext context) => Image.memory(
+        bytes,
+        cacheWidth: 32,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      );
 }

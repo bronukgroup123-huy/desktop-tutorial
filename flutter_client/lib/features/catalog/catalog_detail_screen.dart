@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,10 +150,7 @@ class _Detail extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 64, right: 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(s.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 17)),
+                      child: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 17)),
                     ),
                   ),
                 ),
@@ -179,8 +177,7 @@ class _Detail extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                      child: Text('${treeEmoji(t)} ${kTreeLabels[t] ?? t}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+                      child: Text('${treeEmoji(t)} ${kTreeLabels[t] ?? t}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
                     ),
                 ],
               ),
@@ -204,16 +201,45 @@ class _Detail extends StatelessWidget {
 /// (`assets/species/large/<id>.webp`) — праворуч від назви; молодий (`assets/species/small/<id>.webp`)
 /// — замість значка біля назви. Топ-20 і отруйні — обидва.
 const _top20 = {
-  'agaricus_campestris', 'armillaria_mellea', 'boletus_edulis', 'boletus_luridus', 'cantharellus_cibarius',
-  'flammulina_velutipes', 'hydnum_repandum', 'imleria_badia', 'lactarius_deliciosus', 'lactarius_resimus',
-  'lactarius_torminosus', 'leccinum_aurantiacum', 'leccinum_scabrum', 'lycoperdon_perlatum', 'morchella_esculenta',
-  'pleurotus_ostreatus', 'russula_vesca', 'suillus_bovinus', 'suillus_luteus', 'xerocomus_subtomentosus',
+  'agaricus_campestris',
+  'armillaria_mellea',
+  'boletus_edulis',
+  'boletus_luridus',
+  'cantharellus_cibarius',
+  'flammulina_velutipes',
+  'hydnum_repandum',
+  'imleria_badia',
+  'lactarius_deliciosus',
+  'lactarius_resimus',
+  'lactarius_torminosus',
+  'leccinum_aurantiacum',
+  'leccinum_scabrum',
+  'lycoperdon_perlatum',
+  'morchella_esculenta',
+  'pleurotus_ostreatus',
+  'russula_vesca',
+  'suillus_bovinus',
+  'suillus_luteus',
+  'xerocomus_subtomentosus',
 };
 const _poisonous = {
-  'amanita_phalloides', 'galerina_marginata', 'amanita_verna', 'amanita_virosa', 'gyromitra_esculenta',
-  'inocybe_geophylla', 'rubroboletus_rhodoxanthus', 'rubroboletus_satanas', 'rubroboletus_rubrosanguineus',
-  'inocybe_erubescens', 'clitocybe_candicans', 'clitocybe_dealbata', 'entoloma_sinuatum',
-  'hygrophoropsis_aurantiaca', 'amanita_pantherina', 'amanita_muscaria', 'paxillus_involutus',
+  'amanita_phalloides',
+  'galerina_marginata',
+  'amanita_verna',
+  'amanita_virosa',
+  'gyromitra_esculenta',
+  'inocybe_geophylla',
+  'rubroboletus_rhodoxanthus',
+  'rubroboletus_satanas',
+  'rubroboletus_rubrosanguineus',
+  'inocybe_erubescens',
+  'clitocybe_candicans',
+  'clitocybe_dealbata',
+  'entoloma_sinuatum',
+  'hygrophoropsis_aurantiaca',
+  'amanita_pantherina',
+  'amanita_muscaria',
+  'paxillus_involutus',
 };
 const kSpeciesLargePhotos = {..._top20, ..._poisonous};
 const kSpeciesSmallPhotos = {..._top20, ..._poisonous};
@@ -264,10 +290,8 @@ class _Header extends StatelessWidget {
           runSpacing: 6,
           children: [
             EdibilityBadge(label: badge.label, color: Color(badge.color)),
-            if (s.redListed)
-              _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
-            if (s.inSeason(DateTime.now().month))
-              const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
+            if (s.redListed) _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
+            if (s.inSeason(DateTime.now().month)) const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
             if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
             if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
           ],
@@ -383,9 +407,7 @@ class _SeasonStripState extends State<_SeasonStrip> with SingleTickerProviderSta
                                 decoration: BoxDecoration(
                                   color: Color.lerp(Colors.white, target, on ? lit : 1),
                                   borderRadius: BorderRadius.circular(6),
-                                  boxShadow: glow > 0
-                                      ? [BoxShadow(color: const Color(0xff7cc47f).withValues(alpha: 0.7 * glow), blurRadius: 10 * glow)]
-                                      : null,
+                                  boxShadow: glow > 0 ? [BoxShadow(color: const Color(0xff7cc47f).withValues(alpha: 0.7 * glow), blurRadius: 10 * glow)] : null,
                                 ),
                                 alignment: Alignment.center,
                                 child: FittedBox(
@@ -453,30 +475,104 @@ class _Gallery extends StatefulWidget {
 }
 
 class _GalleryState extends State<_Gallery> {
-  int _page = 0;
+  final _controller = PageController();
+
+  /// Фото, вже завантажені для спільного розмитого тла (за назвою).
+  final Map<String, Uint8List> _bytes = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _ensure(0);
+    _ensure(1);
+    _controller.addListener(() {
+      final i = _pos.floor();
+      _ensure(i);
+      _ensure(i + 1);
+    });
+  }
+
+  /// Фото для тла — лише поточне й наступне (як і сама галерея, не все одразу).
+  void _ensure(int i) {
+    final photos = widget.species.photos;
+    if (i < 0 || i >= photos.length) return;
+    final name = photos[i];
+    if (_bytes.containsKey(name) || !_asked.add(name)) return;
+    final ready = CatalogPhotoCache.peek(name);
+    if (ready != null) {
+      _bytes[name] = ready;
+      return;
+    }
+    CatalogPhotoCache.get(name).then((b) {
+      if (mounted && b != null) setState(() => _bytes[name] = b);
+    });
+  }
+
+  final Set<String> _asked = {};
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double get _pos => _controller.hasClients && _controller.position.hasContentDimensions ? (_controller.page ?? 0) : 0;
 
   @override
   Widget build(BuildContext context) {
     final s = widget.species;
     if (s.photos.isEmpty) return CatalogPhoto(name: null, speciesId: s.id);
+    final last = s.photos.length - 1;
     return Stack(
       fit: StackFit.expand,
       children: [
+        // Одне тло на всю галерею: під час гортання розмите тло плавно перетікає з фото на фото
+        // разом із пальцем (а не дві різні половини зі швом посередині).
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final p = _pos.clamp(0.0, last.toDouble());
+            final i0 = p.floor();
+            final f = p - i0;
+            Widget layer(int i, double opacity) {
+              final b = _bytes[s.photos[i]];
+              if (b == null || opacity <= 0) return const SizedBox.shrink();
+              return Opacity(opacity: opacity, child: BlurredPhotoBackdrop(bytes: b));
+            }
+
+            return Stack(fit: StackFit.expand, children: [
+              const ColoredBox(color: Color(0xfff1ece0)),
+              layer(i0, 1),
+              if (i0 < last) layer(i0 + 1, f),
+              const WholePhotoVeil(),
+            ]);
+          },
+        ),
         PageView.builder(
           key: const ValueKey('catalog-gallery'),
+          controller: _controller,
           itemCount: s.photos.length,
-          onPageChanged: (i) => setState(() => _page = i),
-          itemBuilder: (context, i) => GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-              fullscreenDialog: true,
-              builder: (_) => _FullscreenPhotos(species: s, initial: i),
-            )),
-            child: CatalogPhoto(
-              name: s.photos[i],
-              speciesId: s.id,
-              whole: true,
-              // зверху — статус-бар і кнопка «назад», знизу — крапки гортання
-              inset: EdgeInsets.fromLTRB(12, MediaQuery.paddingOf(context).top + 10, 12, 26),
+          itemBuilder: (context, i) => AnimatedBuilder(
+            animation: _controller,
+            // фото, що йде, трохи зменшується й тьмяніє; нове — навпаки (плавніше за «ріжучий» зсув)
+            builder: (context, child) {
+              final d = (_pos - i).abs().clamp(0.0, 1.0);
+              final e = Curves.easeOut.transform(d);
+              return Opacity(opacity: 1 - 0.55 * e, child: Transform.scale(scale: 1 - 0.1 * e, child: child));
+            },
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => _FullscreenPhotos(species: s, initial: i),
+              )),
+              child: CatalogPhoto(
+                name: s.photos[i],
+                speciesId: s.id,
+                whole: true,
+                backdrop: false,
+                // зверху — статус-бар і кнопка «назад», знизу — крапки гортання
+                inset: EdgeInsets.fromLTRB(12, MediaQuery.paddingOf(context).top + 10, 12, 26),
+              ),
             ),
           ),
         ),
@@ -485,22 +581,28 @@ class _GalleryState extends State<_Gallery> {
             bottom: 10,
             left: 0,
             right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < s.photos.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: i == _page ? 16 : 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: i == _page ? 0.95 : 0.6),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3)],
-                    ),
-                  ),
-              ],
+            // крапки: ширина й яскравість змінюються плавно разом із пальцем
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < s.photos.length; i++)
+                    Builder(builder: (context) {
+                      final near = 1 - (_pos - i).abs().clamp(0.0, 1.0);
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: 7 + 9 * near,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6 + 0.35 * near),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3)],
+                        ),
+                      );
+                    }),
+                ],
+              ),
             ),
           ),
       ],
