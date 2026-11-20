@@ -128,6 +128,8 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   "v1-air-alerts": 60,
   // друзі: пошук за ніком (кожна літера — запит), дії, профілі
   "v1-friends": 60,
+  // Наглядач: трек раз на хвилину, картка Наглядача оновлюється кожні 15–30 с
+  "v1-guardian": 120,
 };
 
 /** Мінімальний тип клієнта, потрібний для rate limit (RPC + fallback upsert). */

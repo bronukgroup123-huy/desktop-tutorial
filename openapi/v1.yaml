@@ -884,6 +884,118 @@ paths:
                       registered: { type: boolean }
         '422': { $ref: '#/components/responses/Error' }
 
+  /v1-guardian:
+    get:
+      operationId: getGuardian
+      summary: Наглядач — мої Наглядачі, прохання, за ким я дивлюсь, мій похід; або похід за id (ADR-022)
+      description: >
+        Лише акаунт із ніком (гість — 403 registration_required). Без параметрів — огляд. `hike` —
+        похід для власника чи Наглядача незакритого походу: статус, останнє місце, батарея, маршрут, трек
+        (`since` — лише нові точки), `rescue` (координати великими цифрами й текст SMS на 112, без
+        посилань). Чужий або закритий похід — 404 hike_not_found (B4.9).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: hike, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: since, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Огляд або похід
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      guardians: { type: array, items: { type: object }, description: Мої Наглядачі (status pending / accepted, actions) }
+                      invites: { type: array, items: { type: object }, description: Мене просять бути Наглядачем }
+                      watching: { type: array, items: { type: object }, description: Я Наглядач для цих друзів }
+                      hike: { type: [object, 'null'], description: 'Мій незакритий похід: status, status_label, detail_label, ask_ok, expected_return, guardians, actions — або похід за ?hike= (route, track, rescue, last, battery_label, gps_issue_label)' }
+                      watched: { type: array, items: { type: object }, description: Походи друзів, де я Наглядач (тривожні згори) }
+                      limits:
+                        type: object
+                        properties:
+                          max_guardians_per_hike: { type: integer, example: 1 }
+                          label: { type: string }
+                      telegram:
+                        type: object
+                        properties:
+                          available: { type: boolean }
+                          linked: { type: boolean }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: guardianAction
+      summary: Наглядачі (згода один раз), «Йду в ліс», трек, «Все добре?», SOS, «Я вдома», Telegram
+      description: >
+        invite / accept_invite / decline_invite / remove / resign — `user_id`; лише друзі (403 not_friends).
+        start — `route` (обов'язково, 422 route_required), `expected_return` (за 10 хв … 24 год),
+        `guardian_ids` (Наглядачі, що погодились; 1 безкоштовно, до 3 — Pro: 403 pro_required),
+        `client_id` (повтор без дубля). track — `hike_id`, `points` [{lat, lng, t, acc}] до 500, `battery`;
+        точки з точністю гіршою за 100 м — у треку з позначкою, не «останнє місце». ok / extend / sos /
+        sos_cancel / finish — `hike_id`. Push і Telegram Наглядачам — без координат. Після finish трек
+        видаляється. telegram_link → `url` на бота з одноразовим кодом (15 хв).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [invite, accept_invite, decline_invite, remove, resign, start, track, ok, extend, sos, sos_cancel, finish, telegram_link, telegram_unlink]
+                user_id: { type: string, format: uuid }
+                hike_id: { type: string, format: uuid }
+                client_id: { type: string, maxLength: 64 }
+                route:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [lat, lng]
+                    properties:
+                      lat: { type: number }
+                      lng: { type: number }
+                      label: { type: string, maxLength: 40 }
+                expected_return: { type: string, format: date-time }
+                guardian_ids: { type: array, items: { type: string, format: uuid }, maxItems: 3 }
+                points:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [lat, lng, t]
+                    properties:
+                      lat: { type: number }
+                      lng: { type: number }
+                      t: { type: string, format: date-time }
+                      acc: { type: number }
+                battery: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200':
+          description: Новий стан
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
 components:
   securitySchemes:
     apikey:
@@ -911,6 +1023,9 @@ components:
         Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,
         invalid_comment, invalid_target, user_not_found, blocked_by_you, request_cooldown,
         daily_limit, friends_limit, friends_limit_other, no_request.
+        Наглядач (v1-guardian): not_friends, guardians_limit, no_invite, route_required,
+        guardian_required, guardian_not_accepted, pro_required, hike_already_active, hike_not_found,
+        hike_closed, no_sos, extend_limit, telegram_unavailable.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
