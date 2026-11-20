@@ -32,6 +32,9 @@ abstract final class MapSources {
   /// Похід (ADR-022 §22.3 п.4): маршрут — лінія й точки; трек — пройдений шлях.
   static const route = 'app_route';
   static const track = 'app_track';
+
+  /// Походи друзів, де я Наглядач (ADR-022 §22.2): маршрут, трек, останнє місце.
+  static const watched = 'app_watched';
 }
 
 /// Шари, по яких обробляється тап.
@@ -160,6 +163,7 @@ Map<String, dynamic> offlineMapStyle({
         MapSources.forestPin: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.route: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.track: {'type': 'geojson', 'data': emptyFeatureCollection},
+        MapSources.watched: {'type': 'geojson', 'data': emptyFeatureCollection},
       },
       'layers': [
         ...basemapLayers(),
@@ -389,6 +393,50 @@ List<Map<String, dynamic>> appLayers() => [
         },
         'paint': {'text-color': _textColor, 'text-halo-color': _halo, 'text-halo-width': 2},
       },
+      // Наглядач: похід друга — фіолетовий маршрут пунктиром і трек, останнє місце з ніком;
+      // тривога (немає відповіді / SOS) — червоним.
+      {
+        'id': 'app_watched_route',
+        'type': 'line',
+        'source': MapSources.watched,
+        'filter': ['==', ['get', 'kind'], 'route'],
+        'paint': {'line-color': '#7c3aed', 'line-width': 2.5, 'line-dasharray': [2, 1.5], 'line-opacity': 0.8},
+      },
+      {
+        'id': 'app_watched_track',
+        'type': 'line',
+        'source': MapSources.watched,
+        'filter': ['==', ['get', 'kind'], 'track'],
+        'layout': {'line-cap': 'round', 'line-join': 'round'},
+        'paint': {'line-color': ['case', ['==', ['get', 'alarm'], true], '#c62828', '#6d28d9'], 'line-width': 4, 'line-opacity': 0.9},
+      },
+      {
+        'id': 'app_watched_last',
+        'type': 'circle',
+        'source': MapSources.watched,
+        'filter': ['==', ['get', 'kind'], 'last'],
+        'paint': {
+          'circle-radius': 9,
+          'circle-color': ['case', ['==', ['get', 'alarm'], true], '#c62828', '#6d28d9'],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 3,
+        },
+      },
+      {
+        'id': 'app_watched_label',
+        'type': 'symbol',
+        'source': MapSources.watched,
+        'filter': ['==', ['get', 'kind'], 'last'],
+        'layout': {
+          'text-field': ['get', 'label'],
+          'text-font': _font,
+          'text-size': 13,
+          'text-anchor': 'top',
+          'text-offset': [0, 1.0],
+          'text-allow-overlap': true,
+        },
+        'paint': {'text-color': '#4c1d95', 'text-halo-color': _halo, 'text-halo-width': 2},
+      },
       // Тук-туки: значок гриба (картинку додає екран карти; ім'я — у властивості `icon`).
       {
         'id': MapLayers.picks,
@@ -443,3 +491,34 @@ Map<String, dynamic> trackGeoJson(List<({double lat, double lng})> track) => tra
           },
         ],
       };
+
+/// Походи друзів для карти Наглядача: маршрут, трек (без точок з поганою точністю GPS) і
+/// останнє місце з підписом «@нік · статус».
+Map<String, dynamic> watchedGeoJson(
+  List<({String handle, String status, bool alarm, List<({double lat, double lng})> route, List<({double lat, double lng})> track, ({double lat, double lng})? last})> hikes,
+) =>
+    {
+      'type': 'FeatureCollection',
+      'features': [
+        for (final h in hikes) ...[
+          if (h.route.length > 1)
+            {
+              'type': 'Feature',
+              'properties': {'kind': 'route'},
+              'geometry': {'type': 'LineString', 'coordinates': [for (final p in h.route) [p.lng, p.lat]]},
+            },
+          if (h.track.length > 1)
+            {
+              'type': 'Feature',
+              'properties': {'kind': 'track', 'alarm': h.alarm},
+              'geometry': {'type': 'LineString', 'coordinates': [for (final p in h.track) [p.lng, p.lat]]},
+            },
+          if (h.last != null)
+            {
+              'type': 'Feature',
+              'properties': {'kind': 'last', 'alarm': h.alarm, 'label': '@${h.handle} · ${h.status}'},
+              'geometry': {'type': 'Point', 'coordinates': [h.last!.lng, h.last!.lat]},
+            },
+        ],
+      ],
+    };

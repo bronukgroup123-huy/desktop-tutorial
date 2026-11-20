@@ -5,6 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/data/api/api_exception.dart';
+import 'package:flutter_client/data/models/guardian.dart';
+import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/safety/guardian/guardian_session.dart';
+import 'package:flutter_client/features/safety/guardian/guardian_start_sheet.dart';
 import 'package:flutter_client/features/safety/hike/compass_screen.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
 import 'package:flutter_client/features/safety/hike/hike_geo.dart';
@@ -62,9 +67,42 @@ class _HikeCardState extends ConsumerState<HikeCard> {
     ?..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(text)));
 
+  /// «Почати похід»: є Наглядачі, що погодились, — спершу «Йду в ліс» (час повернення,
+  /// Наглядач, ADR-022 §22.3 п.2); інакше — похід лише на телефоні.
   Future<void> _start() async {
+    GuardianOverview? g;
+    try {
+      g = await ref.read(guardianProvider.future).timeout(const Duration(seconds: 6));
+    } catch (_) {
+      g = null; // немає мережі — похід на телефоні, як і раніше
+    }
+    GuardianStartChoice? choice;
+    if (g != null && g.acceptedGuardians.isNotEmpty && mounted) {
+      choice = await showGuardianStartSheet(context, g, sunset: ref.read(hikeProvider).sunset);
+      if (choice == null) return;
+    }
     final ok = await ref.read(hikeProvider.notifier).start();
-    if (!ok && mounted) _snack('Потрібен дозвіл на геолокацію, щоб записувати шлях');
+    if (!ok) {
+      if (mounted) _snack('Потрібен дозвіл на геолокацію, щоб записувати шлях');
+      return;
+    }
+    if (choice == null || choice.guardianIds.isEmpty) return;
+    try {
+      await ref.read(guardianSessionProvider.notifier).start(expectedReturn: choice.expectedReturn, guardianIds: choice.guardianIds);
+      if (mounted) _snack('Наглядач бачить ваш похід');
+    } on ApiException catch (e) {
+      if (mounted) _snack('Похід почато без Наглядача: ${e.userMessage}');
+    }
+  }
+
+  Future<void> _guardianAction(GuardianButton a) async {
+    if (a.id == 'finish') return _finish();
+    try {
+      final done = await ref.read(guardianSessionProvider.notifier).act(a.id);
+      if (done != null && mounted) _snack(done);
+    } on ApiException catch (e) {
+      if (mounted) _snack(e.userMessage);
+    }
   }
 
   Future<void> _finish() async {
@@ -79,13 +117,17 @@ class _HikeCardState extends ConsumerState<HikeCard> {
         ],
       ),
     );
-    if (yes == true) await ref.read(hikeProvider.notifier).finish();
+    if (yes != true) return;
+    await ref.read(hikeProvider.notifier).finish();
+    // Наглядач більше не бачить ні місця, ні треку (без мережі — повідомимо пізніше).
+    await ref.read(guardianSessionProvider.notifier).finish();
   }
 
   @override
   Widget build(BuildContext context) {
     final hike = ref.watch(hikeProvider);
     final ctrl = ref.read(hikeProvider.notifier);
+    final session = ref.watch(guardianSessionProvider);
     final dim = AppTheme.darkGreen.withValues(alpha: 0.75);
     final sunset = hike.sunset;
     final now = HikeController.now();
@@ -206,6 +248,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
             child: Text('Можливі збої GPS: пропущено точок — ${hike.rejected}',
                 key: const ValueKey('hike-gps'), style: const TextStyle(color: Color(0xffb45309), fontSize: 12.5)),
           ),
+        if (session.active) _GuardianStatus(view: session.view, onAction: _guardianAction),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -239,6 +282,14 @@ class _HikeCardState extends ConsumerState<HikeCard> {
       ]);
     }
 
+    if (!hike.active && session.pendingFinish != null) {
+      children.add(Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text('Повідомимо Наглядача, що ви вдома, щойно з\'явиться інтернет',
+            key: const ValueKey('hike-pending-finish'), style: TextStyle(color: dim, fontSize: 12.5)),
+      ));
+    }
+
     return Container(
       key: const ValueKey('hike-card'),
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
@@ -248,6 +299,67 @@ class _HikeCardState extends ConsumerState<HikeCard> {
         border: hike.active ? Border.all(color: const Color(0xffd97706), width: 1.5) : null,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+    );
+  }
+}
+
+/// Похід із Наглядачем: хто дивиться, до котрої повернення; у час повернення — «Все добре?»
+/// з кнопками із сервера («Так, все добре», «Продовжити на годину», «Я вдома»).
+class _GuardianStatus extends StatelessWidget {
+  const _GuardianStatus({required this.view, required this.onAction});
+
+  final OwnerHike? view;
+  final ValueChanged<GuardianButton> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = view;
+    const violet = Color(0xff6d28d9);
+    if (v == null) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 6),
+        child: Text('Наглядач: з\'єднуємося…', key: ValueKey('hike-guardian'), style: TextStyle(color: violet)),
+      );
+    }
+    final who = v.guardians.map((g) => '@${g.handle}').join(', ');
+    final ask = v.askOk || v.sos;
+    final line = Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        ask ? (v.detailLabel ?? v.statusLabel) : 'Наглядач $who · ${v.detailLabel ?? v.statusLabel}',
+        key: const ValueKey('hike-guardian'),
+        style: TextStyle(color: ask ? const Color(0xffc62828) : violet, fontWeight: FontWeight.w600),
+      ),
+    );
+    if (!ask) return line;
+    return Container(
+      key: const ValueKey('hike-ask-ok'),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xfffdecea), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(v.sos ? 'SOS надіслано' : 'Все добре?', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xffc62828))),
+          line,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final a in v.actions)
+                a.style == 'primary' || a.style == 'danger'
+                    ? FilledButton(
+                        key: ValueKey('hike-guardian-${a.id}'),
+                        style: FilledButton.styleFrom(backgroundColor: a.style == 'danger' ? const Color(0xffc62828) : AppTheme.darkGreen),
+                        onPressed: () => onAction(a),
+                        child: Text(a.label),
+                      )
+                    : OutlinedButton(key: ValueKey('hike-guardian-${a.id}'), onPressed: () => onAction(a), child: Text(a.label)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

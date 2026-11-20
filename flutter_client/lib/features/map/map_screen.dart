@@ -29,6 +29,8 @@ import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/picks/pick_card_sheet.dart';
 import 'package:flutter_client/features/safety/hike/compass_screen.dart' show routePath;
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
+import 'package:flutter_client/features/safety/guardian/watched_hikes.dart';
+import 'package:flutter_client/data/models/guardian.dart';
 
 /// Карта Home Region (план v8.2 §3.2, ADR-015 §15.2).
 ///
@@ -270,6 +272,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   Object? _pushedPin;
   Object? _pushedRoute;
   Object? _pushedTrack;
+  Object? _pushedWatched;
   final Set<String> _icons = {};
   bool _locating = false;
   bool _startingPick = false;
@@ -667,6 +670,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     required List<LatLng>? square,
     required ({LatLng point, ForestZone zone})? pin,
     required HikeState hike,
+    required List<HikeDetail> watched,
   }) async {
     final c = _ml;
     if (c == null || !_styleReady || !mounted) return;
@@ -701,6 +705,21 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         _pushedTrack = hike.track;
         await c.setGeoJsonSource(MapSources.track, trackGeoJson([for (final p in hike.track) (lat: p.lat, lng: p.lng)]));
       }
+      // Наглядач: походи друзів (маршрут, трек, останнє місце).
+      if (!identical(watched, _pushedWatched)) {
+        _pushedWatched = watched;
+        await c.setGeoJsonSource(MapSources.watched, watchedGeoJson([
+          for (final d in watched)
+            (
+              handle: d.summary.owner.handle,
+              status: d.summary.statusLabel,
+              alarm: d.summary.alarm,
+              route: [for (final p in d.route) (lat: p.lat, lng: p.lng)],
+              track: [for (final p in d.track) if (!p.lowAccuracy) (lat: p.lat, lng: p.lng)],
+              last: d.summary.last == null ? null : (lat: d.summary.last!.lat, lng: d.summary.last!.lng),
+            ),
+        ]));
+      }
     } catch (e) {
       debugPrint('[map] overlay sync failed: $e');
     }
@@ -708,12 +727,17 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 
   void _onStyleLoaded() {
     _styleReady = true;
-    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = null;
+    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = _pushedWatched = null;
     _icons.clear();
     if (!mounted) return;
     setState(() {}); // перебудова передасть шари застосунку
     final area = ref.read(mapFocusAreaProvider);
     if (area != null) _focusArea(area);
+    final point = ref.read(mapFocusPointProvider);
+    if (point != null) {
+      _moveTo(point, 15);
+      ref.read(mapFocusPointProvider.notifier).state = null;
+    }
   }
 
   @override
@@ -744,9 +768,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     ref.listen(mapFocusAreaProvider, (_, area) {
       if (area != null) _focusArea(area);
     });
+    final watched = ref.watch(watchedHikesProvider).valueOrNull ?? const <HikeDetail>[];
+    ref.listen(mapFocusPointProvider, (_, p) {
+      if (p == null) return;
+      _moveTo(p, 15);
+      ref.read(mapFocusPointProvider.notifier).state = null;
+    });
     // Шари застосунку на карті — після кадру й лише змінене.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel, hike: hike),
+      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel, hike: hike, watched: watched),
     );
 
     return Scaffold(

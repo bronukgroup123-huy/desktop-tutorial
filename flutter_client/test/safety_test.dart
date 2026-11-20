@@ -149,6 +149,8 @@ void main() {
     await tester.pumpWidget(app(d, const SafetyScreen()));
     await tester.pump();
     expect(d.locates, 0); // вкладка не питає дозвіл сама
+    await tester.ensureVisible(find.byKey(const ValueKey('coords-refresh')));
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('coords-refresh')));
     await tester.pump();
     await tester.pump();

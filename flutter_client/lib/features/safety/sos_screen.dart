@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter_client/features/safety/guardian/guardian_session.dart';
 import 'package:flutter_client/features/safety/safety_device.dart';
 import 'package:flutter_client/features/safety/safety_guides.dart' show RescueCardView;
 
 const _sosRed = Color(0xffc62828);
 
 /// Екран SOS (ADR-022 §22.3 п.1): сирена вмикається одразу, «Подзвонити 112», мої координати
-/// великими цифрами, світловий сигнал. Тривога Наглядачам — коли буде Наглядач (§22.4).
-/// Працює без інтернету й без акаунта.
+/// великими цифрами, світловий сигнал. Похід із Наглядачем — тривога Наглядачам (push +
+/// Telegram, без координат, §22.2). Працює без інтернету й без акаунта.
 class SosScreen extends ConsumerStatefulWidget {
   const SosScreen({super.key, this.sirenOnStart = true});
 
@@ -30,7 +31,13 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     super.initState();
     _device.keepAwake(true);
     if (widget.sirenOnStart) _setSiren(true);
+    // Похід із Наглядачем — тривога Наглядачам одразу (без мережі — тихо, SOS-екран працює).
+    final session = ref.read(guardianSessionProvider);
+    _alerted = session.active;
+    if (session.active) unawaited(ref.read(guardianSessionProvider.notifier).sos());
   }
+
+  bool _alerted = false;
 
   Future<void> _setSiren(bool on) async {
     setState(() => _siren = on);
@@ -61,6 +68,14 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                   style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: 6)),
               const Text('Залишайтеся на місці. Бережіть батарею.',
                   textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 15)),
+              if (_alerted)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text('Наглядача сповіщено — він бачить ваш похід у застосунку',
+                      key: ValueKey('sos-guardian'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
               const SizedBox(height: 20),
               SizedBox(
                 height: 72,
