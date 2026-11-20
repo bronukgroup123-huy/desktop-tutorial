@@ -10,6 +10,7 @@ BASE.png — картинка після shrink_mushrooms.py. У OUT_DIR:
   leaf.png   — силует листка (розмитий);
   rays.png   — віяло сонячних променів від верхнього лівого кута.
 Решту (хмарка, сонце, відблиск, краплі) малює застосунок — фон_painter у forecast_background.dart.
+Далі — recolor_base.py: тон туману на base.webp = колір застосунку (#F4F1E1).
 """
 import math
 import os

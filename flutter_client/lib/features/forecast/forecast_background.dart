@@ -77,8 +77,8 @@ class _ForecastBackgroundState extends State<ForecastBackground> with SingleTick
   }
 }
 
-/// Колір фону, поки картинка вантажиться (близький до туману на картинці).
-const kForecastBgColor = Color(0xFFEDF0DC);
+/// Колір фону, поки картинка вантажиться = тон туману на картинці = колір застосунку.
+const kForecastBgColor = Color(0xFFF4F1E1);
 
 /// Момент петлі для нерухомого кадру: без листка, крапель і хмарки перед сонцем.
 const kForecastBgStill = 0.36;
@@ -189,7 +189,7 @@ class ForecastBgPainter extends CustomPainter {
     }
 
     // 5. Запотівання по краях — повільно «дихає».
-    _image(canvas, img.fog, full, _tint(const Color(0xFFF6F8F0), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
+    _image(canvas, img.fog, full, _tint(const Color(0xFFF8F6EB), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
 
     // 6. Сонце світить крізь скло; тьмяніє, коли хмарка перед ним.
     for (final (r, a) in [(300.0, 0.55 * (1 - 0.65 * cover)), (110.0, 0.45 * (1 - 0.8 * cover))]) {
