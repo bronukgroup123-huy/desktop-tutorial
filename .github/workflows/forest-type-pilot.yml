@@ -57,7 +57,7 @@ jobs:
     outputs:
       matrix: ${{ steps.list.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Supabase public config
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.bbox == ''
         uses: ./.github/actions/supabase-public-config
@@ -105,7 +105,7 @@ jobs:
       SLUG: ${{ matrix.region.slug }}
       BBOX: ${{ matrix.region.bbox }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check inputs
         run: |
           printf '%s' "$SLUG" | grep -Eq '^[a-z0-9-]{2,40}$' || { echo "::error::Некоректний slug: $SLUG"; exit 1; }
