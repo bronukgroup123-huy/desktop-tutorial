@@ -13,6 +13,7 @@ import 'package:flutter_client/features/analysis/area_mini_map.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/forest_refine_sheet.dart';
+import 'package:flutter_client/features/forecast/forecast_background.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart' show ForecastInfoCard;
 import 'package:flutter_client/core/push.dart';
 import 'package:flutter_client/features/forecast/home_widget_sync.dart';
@@ -33,50 +34,53 @@ class ForecastScreen extends ConsumerWidget {
     final selectedId = ref.watch(selectedAreaIdProvider);
     final area = data?.areaById(selectedId) ?? (data == null || data.areas.isEmpty ? null : data.areas.first);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
+    // Живий фон «Ліс за матовим склом» на всю вкладку, за картками (рішення PO 2026-11-20).
+    return Stack(children: [
+      const Positioned.fill(child: ForecastBackground()),
+      Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          // «Поділитися прогнозом» — картинка для Viber / Telegram (рішення PO 2026-11-15).
-          if (area?.lastResult != null)
-            IconButton(
-              key: const ValueKey('share-forecast'),
-              tooltip: 'Поділитися прогнозом',
-              icon: const Icon(Icons.ios_share_rounded, color: AppTheme.darkGreen),
-              onPressed: () => showShareForecast(context, areaTitle: area!.title, result: area.lastResult!),
-            ),
-        ],
+        appBar: AppBar(
+          title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [
+            // «Поділитися прогнозом» — картинка для Viber / Telegram (рішення PO 2026-11-15).
+            if (area?.lastResult != null)
+              IconButton(
+                key: const ValueKey('share-forecast'),
+                tooltip: 'Поділитися прогнозом',
+                icon: const Icon(Icons.ios_share_rounded, color: AppTheme.darkGreen),
+                onPressed: () => showShareForecast(context, areaTitle: area!.title, result: area.lastResult!),
+              ),
+          ],
+        ),
+        body: data == null
+            ? (overview.hasError
+                ? _Message(
+                    icon: Icons.cloud_off_rounded,
+                    title: 'Не вдалося завантажити ділянки',
+                    text: overview.error is ApiException ? (overview.error as ApiException).userMessage : 'Спробуйте ще раз.',
+                    action: FilledButton(
+                      onPressed: () => ref.invalidate(analysisOverviewProvider),
+                      child: const Text('Повторити'),
+                    ),
+                  )
+                : const Center(child: CircularProgressIndicator()))
+            : data.areas.isEmpty
+                ? _Message(
+                    icon: Icons.crop_free_rounded,
+                    title: 'Оберіть ділянку на карті',
+                    text: 'На карті натисніть «Аналіз ділянки», торкніться місця в лісі та запустіть аналіз — '
+                        'тут з\'явиться прогноз для ділянки: ліси, погода, які гриби ростуть і чому.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.go('/map'),
+                      icon: const Icon(Icons.map_rounded),
+                      label: const Text('Відкрити карту'),
+                    ),
+                  )
+                : _AreaPage(overview: data, area: area!),
       ),
-      body: data == null
-          ? (overview.hasError
-              ? _Message(
-                  icon: Icons.cloud_off_rounded,
-                  title: 'Не вдалося завантажити ділянки',
-                  text: overview.error is ApiException
-                      ? (overview.error as ApiException).userMessage
-                      : 'Спробуйте ще раз.',
-                  action: FilledButton(
-                    onPressed: () => ref.invalidate(analysisOverviewProvider),
-                    child: const Text('Повторити'),
-                  ),
-                )
-              : const Center(child: CircularProgressIndicator()))
-          : data.areas.isEmpty
-              ? _Message(
-                  icon: Icons.crop_free_rounded,
-                  title: 'Оберіть ділянку на карті',
-                  text: 'На карті натисніть «Аналіз ділянки», торкніться місця в лісі та запустіть аналіз — '
-                      'тут з\'явиться прогноз для ділянки: ліси, погода, які гриби ростуть і чому.',
-                  action: FilledButton.icon(
-                    onPressed: () => context.go('/map'),
-                    icon: const Icon(Icons.map_rounded),
-                    label: const Text('Відкрити карту'),
-                  ),
-                )
-              : _AreaPage(overview: data, area: area!),
-    );
+    ]);
   }
 }
 
@@ -133,9 +137,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
       await ref.read(localStoreProvider).write(_pushKey, true);
     } catch (_) {}
     if (!mounted) return;
-    _snack(res.allowed
-        ? 'Готово: повідомимо, коли на ділянці почнеться хвиля.'
-        : (res.lockedLabel ?? 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»'));
+    _snack(res.allowed ? 'Готово: повідомимо, коли на ділянці почнеться хвиля.' : (res.lockedLabel ?? 'Сповіщення про хвилі — у Pro або з рівня «Слідопит»'));
   }
 
   static String _today() {
@@ -165,9 +167,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     });
     try {
       final repo = ref.read(analysisRepositoryProvider);
-      final fresh = weatherOnly
-          ? await repo.weatherRefresh(_area.id, forest: _forestHint())
-          : await repo.dailyRefresh(_area.id, forest: _forestHint());
+      final fresh = weatherOnly ? await repo.weatherRefresh(_area.id, forest: _forestHint()) : await repo.dailyRefresh(_area.id, forest: _forestHint());
       if (fresh != null) ref.invalidate(analysisOverviewProvider);
     } catch (_) {
       // Погода не оновилась — лишається попередня, без банера.
@@ -376,9 +376,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
           child: Row(
             children: [
               Expanded(
-                child: _area.usage == null
-                    ? const SizedBox.shrink()
-                    : Text(_area.usage!.label, style: TextStyle(fontSize: 13, color: muted)),
+                child: _area.usage == null ? const SizedBox.shrink() : Text(_area.usage!.label, style: TextStyle(fontSize: 13, color: muted)),
               ),
               // «Оновити аналіз» — компактний значок замість великої кнопки (рішення PO 2026-11-14).
               if (result != null)
@@ -432,11 +430,9 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
             child: Row(
               key: const ValueKey('auto-refreshing'),
               children: [
-                const SizedBox(
-                    width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
+                const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
                 const SizedBox(width: 8),
-                Text(_weatherOnly ? 'Оновлюємо погоду…' : 'Оновлюємо прогноз на сьогодні…',
-                    style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                Text(_weatherOnly ? 'Оновлюємо погоду…' : 'Оновлюємо прогноз на сьогодні…', style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
               ],
             ),
           )
@@ -487,27 +483,23 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
                   color: AppTheme.darkGreen,
                   onRefresh: () => ref.refresh(analysisOverviewProvider.future),
                   child: AnalysisResultView(
-                  key: ValueKey('result-${_area.id}'),
-                  result: result,
-                  playController: _play,
-                  miniMapBuilder: result.area.bounds == null
-                      ? null
-                      : (species) => AreaMiniMap(
-                            areaId: result.area.id,
-                            bounds: result.area.bounds!,
-                            species: species,
-                            analyzedAt: _area.lastAnalyzedAt,
-                            history: result.finds?.lastYear ?? const [],
-                          ),
-                  refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
-                  // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
-                  onRefineForest: o.forestEditOptions != null &&
-                          result.forestTypes.isNotEmpty &&
-                          (_area.forestEdit?.canEdit ?? false) &&
-                          !_busy &&
-                          !offline
-                      ? () => _refineForest(result, o.forestEditOptions!)
-                      : null,
+                    key: ValueKey('result-${_area.id}'),
+                    result: result,
+                    playController: _play,
+                    miniMapBuilder: result.area.bounds == null
+                        ? null
+                        : (species) => AreaMiniMap(
+                              areaId: result.area.id,
+                              bounds: result.area.bounds!,
+                              species: species,
+                              analyzedAt: _area.lastAnalyzedAt,
+                              history: result.finds?.lastYear ?? const [],
+                            ),
+                    refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
+                    // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
+                    onRefineForest: o.forestEditOptions != null && result.forestTypes.isNotEmpty && (_area.forestEdit?.canEdit ?? false) && !_busy && !offline
+                        ? () => _refineForest(result, o.forestEditOptions!)
+                        : null,
                   ),
                 ),
         ),
@@ -573,7 +565,8 @@ class AreaSlotsRow extends StatelessWidget {
             children: [
               for (var i = 0; i < slots.length; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
-                Expanded(child: _SlotTile(
+                Expanded(
+                    child: _SlotTile(
                   slot: slots[i],
                   selected: slots[i].areaId != null && slots[i].areaId == selectedAreaId,
                   onTap: () => onTap(slots[i]),
@@ -618,8 +611,7 @@ class _SlotTile extends StatelessWidget {
                       color: AppTheme.darkGreen,
                     ),
                   ),
-                  if (slot.subtitle != null)
-                    Text(slot.subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                  if (slot.subtitle != null) Text(slot.subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
                 ],
               ),
             ),
@@ -754,8 +746,7 @@ class _WaveAlertsCard extends StatelessWidget {
               const Icon(Icons.notifications_active_outlined, color: AppTheme.darkGreen, size: 20),
               const SizedBox(width: 8),
               const Expanded(
-                child: Text('Сповіщати, коли на ділянці почнеться хвиля?',
-                    style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                child: Text('Сповіщати, коли на ділянці почнеться хвиля?', style: TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
               ),
               TextButton(key: const ValueKey('wave-alerts-enable'), onPressed: onEnable, child: const Text('Увімкнути')),
               IconButton(
