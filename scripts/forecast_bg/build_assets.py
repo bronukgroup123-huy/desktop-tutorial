@@ -10,6 +10,7 @@ BASE.png — картинка після shrink_mushrooms.py. У OUT_DIR:
   leaf.png   — силует листка (розмитий);
   rays.png   — віяло сонячних променів від верхнього лівого кута.
 Решту (хмарка, сонце, відблиск, краплі) малює застосунок — фон_painter у forecast_background.dart.
+Далі — recolor_base.py: тон туману на base.webp = колір застосунку (#F4F1E1).
 """
 import math
 import os
@@ -85,10 +86,33 @@ def fern_sprite():
 
 white_alpha(np.asarray(fern_sprite().resize((450, 450), Image.LANCZOS))).save(os.path.join(out, 'fern.png'), optimize=True)
 
-# leaf
-leaf = Image.new('L', (160, 220), 0)
-ImageDraw.Draw(leaf).polygon([(80, 10), (130, 70), (140, 130), (80, 210), (20, 130), (30, 70)], fill=255)
-white_alpha(np.asarray(leaf.filter(ImageFilter.GaussianBlur(7)).resize((80, 110), Image.LANCZOS))).save(os.path.join(out, 'leaf.png'), optimize=True)
+# leaf: силует листка берези за склом — серцеподібна основа, загострений кінчик, зубчастий край,
+# черешок і центральна жилка (полотно 160×220 у застосунку; листок — у верхній частині, черешок — униз)
+def leaf_sprite():
+    S = 4
+    im = Image.new('L', (160 * S, 220 * S), 0)
+    d = ImageDraw.Draw(im)
+    pts = []
+    for i in range(181):
+        t = math.pi * 2 * i / 180
+        # серцеподібно-ромбічна форма: ширша внизу, гострий кінчик угорі
+        r = 1 - 0.55 * math.sin(t / 2) ** 6
+        x = math.sin(t) * (0.62 + 0.18 * math.cos(t)) * r * (1 - 0.75 * max(0.0, math.cos(t)) ** 2.2)  # гострий кінчик
+        y = -math.cos(t) * (1 if math.cos(t) > 0 else 0.62)
+        z = 1 + 0.035 * math.sin(t * 22)  # дрібні зубчики по краю
+        pts.append((80 * S + x * 70 * S * z, 95 * S + y * 82 * S * z))
+    d.polygon(pts, fill=255)
+    d.line([(80 * S, 150 * S), (82 * S, 212 * S)], fill=255, width=4 * S)              # черешок
+    d.line([(80 * S, 22 * S), (80 * S, 150 * S)], fill=150, width=2 * S)               # жилка — світліша
+    for k in range(5):                                                                  # бічні жилки
+        y0 = (40 + k * 22) * S
+        for side in (-1, 1):
+            d.line([(80 * S, y0 + 18 * S), (80 * S + side * (34 - k * 3) * S, y0)], fill=170, width=S)
+    im = im.resize((160, 220), Image.LANCZOS)
+    return im.filter(ImageFilter.GaussianBlur(3.2))
+
+
+white_alpha(np.asarray(leaf_sprite().resize((80, 110), Image.LANCZOS))).save(os.path.join(out, 'leaf.png'), optimize=True)
 
 # rays: віяло з (0,0), вісь віяла — 52°; полотно 700×700 (у застосунку від центру сонця)
 R = 700

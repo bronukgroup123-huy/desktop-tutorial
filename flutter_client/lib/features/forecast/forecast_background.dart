@@ -77,8 +77,8 @@ class _ForecastBackgroundState extends State<ForecastBackground> with SingleTick
   }
 }
 
-/// Колір фону, поки картинка вантажиться (близький до туману на картинці).
-const kForecastBgColor = Color(0xFFEDF0DC);
+/// Колір фону, поки картинка вантажиться = тон туману на картинці = колір застосунку.
+const kForecastBgColor = Color(0xFFF4F1E1);
 
 /// Момент петлі для нерухомого кадру: без листка, крапель і хмарки перед сонцем.
 const kForecastBgStill = 0.36;
@@ -184,12 +184,15 @@ class ForecastBgPainter extends CustomPainter {
       canvas.save();
       canvas.translate(lx, ly);
       canvas.rotate(-35 * math.sin(lt * math.pi * 3 + 0.6) * math.pi / 180);
+      // перевертається в повітрі: «вузький» листок ребром — і знову плазом
+      final flip = math.cos(lt * math.pi * 2.4);
+      canvas.scale(math.max(0.22, flip.abs()), 1);
       _image(canvas, img.leaf, const Rect.fromLTWH(-80, -110, 160, 220), _tint(const Color(0xFF788C46), 0.26 * math.sin(math.pi * lt)));
       canvas.restore();
     }
 
     // 5. Запотівання по краях — повільно «дихає».
-    _image(canvas, img.fog, full, _tint(const Color(0xFFF6F8F0), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
+    _image(canvas, img.fog, full, _tint(const Color(0xFFF8F6EB), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
 
     // 6. Сонце світить крізь скло; тьмяніє, коли хмарка перед ним.
     for (final (r, a) in [(300.0, 0.55 * (1 - 0.65 * cover)), (110.0, 0.45 * (1 - 0.8 * cover))]) {
@@ -230,7 +233,8 @@ class ForecastBgPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = r.r * 0.8
             ..strokeCap = StrokeCap.round
-            ..shader = ui.Gradient.linear(Offset(r.x, r.y), Offset(r.x, math.max(dy, r.y + 1)), [Color.fromRGBO(176, 204, 160, 0), Color.fromRGBO(176, 204, 160, a0)]));
+            ..shader = ui.Gradient.linear(Offset(r.x, r.y), Offset(r.x, math.max(dy, r.y + 1)),
+                [const Color.fromRGBO(150, 142, 112, 0), const Color.fromRGBO(150, 142, 112, 0), Color.fromRGBO(150, 142, 112, a0 * 0.8)], const [0, 0.45, 1]));
       _drop(canvas, Offset(r.x + wob * math.sin(dt * 7), dy), r.r, 1.3, 1.4 + r.r / 30);
     }
 
@@ -239,8 +243,9 @@ class ForecastBgPainter extends CustomPainter {
     final glareOn = gt >= 0 && gt <= 1 ? math.sin(math.pi * gt) : 0.0;
     final gy = -300 + gt * (h + 600);
     if (glareOn > 0) {
+      const zone = Rect.fromLTWH(w * 0.25, 0, w * 0.75, h);
+      canvas.saveLayer(zone, Paint());
       canvas.save();
-      canvas.clipRect(const Rect.fromLTWH(w * 0.35, 0, w * 0.65, h));
       canvas.translate(w, gy);
       canvas.rotate(math.atan(0.6));
       canvas.drawRect(
@@ -249,6 +254,13 @@ class ForecastBgPainter extends CustomPainter {
             ..blendMode = BlendMode.screen
             ..shader =
                 ui.Gradient.linear(const Offset(0, -170), const Offset(0, 170), [const Color(0x00FFFAE1), Color.fromRGBO(255, 250, 225, 0.5 * glareOn), const Color(0x00FFFAE1)], const [0, 0.5, 1]));
+      canvas.restore();
+      // ліворуч відблиск плавно сходить нанівець (раніше обрізався рівною вертикальною лінією)
+      canvas.drawRect(
+          zone,
+          Paint()
+            ..blendMode = BlendMode.dstIn
+            ..shader = ui.Gradient.linear(Offset(zone.left, 0), const Offset(w * 0.6, 0), [const Color(0x00000000), const Color(0xFF000000)]));
       canvas.restore();
     }
 
@@ -284,7 +296,7 @@ class ForecastBgPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1
-          ..color = Color.fromRGBO(70, 95, 70, al(0.24)));
+          ..color = Color.fromRGBO(98, 90, 66, al(0.24)));
     c.drawOval(Rect.fromLTRB(p.dx - r * 0.45, p.dy - r * 0.6 * elong, p.dx - r * 0.05, p.dy - r * 0.2 * elong), Paint()..color = Color.fromRGBO(255, 255, 255, al(0.78)));
   }
 
