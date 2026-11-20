@@ -134,7 +134,8 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200);
     expect(find.text('Житомирська область'), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-avatar')), -200);
+    await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 3000));
+    await frames(tester);
     await tester.tap(find.byKey(const ValueKey('profile-avatar')));
     await frames(tester);
     expect(find.byKey(const ValueKey('part-sticker-wow')), findsOneWidget);

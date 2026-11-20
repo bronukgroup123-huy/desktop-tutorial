@@ -752,6 +752,250 @@ paths:
                             title: { type: string, example: 'Повітряна тривога в області' }
         '429': { $ref: '#/components/responses/Error' }
 
+  /v1-friends:
+    get:
+      operationId: getFriends
+      summary: Друзі, запити, заблоковані; пошук за ніком; публічний профіль (ADR-021 §21.1, §21.2)
+      description: >
+        Лише акаунт із ніком (гість — 403 registration_required, без ніка — 409 profile_required).
+        Без параметрів — мої друзі, вхідні й вихідні запити, заблоковані. `q` — пошук за початком
+        @ніка (від 2 літер; без телефонів і email). `user` — публічний профіль за id або ніком (без
+        області, координат, телефону, email і точок); той, хто мене заблокував, — 404 user_not_found.
+        Кнопки (`actions`) і підписи — із сервера.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string, example: оле } }
+        - { name: user, in: query, required: false, schema: { type: string, example: Олена_лісова } }
+      responses:
+        '200':
+          description: Список / результати пошуку / профіль
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      friends: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      incoming: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      outgoing: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      blocked: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      counts:
+                        type: object
+                        properties:
+                          friends: { type: integer }
+                          incoming: { type: integer }
+                      limits:
+                        type: object
+                        properties:
+                          max_friends: { type: integer, example: 200 }
+                          label: { type: string }
+                      my_handle: { type: string }
+                      results: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      hint_label: { type: [string, 'null'] }
+                      profile:
+                        allOf:
+                          - $ref: '#/components/schemas/FriendCard'
+                          - type: object
+                            properties:
+                              is_me: { type: boolean }
+                              rating: { type: integer }
+                              friends_count: { type: integer }
+                              trophies: { type: array, items: { type: object } }
+                              gifts: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: friendAction
+      summary: Запит у друзі, прийняти, відхилити, скасувати, видалити, заблокувати, розблокувати, поскаржитися
+      description: >
+        Ліміти (SQL friend_action, атомарно): до 20 нових запитів на добу (429 daily_limit), до 200
+        друзів (409 friends_limit / friends_limit_other), повтор після відхилення — через 30 днів (429
+        request_cooldown). Зустрічний запит = прийняти. Push — лише «запит у друзі» і «прийнято», без
+        координат; відхилення, видалення й блок — мовчки. Блок ховає все в обидва боки.
+        `report` — скарга (причина обов'язкова), з `block: true` — ще й блок.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, user_id]
+              properties:
+                action: { type: string, enum: [request, accept, decline, cancel, remove, block, unblock, report] }
+                user_id: { type: string, format: uuid }
+                reason: { type: string, enum: [spam, abuse, impersonation, inappropriate, other] }
+                comment: { type: [string, 'null'], maxLength: 500 }
+                block: { type: boolean }
+      responses:
+        '200':
+          description: Новий стан пари
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [user]
+                    properties:
+                      user: { $ref: '#/components/schemas/FriendCard' }
+                      done_label: { type: [string, 'null'], example: Запит надіслано }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      operationId: registerSocialPush
+      summary: Пристрій для push друзів і Наглядача (PUT v1-friends/push)
+      description: Токен FCM; налаштування «Почалась хвиля» не змінює.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, platform]
+              properties:
+                token: { type: string }
+                platform: { type: string, enum: [android, ios] }
+      responses:
+        '200':
+          description: Зареєстровано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      registered: { type: boolean }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /v1-guardian:
+    get:
+      operationId: getGuardian
+      summary: Наглядач — мої Наглядачі, прохання, за ким я дивлюсь, мій похід; або похід за id (ADR-022)
+      description: >
+        Лише акаунт із ніком (гість — 403 registration_required). Без параметрів — огляд. `hike` —
+        похід для власника чи Наглядача незакритого походу: статус, останнє місце, батарея, маршрут, трек
+        (`since` — лише нові точки), `rescue` (координати великими цифрами й текст SMS на 112, без
+        посилань). Чужий або закритий похід — 404 hike_not_found (B4.9).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: hike, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: since, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Огляд або похід
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      guardians: { type: array, items: { type: object }, description: Мої Наглядачі (status pending / accepted, actions) }
+                      invites: { type: array, items: { type: object }, description: Мене просять бути Наглядачем }
+                      watching: { type: array, items: { type: object }, description: Я Наглядач для цих друзів }
+                      hike: { type: [object, 'null'], description: 'Мій незакритий похід: status, status_label, detail_label, ask_ok, expected_return, guardians, actions — або похід за ?hike= (route, track, rescue, last, battery_label, gps_issue_label)' }
+                      watched: { type: array, items: { type: object }, description: Походи друзів, де я Наглядач (тривожні згори) }
+                      limits:
+                        type: object
+                        properties:
+                          max_guardians_per_hike: { type: integer, example: 1 }
+                          label: { type: string }
+                      telegram:
+                        type: object
+                        properties:
+                          available: { type: boolean }
+                          linked: { type: boolean }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: guardianAction
+      summary: Наглядачі (згода один раз), «Йду в ліс», трек, «Все добре?», SOS, «Я вдома», Telegram
+      description: >
+        invite / accept_invite / decline_invite / remove / resign — `user_id`; лише друзі (403 not_friends).
+        start — `route` (обов'язково, 422 route_required), `expected_return` (за 10 хв … 24 год),
+        `guardian_ids` (Наглядачі, що погодились; 1 безкоштовно, до 3 — Pro: 403 pro_required),
+        `client_id` (повтор без дубля). track — `hike_id`, `points` [{lat, lng, t, acc}] до 500, `battery`;
+        точки з точністю гіршою за 100 м — у треку з позначкою, не «останнє місце». ok / extend / sos /
+        sos_cancel / finish — `hike_id`. Push і Telegram Наглядачам — без координат. Після finish трек
+        видаляється. telegram_link → `url` на бота з одноразовим кодом (15 хв).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [invite, accept_invite, decline_invite, remove, resign, start, track, ok, extend, sos, sos_cancel, finish, telegram_link, telegram_unlink]
+                user_id: { type: string, format: uuid }
+                hike_id: { type: string, format: uuid }
+                client_id: { type: string, maxLength: 64 }
+                route:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [lat, lng]
+                    properties:
+                      lat: { type: number }
+                      lng: { type: number }
+                      label: { type: string, maxLength: 40 }
+                expected_return: { type: string, format: date-time }
+                guardian_ids: { type: array, items: { type: string, format: uuid }, maxItems: 3 }
+                points:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [lat, lng, t]
+                    properties:
+                      lat: { type: number }
+                      lng: { type: number }
+                      t: { type: string, format: date-time }
+                      acc: { type: number }
+                battery: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200':
+          description: Новий стан
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
 components:
   securitySchemes:
     apikey:
@@ -776,6 +1020,12 @@ components:
         daily_limit_reached, storage_error, invalid_mine, pick_not_found.
         Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
         forest_edit_limit_reached (+ Retry-After).
+        Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,
+        invalid_comment, invalid_target, user_not_found, blocked_by_you, request_cooldown,
+        daily_limit, friends_limit, friends_limit_other, no_request.
+        Наглядач (v1-guardian): not_friends, guardians_limit, no_invite, route_required,
+        guardian_required, guardian_not_accepted, pro_required, hike_already_active, hike_not_found,
+        hike_closed, no_sos, extend_limit, telegram_unavailable.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -787,6 +1037,33 @@ components:
       properties:
         error: { type: string, description: Машинний код }
         message: { type: string, description: Текст для людини (UA) }
+
+    FriendCard:
+      type: object
+      required: [id, handle, avatar, level, relation, actions]
+      properties:
+        id: { type: string, format: uuid }
+        handle: { type: string, example: Олена_лісова }
+        name: { type: [string, 'null'] }
+        avatar: { type: object, description: Наліпка-аватар (kind custom) }
+        level:
+          type: object
+          properties:
+            id: { type: string }
+            label: { type: string }
+        relation: { type: string, enum: [none, outgoing, incoming, friends, blocked] }
+        relation_label: { type: [string, 'null'] }
+        since: { type: string, format: date-time }
+        actions:
+          type: array
+          items:
+            type: object
+            required: [id, label, style]
+            properties:
+              id: { type: string, enum: [request, accept, decline, cancel, remove, block, unblock, report] }
+              label: { type: string }
+              style: { type: string, enum: [primary, secondary, menu, danger] }
+              confirm_label: { type: [string, 'null'] }
 
     HomeRegion:
       type: object

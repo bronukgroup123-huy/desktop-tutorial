@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/features/safety/guardian/guardian_card.dart';
 import 'package:flutter_client/features/safety/hike/compass_screen.dart';
 import 'package:flutter_client/features/safety/hike/hike_card.dart';
 import 'package:flutter_client/features/safety/safety_content.dart';
@@ -54,6 +55,8 @@ class SafetyScreen extends ConsumerWidget {
           const SizedBox(height: 18),
           const WeatherHazardsCard(),
           const HikeCard(),
+          const SizedBox(height: 12),
+          const GuardianCard(),
           const SizedBox(height: 12),
           _ActionTile(
             key: const ValueKey('open-compass'),

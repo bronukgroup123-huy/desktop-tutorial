@@ -77,6 +77,18 @@ jobs:
             supabase functions deploy "$fn" --project-ref "$PROJECT_ID" --no-verify-jwt
           done
 
+      # ADR-022 §22.1, B4.9: Наглядач лише в застосунку — функції за кодом-посиланням (/s/<код>,
+      # /rescue/<код>) і прийом SMS (B4.5) прибрано з репозиторію; видаляємо їх і з проєкту,
+      # щоб старі посилання більше нічого не відкривали. Уже видалені — пропускаємо.
+      - name: Delete link-based Guardian functions
+        run: |
+          for fn in guardian-session-get guardian-session-track guardian-session-gpx \
+                    guardian-register-guardian-device guardian-rescue-get guardian-rescue-request \
+                    guardian-webhook-sms; do
+            supabase functions delete "$fn" --project-ref "$PROJECT_ID" >/dev/null 2>&1 \
+              && echo "✗ Deleted $fn" || echo "· $fn already absent"
+          done
+
       - name: Set Edge Function Secrets
         env:
           GUARDIAN_JWT_SECRET: ${{ secrets.GUARDIAN_JWT_SECRET }}
@@ -91,9 +103,25 @@ jobs:
           WAVE_ALERTS_FOR_ALL: ${{ secrets.WAVE_ALERTS_FOR_ALL || 'false' }}
           # Повітряна тривога (alerts.in.ua, ADR-022 §22.5 п.5): лише якщо задано — не затирає ключ із панелі Supabase.
           ALERTS_IN_UA_TOKEN: ${{ secrets.ALERTS_IN_UA_TOKEN }}
+          # Тривоги Наглядача в Telegram (ADR-022 §22.2, B4.11): бот від @BotFather. Лише якщо задано.
+          GUARDIAN_TELEGRAM_BOT_TOKEN: ${{ secrets.GUARDIAN_TELEGRAM_BOT_TOKEN }}
+          GUARDIAN_TELEGRAM_BOT_USERNAME: ${{ secrets.GUARDIAN_TELEGRAM_BOT_USERNAME }}
+          GUARDIAN_TELEGRAM_WEBHOOK_SECRET: ${{ secrets.GUARDIAN_TELEGRAM_WEBHOOK_SECRET }}
         run: |
           if [ -n "$ALERTS_IN_UA_TOKEN" ]; then
             supabase secrets set ALERTS_IN_UA_TOKEN="$ALERTS_IN_UA_TOKEN" --project-ref "$PROJECT_ID"
+          fi
+          if [ -n "$GUARDIAN_TELEGRAM_BOT_TOKEN" ] && [ -n "$GUARDIAN_TELEGRAM_BOT_USERNAME" ] && [ -n "$GUARDIAN_TELEGRAM_WEBHOOK_SECRET" ]; then
+            supabase secrets set \
+              GUARDIAN_TELEGRAM_BOT_TOKEN="$GUARDIAN_TELEGRAM_BOT_TOKEN" \
+              GUARDIAN_TELEGRAM_BOT_USERNAME="$GUARDIAN_TELEGRAM_BOT_USERNAME" \
+              GUARDIAN_TELEGRAM_WEBHOOK_SECRET="$GUARDIAN_TELEGRAM_WEBHOOK_SECRET" \
+              --project-ref "$PROJECT_ID"
+            # Вебхук бота → v1-telegram-webhook (лише особисті повідомлення, із секретом у заголовку).
+            curl -sS --fail -X POST "https://api.telegram.org/bot${GUARDIAN_TELEGRAM_BOT_TOKEN}/setWebhook" \
+              --data-urlencode "url=https://${PROJECT_ID}.supabase.co/functions/v1/v1-telegram-webhook" \
+              --data-urlencode "secret_token=${GUARDIAN_TELEGRAM_WEBHOOK_SECRET}" \
+              --data-urlencode 'allowed_updates=["message"]' > /dev/null && echo "Telegram webhook set"
           fi
           supabase secrets set \
             GUARDIAN_JWT_SECRET="$GUARDIAN_JWT_SECRET" \

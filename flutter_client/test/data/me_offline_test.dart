@@ -94,12 +94,14 @@ void main() {
       slug = 'lvivska';
       final c = container('u1');
       addTearDown(c.dispose);
-      final sub = c.listen(meProvider, (_, __) {});
+      // Чекаємо саме події «прийшов свіжий профіль» (не фіксований час — на повільному CI фон довший).
+      final fresh = Completer<void>();
+      final sub = c.listen(meProvider, (_, next) {
+        if (next.valueOrNull?.homeRegion?.slug == 'lvivska' && !fresh.isCompleted) fresh.complete();
+      });
       addTearDown(sub.close);
       expect((await c.read(meProvider.future))!.homeRegion!.slug, 'kyivska');
-      for (var i = 0; i < 50 && c.read(meProvider).valueOrNull?.homeRegion?.slug != 'lvivska'; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      await fresh.future.timeout(const Duration(seconds: 10));
       expect(c.read(meProvider).value!.homeRegion!.slug, 'lvivska');
     });
 
