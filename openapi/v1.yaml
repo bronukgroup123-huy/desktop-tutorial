@@ -752,6 +752,138 @@ paths:
                             title: { type: string, example: 'Повітряна тривога в області' }
         '429': { $ref: '#/components/responses/Error' }
 
+  /v1-friends:
+    get:
+      operationId: getFriends
+      summary: Друзі, запити, заблоковані; пошук за ніком; публічний профіль (ADR-021 §21.1, §21.2)
+      description: >
+        Лише акаунт із ніком (гість — 403 registration_required, без ніка — 409 profile_required).
+        Без параметрів — мої друзі, вхідні й вихідні запити, заблоковані. `q` — пошук за початком
+        @ніка (від 2 літер; без телефонів і email). `user` — публічний профіль за id або ніком (без
+        області, координат, телефону, email і точок); той, хто мене заблокував, — 404 user_not_found.
+        Кнопки (`actions`) і підписи — із сервера.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string, example: оле } }
+        - { name: user, in: query, required: false, schema: { type: string, example: Олена_лісова } }
+      responses:
+        '200':
+          description: Список / результати пошуку / профіль
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      friends: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      incoming: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      outgoing: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      blocked: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      counts:
+                        type: object
+                        properties:
+                          friends: { type: integer }
+                          incoming: { type: integer }
+                      limits:
+                        type: object
+                        properties:
+                          max_friends: { type: integer, example: 200 }
+                          label: { type: string }
+                      my_handle: { type: string }
+                      results: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
+                      hint_label: { type: [string, 'null'] }
+                      profile:
+                        allOf:
+                          - $ref: '#/components/schemas/FriendCard'
+                          - type: object
+                            properties:
+                              is_me: { type: boolean }
+                              rating: { type: integer }
+                              friends_count: { type: integer }
+                              trophies: { type: array, items: { type: object } }
+                              gifts: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: friendAction
+      summary: Запит у друзі, прийняти, відхилити, скасувати, видалити, заблокувати, розблокувати, поскаржитися
+      description: >
+        Ліміти (SQL friend_action, атомарно): до 20 нових запитів на добу (429 daily_limit), до 200
+        друзів (409 friends_limit / friends_limit_other), повтор після відхилення — через 30 днів (429
+        request_cooldown). Зустрічний запит = прийняти. Push — лише «запит у друзі» і «прийнято», без
+        координат; відхилення, видалення й блок — мовчки. Блок ховає все в обидва боки.
+        `report` — скарга (причина обов'язкова), з `block: true` — ще й блок.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, user_id]
+              properties:
+                action: { type: string, enum: [request, accept, decline, cancel, remove, block, unblock, report] }
+                user_id: { type: string, format: uuid }
+                reason: { type: string, enum: [spam, abuse, impersonation, inappropriate, other] }
+                comment: { type: [string, 'null'], maxLength: 500 }
+                block: { type: boolean }
+      responses:
+        '200':
+          description: Новий стан пари
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [user]
+                    properties:
+                      user: { $ref: '#/components/schemas/FriendCard' }
+                      done_label: { type: [string, 'null'], example: Запит надіслано }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      operationId: registerSocialPush
+      summary: Пристрій для push друзів і Наглядача (PUT v1-friends/push)
+      description: Токен FCM; налаштування «Почалась хвиля» не змінює.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, platform]
+              properties:
+                token: { type: string }
+                platform: { type: string, enum: [android, ios] }
+      responses:
+        '200':
+          description: Зареєстровано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      registered: { type: boolean }
+        '422': { $ref: '#/components/responses/Error' }
+
 components:
   securitySchemes:
     apikey:
@@ -776,6 +908,9 @@ components:
         daily_limit_reached, storage_error, invalid_mine, pick_not_found.
         Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
         forest_edit_limit_reached (+ Retry-After).
+        Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,
+        invalid_comment, invalid_target, user_not_found, blocked_by_you, request_cooldown,
+        daily_limit, friends_limit, friends_limit_other, no_request.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -787,6 +922,33 @@ components:
       properties:
         error: { type: string, description: Машинний код }
         message: { type: string, description: Текст для людини (UA) }
+
+    FriendCard:
+      type: object
+      required: [id, handle, avatar, level, relation, actions]
+      properties:
+        id: { type: string, format: uuid }
+        handle: { type: string, example: Олена_лісова }
+        name: { type: [string, 'null'] }
+        avatar: { type: object, description: Наліпка-аватар (kind custom) }
+        level:
+          type: object
+          properties:
+            id: { type: string }
+            label: { type: string }
+        relation: { type: string, enum: [none, outgoing, incoming, friends, blocked] }
+        relation_label: { type: [string, 'null'] }
+        since: { type: string, format: date-time }
+        actions:
+          type: array
+          items:
+            type: object
+            required: [id, label, style]
+            properties:
+              id: { type: string, enum: [request, accept, decline, cancel, remove, block, unblock, report] }
+              label: { type: string }
+              style: { type: string, enum: [primary, secondary, menu, danger] }
+              confirm_label: { type: [string, 'null'] }
 
     HomeRegion:
       type: object

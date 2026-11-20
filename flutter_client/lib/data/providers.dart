@@ -14,6 +14,7 @@ import 'local/offline_result.dart';
 import 'models/analysis.dart';
 import 'models/catalog.dart';
 import 'models/forecast.dart';
+import 'models/friends.dart';
 import 'models/me.dart';
 import 'models/pick.dart';
 import 'models/region.dart';
@@ -23,6 +24,7 @@ import 'repositories/basemap_repository.dart';
 import 'repositories/trails_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
+import 'repositories/friends_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
 import 'repositories/me_repository.dart';
 import 'repositories/picks_repository.dart';
@@ -109,6 +111,15 @@ final picksRepositoryProvider = Provider(
     )),
   ),
 );
+final friendsRepositoryProvider = Provider((ref) => FriendsRepository(ref.watch(apiClientProvider)));
+
+/// Друзі, запити, заблоковані (`GET /v1-friends`). Оновлюється після кожної дії й «потягнути вниз».
+/// Залежить від акаунта: вийшли / увійшли іншим — список перечитується.
+final friendsProvider = FutureProvider.autoDispose<FriendsOverview>((ref) {
+  ref.watch(meProvider.select((m) => m.valueOrNull?.id));
+  return ref.watch(friendsRepositoryProvider).overview();
+});
+
 final analysisRepositoryProvider = Provider(
   (ref) => AnalysisRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),
 );

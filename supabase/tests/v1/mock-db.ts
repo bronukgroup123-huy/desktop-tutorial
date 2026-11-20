@@ -1,5 +1,5 @@
 // Мінімальний мок supabase-js для тестів v1-* (без мережі).
-// Результати задаються за ключем "<table>.<op>" (op: select | update | insert | upsert)
+// Результати задаються за ключем "<table>.<op>" (op: select | update | insert | upsert | delete)
 // або "rpc.<fn>". Усі виклики записуються в `calls`.
 
 export interface Result { data: unknown; error: unknown }
@@ -34,6 +34,7 @@ export function mockDb(results: Results = {}) {
       builder.update = chain("update");
       builder.insert = chain("insert");
       builder.upsert = chain("upsert");
+      builder.delete = chain("delete");
       builder.eq = (col: string, val: unknown) => { call.filters.push([col, val]); return builder; };
       builder.in = (col: string, vals: unknown[]) => { call.filters.push([col, vals]); return builder; };
       // Сортування й обмеження не впливають на мок — лише запам'ятовуються.

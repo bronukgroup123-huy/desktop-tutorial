@@ -11,6 +11,7 @@ import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
+import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -42,12 +43,7 @@ class ProfileScreen extends ConsumerWidget {
             const _Section('Мій сезон'),
             _SeasonCard(me: me),
             const _Section('Друзі'),
-            const _Tile(
-              key: ValueKey('profile-friends'),
-              icon: Icons.group_rounded,
-              title: 'Друзі й Наглядач',
-              subtitle: 'Скоро: пошук за ніком, запити в друзі, Наглядач у поході',
-            ),
+            const _FriendsTile(),
           ],
           const _Section('Дані без інтернету'),
           const _OfflineData(),
@@ -452,6 +448,29 @@ class _Section extends StatelessWidget {
         padding: const EdgeInsets.only(top: 18, bottom: 8),
         child: Text(title, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
       );
+}
+
+/// «Друзі» — скільки друзів і нових запитів (із сервера); без інтернету — просто вхід.
+class _FriendsTile extends ConsumerWidget {
+  const _FriendsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final f = ref.watch(friendsProvider).valueOrNull;
+    final subtitle = f == null
+        ? 'Пошук за @ніком, запити в друзі'
+        : [
+            if (f.incoming.isNotEmpty) 'Нових запитів: ${f.incoming.length}',
+            f.friends.isEmpty ? 'Знайдіть друзів за @ніком' : 'Друзів: ${f.friends.length}',
+          ].join(' · ');
+    return _Tile(
+      key: const ValueKey('profile-friends'),
+      icon: Icons.group_rounded,
+      title: 'Друзі',
+      subtitle: subtitle,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendsScreen())),
+    );
+  }
 }
 
 class _Tile extends StatelessWidget {

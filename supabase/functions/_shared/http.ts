@@ -126,6 +126,8 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   // вкладка «Безпека»: тексти й банери (ETag), повітряна тривога (застосунок — раз на хвилину)
   "v1-app-config": 30,
   "v1-air-alerts": 60,
+  // друзі: пошук за ніком (кожна літера — запит), дії, профілі
+  "v1-friends": 60,
 };
 
 /** Мінімальний тип клієнта, потрібний для rate limit (RPC + fallback upsert). */
