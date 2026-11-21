@@ -27,9 +27,11 @@ class GuardianRepository {
     required DateTime expectedReturn,
     required List<String> guardianIds,
     required String clientId,
+    bool checklistDone = false,
   }) async {
     final data = await _post({
       'action': 'start',
+      'checklist_done': checklistDone,
       'route': [for (final p in route) {'lat': p.lat, 'lng': p.lng, 'label': p.label}],
       'expected_return': expectedReturn.toUtc().toIso8601String(),
       'guardian_ids': guardianIds,
@@ -50,8 +52,9 @@ class GuardianRepository {
   }
 
   /// ok | extend | sos | sos_cancel | finish. Після finish — `hike: null`.
-  Future<({OwnerHike? hike, String? done})> hikeAction(String action, String hikeId) async {
-    final data = await _post({'action': action, 'hike_id': hikeId});
+  /// [usedHomeNav] — для finish: повернулися за допомогою «Додому» (трофей «Своїм слідом»).
+  Future<({OwnerHike? hike, String? done})> hikeAction(String action, String hikeId, {bool? usedHomeNav}) async {
+    final data = await _post({'action': action, 'hike_id': hikeId, if (usedHomeNav != null) 'used_home_nav': usedHomeNav});
     final h = data['hike'];
     return (hike: h == null ? null : OwnerHike.fromJson(h as Map<String, dynamic>), done: data['done_label'] as String?);
   }

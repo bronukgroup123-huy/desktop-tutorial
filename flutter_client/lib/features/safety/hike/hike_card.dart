@@ -13,7 +13,9 @@ import 'package:flutter_client/features/safety/guardian/guardian_start_sheet.dar
 import 'package:flutter_client/features/safety/hike/compass_screen.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
 import 'package:flutter_client/features/safety/hike/hike_geo.dart';
+import 'package:flutter_client/features/safety/safety_content.dart' show safetyContentProvider;
 import 'package:flutter_client/features/safety/safety_device.dart';
+import 'package:flutter_client/features/safety/safety_guides.dart' show checklistProvider;
 
 String _hm(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
@@ -87,8 +89,16 @@ class _HikeCardState extends ConsumerState<HikeCard> {
       return;
     }
     if (choice == null || choice.guardianIds.isEmpty) return;
+    // Чек-лист перед походом пройдено повністю сьогодні — позначка для трофея «Готовий до лісу».
+    final items = ref.read(safetyContentProvider).valueOrNull?.checklist ?? const [];
+    final done = ref.read(checklistProvider).valueOrNull ?? const <String>{};
+    final checklistDone = items.isNotEmpty && items.every((i) => done.contains(i.id));
     try {
-      await ref.read(guardianSessionProvider.notifier).start(expectedReturn: choice.expectedReturn, guardianIds: choice.guardianIds);
+      await ref.read(guardianSessionProvider.notifier).start(
+            expectedReturn: choice.expectedReturn,
+            guardianIds: choice.guardianIds,
+            checklistDone: checklistDone,
+          );
       if (mounted) _snack('Наглядач бачить ваш похід');
     } on ApiException catch (e) {
       if (mounted) _snack('Похід почато без Наглядача: ${e.userMessage}');
@@ -118,9 +128,11 @@ class _HikeCardState extends ConsumerState<HikeCard> {
       ),
     );
     if (yes != true) return;
+    // Поверталися за допомогою «Додому» — позначка для трофея «Своїм слідом».
+    final usedHomeNav = ref.read(hikeProvider).returnMode != null;
     await ref.read(hikeProvider.notifier).finish();
     // Наглядач більше не бачить ні місця, ні треку (без мережі — повідомимо пізніше).
-    await ref.read(guardianSessionProvider.notifier).finish();
+    await ref.read(guardianSessionProvider.notifier).finish(usedHomeNav: usedHomeNav);
   }
 
   @override

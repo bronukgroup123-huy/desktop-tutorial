@@ -19,6 +19,7 @@ import 'models/guardian.dart';
 import 'models/me.dart';
 import 'models/pick.dart';
 import 'models/region.dart';
+import 'models/trophies.dart';
 import 'repositories/analysis_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/basemap_repository.dart';
@@ -120,6 +121,13 @@ final friendsRepositoryProvider = Provider((ref) => FriendsRepository(ref.watch(
 final friendsProvider = FutureProvider.autoDispose<FriendsOverview>((ref) {
   ref.watch(meProvider.select((m) => m.valueOrNull?.id));
   return ref.watch(friendsRepositoryProvider).overview();
+});
+
+/// Трофеї (`GET /v1-me?trophies=1`): лише в акаунті з ніком; у гостя — `null` (ADR-001).
+final trophiesProvider = FutureProvider.autoDispose<TrophiesOverview?>((ref) async {
+  final me = await ref.watch(meProvider.future);
+  if (me == null || me.isGuest || me.handle == null) return null;
+  return ref.watch(meRepositoryProvider).trophies();
 });
 
 final guardianRepositoryProvider = Provider((ref) => GuardianRepository(ref.watch(apiClientProvider)));

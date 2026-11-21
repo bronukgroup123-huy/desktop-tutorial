@@ -12,7 +12,7 @@ import 'package:flutter_client/features/safety/hike/hike_device.dart';
 /// Похід із Наглядачем на телефоні (ADR-022 §22.2): id походу на сервері, скільки точок треку
 /// вже відправлено, останній стан із сервера («Все добре?»), незавершене «Я вдома» без зв'язку.
 class GuardianSessionState {
-  const GuardianSessionState({this.hikeId, this.sent = 0, this.view, this.pendingFinish});
+  const GuardianSessionState({this.hikeId, this.sent = 0, this.view, this.pendingFinish, this.pendingHomeNav = false});
 
   final String? hikeId;
 
@@ -23,14 +23,18 @@ class GuardianSessionState {
   /// «Я вдома» натиснуто без зв'язку — повторимо, щойно буде інтернет (Наглядач має знати).
   final String? pendingFinish;
 
+  /// Для відкладеного «Я вдома»: чи поверталися за допомогою «Додому» (трофей «Своїм слідом»).
+  final bool pendingHomeNav;
+
   bool get active => hikeId != null;
 
-  Map<String, dynamic> toJson() => {'hike_id': hikeId, 'sent': sent, 'pending_finish': pendingFinish};
+  Map<String, dynamic> toJson() => {'hike_id': hikeId, 'sent': sent, 'pending_finish': pendingFinish, 'pending_home_nav': pendingHomeNav};
 
   factory GuardianSessionState.fromJson(Map<String, dynamic> j) => GuardianSessionState(
         hikeId: j['hike_id'] as String?,
         sent: (j['sent'] as num?)?.toInt() ?? 0,
         pendingFinish: j['pending_finish'] as String?,
+        pendingHomeNav: j['pending_home_nav'] == true,
       );
 }
 
@@ -71,7 +75,8 @@ class GuardianSessionController extends Notifier<GuardianSessionState> {
   }
 
   /// Почати похід з Наглядачем (після того, як похід на телефоні почався).
-  Future<OwnerHike> start({required DateTime expectedReturn, required List<String> guardianIds}) async {
+  /// [checklistDone] — перед стартом пройдено чек-лист (трофей «Готовий до лісу»).
+  Future<OwnerHike> start({required DateTime expectedReturn, required List<String> guardianIds, bool checklistDone = false}) async {
     final hike = ref.read(hikeProvider);
     final clientId = '${hike.startedAt?.millisecondsSinceEpoch ?? 0}-${Random().nextInt(1 << 30)}';
     final view = await ref.read(guardianRepositoryProvider).start(
@@ -79,6 +84,7 @@ class GuardianSessionController extends Notifier<GuardianSessionState> {
           expectedReturn: expectedReturn,
           guardianIds: guardianIds,
           clientId: clientId,
+          checklistDone: checklistDone,
         );
     state = GuardianSessionState(hikeId: view.id, view: view);
     await _save();
@@ -94,7 +100,7 @@ class GuardianSessionController extends Notifier<GuardianSessionState> {
     try {
       final pending = state.pendingFinish;
       if (pending != null) {
-        await ref.read(guardianRepositoryProvider).hikeAction('finish', pending);
+        await ref.read(guardianRepositoryProvider).hikeAction('finish', pending, usedHomeNav: state.pendingHomeNav);
         state = const GuardianSessionState();
         await _save();
         _timer?.cancel();
@@ -145,11 +151,12 @@ class GuardianSessionController extends Notifier<GuardianSessionState> {
 
   /// «Я вдома»: Наглядач більше не бачить ні місця, ні треку (трек видаляється на сервері).
   /// Без мережі — повторимо пізніше.
-  Future<void> finish() async {
+  /// [usedHomeNav] — повернулися за допомогою «Додому» (трофей «Своїм слідом»).
+  Future<void> finish({bool usedHomeNav = false}) async {
     final id = state.hikeId;
     if (id == null) return;
     try {
-      await ref.read(guardianRepositoryProvider).hikeAction('finish', id);
+      await ref.read(guardianRepositoryProvider).hikeAction('finish', id, usedHomeNav: usedHomeNav);
       state = const GuardianSessionState();
       _timer?.cancel();
     } on ApiException catch (e) {
@@ -157,11 +164,11 @@ class GuardianSessionController extends Notifier<GuardianSessionState> {
         state = const GuardianSessionState();
         _timer?.cancel();
       } else {
-        state = GuardianSessionState(pendingFinish: id);
+        state = GuardianSessionState(pendingFinish: id, pendingHomeNav: usedHomeNav);
         _schedule();
       }
     } catch (_) {
-      state = GuardianSessionState(pendingFinish: id);
+      state = GuardianSessionState(pendingFinish: id, pendingHomeNav: usedHomeNav);
       _schedule();
     }
     await _save();

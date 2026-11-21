@@ -5,6 +5,7 @@
 // GET    → { data: profile }   (ім'я, @нік, аватар, рівень, онбординг, область)
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
 // GET    ?avatar_catalog=1 → { data: { categories: [...] } } — деталі конструктора з замками
+// GET    ?trophies=1 → { data: { trophies, earned_count, total, new_labels } } — трофеї-медальйони
 // PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
@@ -36,6 +37,7 @@ import {
   validateName,
 } from "./profile-rules.ts";
 import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, publicAvatar, type Viewer } from "./avatar-catalog.ts";
+import { countFinds, refreshTrophies, TROPHIES } from "./trophy-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
 export const CURRENT_TERMS_VERSION = "2026-11";
@@ -257,6 +259,12 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     : { allowed: true, reason_label: "Оберіть свою область" };
 
   const rating = Number(row.rating);
+  // Знахідки — той самий залік, що й для трофеїв (фото на місці, одне місце за день, ≤ 5 на день).
+  let finds = Number(row.total_verified_picks);
+  if (!ctx.user.isAnonymous) {
+    const f = await countFinds(ctx.db, ctx.user.id);
+    if (f !== null) finds = f;
+  }
   return {
     id: row.id,
     // Гостю — без імені й ніка (старі імена з Google латиницею — до кроку «Профіль» не показуємо).
@@ -267,7 +275,7 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     level: levelOf(rating),
     handle_change: handleChangeInfo(row, ctx.now),
     rating,
-    total_verified_picks: Number(row.total_verified_picks),
+    total_verified_picks: finds,
     home_region: homeRegion,
     created_at: row.created_at,
     is_guest: ctx.user.isAnonymous,
@@ -426,6 +434,24 @@ export async function handleMe(
   const params = new URL(req.url).searchParams;
   const check = params.get("check_handle");
   if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
+  if (req.method === "GET" && params.has("trophies")) {
+    // Трофеї — лише в акаунті (ADR-001: у гостя немає трофеїв). Перерахунок і запис нових — тут.
+    if (user.isAnonymous) {
+      throw new HttpError(403, "registration_required", "Трофеї — після входу через Google або Apple");
+    }
+    try {
+      const r = await refreshTrophies(ctx.db, user.id, ctx.now);
+      const titles = new Map(TROPHIES.map((t) => [t.id, t.title]));
+      return ok({
+        trophies: r.views,
+        earned_count: r.earned.size,
+        total: TROPHIES.length,
+        new_labels: r.fresh.map((id) => `Новий трофей: «${titles.get(id)}»`),
+      }, req);
+    } catch (e) {
+      dbFail("trophies", e);
+    }
+  }
   if (req.method === "GET" && params.has("avatar_catalog")) {
     return ok(catalogFor(viewerOf(await loadUser(ctx.db, ctx.user.id), ctx.now)), req);
   }

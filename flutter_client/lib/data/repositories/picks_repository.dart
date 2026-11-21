@@ -63,6 +63,7 @@ class PicksRepository {
       'visibility': pick.visibility.wire,
       'species_id': pick.speciesId,
       if (description != null && description.isNotEmpty) 'description': description,
+      if (pick.aiCheck != null) 'ai_check': pick.aiCheck,
     });
     return CreatedPick.fromJson(created as Map<String, dynamic>);
   }

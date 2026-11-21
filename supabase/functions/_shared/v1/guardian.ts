@@ -8,10 +8,10 @@
 //      «Передати рятувальникам» (координати великими цифрами + текст SMS на 112)
 // POST v1-guardian { action, ... }:
 //      invite | accept_invite | decline_invite | remove | resign   — Наглядачі (згода один раз)
-//      start { route, expected_return, guardian_ids, client_id }   — «Йду в ліс»
+//      start { route, expected_return, guardian_ids, client_id, checklist_done? } — «Йду в ліс»
 //      track { hike_id, points, battery? }                         — живий трек
 //      ok | extend { hike_id }                                     — «Все добре?» / +1 год
-//      sos | sos_cancel | finish { hike_id }
+//      sos | sos_cancel | finish { hike_id, used_home_nav? }
 //      telegram_link | telegram_unlink                             — тривоги в Telegram
 //
 // Правила: гість — 403 registration_required (ADR-001); Наглядач — лише друг, що погодився;
@@ -577,6 +577,8 @@ async function start(deps: GuardianDeps, me: UserRow, b: Record<string, unknown>
     started_at: now.toISOString(),
     expected_return: ret.toISOString(),
     last_signal_at: now.toISOString(),
+    // Перед стартом пройдено чек-лист (трофей «Готовий до лісу»).
+    checklist_done: b.checklist_done === true,
   };
   const { data: created, error: e2 } = await deps.db.from("hikes").insert(row).select(HIKE_COLS).single();
   if (e2 && (e2 as { code?: string }).code === "23505") {
@@ -679,7 +681,8 @@ async function setStatus(deps: GuardianDeps, me: UserRow, b: Record<string, unkn
       done = "SOS скасовано";
       break;
     default: // finish
-      patch = { status: "closed", closed_at: now.toISOString(), closed_reason: "home" };
+      // used_home_nav — повернулися за допомогою «Додому» (трофей «Своїм слідом»).
+      patch = { status: "closed", closed_at: now.toISOString(), closed_reason: "home", used_home_nav: b.used_home_nav === true };
       ev = "finish";
       done = "Гарного відпочинку! Трек видалено з сервера";
   }

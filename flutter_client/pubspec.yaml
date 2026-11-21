@@ -50,6 +50,8 @@ flutter:
     - assets/stickers/
     - assets/species/large/
     - assets/species/small/
+    - assets/trophies/large/
+    - assets/trophies/small/
     - assets/catalog/
     - assets/safety/
     - assets/map/glyphs/noto_sans_regular/

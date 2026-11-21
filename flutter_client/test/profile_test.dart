@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/models/me.dart';
+import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
@@ -50,6 +51,18 @@ class FakeMe extends MeNotifier {
   @override
   Future<void> setCustomAvatar(Map<String, String?> parts) async => calls.add('custom:${parts['sticker']}:${parts['hat']}:${parts['fx']}');
 }
+
+/// Трофеї, як віддає сервер (скорочено).
+Map<String, dynamic> trophiesJson() => {
+      'trophies': [
+        {'id': 'first_find', 'title': 'Перша знахідка', 'tier': 'bronze', 'tier_label': 'Бронза', 'how_label': 'Перша підтверджена знахідка — тук-тук із фото, знятим на місці', 'earned': true, 'earned_at': '2026-09-10T08:00:00Z', 'progress_label': null, 'progress': 1, 'soon': false},
+        {'id': 'basket', 'title': 'Грибний кошик', 'tier': 'silver', 'tier_label': 'Срібло', 'how_label': '10 підтверджених знахідок', 'earned': false, 'earned_at': null, 'progress_label': '7 з 10', 'progress': 0.7, 'soon': false},
+        {'id': 'mycologist', 'title': 'Грибознавець', 'tier': 'gold', 'tier_label': 'Золото', 'how_label': 'Отримати сертифікат знань — скласти всі тести', 'earned': false, 'earned_at': null, 'progress_label': null, 'progress': 0, 'soon': true},
+      ],
+      'earned_count': 1,
+      'total': 24,
+      'new_labels': [],
+    };
 
 /// Каталог конструктора, як віддає сервер (скорочено).
 Map<String, dynamic> catalogJson() => {
@@ -116,6 +129,7 @@ void main() {
         meProvider.overrideWith(() => fake),
         meRepositoryProvider.overrideWithValue(MeRepository(api)),
         avatarCatalogProvider.overrideWith((ref) async => AvatarCatalog.fromJson(catalogJson())),
+        trophiesProvider.overrideWith((ref) async => TrophiesOverview.fromJson(trophiesJson())),
         if (auth != null) authStateProvider.overrideWith((ref) => auth),
       ],
       child: MaterialApp(home: home),
@@ -139,6 +153,16 @@ void main() {
     expect(find.byKey(const ValueKey('profile-season')), findsNothing);
     expect(find.byKey(const ValueKey('profile-trophies')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-gifts')), findsOneWidget);
+    // Трофеї з сервера: «1 з 24», прогрес під закритим; дотик — за що й скільки.
+    expect(find.text('1 з 24'), findsOneWidget);
+    expect(find.text('7 з 10'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('trophy-basket')));
+    await frames(tester);
+    expect(find.byKey(const ValueKey('trophy-sheet')), findsOneWidget);
+    expect(find.text('10 підтверджених знахідок'), findsOneWidget);
+    expect(find.text('Срібло'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await frames(tester);
     // Область — лише мені, у налаштуваннях (у публічному профілі її немає).
     await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200, scrollable: profileScroll);
     expect(find.text('Житомирська область'), findsOneWidget);
@@ -193,6 +217,8 @@ void main() {
     await tester.pumpWidget(app(const ProfileScreen(), registered()));
     await frames(tester);
     await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 300, scrollable: profileScroll);
+    await tester.ensureVisible(find.byKey(const ValueKey('profile-delete')));
+    await frames(tester);
     await tester.tap(find.byKey(const ValueKey('profile-delete')));
     await frames(tester);
     expect(find.byKey(const ValueKey('delete-confirm')), findsOneWidget);

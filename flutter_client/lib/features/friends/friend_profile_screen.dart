@@ -7,6 +7,7 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/friends.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
+import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 
 /// Публічний профіль грибника (ADR-021 §21.2): аватар, @нік, ім'я, рівень, рейтинг, друзі.
@@ -60,7 +61,12 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
     final p = _profile;
     setState(() => _profile = p == null
         ? null
-        : FriendProfile(card: updated, isMe: p.isMe, rating: p.rating, friendsCount: p.friendsCount + (updated.relation == 'friends' ? 1 : 0) - (card.relation == 'friends' && updated.relation != 'friends' ? 1 : 0)));
+        : FriendProfile(
+            card: updated,
+            isMe: p.isMe,
+            rating: p.rating,
+            trophies: p.trophies,
+            friendsCount: p.friendsCount + (updated.relation == 'friends' ? 1 : 0) - (card.relation == 'friends' && updated.relation != 'friends' ? 1 : 0)));
   }
 
   @override
@@ -144,13 +150,30 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                child: Row(
-                  children: [
-                    Icon(Icons.emoji_events_rounded, color: AppTheme.accentOrange.withValues(alpha: 0.8)),
-                    const SizedBox(width: 12),
-                    const Expanded(child: Text('Трофеї й подарунки з\'являться згодом', style: TextStyle(color: Colors.black54))),
-                  ],
-                ),
+                child: p == null || p.trophies.isEmpty
+                    ? Row(
+                        children: [
+                          Icon(Icons.emoji_events_rounded, color: AppTheme.accentOrange.withValues(alpha: 0.8)),
+                          const SizedBox(width: 12),
+                          const Expanded(child: Text('Трофеїв поки немає', style: TextStyle(color: Colors.black54))),
+                        ],
+                      )
+                    : Column(
+                        key: const ValueKey('friend-trophies'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Трофеї · ${p.trophies.length}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              for (final t in p.trophies)
+                                Tooltip(message: t.title, child: TrophyBadge(id: t.id, earned: true, size: 56)),
+                            ],
+                          ),
+                        ],
+                      ),
               ),
             ],
           ],

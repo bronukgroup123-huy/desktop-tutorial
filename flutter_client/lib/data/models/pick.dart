@@ -177,7 +177,12 @@ class NewPick {
     required this.visibility,
     required this.speciesId,
     this.description,
+    this.aiCheck,
   });
+
+  /// Підказка розпізнавання на телефоні (ADR-018, ai_check): до трьох видів рівнями, без
+  /// відсотків. Підтверджує вид для видових трофеїв (ADR-021 §21.10). Немає моделі — `null`.
+  final Map<String, dynamic>? aiCheck;
 
   /// UUID від клієнта: повтор із тим самим id повертає ту саму точку.
   final String clientId;

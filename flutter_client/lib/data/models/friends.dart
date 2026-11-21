@@ -96,19 +96,26 @@ class FriendsOverview {
 
 /// Публічний профіль (§21.2): нік, ім'я, аватар, рівень, рейтинг, друзі; трофеї — згодом.
 class FriendProfile {
-  const FriendProfile({required this.card, required this.isMe, required this.rating, required this.friendsCount});
+  const FriendProfile({required this.card, required this.isMe, required this.rating, required this.friendsCount, this.trophies = const []});
 
   factory FriendProfile.fromJson(Map<String, dynamic> json) => FriendProfile(
         card: FriendCard.fromJson(json),
         isMe: opt<bool>(json, 'is_me') ?? false,
         rating: (opt<num>(json, 'rating') ?? 0).toInt(),
         friendsCount: (opt<num>(json, 'friends_count') ?? 0).toInt(),
+        trophies: [
+          for (final t in (opt<List<dynamic>>(json, 'trophies') ?? const []).cast<Map<String, dynamic>>())
+            (id: t['id'] as String, title: t['title'] as String? ?? ''),
+        ],
       );
 
   final FriendCard card;
   final bool isMe;
   final int rating;
   final int friendsCount;
+
+  /// Отримані трофеї (id картинки, назва) — найновіші перші.
+  final List<({String id, String title})> trophies;
 }
 
 /// Причини скарги — ті самі коди, що й на сервері.
