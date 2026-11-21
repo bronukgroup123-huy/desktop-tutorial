@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_client/data/models/avatars.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
+import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -25,7 +27,7 @@ Map<String, dynamic> registered({String? handle = 'Олена_лісова', boo
       'is_guest': false,
       'name': 'Олена Лісова',
       'handle': handle,
-      'avatar': {'kind': 'preset', 'id': 'traveler_1'},
+      'avatar': {'kind': 'preset', 'id': 'tracker_02'},
       'rating': 120,
       'total_verified_picks': 7,
       'level': {'id': 'tracker', 'label': 'Слідопит', 'from': 51, 'to': 200, 'next_label': 'Лісовик', 'progress_label': '120 балів · ще 81 бал до рівня «Лісовик»'},
@@ -45,6 +47,28 @@ class FakeMe extends MeNotifier {
 
   @override
   Future<void> deleteAccount() async => calls.add('delete');
+
+  @override
+  Future<void> setAvatar(String id) async => calls.add('avatar:$id');
+}
+
+/// Вибір аватара, як віддає сервер (скорочено): «Слідопит» — два рівні відкриті.
+Map<String, dynamic> avatarsJson({bool canChange = true}) {
+  Map<String, dynamic> g(String level, String label, bool open, List<String> ids) => {
+        'level': level, 'label': label, 'open': open,
+        'lock_label': open ? null : 'Відкриється на рівні «$label»',
+        'avatars': [for (final id in ids) {'id': id, 'title': 'Гриб $id', 'role': 'Роль $id', 'open': open}],
+      };
+  return {
+    'current': {'kind': 'preset', 'id': 'tracker_02'},
+    'can_change': canChange,
+    'reason_label': canChange ? null : 'Змінити аватар можна після входу через Google або Apple',
+    'groups': [
+      g('traveler', 'Мандрівник', true, ['traveler_01', 'traveler_02']),
+      g('tracker', 'Слідопит', true, ['tracker_01', 'tracker_02']),
+      g('keeper', 'Хранитель лісу', false, ['keeper_01']),
+    ],
+  };
 }
 
 /// Трофеї, як віддає сервер (скорочено).
@@ -64,15 +88,16 @@ void main() {
 
   test('Профіль із сервера: нік, аватар, рівень, крок «profile»', () {
     final me = Me.fromJson(registered());
-    expect([me.handle, me.avatar.id, me.avatar.isDefault, me.level!.label], ['Олена_лісова', 'traveler_1', false, 'Слідопит']);
+    expect([me.handle, me.avatar.id, me.level!.label], ['Олена_лісова', 'tracker_02', 'Слідопит']);
     expect(me.level!.progress(120), closeTo((120 - 51) / 150, 1e-9));
     expect(Me.fromJson(meJson(nextStep: 'profile')).onboarding.nextStep, OnboardingStep.profile);
-    expect(Me.fromJson(meJson()).avatar.isDefault, isTrue); // старий сервер без аватара
+    expect(Me.fromJson(meJson()).avatar.id, 'traveler_01'); // старий сервер без аватара — перший «Мандрівник»
   });
 
   late FakeMe fake;
   late List<String> checked;
   var available = true;
+  var canChangeAvatar = true;
 
   Widget app(Widget home, Map<String, dynamic> me, {Stream<AuthState>? auth}) {
     fake = FakeMe(Me.fromJson(me));
@@ -88,13 +113,14 @@ void main() {
         meProvider.overrideWith(() => fake),
         meRepositoryProvider.overrideWithValue(MeRepository(api)),
         trophiesProvider.overrideWith((ref) async => TrophiesOverview.fromJson(trophiesJson())),
+        avatarChoicesProvider.overrideWith((ref) async => AvatarChoices.fromJson(avatarsJson(canChange: canChangeAvatar))),
         if (auth != null) authStateProvider.overrideWith((ref) => auth),
       ],
       child: MaterialApp(home: home),
     );
   }
 
-  testWidgets('Профіль: ім\'я, @нік, рівень із прогресом; аватар — без конструктора', (tester) async {
+  testWidgets('Профіль: ім\'я, @нік, рівень із прогресом; аватар більший і відкриває вибір', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
@@ -125,14 +151,13 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200, scrollable: profileScroll);
     expect(find.text('Житомирська область'), findsOneWidget);
 
-    // Аватар — готова картинка; дотик нічого не відкриває (конструктора немає).
+    // Аватар — готова картинка з рамкою рівня, більший; дотик — вибір аватара.
     await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 3000));
     await frames(tester);
-    expect(find.byKey(const ValueKey('profile-avatar')), findsOneWidget);
+    expect(tester.getSize(find.byType(UserAvatar).first).width, 104);
     await tester.tap(find.byKey(const ValueKey('profile-avatar')));
     await frames(tester);
-    expect(find.byType(ProfileScreen), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.byType(AvatarPickerScreen), findsOneWidget);
   });
 
   testWidgets('Гість: «Увійти через Google / Apple», без видалення акаунта; дані без інтернету — є', (tester) async {
@@ -227,20 +252,56 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(const ValueKey('identity-handle'))).enabled, isFalse);
   });
 
-  test('Аватар: готовий зі списку; старі наліпки й числові id — заглушка', () {
-    expect(Avatar.fromJson({'kind': 'preset', 'id': 'traveler_1'}).toJson(), {'kind': 'preset', 'id': 'traveler_1'});
-    expect(Avatar.fromJson({'kind': 'custom', 'sticker': 'dizzy'}).isDefault, isTrue);
-    expect(Avatar.fromJson({'kind': 'standard', 'id': 3}).isDefault, isTrue);
-    expect(const Avatar().isDefault, isTrue);
+  test('Аватар: готовий зі списку; старі наліпки, числові id і default — перший «Мандрівник»', () {
+    expect(Avatar.fromJson({'kind': 'preset', 'id': 'keeper_03'}).toJson(), {'kind': 'preset', 'id': 'keeper_03'});
+    expect(Avatar.fromJson({'kind': 'custom', 'sticker': 'dizzy'}).id, 'traveler_01');
+    expect(Avatar.fromJson({'kind': 'standard', 'id': 3}).id, 'traveler_01');
+    expect(Avatar.fromJson({'kind': 'preset', 'id': 'default'}).id, 'traveler_01');
+    expect(const Avatar().asset, 'assets/avatars/traveler_01.webp');
   });
 
-  testWidgets('Аватар: заглушка-силует, а картинки, якої ще немає в застосунку, — теж заглушка без збою', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Center(child: UserAvatar(avatar: Avatar(), size: 60))));
-    expect(find.byKey(const ValueKey('avatar-placeholder')), findsOneWidget);
+  testWidgets('Аватар: картинки, якої ще немає в застосунку, — перший «Мандрівник», без збою', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: Center(child: UserAvatar(avatar: Avatar(id: 'not_shipped_yet'), size: 60))));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('avatar-placeholder')), findsOneWidget);
+    expect(find.byType(Image), findsWidgets);
+  });
+
+  testWidgets('Вибір аватара: групи за рівнями, закритий — з причиною і не вибирається; «Зберегти»', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    canChangeAvatar = true;
+    await tester.pumpWidget(app(const AvatarPickerScreen(), registered()));
+    await frames(tester);
+    expect(find.text('Гриб tracker_02'), findsOneWidget); // поточний — у великому перегляді
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('avatar-save'))).onPressed, isNull);
+    final list = find.descendant(of: find.byKey(const ValueKey('avatar-list')), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('avatar-keeper_01')), 200, scrollable: list);
+    expect(find.text('Відкриється на рівні «Хранитель лісу»'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('avatar-keeper_01')));
+    await frames(tester);
+    expect(find.text('Гриб keeper_01'), findsNothing); // закритий не вибирається
+    await tester.pump(const Duration(seconds: 5));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('avatar-traveler_02')), -200, scrollable: list);
+    await tester.tap(find.byKey(const ValueKey('avatar-traveler_02')));
+    await frames(tester);
+    expect(find.text('Гриб traveler_02'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('avatar-save')));
+    await frames(tester);
+    expect(fake.calls, ['avatar:traveler_02']);
+  });
+
+  testWidgets('Вибір аватара: гість — лише перегляд і причина, без «Зберегти»', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    canChangeAvatar = false;
+    await tester.pumpWidget(app(const AvatarPickerScreen(), registered()));
+    await frames(tester);
+    expect(find.byKey(const ValueKey('avatar-reason')), findsOneWidget);
+    expect(find.byKey(const ValueKey('avatar-save')), findsNothing);
+    canChangeAvatar = true;
   });
 }

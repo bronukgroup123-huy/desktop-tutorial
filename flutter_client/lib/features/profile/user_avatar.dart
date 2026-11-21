@@ -4,9 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/me.dart';
 
-/// Аватар користувача у колі (ADR-021 §21.7, PO 2026-11-21): готова картинка
-/// `assets/avatars/<id>.webp`; поки її немає (`default` чи новіший за застосунок) — силует
-/// грибника, як на вкладці «Профіль». Конструктора більше немає.
+/// Аватар користувача (ADR-021 §21.7, PO 2026-11-21): готова картинка з рамкою рівня
+/// `assets/avatars/<id>.webp` (без фону; роги й корона виступають за коло — не обрізаємо).
+/// Якщо картинки в застосунку немає (новіша за реліз) — перший «Мандрівник», а без нього —
+/// силует грибника в колі.
 class UserAvatar extends StatelessWidget {
   const UserAvatar({super.key, required this.avatar, this.size = 72});
 
@@ -15,29 +16,36 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Padding(
-      padding: EdgeInsets.all(size * 0.16),
-      child: SvgPicture.asset('assets/icons/ic_profile.svg', key: const ValueKey('avatar-placeholder'), fit: BoxFit.contain),
-    );
-    return Container(
+    final cache = (size * MediaQuery.devicePixelRatioOf(context)).round();
+    Widget image(String asset, ImageErrorWidgetBuilder onError) =>
+        Image.asset(asset, width: size, height: size, fit: BoxFit.contain, cacheWidth: cache, errorBuilder: onError);
+    return SizedBox(
       width: size,
       height: size,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xffeef4e6),
-        border: Border.all(color: AppTheme.darkGreen.withValues(alpha: 0.25), width: 1.5),
+      child: image(
+        avatar.asset,
+        (_, __, ___) => avatar.id == Avatar.defaultId ? _Placeholder(size) : image(const Avatar().asset, (_, __, ___) => _Placeholder(size)),
       ),
-      child: avatar.isDefault
-          ? placeholder
-          : Image.asset(
-              'assets/avatars/${avatar.id}.webp',
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
-              errorBuilder: (_, __, ___) => placeholder,
-            ),
     );
   }
+}
+
+class _Placeholder extends StatelessWidget {
+  const _Placeholder(this.size);
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('avatar-placeholder'),
+        width: size,
+        height: size,
+        padding: EdgeInsets.all(size * 0.16),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xffeef4e6),
+          border: Border.all(color: AppTheme.darkGreen.withValues(alpha: 0.25), width: 1.5),
+        ),
+        child: SvgPicture.asset('assets/icons/ic_profile.svg', fit: BoxFit.contain),
+      );
 }

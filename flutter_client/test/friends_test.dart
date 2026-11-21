@@ -19,7 +19,7 @@ Map<String, dynamic> card(String id, String handle, String relation, List<Map<St
       'id': id,
       'handle': handle,
       'name': handle,
-      'avatar': {'kind': 'preset', 'id': 'traveler_1'},
+      'avatar': {'kind': 'preset', 'id': 'tracker_03'},
       'level': {'id': 'tracker', 'label': 'Слідопит'},
       'relation': relation,
       'relation_label': label,
@@ -37,7 +37,7 @@ void main() {
     final c = FriendCard.fromJson(card(irynaId, 'Ірина', 'incoming', [act('accept', 'Прийняти', 'primary'), act('decline', 'Відхилити', 'secondary'), report, block]));
     expect(c.buttons.map((a) => a.id), ['accept', 'decline']);
     expect(c.menu.map((a) => a.id), ['report', 'block']);
-    expect([c.avatar.id, c.avatar.isDefault], ['traveler_1', false]);
+    expect(c.avatar.asset, 'assets/avatars/tracker_03.webp');
   });
 
   late FakeAdapter adapter;

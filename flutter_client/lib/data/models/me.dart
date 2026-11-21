@@ -62,21 +62,22 @@ class Onboarding {
   bool get isComplete => nextStep == OnboardingStep.done;
 }
 
-/// Аватар (ADR-021 §21.7, PO 2026-11-21): готова картинка зі списку (`kind: preset`, [id]);
-/// `default` — поки не вибрано / картинок ще немає (застосунок малює силует).
+/// Аватар (ADR-021 §21.7, PO 2026-11-21): готова картинка зі списку (`kind: preset`, [id]),
+/// `assets/avatars/<id>.webp`. Старі значення (наліпки, стандартні гриби) — перший «Мандрівник».
 class Avatar {
-  const Avatar({this.kind = 'preset', this.id = 'default'});
+  const Avatar({this.kind = 'preset', this.id = defaultId});
 
-  factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(
-        kind: opt<String>(json, 'kind') ?? 'preset',
-        // старий сервер міг віддати числовий id стандартного гриба — показуємо заглушку
-        id: json['id'] is String ? json['id'] as String : 'default',
-      );
+  static const defaultId = 'traveler_01';
+
+  factory Avatar.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    return json['kind'] == 'preset' && id is String && id != 'default' ? Avatar(id: id) : const Avatar();
+  }
 
   final String kind;
   final String id;
 
-  bool get isDefault => kind != 'preset' || id == 'default';
+  String get asset => 'assets/avatars/$id.webp';
 
   Map<String, dynamic> toJson() => {'kind': kind, 'id': id};
 }

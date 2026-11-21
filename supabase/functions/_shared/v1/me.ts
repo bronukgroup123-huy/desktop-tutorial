@@ -5,6 +5,7 @@
 // GET    → { data: profile }   (ім'я, @нік, аватар, рівень, онбординг, область)
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
 // GET    ?trophies=1 → { data: { trophies, earned_count, total, new_labels } } — трофеї-медальйони
+// GET    ?avatars=1 → { data: { current, can_change, reason_label, groups } } — вибір готового аватара
 // PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
@@ -32,7 +33,7 @@ import {
   validateHandle,
   validateName,
 } from "./profile-rules.ts";
-import { type Avatar, publicAvatar, validatePresetAvatar } from "./avatars.ts";
+import { type Avatar, avatarChoices, publicAvatar, validatePresetAvatar } from "./avatars.ts";
 import { countFinds, refreshTrophies, TROPHIES } from "./trophy-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
@@ -269,7 +270,7 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     // Гостю — без імені й ніка (старі імена з Google латиницею — до кроку «Профіль» не показуємо).
     name: ctx.user.isAnonymous || !isValidName(row.name) ? null : row.name,
     handle: ctx.user.isAnonymous ? null : row.handle,
-    // Готовий аватар або заглушка (старі гриби й наліпки конструктора — заглушка).
+    // Готовий аватар; старі гриби й наліпки конструктора — перший «Мандрівник».
     avatar: publicAvatar(row.avatar),
     level: levelOf(rating),
     handle_change: handleChangeInfo(row, ctx.now),
@@ -425,6 +426,10 @@ export async function handleMe(
   const params = new URL(req.url).searchParams;
   const check = params.get("check_handle");
   if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
+  if (req.method === "GET" && params.has("avatars")) {
+    const row = await loadUser(ctx.db, user.id);
+    return ok(avatarChoices(row.avatar, Number(row.rating), user.isAnonymous), req);
+  }
   if (req.method === "GET" && params.has("trophies")) {
     // Трофеї — лише в акаунті (ADR-001: у гостя немає трофеїв). Перерахунок і запис нових — тут.
     if (user.isAnonymous) {

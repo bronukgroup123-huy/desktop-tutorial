@@ -12,6 +12,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
+import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -124,7 +125,26 @@ class _Header extends ConsumerWidget {
         children: [
           Row(
             children: [
-              UserAvatar(key: const ValueKey('profile-avatar'), avatar: me.avatar, size: 76),
+              // Аватар більший (PO 2026-11-21); дотик — вибір готового аватара.
+              GestureDetector(
+                key: const ValueKey('profile-avatar'),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    UserAvatar(avatar: me.avatar, size: 104),
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(color: AppTheme.darkGreen, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                        child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
