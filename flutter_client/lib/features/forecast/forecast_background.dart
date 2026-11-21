@@ -9,7 +9,7 @@ import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduce
 /// Живий фон вкладки «Прогноз» — «Ліс за матовим склом» (рішення PO 2026-11-20).
 ///
 /// Сталий: однаковий у будь-яку пору року, доби й погоду. Картинка (ліс у тумані з грибами,
-/// `assets/forecast_bg/base.webp`) + ефекти кодом: тінь папороті гойдається, хмарка заходить за
+/// `assets/forecast_bg/base.webp`) + ефекти кодом: тінь дубової гілки гойдається, хмарка заходить за
 /// сонце, з-за неї проступають промені, відблиск проходить по краю, листок опускається, запотівання
 /// по краях «дихає», краплі стікають. Петля 30 с.
 ///
@@ -169,7 +169,8 @@ class ForecastBgPainter extends CustomPainter {
     _oval(canvas, Offset(cx - 18, cy - 8), 205, 92, const Color(0xFFFFECAA), 0.42 * math.max(0, 1 - (Offset(cx, cy) - sun).distance / 520));
     _oval(canvas, Offset(cx + 12, cy + 6), 210, 95, const Color(0xFFFFFAEE), 0.3);
 
-    // 3. Тінь папороті з верхнього правого кута: повільне велике коливання + дрібне.
+    // 3. Тінь дубової гілки з жолудями з верхнього правого кута (білі гриби ростуть під дубами):
+    //    повільне велике коливання + дрібне. Ресурс — fern.png (історична назва).
     final ang = (3.2 * math.sin(2 * math.pi * tt * 2) + 1.1 * math.sin(2 * math.pi * tt * 5 + 1.3)) * math.pi / 180;
     const fernSize = 675.0;
     const fernPos = Offset(w - fernSize + 40, -40);

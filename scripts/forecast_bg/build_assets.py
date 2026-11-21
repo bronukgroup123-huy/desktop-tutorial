@@ -6,11 +6,11 @@
 BASE.png — картинка після shrink_mushrooms.py. У OUT_DIR:
   base.webp  — фон із «запеченим» матовим склом (легке розмиття, зерно, нерівність скла);
   fog.png    — запотівання по краях (біла маска з альфою; застосунок «дихає» її прозорістю);
-  fern.png   — силует папороті (розмитий, білий з альфою; застосунок фарбує й гойдає);
-  leaf.png   — силует листка (розмитий);
+  fern.png   — силует дубової гілки з жолудями (розмитий, білий з альфою; застосунок фарбує й гойдає);
+  leaf.png   — силует дубового листка, що падає (розмитий);
   rays.png   — віяло сонячних променів від верхнього лівого кута.
 Решту (хмарка, сонце, відблиск, краплі) малює застосунок — фон_painter у forecast_background.dart.
-Далі — recolor_base.py: тон туману на base.webp = колір застосунку (#F4F1E1).
+Далі — recolor_base.py (тон туману = колір застосунку #F4F1E1), потім shrink_bottom.py (менші гриби з травою).
 """
 import math
 import os
@@ -55,64 +55,103 @@ fog = np.clip(1 - edge + (fn - 0.5) * 0.9, 0, 1) ** 1.4 * np.clip(sun_d / 380, 0
 white_alpha(fog * 255).resize((W // 2, H // 2), Image.LANCZOS).save(os.path.join(out, 'fog.png'), optimize=True)
 
 
-# fern: три вайї з верхнього правого кута (полотно 900×900, у застосунку — 675×675)
-def fern_sprite():
-    im = Image.new('L', (900, 900), 0)
+# fern.png: тінь дубової гілки з верхнього правого кута (білі гриби ростуть під дубами; рішення PO
+# 2026-11-21 — замість розмитої папороті, яку не впізнавали); leaf.png — дубовий листок, що падає.
+S = 3  # суперсемплінг
+
+
+def oak_leaf(cx, cy, L, ang, lobes=5):
+    """Лопатевий листок дуба звичайного: основа в (cx,cy), кінчик у напрямку ang."""
+    pts = []
+    n = 200
+    for i in range(n + 1):
+        u = i / n                      # 0 → основа, по правому краю до кінчика, далі лівим назад
+        side = 1 if u <= 0.5 else -1
+        v = u * 2 if u <= 0.5 else (1 - u) * 2      # 0 основа … 1 кінчик
+        # загальна форма — обернене яйце: найширше в верхній третині, вузька основа з «вушками»
+        env = math.sin(math.pi * min(1, v ** 0.85)) * (0.55 + 0.45 * v) * (1 - 0.25 * v ** 6)
+        lobe = 0.62 + 0.38 * abs(math.cos(math.pi * lobes * v))   # глибокі округлі лопаті
+        ear = 0.25 * math.exp(-((v - 0.05) / 0.05) ** 2)          # «вушка» біля черешка
+        w = (env * lobe + ear) * 0.36
+        lx, ly = side * w * L, -v * L
+        ca, sa = math.cos(ang + math.pi / 2), math.sin(ang + math.pi / 2)
+        pts.append((cx + lx * ca - ly * sa, cy + lx * sa + ly * ca))
+    return pts
+
+def acorn(d, x, y, ang, s):
+    ca, sa = math.cos(ang), math.sin(ang)
+    def P(px, py):
+        return ((x + px * ca - py * sa) * S, (y + px * sa + py * ca) * S)
+    body = [P(math.cos(t) * s * 0.42, s * 0.25 + math.sin(t) * s * 0.62) for t in np.linspace(0, math.pi, 30)]
+    d.polygon([P(-s * 0.42, s * 0.25)] + body + [P(s * 0.42, s * 0.25)], fill=255)
+    cap = [P(math.cos(t) * s * 0.5, s * 0.25 - math.sin(t) * s * 0.28) for t in np.linspace(0, math.pi, 30)]
+    d.polygon(cap, fill=255)
+    d.line([P(0, -s * 0.05), P(0, -s * 0.4)], fill=255, width=2 * S)
+
+def oak_branch():
+    im = Image.new('L', (900 * S, 900 * S), 0)
     d = ImageDraw.Draw(im)
+    rng = np.random.default_rng(5)
 
-    def frond(x0, y0, ang, L, thick):
-        pts = []
-        x, y = x0, y0
-        for i in range(60):
-            s = i / 59
-            a = ang + 0.55 * s * s
-            x += math.cos(a) * L / 59
-            y += math.sin(a) * L / 59
-            pts.append((x, y, a, s))
-        d.line([(p[0], p[1]) for p in pts], fill=255, width=thick)
-        for i in range(3, 58, 2):
-            x, y, a, s = pts[i]
-            ln = (1 - s) * L * 0.22 + 10
-            for side in (-1, 1):
-                bb = a + side * 1.15
-                d.polygon([(x, y), (x + math.cos(bb - side * 0.3) * ln * 0.55, y + math.sin(bb - side * 0.3) * ln * 0.55),
-                           (x + math.cos(bb) * ln, y + math.sin(bb) * ln),
-                           (x + math.cos(bb + side * 0.25) * ln * 0.5, y + math.sin(bb + side * 0.25) * ln * 0.5)], fill=255)
-    frond(880, 20, math.radians(140), 760, 9)
-    frond(890, 120, math.radians(158), 620, 8)
-    frond(860, -10, math.radians(118), 560, 7)
-    return im.filter(ImageFilter.GaussianBlur(11))
+    def gnarled(x0, y0, ang, L, n=7):
+        pts = [(x0, y0)]; x, y = x0, y0
+        for i in range(n):
+            a = ang + rng.uniform(-0.35, 0.35) + 0.1 * i / n
+            x += math.cos(a) * L / n; y += math.sin(a) * L / n
+            pts.append((x, y))
+        return pts
 
+    def stroke(pts, w0, w1):
+        for i in range(len(pts) - 1):
+            w = w0 + (w1 - w0) * i / (len(pts) - 1)
+            d.line([(pts[i][0] * S, pts[i][1] * S), (pts[i + 1][0] * S, pts[i + 1][1] * S)], fill=255, width=max(1, int(w * S)))
+            r = w / 2
+            d.ellipse([(pts[i + 1][0] - r) * S, (pts[i + 1][1] - r) * S, (pts[i + 1][0] + r) * S, (pts[i + 1][1] + r) * S], fill=255)
 
-white_alpha(np.asarray(fern_sprite().resize((450, 450), Image.LANCZOS))).save(os.path.join(out, 'fern.png'), optimize=True)
+    def cluster(x, y, base_ang, k, size):
+        # у дуба листки зібрані пучками на кінцях пагонів
+        for j in range(k):
+            a = base_ang + (j - (k - 1) / 2) * 0.85 + rng.uniform(-0.1, 0.1)
+            ex, ey = x + math.cos(a) * 8, y + math.sin(a) * 8
+            d.polygon([(px * S, py * S) for px, py in oak_leaf(ex, ey, size * rng.uniform(0.82, 1.08), a)], fill=255)
 
-# leaf: силует листка берези за склом — серцеподібна основа, загострений кінчик, зубчастий край,
-# черешок і центральна жилка (полотно 160×220 у застосунку; листок — у верхній частині, черешок — униз)
-def leaf_sprite():
-    S = 4
+    def leaf_at(x, y, a, size):
+        ex, ey = x + math.cos(a) * 14, y + math.sin(a) * 14
+        d.line([(x * S, y * S), (ex * S, ey * S)], fill=255, width=3 * S)
+        d.polygon([(px * S, py * S) for px, py in oak_leaf(ex, ey, size, a)], fill=255)
+
+    main = gnarled(915, 30, math.radians(168), 640)
+    stroke(main, 14, 6)
+    # листки поодинці вздовж гілки, по черзі з боків, трохи обвисають
+    for i, side, size in [(2, -1, 150), (3, 1, 135), (4, -1, 160), (6, 1, 150)]:
+        (x, y), (nx, ny) = main[i], main[i + 1]
+        a = math.atan2(ny - y, nx - x) + side * math.radians(68)
+        a = a * 0.75 + math.radians(90) * 0.25
+        leaf_at(x, y, a, size)
+    tip = main[-1]
+    leaf_at(tip[0], tip[1], math.radians(160), 170)
+    leaf_at(tip[0], tip[1], math.radians(205), 150)
+    tw = gnarled(*main[5], math.radians(108), 170, 3)
+    stroke(tw, 6, 3)
+    leaf_at(tw[-1][0], tw[-1][1], math.radians(95), 160)
+    leaf_at(tw[1][0], tw[1][1], math.radians(30), 130)
+    # жолуді на плодоніжці
+    jx, jy = main[1]
+    for (dx, dy, a) in [(-30, 78, math.radians(14)), (26, 86, math.radians(-12))]:
+        d.line([(jx * S, jy * S), ((jx + dx * 0.8) * S, (jy + dy - 30) * S)], fill=255, width=4 * S)
+        acorn(d, jx + dx, jy + dy, a, 56)
+    return im.resize((900, 900), Image.LANCZOS).filter(ImageFilter.GaussianBlur(3.2))
+
+def falling_leaf():
     im = Image.new('L', (160 * S, 220 * S), 0)
     d = ImageDraw.Draw(im)
-    pts = []
-    for i in range(181):
-        t = math.pi * 2 * i / 180
-        # серцеподібно-ромбічна форма: ширша внизу, гострий кінчик угорі
-        r = 1 - 0.55 * math.sin(t / 2) ** 6
-        x = math.sin(t) * (0.62 + 0.18 * math.cos(t)) * r * (1 - 0.75 * max(0.0, math.cos(t)) ** 2.2)  # гострий кінчик
-        y = -math.cos(t) * (1 if math.cos(t) > 0 else 0.62)
-        z = 1 + 0.035 * math.sin(t * 22)  # дрібні зубчики по краю
-        pts.append((80 * S + x * 70 * S * z, 95 * S + y * 82 * S * z))
-    d.polygon(pts, fill=255)
-    d.line([(80 * S, 150 * S), (82 * S, 212 * S)], fill=255, width=4 * S)              # черешок
-    d.line([(80 * S, 22 * S), (80 * S, 150 * S)], fill=150, width=2 * S)               # жилка — світліша
-    for k in range(5):                                                                  # бічні жилки
-        y0 = (40 + k * 22) * S
-        for side in (-1, 1):
-            d.line([(80 * S, y0 + 18 * S), (80 * S + side * (34 - k * 3) * S, y0)], fill=170, width=S)
-    im = im.resize((160, 220), Image.LANCZOS)
-    return im.filter(ImageFilter.GaussianBlur(3.2))
+    d.polygon([(x * S, y * S) for x, y in oak_leaf(80, 196, 178, -math.pi / 2)], fill=255)
+    d.line([(80 * S, 196 * S), (80 * S, 214 * S)], fill=255, width=4 * S)
+    d.line([(80 * S, 30 * S), (80 * S, 196 * S)], fill=160, width=2 * S)
+    return im.resize((160, 220), Image.LANCZOS).filter(ImageFilter.GaussianBlur(2.6))
 
-
-white_alpha(np.asarray(leaf_sprite().resize((80, 110), Image.LANCZOS))).save(os.path.join(out, 'leaf.png'), optimize=True)
+white_alpha(np.asarray(oak_branch().resize((450, 450), Image.LANCZOS))).save(os.path.join(out, 'fern.png'), optimize=True)
+white_alpha(np.asarray(falling_leaf().resize((80, 110), Image.LANCZOS))).save(os.path.join(out, 'leaf.png'), optimize=True)
 
 # rays: віяло з (0,0), вісь віяла — 52°; полотно 700×700 (у застосунку від центру сонця)
 R = 700
