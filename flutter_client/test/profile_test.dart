@@ -7,7 +7,9 @@ import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
+import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/profile_screen.dart';
+import 'package:flutter_client/features/profile/settings_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +23,19 @@ import 'safety_test.dart' show frames;
 
 /// Вертикальна прокрутка вкладки «Профіль» (усередині є горизонтальний ряд трофеїв).
 final profileScroll = find.descendant(of: find.byKey(const ValueKey('profile-list')), matching: find.byType(Scrollable)).first;
+
+/// Прокрутка екрана «Налаштування».
+final settingsScroll = find.descendant(of: find.byKey(const ValueKey('settings-list')), matching: find.byType(Scrollable)).first;
+
+/// Відкрити «Налаштування» кнопкою внизу профілю.
+Future<void> openSettings(WidgetTester tester) async {
+  await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-settings')), 300, scrollable: profileScroll);
+  await tester.ensureVisible(find.byKey(const ValueKey('profile-settings')));
+  await frames(tester);
+  await tester.tap(find.byKey(const ValueKey('profile-settings')));
+  await frames(tester);
+  expect(find.byType(ProfileSettingsScreen), findsOneWidget);
+}
 
 Map<String, dynamic> registered({String? handle = 'Олена_лісова', bool handleAllowed = true}) => {
       ...meJson(region: {'id': 1, 'slug': 'zhytomyrska', 'name': 'Житомирська область'}),
@@ -148,17 +163,34 @@ void main() {
     expect(find.text('Срібло'), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await frames(tester);
+    // Аватар — готова картинка з рамкою рівня, 208; дотик — вибір аватара.
+    expect(tester.getSize(find.byType(UserAvatar).first).width, 208);
+    // Область, дані без інтернету й акаунт — не на вкладці, а в «Налаштуваннях».
+    expect(find.byKey(const ValueKey('profile-region')), findsNothing);
+    expect(find.byKey(const ValueKey('profile-offline')), findsNothing);
+    await openSettings(tester);
     // Область — лише мені, у налаштуваннях (у публічному профілі її немає).
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200, scrollable: profileScroll);
     expect(find.text('Житомирська область'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-offline')), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 200, scrollable: settingsScroll);
+    expect(find.byKey(const ValueKey('profile-sign-out')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings-identity')), findsOneWidget);
+    await tester.pageBack();
+    await frames(tester);
 
-    // Аватар — готова картинка з рамкою рівня, більший; дотик — вибір аватара.
     await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 5000));
     await frames(tester);
-    expect(tester.getSize(find.byType(UserAvatar).first).width, 208); // удвічі більший (PO 2026-11-21)
     await tester.tap(find.byKey(const ValueKey('profile-avatar')));
     await frames(tester);
     expect(find.byType(AvatarPickerScreen), findsOneWidget);
+  });
+
+  testWidgets('Шапка профілю: фон і значок рівня — за рівнем (як рамки аватарів)', (tester) async {
+    expect(heroPalette('master').top, isNot(heroPalette('traveler').top));
+    expect({for (final l in ['traveler', 'tracker', 'expert', 'forester', 'keeper', 'master']) heroPalette(l).top}.length, 6);
+    expect(heroPalette(null).top, heroPalette('traveler').top);
+    await tester.pumpWidget(const MaterialApp(home: ProfileHeroBackground(levelId: 'keeper', child: SizedBox(width: 300, height: 300))));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Гість: «Увійти через Google / Apple», без видалення акаунта; дані без інтернету — є', (tester) async {
@@ -170,14 +202,15 @@ void main() {
     expect(find.byKey(const ValueKey('profile-guest')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-google')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-header')), findsNothing);
-    // Офлайн дані — згорнуті під кнопкою; натиснули — список.
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-offline')), 200, scrollable: profileScroll);
+    // Налаштування є й у гостя: офлайн дані згорнуті під кнопкою; натиснули — список. Акаунта немає.
+    await openSettings(tester);
     expect(find.byKey(const ValueKey('data-map')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('profile-offline')));
     await frames(tester);
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('data-ai')), 200, scrollable: profileScroll);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('data-ai')), 200, scrollable: settingsScroll);
     expect(find.byKey(const ValueKey('data-map')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-delete')), findsNothing);
+    expect(find.byKey(const ValueKey('profile-sign-out')), findsNothing);
   });
 
   testWidgets('Гість: Google уже має свій профіль — пропонуємо увійти в нього, а не мовчимо', (tester) async {
@@ -203,7 +236,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app(const ProfileScreen(), registered()));
     await frames(tester);
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 300, scrollable: profileScroll);
+    await openSettings(tester);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 300, scrollable: settingsScroll);
     await tester.ensureVisible(find.byKey(const ValueKey('profile-delete')));
     await frames(tester);
     await tester.tap(find.byKey(const ValueKey('profile-delete')));

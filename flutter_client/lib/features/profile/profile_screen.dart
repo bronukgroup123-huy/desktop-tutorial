@@ -1,30 +1,30 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/core/supabase_config.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/providers.dart';
-import 'package:flutter_client/core/auth_errors.dart';
-import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_hero.dart';
-import 'package:flutter_client/features/profile/profile_setup_screen.dart';
+import 'package:flutter_client/features/profile/settings_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
-import 'package:flutter_client/features/recognize/ai_model.dart';
-import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailGraphProvider;
 
-/// Вкладка «Профіль» (ADR-021 §21.2.1): шапка (аватар, ім'я, @нік, рівень), мій сезон, дані без
-/// інтернету, налаштування, акаунт (вийти, видалити). У гостя — «Увійти через Google / Apple» і що
-/// дає акаунт. Автори й ліцензії фото — на картці виду в Довіднику.
+/// Вкладка «Профіль» (ADR-021 §21.2.1; вигляд — PO 2026-11-21): шапка в стилі аватарів
+/// (аватар, ім'я, @нік, рівень, прогрес), вітрина трофеїв, подарунки, друзі й кнопка
+/// «Налаштування» (дані без інтернету, область, акаунт). У гостя — «Створіть профіль».
+/// Автори й ліцензії фото — на картці виду в Довіднику.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  void _openSettings(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,82 +35,44 @@ class ProfileScreen extends ConsumerWidget {
         title: Text('Профіль', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            key: const ValueKey('profile-settings-icon'),
+            tooltip: 'Налаштування',
+            icon: const Icon(Icons.settings_rounded, color: AppTheme.darkGreen),
+            onPressed: () => _openSettings(context),
+          ),
+        ],
       ),
       body: ListView(
         key: const ValueKey('profile-list'),
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           if (guest) const _GuestCard() else _Header(me: me),
           if (!guest) ...[
-            const _Section('Трофеї й подарунки'),
+            const SizedBox(height: 16),
             const _TrophiesCard(),
-            const _Section('Друзі'),
+            const SizedBox(height: 12),
+            const _GiftsCard(),
+            const ProfileSectionTitle('Друзі'),
             const _FriendsTile(),
           ],
-          const _Section('Дані без інтернету'),
-          const _OfflineGroup(),
-          const _Section('Налаштування'),
-          _Tile(
-            key: const ValueKey('profile-region'),
-            icon: Icons.place_rounded,
-            title: me?.homeRegion?.name ?? 'Область не вибрано',
-            subtitle: me?.regionChange.reasonLabel ?? '',
-          ),
-          if (!guest) ...[
-            const _Section('Акаунт'),
-            _Tile(
-              key: const ValueKey('profile-sign-out'),
-              icon: Icons.logout_rounded,
-              title: 'Вийти',
-              onTap: () => ref.read(authRepositoryProvider).signOut(),
-            ),
-            const SizedBox(height: 8),
-            _Tile(
-              key: const ValueKey('profile-delete'),
-              icon: Icons.delete_forever_rounded,
-              title: 'Видалити акаунт',
-              subtitle: 'Назавжди: профіль, точки, ділянки, рейтинг',
-              danger: true,
-              onTap: () => _confirmDelete(context, ref),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        key: const ValueKey('delete-confirm'),
-        title: const Text('Видалити акаунт назавжди?'),
-        content: const Text(
-          'Буде видалено профіль, нік, приватні й публічні точки, ділянки, рейтинг і рівень. '
-          'Відновити це неможливо.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Скасувати')),
-          FilledButton(
-            key: const ValueKey('delete-yes'),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xffc62828)),
-            onPressed: () => Navigator.of(c).pop(true),
-            child: const Text('Видалити'),
+          const ProfileSectionTitle('Ще'),
+          ParchmentTile(
+            key: const ValueKey('profile-settings'),
+            icon: Icons.settings_rounded,
+            title: 'Налаштування',
+            subtitle: guest ? 'Дані без інтернету, область' : 'Дані без інтернету, область, акаунт',
+            onTap: () => _openSettings(context),
           ),
         ],
       ),
     );
-    if (yes != true) return;
-    try {
-      await ref.read(meProvider.notifier).deleteAccount();
-    } catch (_) {
-      if (context.mounted) showToast(context, 'Не вдалося видалити акаунт. Перевірте інтернет і спробуйте ще раз.', isError: true);
-    }
   }
 }
 
-/// Шапка профілю в стилі аватарів: великий аватар (208, PO 2026-11-21) у золотому світлі лісу,
-/// ім'я, @нік, рівень кольором рамки, знахідки й бали, прогрес до наступного рівня.
+/// Шапка профілю в стилі аватарів (PO 2026-11-21): аватар 208, тло й світло — за рівнем (як
+/// рамки аватарів); компактна — ім'я, @нік, рівень, знахідки й бали, прогрес.
 class _Header extends ConsumerWidget {
   const _Header({required this.me});
 
@@ -119,81 +81,69 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final level = me.level;
+    final p = heroPalette(level?.id);
     return ProfileHeroBackground(
       key: const ValueKey('profile-header'),
-      glowCenterY: 0.27,
+      levelId: level?.id,
+      glowCenterY: 0.32,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-        child: Stack(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Дотик по аватару — вибір готового аватара.
-                Center(
-                  child: GestureDetector(
-                    key: const ValueKey('profile-avatar'),
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        UserAvatar(avatar: me.avatar, size: 208),
-                        Positioned(
-                          right: 14,
-                          bottom: 14,
-                          child: Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: AppTheme.darkGreen,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: heroGold, width: 2),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 6)],
-                            ),
-                            child: const Icon(Icons.edit_rounded, size: 16, color: heroCream),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  me.name ?? '',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.merriweather(fontSize: 22, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
-                ),
-                if (me.handle != null)
-                  Text('@${me.handle}', key: const ValueKey('profile-handle'), textAlign: TextAlign.center, style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 14)),
-                if (level != null) ...[
-                  const SizedBox(height: 10),
-                  Center(child: LevelBadge(key: const ValueKey('profile-level'), levelId: level.id, label: level.label)),
-                ],
-                const SizedBox(height: 14),
-                // Підтверджені знахідки й бали рейтингу.
-                Row(
-                  key: const ValueKey('profile-stats'),
+            // Дотик по аватару — вибір готового аватара.
+            Center(
+              child: GestureDetector(
+                key: const ValueKey('profile-avatar'),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Expanded(child: HeroStat(icon: Icons.verified_rounded, value: '${me.totalVerifiedPicks}', label: _plural(me.totalVerifiedPicks, 'знахідка', 'знахідки', 'знахідок'))),
-                    const SizedBox(width: 10),
-                    Expanded(child: HeroStat(icon: Icons.star_rounded, value: '${me.rating}', label: _plural(me.rating, 'бал', 'бали', 'балів'))),
+                    UserAvatar(avatar: me.avatar, size: 208),
+                    Positioned(
+                      right: 14,
+                      bottom: 14,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.darkGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: p.accent, width: 2),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 6)],
+                        ),
+                        child: const Icon(Icons.edit_rounded, size: 15, color: heroCream),
+                      ),
+                    ),
                   ],
                 ),
-                if (level != null) ...[
-                  const SizedBox(height: 14),
-                  HeroProgress(value: level.progress(me.rating), label: level.progressLabel),
-                ],
-              ],
-            ),
-            Positioned(
-              top: -6,
-              right: -6,
-              child: IconButton(
-                key: const ValueKey('profile-edit'),
-                tooltip: 'Змінити ім\'я й нік',
-                icon: const Icon(Icons.edit_note_rounded, color: heroCream),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditIdentityScreen())),
               ),
             ),
+            const SizedBox(height: 2),
+            Text(
+              me.name ?? '',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+            ),
+            if (me.handle != null)
+              Text('@${me.handle}', key: const ValueKey('profile-handle'), textAlign: TextAlign.center, style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 13)),
+            const SizedBox(height: 8),
+            // Рівень, підтверджені знахідки й бали — одним рядком.
+            Wrap(
+              key: const ValueKey('profile-stats'),
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (level != null) LevelBadge(key: const ValueKey('profile-level'), levelId: level.id, label: level.label),
+                HeroStat(icon: Icons.verified_rounded, value: '${me.totalVerifiedPicks}', label: _plural(me.totalVerifiedPicks, 'знахідка', 'знахідки', 'знахідок'), accent: p.accent),
+                HeroStat(icon: Icons.star_rounded, value: '${me.rating}', label: _plural(me.rating, 'бал', 'бали', 'балів'), accent: p.accent),
+              ],
+            ),
+            if (level != null) ...[
+              const SizedBox(height: 10),
+              HeroProgress(value: level.progress(me.rating), label: level.progressLabel, accent: p.accent),
+            ],
           ],
         ),
       ),
@@ -208,46 +158,68 @@ String _plural(int n, String one, String few, String many) {
   return many;
 }
 
-/// Трофеї-медальйони й подарунки від друзів (ADR-021 §21.2.2, §21.10). Трофеї рахує сервер
-/// (за що й скільки — у картці трофея); подарунки — B9.6.
+/// Вітрина трофеїв-медальйонів (ADR-021 §21.2.2, §21.10): рахує сервер; дотик — за що й скільки.
 class _TrophiesCard extends StatelessWidget {
   const _TrophiesCard();
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: const ValueKey('profile-trophies'),
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        decoration: profileCardDecoration(),
+  Widget build(BuildContext context) => const TrophyShowcase(
+        key: ValueKey('profile-trophies'),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const TrophiesSection(),
-            const Divider(height: 22),
-            Row(
-              key: const ValueKey('profile-gifts'),
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: const Color(0xfffdf0dc), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.card_giftcard_rounded, color: Color(0xffd97706)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Подарунки', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
-                      Text('Тут будуть подарунки від друзів — скоро',
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            TrophiesSection(onDark: true),
+            SizedBox(height: 4),
+            TrophyShelf(),
           ],
         ),
       );
+}
+
+/// Подарунки від друзів — B9.6 (поки «скоро»).
+class _GiftsCard extends StatelessWidget {
+  const _GiftsCard();
+
+  @override
+  Widget build(BuildContext context) => ParchmentTile(
+        key: const ValueKey('profile-gifts'),
+        icon: Icons.card_giftcard_rounded,
+        title: 'Подарунки',
+        subtitle: 'Тут будуть подарунки від друзів',
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppTheme.darkGreen.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.darkGreen.withValues(alpha: 0.2)),
+          ),
+          child: const Text('скоро', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+        ),
+      );
+}
+
+/// «Друзі» — скільки друзів і нових запитів (із сервера); без інтернету — просто вхід.
+class _FriendsTile extends ConsumerWidget {
+  const _FriendsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final f = ref.watch(friendsProvider).valueOrNull;
+    final subtitle = f == null
+        ? 'Пошук за @ніком, запити в друзі'
+        : [
+            if (f.incoming.isNotEmpty) 'Нових запитів: ${f.incoming.length}',
+            f.friends.isEmpty ? 'Знайдіть друзів за @ніком' : 'Друзів: ${f.friends.length}',
+          ].join(' · ');
+    return ParchmentTile(
+      key: const ValueKey('profile-friends'),
+      icon: Icons.group_rounded,
+      title: 'Друзі',
+      subtitle: subtitle,
+      badge: f?.incoming.length,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendsScreen())),
+    );
+  }
 }
 
 /// Гість: що дає акаунт і вхід через Google / Apple (дані гостя переносяться).
@@ -350,249 +322,3 @@ class _GuestCard extends ConsumerWidget {
   }
 }
 
-/// «Офлайн дані» — кнопка з підсумком (скільки з чотирьох уже на телефоні й скільки місця);
-/// натиснули — розгортається список: карта, стежки, фото довідника, ШІ.
-class _OfflineGroup extends ConsumerStatefulWidget {
-  const _OfflineGroup();
-
-  @override
-  ConsumerState<_OfflineGroup> createState() => _OfflineGroupState();
-}
-
-class _OfflineGroupState extends ConsumerState<_OfflineGroup> {
-  bool _open = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final slug = ref.watch(meProvider.select((m) => m.valueOrNull?.homeRegion?.slug));
-    final map = slug == null ? null : ref.watch(localBasemapProvider(slug)).valueOrNull;
-    final trails = slug == null ? null : ref.watch(_trailsMetaProvider(slug)).valueOrNull;
-    final photos = ref.watch(catalogOfflineProvider);
-    final ai = ref.watch(aiModelProvider);
-    final ready = [map != null, trails != null, photos.complete, ai.ready].where((x) => x).length;
-    final bytes = (map?.meta.bytes ?? 0) + (trails ?? 0) + photos.savedBytes + (ai.installed?.totalBytes ?? 0);
-    final summary = '$ready з 4 на телефоні${bytes > 0 ? ' · ${_OfflineData.mb(bytes)}' : ''}';
-    return Column(
-      children: [
-        Material(
-          color: const Color(0xFFFFFCF3),
-          shape: profileCardShape(),
-          child: ListTile(
-            key: const ValueKey('profile-offline'),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            leading: Icon(ready == 4 ? Icons.offline_pin_rounded : Icons.cloud_download_rounded,
-                color: ready == 4 ? const Color(0xff2e7d32) : AppTheme.darkGreen),
-            title: const Text('Офлайн дані', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-            subtitle: Text(summary, key: const ValueKey('profile-offline-summary')),
-            trailing: AnimatedRotation(
-              turns: _open ? 0.5 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: const Icon(Icons.expand_more_rounded, color: AppTheme.darkGreen),
-            ),
-            onTap: () => setState(() => _open = !_open),
-          ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: _open ? const Padding(padding: EdgeInsets.only(top: 8), child: _OfflineData()) : const SizedBox(width: double.infinity),
-        ),
-      ],
-    );
-  }
-}
-
-/// Що лежить на телефоні для роботи без інтернету — з розміром; оновити / видалити.
-class _OfflineData extends ConsumerWidget {
-  const _OfflineData();
-
-  static String mb(int bytes) {
-    final v = bytes / (1024 * 1024);
-    return v >= 10 ? '${v.round()} МБ' : '${v.toStringAsFixed(1).replaceAll('.', ',')} МБ';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final slug = ref.watch(meProvider.select((m) => m.valueOrNull?.homeRegion?.slug));
-    final map = slug == null ? null : ref.watch(localBasemapProvider(slug)).valueOrNull;
-    final trails = slug == null ? null : ref.watch(_trailsMetaProvider(slug)).valueOrNull;
-    final photos = ref.watch(catalogOfflineProvider);
-    final ai = ref.watch(aiModelProvider);
-
-    Future<void> remove(String what, Future<void> Function() action) async {
-      final yes = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: Text('Видалити $what з телефону?'),
-          content: const Text('Без інтернету цього не буде, доки не завантажите знову.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Скасувати')),
-            FilledButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Видалити')),
-          ],
-        ),
-      );
-      if (yes == true) await action();
-    }
-
-    return Column(
-      children: [
-        _DataRow(
-          key: const ValueKey('data-map'),
-          icon: Icons.map_rounded,
-          title: 'Офлайн карта області',
-          status: map == null ? 'Не завантажено' : mb(map.meta.bytes),
-          ready: map != null,
-          onGet: () => context.go('/map'),
-          onDelete: map == null || slug == null
-              ? null
-              : () => remove('офлайн-карту', () async {
-                    await ref.read(basemapRepositoryProvider).delete(slug);
-                    ref.invalidate(localBasemapProvider(slug));
-                  }),
-        ),
-        _DataRow(
-          key: const ValueKey('data-trails'),
-          icon: Icons.alt_route_rounded,
-          title: 'Стежки для «Додому»',
-          status: trails == null ? 'Завантажуються разом з картою' : mb(trails),
-          ready: trails != null,
-          onGet: () => context.go('/map'),
-          onDelete: trails == null || slug == null
-              ? null
-              : () => remove('стежки', () async {
-                    await ref.read(trailsRepositoryProvider).delete(slug);
-                    ref.invalidate(_trailsMetaProvider(slug));
-                    ref.invalidate(trailGraphProvider(slug));
-                  }),
-        ),
-        _DataRow(
-          key: const ValueKey('data-photos'),
-          icon: Icons.photo_library_rounded,
-          title: 'Фото довідника',
-          status: photos.complete ? mb(photos.savedBytes) : (photos.saved > 0 ? '${photos.saved} з ${photos.total} · ${mb(photos.savedBytes)}' : 'Не завантажено'),
-          ready: photos.complete,
-          onGet: () => context.go('/recognize'),
-          onDelete: photos.saved == 0 ? null : () => remove('фото довідника', () => ref.read(catalogOfflineProvider.notifier).deleteAll()),
-        ),
-        _DataRow(
-          key: const ValueKey('data-ai'),
-          icon: Icons.psychology_rounded,
-          title: 'ШІ-розпізнавання',
-          status: ai.installed == null ? 'Не завантажено' : mb(ai.installed!.totalBytes),
-          ready: ai.ready,
-          onGet: () => context.go('/recognize'),
-          onDelete: ai.installed == null ? null : () => remove('модель ШІ', () => ref.read(aiModelProvider.notifier).deleteModel()),
-        ),
-      ],
-    );
-  }
-}
-
-/// Розмір файлу стежок області на телефоні; `null` — немає.
-final _trailsMetaProvider = FutureProvider.autoDispose.family<int?, String>(
-  (ref, slug) async => (await ref.watch(trailsRepositoryProvider).localMeta(slug))?.bytes,
-);
-
-class _DataRow extends StatelessWidget {
-  const _DataRow({super.key, required this.icon, required this.title, required this.status, required this.ready, required this.onGet, this.onDelete});
-
-  final IconData icon;
-  final String title;
-  final String status;
-  final bool ready;
-  final VoidCallback onGet;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Material(
-          color: const Color(0xFFFFFCF3),
-          shape: profileCardShape(),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-            child: Row(
-              children: [
-                Icon(icon, color: AppTheme.darkGreen),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-                      Row(children: [
-                        Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? const Color(0xff2e7d32) : const Color(0xffb45309)),
-                        const SizedBox(width: 4),
-                        Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)))),
-                      ]),
-                    ],
-                  ),
-                ),
-                if (!ready) TextButton(onPressed: onGet, child: const Text('Завантажити')),
-                if (onDelete != null) IconButton(tooltip: 'Видалити з телефону', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded)),
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
-class _Section extends StatelessWidget {
-  const _Section(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => ProfileSectionTitle(title);
-}
-
-/// «Друзі» — скільки друзів і нових запитів (із сервера); без інтернету — просто вхід.
-class _FriendsTile extends ConsumerWidget {
-  const _FriendsTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final f = ref.watch(friendsProvider).valueOrNull;
-    final subtitle = f == null
-        ? 'Пошук за @ніком, запити в друзі'
-        : [
-            if (f.incoming.isNotEmpty) 'Нових запитів: ${f.incoming.length}',
-            f.friends.isEmpty ? 'Знайдіть друзів за @ніком' : 'Друзів: ${f.friends.length}',
-          ].join(' · ');
-    return _Tile(
-      key: const ValueKey('profile-friends'),
-      icon: Icons.group_rounded,
-      title: 'Друзі',
-      subtitle: subtitle,
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendsScreen())),
-    );
-  }
-}
-
-class _Tile extends StatelessWidget {
-  const _Tile({super.key, required this.icon, required this.title, this.subtitle, this.onTap, this.danger = false});
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback? onTap;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = danger ? const Color(0xffc62828) : AppTheme.darkGreen;
-    return Material(
-      color: const Color(0xFFFFFCF3),
-      shape: profileCardShape(),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
-        subtitle: subtitle == null || subtitle!.isEmpty ? null : Text(subtitle!),
-        trailing: onTap == null ? null : Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.6)),
-        onTap: onTap,
-      ),
-    );
-  }
-}
