@@ -7,11 +7,13 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/friends.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
+import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 
-/// Публічний профіль грибника (ADR-021 §21.2): аватар, @нік, ім'я, рівень, рейтинг, друзі.
-/// Ніколи — координат, області, телефону, email, точок. Кнопки дій — із сервера.
+/// Публічний профіль грибника (ADR-021 §21.2; PO 2026-11-21): лише блок аватара (аватар,
+/// ім'я, @нік, рівень, дії), трофеї на дубовій поличці й подарунки. Ніколи — балів, прогресу,
+/// кількості друзів, координат, області, телефону, email, точок. Кнопки дій — із сервера.
 /// Повертає (через `Navigator.pop`) оновлену картку, якщо стан змінився.
 class FriendProfileScreen extends ConsumerStatefulWidget {
   const FriendProfileScreen({super.key, required this.userId, this.initial});
@@ -61,12 +63,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
     final p = _profile;
     setState(() => _profile = p == null
         ? null
-        : FriendProfile(
-            card: updated,
-            isMe: p.isMe,
-            rating: p.rating,
-            trophies: p.trophies,
-            friendsCount: p.friendsCount + (updated.relation == 'friends' ? 1 : 0) - (card.relation == 'friends' && updated.relation != 'friends' ? 1 : 0)));
+        : FriendProfile(card: updated, isMe: p.isMe, trophies: p.trophies));
   }
 
   @override
@@ -108,72 +105,80 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
             else if (card == null)
               const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
             else ...[
-              Container(
+              ProfileHeroBackground(
                 key: const ValueKey('friend-profile'),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                levelId: card.levelId,
+                glowCenterY: 0.32,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                  child: Column(
+                    children: [
+                      UserAvatar(avatar: card.avatar, size: 208),
+                      const SizedBox(height: 2),
+                      Text(
+                        card.name != null && card.name!.isNotEmpty ? card.name! : '@${card.handle}',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+                      ),
+                      if (card.name != null && card.name!.isNotEmpty)
+                        Text('@${card.handle}', style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 13)),
+                      if (card.levelLabel.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        LevelBadge(levelId: card.levelId, label: card.levelLabel),
+                      ],
+                      if (card.relationLabel != null) ...[
+                        const SizedBox(height: 10),
+                        Text(card.relationLabel!, key: const ValueKey('friend-relation'), style: const TextStyle(color: heroGold, fontWeight: FontWeight.w700)),
+                      ],
+                      if (p != null && !p.isMe && p.card.buttons.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [for (final a in p.card.buttons) FriendActionChip(button: a, busy: _busy, onDark: true, onTap: () => _run(a))],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TrophyShowcase(
+                key: const ValueKey('friend-trophies'),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    UserAvatar(avatar: card.avatar, size: 112),
-                    const SizedBox(height: 12),
-                    Text('@${card.handle}', style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-                    if (card.name != null && card.name!.isNotEmpty)
-                      Padding(padding: const EdgeInsets.only(top: 2), child: Text(card.name!, style: const TextStyle(fontSize: 15))),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      alignment: WrapAlignment.center,
+                    Row(
                       children: [
-                        if (card.levelLabel.isNotEmpty) _Pill(Icons.eco_rounded, card.levelLabel),
-                        if (p != null) _Pill(Icons.star_rounded, '${p.rating} ${_points(p.rating)}'),
-                        if (p != null) _Pill(Icons.group_rounded, '${p.friendsCount} ${_friendsWord(p.friendsCount)}'),
+                        const Icon(Icons.emoji_events_rounded, size: 20, color: heroGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          p == null || p.trophies.isEmpty ? 'Трофеї' : 'Трофеї · ${p.trophies.length}',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)]),
+                        ),
                       ],
                     ),
-                    if (card.relationLabel != null) ...[
-                      const SizedBox(height: 12),
-                      Text(card.relationLabel!, key: const ValueKey('friend-relation'), style: const TextStyle(color: AppTheme.accentOrange, fontWeight: FontWeight.w700)),
-                    ],
-                    if (p != null && !p.isMe && p.card.buttons.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: [for (final a in p.card.buttons) FriendActionChip(button: a, busy: _busy, onTap: () => _run(a))],
+                    const SizedBox(height: 10),
+                    if (p == null || p.trophies.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Text('Трофеїв поки немає', style: TextStyle(color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)])),
+                      )
+                    else
+                      TrophyShelfRow(
+                        onDark: true,
+                        items: [for (final t in p.trophies) (id: t.id, title: t.title, earned: true, progressLabel: null, onTap: null)],
                       ),
-                    ],
                   ],
                 ),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                child: p == null || p.trophies.isEmpty
-                    ? Row(
-                        children: [
-                          Icon(Icons.emoji_events_rounded, color: AppTheme.accentOrange.withValues(alpha: 0.8)),
-                          const SizedBox(width: 12),
-                          const Expanded(child: Text('Трофеїв поки немає', style: TextStyle(color: Colors.black54))),
-                        ],
-                      )
-                    : Column(
-                        key: const ValueKey('friend-trophies'),
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Трофеї · ${p.trophies.length}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [
-                              for (final t in p.trophies)
-                                Tooltip(message: t.title, child: TrophyBadge(id: t.id, earned: true, size: 56)),
-                            ],
-                          ),
-                        ],
-                      ),
+              ParchmentTile(
+                key: const ValueKey('friend-gifts'),
+                icon: Icons.card_giftcard_rounded,
+                title: 'Подарунки',
+                subtitle: 'Подарунки від друзів — скоро',
               ),
             ],
           ],
@@ -181,39 +186,4 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
       ),
     );
   }
-}
-
-String _points(int n) {
-  final m10 = n % 10, m100 = n % 100;
-  if (m10 == 1 && m100 != 11) return 'бал';
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'бали';
-  return 'балів';
-}
-
-String _friendsWord(int n) {
-  final m10 = n % 10, m100 = n % 100;
-  if (m10 == 1 && m100 != 11) return 'друг';
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'друзі';
-  return 'друзів';
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill(this.icon, this.text);
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: const Color(0xffeef4e6), borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: AppTheme.darkGreen),
-            const SizedBox(width: 4),
-            Text(text, style: const TextStyle(color: AppTheme.darkGreen, fontWeight: FontWeight.w600, fontSize: 13)),
-          ],
-        ),
-      );
 }

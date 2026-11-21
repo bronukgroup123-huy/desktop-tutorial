@@ -310,11 +310,14 @@ class _FriendTileState extends ConsumerState<FriendTile> {
 }
 
 class FriendActionChip extends StatelessWidget {
-  const FriendActionChip({super.key, required this.button, required this.busy, required this.onTap});
+  const FriendActionChip({super.key, required this.button, required this.busy, required this.onTap, this.onDark = false});
 
   final FriendActionButton button;
   final bool busy;
   final VoidCallback onTap;
+
+  /// На темній шапці профілю: головна — бурштинова, інші — кремовий контур.
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -325,13 +328,19 @@ class FriendActionChip extends StatelessWidget {
         ? FilledButton(
             key: key,
             onPressed: busy ? null : onTap,
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, padding: pad, visualDensity: VisualDensity.compact),
+            style: FilledButton.styleFrom(
+                backgroundColor: onDark ? AppTheme.accentOrange : AppTheme.darkGreen, foregroundColor: Colors.white, padding: pad, visualDensity: VisualDensity.compact),
             child: child,
           )
         : OutlinedButton(
             key: key,
             onPressed: busy ? null : onTap,
-            style: OutlinedButton.styleFrom(foregroundColor: AppTheme.darkGreen, padding: pad, visualDensity: VisualDensity.compact),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen,
+              side: onDark ? BorderSide(color: const Color(0xFFF4F1E1).withValues(alpha: 0.6)) : null,
+              padding: pad,
+              visualDensity: VisualDensity.compact,
+            ),
             child: child,
           );
   }

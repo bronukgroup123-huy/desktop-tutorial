@@ -238,16 +238,14 @@ async function profile(db: FriendsDb, me: Me, raw: string) {
   if (!row || !row.handle) throw new HttpError(404, "user_not_found", "Користувача не знайдено");
   const relation = row.id === me.id ? "none" : await relationOf(db, me.id, row.id);
   if (relation === "hidden") throw new HttpError(404, "user_not_found", "Користувача не знайдено");
-  const { data: cnt, error } = await db.rpc("friend_count", { p_user: row.id });
-  if (error) dbFail("friend_count", error);
   const card = userCard(row, relation);
   return {
     profile: {
       ...card,
       is_me: row.id === me.id,
       actions: row.id === me.id ? [] : card.actions,
-      rating: Number(row.rating ?? 0),
-      friends_count: Number(cnt ?? 0),
+      // Бали, прогрес і кількість друзів — лише власнику в його профілі (PO 2026-11-21):
+      // іншим — аватар із рівнем, трофеї й подарунки, більше нічого.
       // Отримані трофеї-медальйони (лише які й коли — без даних, з яких вони пораховані).
       trophies: earnedPublic(await loadEarned(db, row.id).catch(() => new Map<string, string>())),
       // Подарунки — B9.6; поки порожньо, щоб клієнт уже мав для них місце.

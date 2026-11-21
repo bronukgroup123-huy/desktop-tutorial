@@ -75,8 +75,7 @@ void main() {
             'profile': {
               ...card(petroId, 'Петро', 'friends', [act('remove', 'Видалити з друзів', 'menu', 'Видалити @Петро з друзів?'), report, block], label: 'У друзях'),
               'is_me': false,
-              'rating': 75,
-              'friends_count': 3,
+              'trophies': [{'id': 'first_find', 'title': 'Перша знахідка', 'earned_at': '2026-09-10T08:00:00Z'}],
             },
           },
         });
@@ -136,14 +135,19 @@ void main() {
     expect(find.byKey(const ValueKey('friend-action-cancel')), findsOneWidget);
   });
 
-  testWidgets('Профіль друга: рівень, бали, друзі; «Видалити з друзів» — лише після підтвердження', (tester) async {
+  testWidgets('Профіль друга: лише аватар із рівнем, трофеї й подарунки — без балів і друзів; «Видалити з друзів» — після підтвердження', (tester) async {
     await tester.pumpWidget(app(const FriendProfileScreen(userId: petroId)));
     await frames(tester);
     expect(find.text('@Петро'), findsWidgets);
     expect(find.text('Слідопит'), findsOneWidget);
-    expect(find.text('75 балів'), findsOneWidget);
-    expect(find.text('3 друзі'), findsOneWidget);
     expect(find.text('У друзях'), findsOneWidget);
+    final scroll = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('trophy-first_find')), 200, scrollable: scroll);
+    expect(find.byKey(const ValueKey('friend-trophies')), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('friend-gifts')), 200, scrollable: scroll);
+    expect(find.textContaining('бал'), findsNothing);
+    expect(find.textContaining(RegExp(r'\d+ друз')), findsNothing);
+    await tester.scrollUntilVisible(find.text('У друзях'), -200, scrollable: scroll);
 
     await tester.tap(find.byKey(const ValueKey('profile-menu')));
     await frames(tester);

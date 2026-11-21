@@ -70,8 +70,10 @@ HeroPalette heroPalette(String? levelId) => switch (levelId) {
           badge: [Color(0xFFF3EBD6), Color(0xFFD9CBA6)], badgeText: Color(0xFF4A3B1F)),
     };
 
-/// Тло шапки: ліс у світлі рівня, світіння за аватаром, промені й спори (статично).
-class ProfileHeroBackground extends StatelessWidget {
+/// Тло шапки: ліс у світлі рівня, світіння за аватаром, промені; спори в повітрі повільно
+/// пливуть угору й мерехтять (PO 2026-11-21). Анімований лише шар спор — окремим
+/// `RepaintBoundary`, решта малюється раз; у вимкнених анімаціях системи — нерухомо.
+class ProfileHeroBackground extends StatefulWidget {
   const ProfileHeroBackground({super.key, required this.child, this.levelId, this.glowCenterY = 0.36});
 
   final Widget child;
@@ -81,15 +83,50 @@ class ProfileHeroBackground extends StatelessWidget {
   final double glowCenterY;
 
   @override
+  State<ProfileHeroBackground> createState() => _ProfileHeroBackgroundState();
+}
+
+class _ProfileHeroBackgroundState extends State<ProfileHeroBackground> with SingleTickerProviderStateMixin {
+  late final AnimationController _spores = AnimationController(vsync: this, duration: const Duration(seconds: 14));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _spores.stop();
+    } else if (!_spores.isAnimating) {
+      _spores.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spores.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final p = heroPalette(levelId);
+    final p = heroPalette(widget.levelId);
     return ClipRRect(
       borderRadius: BorderRadius.circular(26),
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [p.top, p.bottom]),
         ),
-        child: CustomPaint(painter: _HeroPainter(glowCenterY, p), child: child),
+        child: CustomPaint(
+          painter: _HeroPainter(widget.glowCenterY, p),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: IgnorePointer(child: CustomPaint(painter: _SporesPainter(_spores, p.spore))),
+                ),
+              ),
+              widget.child,
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -134,16 +171,6 @@ class _HeroPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
       canvas.drawPath(path, ray);
     }
-    // спори в повітрі — сталий візерунок, без анімації
-    final rnd = math.Random(7);
-    final spore = Paint();
-    for (var i = 0; i < 34; i++) {
-      final o = Offset(rnd.nextDouble() * size.width, rnd.nextDouble() * size.height);
-      final sr = 0.8 + rnd.nextDouble() * 2.2;
-      spore.color = p.spore.withValues(alpha: 0.25 + rnd.nextDouble() * 0.45);
-      canvas.drawCircle(o, sr, spore);
-      if (sr > 2.2) canvas.drawCircle(o, sr * 3, Paint()..color = p.spore.withValues(alpha: 0.06));
-    }
     // темніше знизу — щоб текст читався
     final low = Rect.fromLTWH(0, size.height * 0.55, size.width, size.height * 0.45);
     canvas.drawRect(
@@ -154,6 +181,53 @@ class _HeroPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HeroPainter old) => old.glowY != glowY || old.p != p;
+}
+
+/// Спори: кожна пливе вгору зі своєю швидкістю, трохи гойдається і мерехтить; за верхнім
+/// краєм з'являється знизу знову.
+class _SporesPainter extends CustomPainter {
+  _SporesPainter(this.t, this.color) : super(repaint: t);
+
+  final Animation<double> t;
+  final Color color;
+
+  static final List<({double x, double y, double r, double speed, double sway, double phase, double a})> _spores = () {
+    final rnd = math.Random(7);
+    return [
+      for (var i = 0; i < 34; i++)
+        (
+          x: rnd.nextDouble(),
+          y: rnd.nextDouble(),
+          r: 0.8 + rnd.nextDouble() * 2.2,
+          speed: 1 + rnd.nextInt(2).toDouble(), // проходить висоту 1–2 рази за цикл
+          sway: 4 + rnd.nextDouble() * 10,
+          phase: rnd.nextDouble() * math.pi * 2,
+          a: 0.25 + rnd.nextDouble() * 0.45,
+        ),
+    ];
+  }();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final v = t.value;
+    final dot = Paint();
+    final halo = Paint();
+    for (final s in _spores) {
+      final y = ((s.y - v * s.speed * 0.5) % 1.0 + 1.0) % 1.0;
+      final angle = v * math.pi * 2 * s.speed + s.phase;
+      final o = Offset(s.x * size.width + math.sin(angle) * s.sway, y * size.height);
+      final twinkle = 0.6 + 0.4 * math.sin(angle * 2);
+      dot.color = color.withValues(alpha: s.a * twinkle);
+      canvas.drawCircle(o, s.r, dot);
+      if (s.r > 2.2) {
+        halo.color = color.withValues(alpha: 0.07 * twinkle);
+        canvas.drawCircle(o, s.r * 3, halo);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SporesPainter old) => old.color != color;
 }
 
 /// Значок рівня — стрічка в кольорі рамки рівня.
@@ -355,7 +429,9 @@ class ParchmentTile extends StatelessWidget {
   }
 }
 
-/// Вітрина трофеїв: темний оксамит у золотій рамці, медальйони сяють на ньому.
+/// Вітрина трофеїв — темна дубова поличка (PO 2026-11-21): задня стінка з дошок морного дуба
+/// (текстура `assets/textures/oak_dark.webp`: кільця, пори, промені, сучки — збирає
+/// `scripts/textures/oak.py`), рамка з того ж дуба, ще темніша, з фаскою.
 class TrophyShowcase extends StatelessWidget {
   const TrophyShowcase({super.key, required this.child});
 
@@ -363,29 +439,80 @@ class TrophyShowcase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const RadialGradient(center: Alignment(0, -0.6), radius: 1.3, colors: [Color(0xFF2A4A30), Color(0xFF122619)]),
-          border: Border.all(color: const Color(0xFFC9A45C), width: 1.5),
-          boxShadow: [BoxShadow(color: const Color(0xFF3B2A12).withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 5))],
+          borderRadius: BorderRadius.circular(18),
+          color: const Color(0xFF2A190C),
+          image: const DecorationImage(
+            image: AssetImage('assets/textures/oak_plank.webp'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Color(0x99140A03), BlendMode.darken),
+          ),
+          boxShadow: [BoxShadow(color: const Color(0xFF1E1208).withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 6))],
         ),
-        child: child,
+        padding: const EdgeInsets.all(6), // рамка
+        child: DecoratedBox(
+          // фаска рамки: світла кромка згори, темна знизу
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: const Color(0xFF9C6B3C).withValues(alpha: 0.55)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0xFF3A2414),
+                image: DecorationImage(image: AssetImage('assets/textures/oak_dark.webp'), fit: BoxFit.cover),
+              ),
+              child: DecoratedBox(
+                // тінь від рамки всередину
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(radius: 1.05, colors: [Colors.transparent, Color(0x66140A03)], stops: [0.6, 1]),
+                ),
+                child: Padding(padding: const EdgeInsets.fromLTRB(12, 12, 12, 8), child: child),
+              ),
+            ),
+          ),
+        ),
       );
 }
 
-/// Полиця під медальйонами — темне дерево з відблиском.
-class TrophyShelf extends StatelessWidget {
-  const TrophyShelf({super.key});
+/// Дубова полиця під медальйонами: верхня грань — світліша (на неї падає світло), передня —
+/// темніша, під полицею — тінь на задню стінку.
+class OakShelfPlank extends StatelessWidget {
+  const OakShelfPlank({super.key});
+
+  static const _wood = DecorationImage(image: AssetImage('assets/textures/oak_plank.webp'), fit: BoxFit.cover);
 
   @override
-  Widget build(BuildContext context) => Container(
-        height: 7,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFA9773F), Color(0xFF5E3A1A)]),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 6, offset: const Offset(0, 3))],
-        ),
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            height: 7,
+            decoration: const BoxDecoration(
+              color: Color(0xFF6E4524),
+              image: DecorationImage(
+                image: AssetImage('assets/textures/oak_plank.webp'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Color(0x40F2C48A), BlendMode.lighten),
+              ),
+            ),
+          ),
+          Container(
+            height: 1,
+            color: const Color(0xFFD9A86A).withValues(alpha: 0.55), // кромка
+          ),
+          Container(
+            height: 10,
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A2414),
+              image: _wood,
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 9, offset: const Offset(0, 5))],
+            ),
+            foregroundDecoration: const BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x22000000), Color(0x88140A03)]),
+            ),
+          ),
+        ],
       );
 }
 
