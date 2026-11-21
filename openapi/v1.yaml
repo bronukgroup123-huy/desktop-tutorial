@@ -39,6 +39,14 @@ paths:
           required: false
           description: 'Каталог деталей конструктора аватара з замками — відповідь { data: { categories: [{ id, label, optional, parts: [{ id, label, open, badge, lock_label }] }] } }'
           schema: { type: string, example: '1' }
+        - name: trophies
+          in: query
+          required: false
+          description: >-
+            Трофеї-медальйони (ADR-021 §21.10): сервер перераховує показники, записує нові й відповідає
+            { data: { trophies: [{ id, title, tier, tier_label, how_label, earned, earned_at, progress_label,
+            progress, soon }], earned_count, total, new_labels } }. Гість — 403 registration_required.
+          schema: { type: string, example: '1' }
       responses:
         '200':
           description: Профіль
@@ -967,6 +975,8 @@ paths:
                       label: { type: string, maxLength: 40 }
                 expected_return: { type: string, format: date-time }
                 guardian_ids: { type: array, items: { type: string, format: uuid }, maxItems: 3 }
+                checklist_done: { type: boolean, description: 'start: перед стартом пройдено чек-лист (трофей «Готовий до лісу»)' }
+                used_home_nav: { type: boolean, description: 'finish: повернулися за допомогою «Додому» (трофей «Своїм слідом»)' }
                 points:
                   type: array
                   maxItems: 500

@@ -2,6 +2,7 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
 import '../models/me.dart';
+import '../models/trophies.dart';
 
 /// Профіль і онбординг (`/v1-me`). Рішення «який екран далі» приймає сервер.
 ///
@@ -70,6 +71,10 @@ class MeRepository {
   Future<Me> setCustomAvatar(Map<String, String?> parts) => _patch({
         'avatar': {'kind': 'custom', ...parts},
       });
+
+  /// Трофеї-медальйони: сервер перераховує, записує нові й віддає каталог (за що й скільки).
+  Future<TrophiesOverview> trophies() async =>
+      TrophiesOverview.fromJson(await _api.get('/v1-me', query: {'trophies': '1'}) as Map<String, dynamic>);
 
   /// Каталог деталей конструктора з замками (рівень, «спори», Pro, сезон).
   Future<AvatarCatalog> avatarCatalog() async =>

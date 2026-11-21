@@ -177,6 +177,7 @@ void main() {
 
       final start = posted.firstWhere((b) => b['action'] == 'start');
       expect(start['guardian_ids'], [petro]);
+      expect(start['checklist_done'], false); // чек-лист сьогодні не пройдено
       expect((start['route'] as List).single, {'lat': 50.4, 'lng': 28.6, 'label': 'Машина'});
       expect(DateTime.parse(start['expected_return'] as String), DateTime(2026, 11, 20, 14).toUtc());
       expect(find.textContaining('Наглядач @Петро'), findsOneWidget);
@@ -217,7 +218,7 @@ void main() {
       // Зупинка запису треку завершується поза fake-часом тесту — даємо їй мить реального часу.
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
       await frames(tester);
-      expect(posted.last, {'action': 'finish', 'hike_id': hikeId});
+      expect(posted.last, {'action': 'finish', 'hike_id': hikeId, 'used_home_nav': false});
       expect(c.read(guardianSessionProvider).active, isFalse);
     });
 

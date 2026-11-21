@@ -14,6 +14,7 @@ import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
+import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailGraphProvider;
@@ -226,21 +227,10 @@ class _StatPill extends StatelessWidget {
       );
 }
 
-/// Досягнення — графічні артефакти-трофеї (медальйони) і подарунки від друзів (ADR-021 §21.3,
-/// §21.6). Нараховує сервер (B9.3, B9.6); поки їх немає — місце з «закритими» медальйонами,
-/// щоб було видно, що тут з'явиться.
+/// Трофеї-медальйони й подарунки від друзів (ADR-021 §21.2.2, §21.10). Трофеї рахує сервер
+/// (за що й скільки — у картці трофея); подарунки — B9.6.
 class _TrophiesCard extends StatelessWidget {
   const _TrophiesCard();
-
-  /// Майбутні трофеї: назва, значок, метал медальйона.
-  static const _upcoming = <(String, IconData, _Metal)>[
-    ('Перша знахідка', Icons.eco_rounded, _Metal.bronze),
-    ('Перший похід', Icons.hiking_rounded, _Metal.bronze),
-    ('Друг Наглядача', Icons.shield_moon_rounded, _Metal.silver),
-    ('10 видів', Icons.collections_rounded, _Metal.silver),
-    ('Далекий похід', Icons.explore_rounded, _Metal.gold),
-    ('Грибник сезону', Icons.emoji_events_rounded, _Metal.gold),
-  ];
 
   @override
   Widget build(BuildContext context) => Container(
@@ -250,35 +240,7 @@ class _TrophiesCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 96,
-              child: ListView.separated(
-                key: const ValueKey('profile-trophies-list'),
-                scrollDirection: Axis.horizontal,
-                itemCount: _upcoming.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (_, i) {
-                  final (label, icon, metal) = _upcoming[i];
-                  return SizedBox(
-                    width: 70,
-                    child: Column(
-                      children: [
-                        _TrophyMedal(icon: icon, metal: metal, locked: true, size: 62),
-                        const SizedBox(height: 4),
-                        Text(label,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 11, height: 1.15, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            Text('Трофеї нараховуватимуться за знахідки, походи й сезон — скоро',
-                style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.55))),
+            const TrophiesSection(),
             const Divider(height: 22),
             Row(
               key: const ValueKey('profile-gifts'),
@@ -305,67 +267,6 @@ class _TrophiesCard extends StatelessWidget {
           ],
         ),
       );
-}
-
-enum _Metal { bronze, silver, gold }
-
-/// Трофей-артефакт: медальйон із металевим обідком і значком; закритий — сірий із замочком.
-class _TrophyMedal extends StatelessWidget {
-  const _TrophyMedal({required this.icon, required this.metal, this.locked = false, this.size = 60});
-
-  final IconData icon;
-  final _Metal metal;
-  final bool locked;
-  final double size;
-
-  static const _colors = {
-    _Metal.bronze: [Color(0xffe2a06a), Color(0xff9c5a2b)],
-    _Metal.silver: [Color(0xffeef1f3), Color(0xff9aa4ab)],
-    _Metal.gold: [Color(0xffffe08a), Color(0xffc8901c)],
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    // Закритий — той самий метал, але приглушений: видно, бронзовий, срібний чи золотий трофей чекає.
-    final m = _colors[metal]!;
-    final c = locked ? [for (final x in m) Color.lerp(x, const Color(0xffd9dcd5), 0.6)!] : m;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: c),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 4, offset: const Offset(0, 2))],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(size * 0.12),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: locked ? const Color(0xfff1f2ee) : Colors.white.withValues(alpha: 0.35),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
-              ),
-              child: Center(child: Icon(icon, size: size * 0.38, color: locked ? Color.lerp(m[1], const Color(0xffa7aca2), 0.5) : c[1])),
-            ),
-          ),
-          if (locked)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const Icon(Icons.lock_rounded, size: 13, color: Color(0xff8d928a)),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Гість: що дає акаунт і вхід через Google / Apple (дані гостя переносяться).

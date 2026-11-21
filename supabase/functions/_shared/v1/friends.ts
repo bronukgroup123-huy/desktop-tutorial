@@ -28,6 +28,7 @@ import {
 } from "../http.ts";
 import { defaultAvatar, handleKey, levelOf, normalizeApostrophes } from "./profile-rules.ts";
 import { publicAvatar } from "./avatar-catalog.ts";
+import { earnedPublic, loadEarned } from "./trophy-catalog.ts";
 
 export interface FriendsDb {
   // deno-lint-ignore no-explicit-any
@@ -247,8 +248,9 @@ async function profile(db: FriendsDb, me: Me, raw: string) {
       actions: row.id === me.id ? [] : card.actions,
       rating: Number(row.rating ?? 0),
       friends_count: Number(cnt ?? 0),
-      // Трофеї й подарунки — B9.3 / B9.6; поки порожні, щоб клієнт уже мав місце для них.
-      trophies: [],
+      // Отримані трофеї-медальйони (лише які й коли — без даних, з яких вони пораховані).
+      trophies: earnedPublic(await loadEarned(db, row.id).catch(() => new Map<string, string>())),
+      // Подарунки — B9.6; поки порожньо, щоб клієнт уже мав для них місце.
       gifts: [],
     },
   };
