@@ -95,11 +95,12 @@ Deno.test("v1-friends GET ?user: мене заблокували → 404 (бло
   assertEquals((await res.json()).error, "user_not_found");
 });
 
-Deno.test("v1-friends GET ?user: публічний профіль без області й координат", async () => {
-  const d = db({ "rpc.friend_relation": { data: "friends", error: null }, "rpc.friend_count": { data: 12, error: null } });
+Deno.test("v1-friends GET ?user: публічний профіль — без області, координат, балів і кількості друзів", async () => {
+  const d = db({ "rpc.friend_relation": { data: "friends", error: null } });
   const { data } = await (await run(d, req("GET", `${URL}?user=${PETRO}`))).json();
   assertEquals(data.profile.handle, "Петро");
-  assertEquals(data.profile.friends_count, 12);
+  assertEquals(data.profile.level, { id: "tracker", label: "Слідопит" });
+  assertEquals(["rating", "friends_count", "progress_label"].filter((k) => k in data.profile), []);
   assertEquals(data.profile.relation_label, "У друзях");
   assertEquals("home_region" in data.profile, false);
   assertEquals(data.profile.trophies, []);

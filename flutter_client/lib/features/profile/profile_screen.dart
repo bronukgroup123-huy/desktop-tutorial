@@ -165,14 +165,7 @@ class _TrophiesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const TrophyShowcase(
         key: ValueKey('profile-trophies'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TrophiesSection(onDark: true),
-            SizedBox(height: 4),
-            TrophyShelf(),
-          ],
-        ),
+        child: TrophiesSection(onDark: true),
       );
 }
 

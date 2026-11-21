@@ -805,13 +805,12 @@ paths:
                       results: { type: array, items: { $ref: '#/components/schemas/FriendCard' } }
                       hint_label: { type: [string, 'null'] }
                       profile:
+                        description: 'Публічний профіль — лише аватар із рівнем, трофеї й подарунки; без балів, прогресу й кількості друзів (PO 2026-11-21)'
                         allOf:
                           - $ref: '#/components/schemas/FriendCard'
                           - type: object
                             properties:
                               is_me: { type: boolean }
-                              rating: { type: integer }
-                              friends_count: { type: integer }
                               trophies: { type: array, items: { type: object } }
                               gifts: { type: array, items: { type: object } }
         '403': { $ref: '#/components/responses/Error' }

@@ -32,6 +32,7 @@ class FriendCard {
     this.name,
     required this.avatar,
     required this.levelLabel,
+    this.levelId,
     required this.relation,
     this.relationLabel,
     this.actions = const [],
@@ -43,6 +44,7 @@ class FriendCard {
         name: opt<String>(json, 'name'),
         avatar: Avatar.fromJson(req<Map<String, dynamic>>(json, 'avatar')),
         levelLabel: (opt<Map<String, dynamic>>(json, 'level') ?? const {})['label'] as String? ?? '',
+        levelId: (opt<Map<String, dynamic>>(json, 'level') ?? const {})['id'] as String?,
         relation: opt<String>(json, 'relation') ?? 'none',
         relationLabel: opt<String>(json, 'relation_label'),
         actions: [
@@ -55,6 +57,9 @@ class FriendCard {
   final String? name;
   final Avatar avatar;
   final String levelLabel;
+
+  /// traveler … master — для кольору шапки й значка рівня.
+  final String? levelId;
 
   /// none | outgoing | incoming | friends | blocked
   final String relation;
@@ -94,15 +99,14 @@ class FriendsOverview {
   final String? limitLabel;
 }
 
-/// Публічний профіль (§21.2): нік, ім'я, аватар, рівень, рейтинг, друзі; трофеї — згодом.
+/// Публічний профіль (§21.2; PO 2026-11-21): аватар із ніком, ім'ям і рівнем, трофеї й
+/// подарунки — більше нічого (бали, прогрес і друзі — лише власнику).
 class FriendProfile {
-  const FriendProfile({required this.card, required this.isMe, required this.rating, required this.friendsCount, this.trophies = const []});
+  const FriendProfile({required this.card, required this.isMe, this.trophies = const []});
 
   factory FriendProfile.fromJson(Map<String, dynamic> json) => FriendProfile(
         card: FriendCard.fromJson(json),
         isMe: opt<bool>(json, 'is_me') ?? false,
-        rating: (opt<num>(json, 'rating') ?? 0).toInt(),
-        friendsCount: (opt<num>(json, 'friends_count') ?? 0).toInt(),
         trophies: [
           for (final t in (opt<List<dynamic>>(json, 'trophies') ?? const []).cast<Map<String, dynamic>>())
             (id: t['id'] as String, title: t['title'] as String? ?? ''),
@@ -111,8 +115,6 @@ class FriendProfile {
 
   final FriendCard card;
   final bool isMe;
-  final int rating;
-  final int friendsCount;
 
   /// Отримані трофеї (id картинки, назва) — найновіші перші.
   final List<({String id, String title})> trophies;

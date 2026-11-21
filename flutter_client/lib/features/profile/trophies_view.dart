@@ -5,6 +5,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/profile/profile_hero.dart';
 
 /// Медальйон-трофей: картинка з `assets/trophies`; ще не отримано — блідий, сірий, із замочком.
 class TrophyBadge extends StatelessWidget {
@@ -85,7 +86,7 @@ class TrophiesSection extends ConsumerWidget {
               const Icon(Icons.emoji_events_rounded, size: 20, color: Color(0xFFF9C66B)),
               const SizedBox(width: 6),
             ],
-            Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, fontSize: onDark ? 15.5 : 14, color: ink)),
+            Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, fontSize: onDark ? 15.5 : 14, color: ink, shadows: onDark ? _woodShadow : null)),
             const Spacer(),
             if (data != null)
               Text('${data.earnedCount} з ${data.total}',
@@ -103,50 +104,86 @@ class TrophiesSection extends ConsumerWidget {
             ),
           )
         else
-          SizedBox(
-            height: 112,
-            child: ListView.separated(
-              key: const ValueKey('profile-trophies-list'),
-              scrollDirection: Axis.horizontal,
-              itemCount: data.trophies.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final t = data.trophies[i];
-                return InkWell(
-                  key: ValueKey('trophy-${t.id}'),
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => showTrophySheet(context, t),
-                  child: SizedBox(
-                    width: 72,
-                    child: Column(
-                      children: [
-                        DecoratedBox(
-                          // на вітрині отримані медальйони сяють
-                          decoration: onDark && t.earned
-                              ? BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: const Color(0xFFF9C66B).withValues(alpha: 0.45), blurRadius: 16)])
-                              : const BoxDecoration(),
-                          child: TrophyBadge(id: t.id, earned: t.earned, size: 64),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(t.title,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              height: 1.15,
-                              fontWeight: t.earned ? FontWeight.w700 : FontWeight.w400,
-                              color: ink.withValues(alpha: t.earned ? 0.9 : 0.6),
-                            )),
-                        if (!t.earned && t.progressLabel != null)
-                          Text(t.progressLabel!, style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFF9C66B) : const Color(0xffb45309), fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          TrophyShelfRow(
+            key: const ValueKey('profile-trophies-list'),
+            onDark: onDark,
+            items: [
+              for (final t in data.trophies)
+                (id: t.id, title: t.title, earned: t.earned, progressLabel: t.progressLabel, onTap: () => showTrophySheet(context, t)),
+            ],
           ),
       ],
+    );
+  }
+}
+
+const _woodShadow = [Shadow(color: Color(0xAA2B180A), blurRadius: 4, offset: Offset(0, 1))];
+
+typedef TrophyShelfItem = ({String id, String title, bool earned, String? progressLabel, VoidCallback? onTap});
+
+/// Ряд медальйонів. На дубовій поличці ([onDark]) медальйони стоять на полиці, отримані
+/// сяють, підписи — світлі з тінню; інакше — просто ряд.
+class TrophyShelfRow extends StatelessWidget {
+  const TrophyShelfRow({super.key, required this.items, this.onDark = false});
+
+  final List<TrophyShelfItem> items;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen;
+    const badge = 64.0;
+    final list = ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 10),
+      itemBuilder: (_, i) {
+        final t = items[i];
+        return InkWell(
+          key: ValueKey('trophy-${t.id}'),
+          borderRadius: BorderRadius.circular(12),
+          onTap: t.onTap,
+          child: SizedBox(
+            width: 72,
+            child: Column(
+              children: [
+                DecoratedBox(
+                  decoration: onDark && t.earned
+                      ? BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: const Color(0xFFF9C66B).withValues(alpha: 0.5), blurRadius: 16)])
+                      : const BoxDecoration(),
+                  child: TrophyBadge(id: t.id, earned: t.earned, size: badge),
+                ),
+                SizedBox(height: onDark ? 20 : 4), // на поличці підпис — під дошкою
+                Text(t.title,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.15,
+                      fontWeight: t.earned ? FontWeight.w700 : FontWeight.w500,
+                      color: ink.withValues(alpha: t.earned ? 0.95 : 0.7),
+                      shadows: onDark ? _woodShadow : null,
+                    )),
+                if (!t.earned && t.progressLabel != null)
+                  Text(t.progressLabel!,
+                      style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFFFD98A) : const Color(0xffb45309), fontWeight: FontWeight.w700, shadows: onDark ? _woodShadow : null)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!onDark) return SizedBox(height: 112, child: list);
+    // Полиця на всю ширину; медальйони стоять на її верхній грані.
+    return SizedBox(
+      height: 128,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned(left: -12, right: -12, top: badge - 6, child: OakShelfPlank()),
+          list,
+        ],
+      ),
     );
   }
 }
