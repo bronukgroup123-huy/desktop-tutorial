@@ -40,13 +40,13 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           if (guest) const _GuestCard() else _Header(me: me),
           if (!guest) ...[
-            const _Section('Мій сезон'),
-            _SeasonCard(me: me),
+            const _Section('Трофеї й подарунки'),
+            const _TrophiesCard(),
             const _Section('Друзі'),
             const _FriendsTile(),
           ],
           const _Section('Дані без інтернету'),
-          const _OfflineData(),
+          const _OfflineGroup(),
           const _Section('Налаштування'),
           _Tile(
             key: const ValueKey('profile-region'),
@@ -154,6 +154,19 @@ class _Header extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(level.label, key: const ValueKey('profile-level'), style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xffb45309))),
                       ),
+                    // Підтверджені знахідки й бали рейтингу — коротко, під ніком.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Wrap(
+                        key: const ValueKey('profile-stats'),
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _StatPill(icon: Icons.verified_rounded, text: '${me.totalVerifiedPicks} ${_plural(me.totalVerifiedPicks, 'знахідка', 'знахідки', 'знахідок')}'),
+                          _StatPill(icon: Icons.star_rounded, text: '${me.rating} ${_plural(me.rating, 'бал', 'бали', 'балів')}'),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -185,26 +198,172 @@ class _Header extends ConsumerWidget {
   }
 }
 
-class _SeasonCard extends StatelessWidget {
-  const _SeasonCard({required this.me});
+String _plural(int n, String one, String few, String many) {
+  final m10 = n % 10, m100 = n % 100;
+  if (m10 == 1 && m100 != 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
 
-  final Me me;
+class _StatPill extends StatelessWidget {
+  const _StatPill({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(color: const Color(0xffeef4e6), borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppTheme.darkGreen),
+            const SizedBox(width: 3),
+            Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
+          ],
+        ),
+      );
+}
+
+/// Досягнення — графічні артефакти-трофеї (медальйони) і подарунки від друзів (ADR-021 §21.3,
+/// §21.6). Нараховує сервер (B9.3, B9.6); поки їх немає — місце з «закритими» медальйонами,
+/// щоб було видно, що тут з'явиться.
+class _TrophiesCard extends StatelessWidget {
+  const _TrophiesCard();
+
+  /// Майбутні трофеї: назва, значок, метал медальйона.
+  static const _upcoming = <(String, IconData, _Metal)>[
+    ('Перша знахідка', Icons.eco_rounded, _Metal.bronze),
+    ('Перший похід', Icons.hiking_rounded, _Metal.bronze),
+    ('Друг Наглядача', Icons.shield_moon_rounded, _Metal.silver),
+    ('10 видів', Icons.collections_rounded, _Metal.silver),
+    ('Далекий похід', Icons.explore_rounded, _Metal.gold),
+    ('Грибник сезону', Icons.emoji_events_rounded, _Metal.gold),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('profile-trophies'),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 96,
+              child: ListView.separated(
+                key: const ValueKey('profile-trophies-list'),
+                scrollDirection: Axis.horizontal,
+                itemCount: _upcoming.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) {
+                  final (label, icon, metal) = _upcoming[i];
+                  return SizedBox(
+                    width: 70,
+                    child: Column(
+                      children: [
+                        _TrophyMedal(icon: icon, metal: metal, locked: true, size: 62),
+                        const SizedBox(height: 4),
+                        Text(label,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, height: 1.15, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            Text('Трофеї нараховуватимуться за знахідки, походи й сезон — скоро',
+                style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.55))),
+            const Divider(height: 22),
+            Row(
+              key: const ValueKey('profile-gifts'),
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: const Color(0xfffdf0dc), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.card_giftcard_rounded, color: Color(0xffd97706)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Подарунки', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
+                      Text('Тут будуть подарунки від друзів — скоро',
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+enum _Metal { bronze, silver, gold }
+
+/// Трофей-артефакт: медальйон із металевим обідком і значком; закритий — сірий із замочком.
+class _TrophyMedal extends StatelessWidget {
+  const _TrophyMedal({required this.icon, required this.metal, this.locked = false, this.size = 60});
+
+  final IconData icon;
+  final _Metal metal;
+  final bool locked;
+  final double size;
+
+  static const _colors = {
+    _Metal.bronze: [Color(0xffe2a06a), Color(0xff9c5a2b)],
+    _Metal.silver: [Color(0xffeef1f3), Color(0xff9aa4ab)],
+    _Metal.gold: [Color(0xffffe08a), Color(0xffc8901c)],
+  };
 
   @override
   Widget build(BuildContext context) {
-    Widget stat(String value, String label) => Expanded(
-          child: Column(
-            children: [
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.darkGreen)),
-              Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
-            ],
+    // Закритий — той самий метал, але приглушений: видно, бронзовий, срібний чи золотий трофей чекає.
+    final m = _colors[metal]!;
+    final c = locked ? [for (final x in m) Color.lerp(x, const Color(0xffd9dcd5), 0.6)!] : m;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: c),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 4, offset: const Offset(0, 2))],
+            ),
           ),
-        );
-    return Container(
-      key: const ValueKey('profile-season'),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Row(children: [stat('${me.totalVerifiedPicks}', 'підтверджених\nзнахідок'), stat('${me.rating}', 'балів\nрейтингу')]),
+          Padding(
+            padding: EdgeInsets.all(size * 0.12),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: locked ? const Color(0xfff1f2ee) : Colors.white.withValues(alpha: 0.35),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
+              ),
+              child: Center(child: Icon(icon, size: size * 0.38, color: locked ? Color.lerp(m[1], const Color(0xffa7aca2), 0.5) : c[1])),
+            ),
+          ),
+          if (locked)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: const Icon(Icons.lock_rounded, size: 13, color: Color(0xff8d928a)),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -299,6 +458,59 @@ class _GuestCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// «Офлайн дані» — кнопка з підсумком (скільки з чотирьох уже на телефоні й скільки місця);
+/// натиснули — розгортається список: карта, стежки, фото довідника, ШІ.
+class _OfflineGroup extends ConsumerStatefulWidget {
+  const _OfflineGroup();
+
+  @override
+  ConsumerState<_OfflineGroup> createState() => _OfflineGroupState();
+}
+
+class _OfflineGroupState extends ConsumerState<_OfflineGroup> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final slug = ref.watch(meProvider.select((m) => m.valueOrNull?.homeRegion?.slug));
+    final map = slug == null ? null : ref.watch(localBasemapProvider(slug)).valueOrNull;
+    final trails = slug == null ? null : ref.watch(_trailsMetaProvider(slug)).valueOrNull;
+    final photos = ref.watch(catalogOfflineProvider);
+    final ai = ref.watch(aiModelProvider);
+    final ready = [map != null, trails != null, photos.complete, ai.ready].where((x) => x).length;
+    final bytes = (map?.meta.bytes ?? 0) + (trails ?? 0) + photos.savedBytes + (ai.installed?.totalBytes ?? 0);
+    final summary = '$ready з 4 на телефоні${bytes > 0 ? ' · ${_OfflineData.mb(bytes)}' : ''}';
+    return Column(
+      children: [
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          child: ListTile(
+            key: const ValueKey('profile-offline'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            leading: Icon(ready == 4 ? Icons.offline_pin_rounded : Icons.cloud_download_rounded,
+                color: ready == 4 ? const Color(0xff2e7d32) : AppTheme.darkGreen),
+            title: const Text('Офлайн дані', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+            subtitle: Text(summary, key: const ValueKey('profile-offline-summary')),
+            trailing: AnimatedRotation(
+              turns: _open ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.expand_more_rounded, color: AppTheme.darkGreen),
+            ),
+            onTap: () => setState(() => _open = !_open),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: _open ? const Padding(padding: EdgeInsets.only(top: 8), child: _OfflineData()) : const SizedBox(width: double.infinity),
+        ),
+      ],
     );
   }
 }

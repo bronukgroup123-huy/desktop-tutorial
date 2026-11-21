@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +39,11 @@ class ForecastScreen extends ConsumerWidget {
     // Живий фон «Ліс за матовим склом» на всю вкладку, за картками (рішення PO 2026-11-20).
     return Stack(children: [
       const Positioned.fill(child: ForecastBackground()),
-      Scaffold(
+      // Гортають — фон на паузі (вкладка не підлагує); картки — окремим шаром.
+      NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: RepaintBoundary(
+          child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
@@ -79,8 +85,24 @@ class ForecastScreen extends ConsumerWidget {
                     ),
                   )
                 : _AreaPage(overview: data, area: area!),
+          ),
+        ),
       ),
     ]);
+  }
+
+  /// Прокрутка почалась — фон на паузі; закінчилась — через мить знову рухається.
+  static Timer? _resume;
+
+  static bool _onScroll(ScrollNotification n) {
+    if (n is ScrollStartNotification || (n is ScrollUpdateNotification && n.dragDetails != null)) {
+      _resume?.cancel();
+      ForecastBackground.busy.value = true;
+    } else if (n is ScrollEndNotification) {
+      _resume?.cancel();
+      _resume = Timer(const Duration(milliseconds: 350), () => ForecastBackground.busy.value = false);
+    }
+    return false;
   }
 }
 
