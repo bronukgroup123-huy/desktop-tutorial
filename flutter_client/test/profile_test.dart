@@ -132,8 +132,9 @@ void main() {
     expect(find.text('120 балів · ще 81 бал до рівня «Лісовик»'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-guest')), findsNothing);
     // Знахідки й бали — коротко під ніком; на місці «Мого сезону» — трофеї й подарунки.
-    expect(find.text('7 знахідок'), findsOneWidget);
-    expect(find.text('120 балів'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('profile-stats')), matching: find.text('7')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('profile-stats')), matching: find.text('знахідок')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('profile-stats')), matching: find.text('балів')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-season')), findsNothing);
     expect(find.byKey(const ValueKey('profile-trophies')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-gifts')), findsOneWidget);
@@ -152,9 +153,9 @@ void main() {
     expect(find.text('Житомирська область'), findsOneWidget);
 
     // Аватар — готова картинка з рамкою рівня, більший; дотик — вибір аватара.
-    await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 3000));
+    await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 5000));
     await frames(tester);
-    expect(tester.getSize(find.byType(UserAvatar).first).width, 104);
+    expect(tester.getSize(find.byType(UserAvatar).first).width, 208); // удвічі більший (PO 2026-11-21)
     await tester.tap(find.byKey(const ValueKey('profile-avatar')));
     await frames(tester);
     expect(find.byType(AvatarPickerScreen), findsOneWidget);
