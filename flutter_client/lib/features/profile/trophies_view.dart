@@ -61,7 +61,10 @@ class TrophyBadge extends StatelessWidget {
 
 /// «Трофеї» у профілі: ряд медальйонів (отримані — згори), «N з 24», дотик — за що й скільки.
 class TrophiesSection extends ConsumerWidget {
-  const TrophiesSection({super.key});
+  const TrophiesSection({super.key, this.onDark = false});
+
+  /// На темній вітрині профілю — світлі підписи й сяйво за отриманими.
+  final bool onDark;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -72,17 +75,22 @@ class TrophiesSection extends ConsumerWidget {
       if (labels.isNotEmpty && prev?.valueOrNull?.newLabels != labels) showToast(context, labels.join('\n'));
     });
     final data = async.valueOrNull;
+    final ink = onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
+            if (onDark) ...[
+              const Icon(Icons.emoji_events_rounded, size: 20, color: Color(0xFFF9C66B)),
+              const SizedBox(width: 6),
+            ],
+            Text('Трофеї', style: TextStyle(fontWeight: FontWeight.w800, fontSize: onDark ? 15.5 : 14, color: ink)),
             const Spacer(),
             if (data != null)
               Text('${data.earnedCount} з ${data.total}',
                   key: const ValueKey('profile-trophies-count'),
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: onDark ? const Color(0xFFF9C66B) : AppTheme.darkGreen.withValues(alpha: 0.7))),
           ],
         ),
         const SizedBox(height: 10),
@@ -91,7 +99,7 @@ class TrophiesSection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
               async.isLoading ? 'Завантажуємо трофеї…' : 'Трофеї покажемо, щойно з\'явиться інтернет',
-              style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+              style: TextStyle(fontSize: 12.5, color: ink.withValues(alpha: 0.6)),
             ),
           )
         else
@@ -112,7 +120,13 @@ class TrophiesSection extends ConsumerWidget {
                     width: 72,
                     child: Column(
                       children: [
-                        TrophyBadge(id: t.id, earned: t.earned, size: 64),
+                        DecoratedBox(
+                          // на вітрині отримані медальйони сяють
+                          decoration: onDark && t.earned
+                              ? BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: const Color(0xFFF9C66B).withValues(alpha: 0.45), blurRadius: 16)])
+                              : const BoxDecoration(),
+                          child: TrophyBadge(id: t.id, earned: t.earned, size: 64),
+                        ),
                         const SizedBox(height: 4),
                         Text(t.title,
                             maxLines: 2,
@@ -121,10 +135,10 @@ class TrophiesSection extends ConsumerWidget {
                               fontSize: 11,
                               height: 1.15,
                               fontWeight: t.earned ? FontWeight.w700 : FontWeight.w400,
-                              color: AppTheme.darkGreen.withValues(alpha: t.earned ? 0.9 : 0.6),
+                              color: ink.withValues(alpha: t.earned ? 0.9 : 0.6),
                             )),
                         if (!t.earned && t.progressLabel != null)
-                          Text(t.progressLabel!, style: const TextStyle(fontSize: 10.5, color: Color(0xffb45309), fontWeight: FontWeight.w600)),
+                          Text(t.progressLabel!, style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFF9C66B) : const Color(0xffb45309), fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
