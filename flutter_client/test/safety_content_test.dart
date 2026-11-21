@@ -80,6 +80,7 @@ void main() {
                   available: available,
                   updatedAt: DateTime(2026, 11, 18, 19, 41),
                   alerts: available ? [(slug: 'zhytomyrska', scope: 'oblast', title: 'Повітряна тривога в області')] : <AirAlert>[],
+                  offline: false,
                 ))),
           ],
         );
@@ -94,12 +95,14 @@ void main() {
     expect(find.byKey(const ValueKey('air-alert')), findsOneWidget);
     expect(find.byKey(const ValueKey('air-alert-clear')), findsNothing);
     expect(find.textContaining('Відійдіть від доріг'), findsOneWidget);
-    // Сервер без ключа чи без зв'язку — ні банера, ні рядка (не обманюємо «тривоги немає»).
+    // Даних немає зовсім (ні з сервера, ні збережених) — не обманюємо «тривоги немає», але й
+    // місце не зникає: рядок «немає даних».
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(withAlerts('zhytomyrska', 'Житомирська область', available: false));
     await tester.pump();
     expect(find.byKey(const ValueKey('air-alert')), findsNothing);
     expect(find.byKey(const ValueKey('air-alert-clear')), findsNothing);
+    expect(find.byKey(const ValueKey('air-alert-unknown')), findsOneWidget);
   });
 
   testWidgets('Чек-лист: позначки на сьогодні зберігаються; готовність без інтернету — з кнопкою завантажити', (tester) async {

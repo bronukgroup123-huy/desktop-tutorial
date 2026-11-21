@@ -133,43 +133,100 @@ final homeRegionNameProvider = Provider<String?>((ref) => ref.watch(meProvider.s
 /// Повітряна тривога в області застосунку (ADR-022 §22.5 п.5): `scope` — `oblast` (уся) або `part`.
 typedef AirAlert = ({String slug, String scope, String title});
 
-/// Стан тривог: [available] — сервер має свіжі дані (є ключ і зв'язок із alerts.in.ua);
-/// [updatedAt] — коли дані оновлено; [alerts] — тривоги (лише область застосунку).
-typedef AirAlertState = ({bool available, DateTime? updatedAt, List<AirAlert> alerts});
+/// Стан тривог: [available] — є дані (сервер має ключ і зв'язок із alerts.in.ua, або є збережені
+/// на телефоні); [updatedAt] — коли дані оновлено на сервері; [alerts] — тривоги (лише область
+/// застосунку); [offline] — свіжих даних зараз немає (немає інтернету), показано останні збережені.
+typedef AirAlertState = ({bool available, DateTime? updatedAt, List<AirAlert> alerts, bool offline});
 
-const kNoAirAlertData = (available: false, updatedAt: null, alerts: <AirAlert>[]);
+const kNoAirAlertData = (available: false, updatedAt: null, alerts: <AirAlert>[], offline: false);
 
-/// Тривоги з `GET v1-air-alerts`; оновлюється раз на хвилину, поки вкладка відкрита.
-/// Без мережі / без ключа на сервері — `available: false` (ні банера, ні рядка стану).
+/// Як часто оновлювати тривоги, поки вкладка «Безпека» відкрита.
+Duration airAlertsRefresh = const Duration(minutes: 1);
+
+String _airKey(String? slug) => 'air_alerts_${slug ?? 'all'}';
+
+Map<String, dynamic> _airJson(AirAlertState s) => {
+      'updated_at': s.updatedAt?.toUtc().toIso8601String(),
+      'regions': [for (final a in s.alerts) {'slug': a.slug, 'scope': a.scope, 'title': a.title}],
+    };
+
+AirAlertState _airFrom(Map<String, dynamic> data, {bool offline = false}) => (
+      available: true,
+      updatedAt: DateTime.tryParse((data['updated_at'] as String?) ?? '')?.toLocal(),
+      alerts: [
+        for (final r in (data['regions'] as List? ?? const []).cast<Map<String, dynamic>>())
+          (slug: r['slug'] as String, scope: (r['scope'] as String?) ?? 'oblast', title: r['title'] as String),
+      ],
+      offline: offline,
+    );
+
+/// Тривоги з `GET v1-air-alerts` (оновлення раз на хвилину, поки банер на екрані).
+///
+/// Банер не зникає й не «блимає»: стан живе, поки застосунок відкритий (прокрутка вкладки
+/// чи перехід на іншу не скидає його), останні дані зберігаються на телефоні й показуються одразу
+/// після запуску та без інтернету — з позначкою «немає зв'язку · дані на HH:MM».
 final airAlertsProvider = StreamProvider.autoDispose<AirAlertState>((ref) {
+  ref.keepAlive();
   final api = ref.watch(apiClientProvider);
+  final store = ref.watch(localStoreProvider);
   // Сервер бере один список на всю Україну й віддає лише область застосунку.
   final slug = ref.watch(homeRegionSlugProvider);
   final controller = StreamController<AirAlertState>();
+  AirAlertState? last;
+
+  void emit(AirAlertState s) {
+    last = s;
+    if (!controller.isClosed) controller.add(s);
+  }
+
   Future<void> load() async {
     try {
       final data = await api.get('/v1-air-alerts', query: slug == null ? null : {'region': slug}) as Map<String, dynamic>;
       if (data['available'] != true) {
-        controller.add(kNoAirAlertData);
+        // Сервер без ключа чи без зв'язку з alerts.in.ua: якщо є збережене — лишаємо його з позначкою.
+        final l = last;
+        emit(l != null && l.available ? (available: true, updatedAt: l.updatedAt, alerts: l.alerts, offline: true) : kNoAirAlertData);
         return;
       }
-      controller.add((
-        available: true,
-        updatedAt: DateTime.tryParse((data['updated_at'] as String?) ?? '')?.toLocal(),
-        alerts: [
-          for (final r in (data['regions'] as List? ?? const []).cast<Map<String, dynamic>>())
-            (slug: r['slug'] as String, scope: (r['scope'] as String?) ?? 'oblast', title: r['title'] as String),
-        ],
-      ));
+      final s = _airFrom(data);
+      emit(s);
+      try {
+        await store.write(_airKey(slug), _airJson(s));
+      } catch (_) {}
     } catch (_) {
-      if (!controller.isClosed) controller.add(kNoAirAlertData);
+      // Немає інтернету — останні дані лишаються на місці.
+      final l = last;
+      if (l != null && l.available) {
+        emit((available: true, updatedAt: l.updatedAt, alerts: l.alerts, offline: true));
+      } else if (l == null) {
+        emit(kNoAirAlertData);
+      }
     }
   }
 
-  load();
-  final timer = Timer.periodic(const Duration(minutes: 1), (_) => load());
+  Timer? timer;
+  void start() {
+    timer?.cancel();
+    timer = Timer.periodic(airAlertsRefresh, (_) => load());
+  }
+
+  // Спершу — збережене на телефоні (миттєво й без інтернету), потім — із сервера.
+  () async {
+    try {
+      final saved = await store.read(_airKey(slug));
+      if (saved?.data is Map && last == null) emit(_airFrom((saved!.data as Map).cast<String, dynamic>(), offline: true));
+    } catch (_) {}
+    await load();
+  }();
+  start();
+  // Банер сховано (інша вкладка) — не опитуємо сервер; повернулися — одразу оновити.
+  ref.onCancel(() => timer?.cancel());
+  ref.onResume(() {
+    load();
+    start();
+  });
   ref.onDispose(() {
-    timer.cancel();
+    timer?.cancel();
     controller.close();
   });
   return controller.stream;

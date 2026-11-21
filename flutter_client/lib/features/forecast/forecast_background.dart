@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,10 +16,20 @@ import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduce
 ///
 /// Зупиняється сам, коли вкладка прихована (go_router вимикає TickerMode неактивних гілок);
 /// без анімацій у системі — нерухомий кадр. Ресурси: `scripts/forecast_bg/`.
+///
+/// Щоб вкладка не підлагувала (PO 2026-11-21): рух повільний, тож фон перемальовується не
+/// щокадру, а ~20 разів на секунду ([fps]); поки користувач гортає вкладку ([busy]), фон стоїть —
+/// уся потужність телефону йде на прокрутку карток.
 class ForecastBackground extends StatefulWidget {
   const ForecastBackground({super.key});
 
   static const loop = Duration(seconds: 30);
+
+  /// Скільки разів на секунду перемальовувати фон.
+  static const fps = 20;
+
+  /// Гортають вкладку — фон на паузі (виставляє ForecastScreen зі сповіщень прокрутки).
+  static final busy = ValueNotifier<bool>(false);
 
   @override
   State<ForecastBackground> createState() => _ForecastBackgroundState();
@@ -26,16 +37,29 @@ class ForecastBackground extends StatefulWidget {
 
 class _ForecastBackgroundState extends State<ForecastBackground> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(vsync: this, duration: ForecastBackground.loop);
+
+  /// Момент петлі, який малюємо: оновлюється з [_c] не частіше [ForecastBackground.fps].
+  final _frame = ValueNotifier<double>(kForecastBgStill);
+  static final double _step = 1 / (ForecastBackground.loop.inMilliseconds / 1000 * ForecastBackground.fps);
   ForecastBgImages? _images;
 
   @override
   void initState() {
     super.initState();
+    _c.value = kForecastBgStill;
+    _c.addListener(_tick);
+    ForecastBackground.busy.addListener(_sync);
     ForecastBgImages.load().then((i) {
       if (!mounted) return;
       setState(() => _images = i);
       _sync();
     });
+  }
+
+  void _tick() {
+    final v = _c.value;
+    // Новий кадр — коли минуло ≥ 1/fps (і коли петля почалася спочатку: різниця велика).
+    if ((v - _frame.value).abs() >= _step) _frame.value = v;
   }
 
   @override
@@ -51,6 +75,9 @@ class _ForecastBackgroundState extends State<ForecastBackground> with SingleTick
       _c
         ..stop()
         ..value = kForecastBgStill;
+      _frame.value = kForecastBgStill;
+    } else if (ForecastBackground.busy.value) {
+      _c.stop(); // гортають — стоїмо на поточному кадрі
     } else if (!_c.isAnimating) {
       _c.repeat();
     }
@@ -58,7 +85,9 @@ class _ForecastBackgroundState extends State<ForecastBackground> with SingleTick
 
   @override
   void dispose() {
+    ForecastBackground.busy.removeListener(_sync);
     _c.dispose();
+    _frame.dispose();
     super.dispose();
   }
 
@@ -70,7 +99,7 @@ class _ForecastBackgroundState extends State<ForecastBackground> with SingleTick
           ? const ColoredBox(key: ValueKey('forecast-bg-loading'), color: kForecastBgColor)
           : CustomPaint(
               key: const ValueKey('forecast-bg'),
-              painter: ForecastBgPainter(images, _c),
+              painter: ForecastBgPainter(images, _frame),
               size: Size.infinite,
             ),
     );
@@ -112,7 +141,9 @@ class ForecastBgPainter extends CustomPainter {
   ForecastBgPainter(this.img, this.t) : super(repaint: t);
 
   final ForecastBgImages img;
-  final Animation<double> t;
+
+  /// Момент петлі 0…1.
+  final ValueListenable<double> t;
 
   /// Простір макета: малюємо в 540×1200 і вписуємо в екран «cover».
   static const w = 540.0, h = 1200.0;

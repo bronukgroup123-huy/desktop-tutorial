@@ -18,6 +18,9 @@ import 'data/fake_adapter.dart';
 import 'data/models_test.dart' show meJson;
 import 'safety_test.dart' show frames;
 
+/// Вертикальна прокрутка вкладки «Профіль» (усередині є горизонтальний ряд трофеїв).
+final profileScroll = find.descendant(of: find.byKey(const ValueKey('profile-list')), matching: find.byType(Scrollable)).first;
+
 Map<String, dynamic> registered({String? handle = 'Олена_лісова', bool handleAllowed = true}) => {
       ...meJson(region: {'id': 1, 'slug': 'zhytomyrska', 'name': 'Житомирська область'}),
       'is_guest': false,
@@ -130,8 +133,14 @@ void main() {
     expect(find.text('Слідопит'), findsOneWidget);
     expect(find.text('120 балів · ще 81 бал до рівня «Лісовик»'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-guest')), findsNothing);
+    // Знахідки й бали — коротко під ніком; на місці «Мого сезону» — трофеї й подарунки.
+    expect(find.text('7 знахідок'), findsOneWidget);
+    expect(find.text('120 балів'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-season')), findsNothing);
+    expect(find.byKey(const ValueKey('profile-trophies')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-gifts')), findsOneWidget);
     // Область — лише мені, у налаштуваннях (у публічному профілі її немає).
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-region')), 200, scrollable: profileScroll);
     expect(find.text('Житомирська область'), findsOneWidget);
 
     await tester.drag(find.byKey(const ValueKey('profile-list')), const Offset(0, 3000));
@@ -150,7 +159,12 @@ void main() {
     expect(find.byKey(const ValueKey('profile-guest')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-google')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-header')), findsNothing);
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('data-ai')), 200);
+    // Офлайн дані — згорнуті під кнопкою; натиснули — список.
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-offline')), 200, scrollable: profileScroll);
+    expect(find.byKey(const ValueKey('data-map')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('profile-offline')));
+    await frames(tester);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('data-ai')), 200, scrollable: profileScroll);
     expect(find.byKey(const ValueKey('data-map')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-delete')), findsNothing);
   });
@@ -178,7 +192,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app(const ProfileScreen(), registered()));
     await frames(tester);
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 300);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('profile-delete')), 300, scrollable: profileScroll);
     await tester.tap(find.byKey(const ValueKey('profile-delete')));
     await frames(tester);
     expect(find.byKey(const ValueKey('delete-confirm')), findsOneWidget);

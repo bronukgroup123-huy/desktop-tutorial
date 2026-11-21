@@ -124,29 +124,31 @@ class AirAlertBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final slug = ref.watch(homeRegionSlugProvider);
-    final state = ref.watch(airAlertsProvider).valueOrNull ?? kNoAirAlertData;
+    final async = ref.watch(airAlertsProvider);
+    // Поки перший раз вантажимо — тримаємо місце рядка, щоб вкладка не «стрибала».
+    final state = async.valueOrNull;
+    if (slug == null) return const SizedBox.shrink();
+    if (state == null) return const _AirStatusRow(key: ValueKey('air-alert-loading'), text: 'Перевіряємо повітряну тривогу…', icon: Icons.sync_rounded);
+    if (!state.available) {
+      return const _AirStatusRow(
+        key: ValueKey('air-alert-unknown'),
+        text: 'Повітряна тривога: дані зараз недоступні',
+        icon: Icons.cloud_off_rounded,
+        muted: true,
+      );
+    }
     final alert = state.alerts.where((a) => a.slug == slug).firstOrNull;
-    if (slug == null || !state.available) return const SizedBox.shrink();
+    final at = state.updatedAt;
+    final hm = at == null ? null : '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+    final stamp = state.offline ? ' · немає зв\'язку${hm == null ? '' : ', дані на $hm'}' : (hm == null ? '' : ' · оновлено $hm');
     if (alert == null) {
       // Тривоги немає — спокійний рядок: видно, що перевірка працює і для якої області.
       final region = ref.watch(homeRegionNameProvider) ?? 'Ваша область';
-      final at = state.updatedAt;
-      final time = at == null ? '' : ' · оновлено ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
-      return Padding(
+      return _AirStatusRow(
         key: const ValueKey('air-alert-clear'),
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            const Icon(Icons.verified_user_rounded, size: 18, color: Color(0xff2e7d32)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                '$region: повітряної тривоги немає$time',
-                style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)),
-              ),
-            ),
-          ],
-        ),
+        text: '$region: повітряної тривоги немає$stamp',
+        icon: state.offline ? Icons.cloud_off_rounded : Icons.verified_user_rounded,
+        muted: state.offline,
       );
     }
     final content = ref.watch(safetyContentProvider).valueOrNull;
@@ -165,6 +167,12 @@ class AirAlertBanner extends ConsumerWidget {
               Expanded(child: Text(alert.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15))),
             ],
           ),
+          if (state.offline)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, left: 32),
+              child: Text(stamp.replaceFirst(' · ', ''),
+                  key: const ValueKey('air-alert-offline'), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
           for (final t in content?.airAlertTips ?? const <String>[])
             Padding(
               padding: const EdgeInsets.only(top: 4, left: 32),
@@ -174,6 +182,28 @@ class AirAlertBanner extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _AirStatusRow extends StatelessWidget {
+  const _AirStatusRow({super.key, required this.text, required this.icon, this.muted = false});
+
+  final String text;
+  final IconData icon;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: muted ? AppTheme.darkGreen.withValues(alpha: 0.5) : const Color(0xff2e7d32)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(text, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: muted ? 0.6 : 0.75))),
+            ),
+          ],
+        ),
+      );
 }
 
 /// Небезпечна погода сьогодні на ділянці (ADR-022 §22.3 п.12): гроза з годинами, спека, мороз —
