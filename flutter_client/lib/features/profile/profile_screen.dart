@@ -13,6 +13,7 @@ import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
+import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -108,6 +109,8 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+/// Шапка профілю в стилі аватарів: великий аватар (208, PO 2026-11-21) у золотому світлі лісу,
+/// ім'я, @нік, рівень кольором рамки, знахідки й бали, прогрес до наступного рівня.
 class _Header extends ConsumerWidget {
   const _Header({required this.me});
 
@@ -116,86 +119,83 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final level = me.level;
-    return Container(
+    return ProfileHeroBackground(
       key: const ValueKey('profile-header'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Аватар більший (PO 2026-11-21); дотик — вибір готового аватара.
-              GestureDetector(
-                key: const ValueKey('profile-avatar'),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    UserAvatar(avatar: me.avatar, size: 104),
-                    Positioned(
-                      right: 2,
-                      bottom: 2,
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(color: AppTheme.darkGreen, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                        child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
-                      ),
+      glowCenterY: 0.27,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Дотик по аватару — вибір готового аватара.
+                Center(
+                  child: GestureDetector(
+                    key: const ValueKey('profile-avatar'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        UserAvatar(avatar: me.avatar, size: 208),
+                        Positioned(
+                          right: 14,
+                          bottom: 14,
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppTheme.darkGreen,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: heroGold, width: 2),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 6)],
+                            ),
+                            child: const Icon(Icons.edit_rounded, size: 16, color: heroCream),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  me.name ?? '',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.merriweather(fontSize: 22, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+                ),
+                if (me.handle != null)
+                  Text('@${me.handle}', key: const ValueKey('profile-handle'), textAlign: TextAlign.center, style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 14)),
+                if (level != null) ...[
+                  const SizedBox(height: 10),
+                  Center(child: LevelBadge(key: const ValueKey('profile-level'), levelId: level.id, label: level.label)),
+                ],
+                const SizedBox(height: 14),
+                // Підтверджені знахідки й бали рейтингу.
+                Row(
+                  key: const ValueKey('profile-stats'),
+                  children: [
+                    Expanded(child: HeroStat(icon: Icons.verified_rounded, value: '${me.totalVerifiedPicks}', label: _plural(me.totalVerifiedPicks, 'знахідка', 'знахідки', 'знахідок'))),
+                    const SizedBox(width: 10),
+                    Expanded(child: HeroStat(icon: Icons.star_rounded, value: '${me.rating}', label: _plural(me.rating, 'бал', 'бали', 'балів'))),
                   ],
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(me.name ?? '', style: GoogleFonts.merriweather(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
-                    if (me.handle != null) Text('@${me.handle}', key: const ValueKey('profile-handle'), style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
-                    if (level != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(level.label, key: const ValueKey('profile-level'), style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xffb45309))),
-                      ),
-                    // Підтверджені знахідки й бали рейтингу — коротко, під ніком.
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Wrap(
-                        key: const ValueKey('profile-stats'),
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          _StatPill(icon: Icons.verified_rounded, text: '${me.totalVerifiedPicks} ${_plural(me.totalVerifiedPicks, 'знахідка', 'знахідки', 'знахідок')}'),
-                          _StatPill(icon: Icons.star_rounded, text: '${me.rating} ${_plural(me.rating, 'бал', 'бали', 'балів')}'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
+                if (level != null) ...[
+                  const SizedBox(height: 14),
+                  HeroProgress(value: level.progress(me.rating), label: level.progressLabel),
+                ],
+              ],
+            ),
+            Positioned(
+              top: -6,
+              right: -6,
+              child: IconButton(
                 key: const ValueKey('profile-edit'),
                 tooltip: 'Змінити ім\'я й нік',
-                icon: const Icon(Icons.edit_note_rounded, color: AppTheme.darkGreen),
+                icon: const Icon(Icons.edit_note_rounded, color: heroCream),
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditIdentityScreen())),
               ),
-            ],
-          ),
-          if (level != null) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: level.progress(me.rating),
-                minHeight: 8,
-                color: const Color(0xffd97706),
-                backgroundColor: const Color(0xffd97706).withValues(alpha: 0.15),
-              ),
             ),
-            const SizedBox(height: 6),
-            Text(level.progressLabel, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75))),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -208,27 +208,6 @@ String _plural(int n, String one, String few, String many) {
   return many;
 }
 
-class _StatPill extends StatelessWidget {
-  const _StatPill({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: const Color(0xffeef4e6), borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: AppTheme.darkGreen),
-            const SizedBox(width: 3),
-            Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.darkGreen)),
-          ],
-        ),
-      );
-}
-
 /// Трофеї-медальйони й подарунки від друзів (ADR-021 §21.2.2, §21.10). Трофеї рахує сервер
 /// (за що й скільки — у картці трофея); подарунки — B9.6.
 class _TrophiesCard extends StatelessWidget {
@@ -238,7 +217,7 @@ class _TrophiesCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         key: const ValueKey('profile-trophies'),
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        decoration: profileCardDecoration(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -321,27 +300,31 @@ class _GuestCard extends ConsumerWidget {
         showToast(context, authErrorMessage(e, action: 'увійти через Google'), isError: true);
       }
     });
-    return Container(
+    return ProfileHeroBackground(
       key: const ValueKey('profile-guest'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: Column(
+      glowCenterY: 0.2,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Створіть профіль', style: GoogleFonts.merriweather(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          // Перший «Мандрівник» — яким буде аватар після входу.
+          const Center(child: UserAvatar(avatar: Avatar(), size: 160)),
           const SizedBox(height: 8),
+          Text('Створіть профіль', textAlign: TextAlign.center, style: GoogleFonts.merriweather(fontSize: 21, fontWeight: FontWeight.bold, color: heroCream)),
+          const SizedBox(height: 10),
           for (final t in const [
-            'Ім\'я, нік і свій грибний аватар',
+            'Ім\'я, нік і свій грибний аватар — 40 героїв за рівнями',
             'Друзі й Наглядач у поході',
-            'Рейтинг, рівні й публічні точки',
+            'Рейтинг, рівні, трофеї й публічні точки',
             'Ваші точки й ділянки збережуться',
           ])
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 5),
               child: Row(children: [
-                const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xff2e7d32)),
+                const Icon(Icons.check_circle_rounded, size: 18, color: heroGold),
                 const SizedBox(width: 8),
-                Expanded(child: Text(t)),
+                Expanded(child: Text(t, style: const TextStyle(color: heroCream))),
               ]),
             ),
           const SizedBox(height: 10),
@@ -350,7 +333,7 @@ class _GuestCard extends ConsumerWidget {
             onPressed: () => _google(context, ref),
             icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
             label: const Text('Увійти через Google'),
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, padding: const EdgeInsets.symmetric(vertical: 12)),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.accentOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -358,8 +341,10 @@ class _GuestCard extends ConsumerWidget {
             onPressed: () => showToast(context, 'Вхід через Apple — скоро'),
             icon: const Icon(Icons.apple_rounded),
             label: const Text('Увійти через Apple'),
+            style: OutlinedButton.styleFrom(foregroundColor: heroCream, side: BorderSide(color: heroCream.withValues(alpha: 0.6))),
           ),
         ],
+        ),
       ),
     );
   }
@@ -390,8 +375,8 @@ class _OfflineGroupState extends ConsumerState<_OfflineGroup> {
     return Column(
       children: [
         Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: const Color(0xFFFFFCF3),
+          shape: profileCardShape(),
           child: ListTile(
             key: const ValueKey('profile-offline'),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -523,8 +508,8 @@ class _DataRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: const Color(0xFFFFFCF3),
+          shape: profileCardShape(),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
             child: Row(
@@ -559,10 +544,7 @@ class _Section extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 18, bottom: 8),
-        child: Text(title, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
-      );
+  Widget build(BuildContext context) => ProfileSectionTitle(title);
 }
 
 /// «Друзі» — скільки друзів і нових запитів (із сервера); без інтернету — просто вхід.
@@ -601,8 +583,8 @@ class _Tile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = danger ? const Color(0xffc62828) : AppTheme.darkGreen;
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      color: const Color(0xFFFFFCF3),
+      shape: profileCardShape(),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         leading: Icon(icon, color: color),
