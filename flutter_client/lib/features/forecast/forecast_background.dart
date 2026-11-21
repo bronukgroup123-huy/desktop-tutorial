@@ -147,12 +147,18 @@ class ForecastBgPainter extends CustomPainter {
     final tt = t.value;
     final k = math.max(size.width / w, size.height / h);
     canvas.save();
-    canvas.translate((size.width - w * k) / 2, (size.height - h * k) / 2);
+    // Низ картинки (гриби з травою) — рівно на нижньому краю вкладки, над панеллю навігації;
+    // якщо картинка вища за екран, обрізається верх, а не гриби (рішення PO 2026-11-21).
+    canvas.translate((size.width - w * k) / 2, size.height - h * k);
     canvas.scale(k);
     const full = Rect.fromLTWH(0, 0, w, h);
+    // Скільки картинки сховано згори: сонце, хмарка, гілка, запотівання й краплі — від видимого верху.
+    final top = math.max(0.0, h - size.height / k);
+    final vis = h - top;
 
     // 1. Ліс у тумані за матовим склом (зерно й розмиття вже в картинці).
     _image(canvas, img.base, full, Paint()..filterQuality = FilterQuality.medium);
+    if (top > 0) canvas.translate(0, top);
 
     // 2. Хмарка пропливає двічі за петлю; перед сонцем — сонце тьмяніє.
     final ct = (tt * 2) % 1;
@@ -192,7 +198,7 @@ class ForecastBgPainter extends CustomPainter {
     }
 
     // 5. Запотівання по краях — повільно «дихає».
-    _image(canvas, img.fog, full, _tint(const Color(0xFFF8F6EB), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
+    _image(canvas, img.fog, Rect.fromLTWH(0, 0, w, vis), _tint(const Color(0xFFF8F6EB), 0.62 * (0.88 + 0.12 * math.sin(2 * math.pi * tt))));
 
     // 6. Сонце світить крізь скло; тьмяніє, коли хмарка перед ним.
     for (final (r, a) in [(300.0, 0.55 * (1 - 0.65 * cover)), (110.0, 0.45 * (1 - 0.8 * cover))]) {
@@ -266,7 +272,7 @@ class ForecastBgPainter extends CustomPainter {
 
     // 10. Дрібні краплі на склі; під відблиском — яскравіші.
     for (var i = 0; i < _drops.length; i++) {
-      final p = _drops[i];
+      final p = Offset(_drops[i].dx, _drops[i].dy * vis / h);
       final g = glareOn <= 0 ? 0.0 : math.exp(-math.pow(((p.dy - gy) + (p.dx - w) * 0.6) / 140, 2)) * ((p.dx - w * 0.35) / (w * 0.65)).clamp(0.0, 1.0) * glareOn;
       _drop(canvas, p, _dropR[i], 1 + 3 * g, 1);
     }
