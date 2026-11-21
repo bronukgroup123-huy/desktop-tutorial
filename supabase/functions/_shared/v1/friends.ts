@@ -26,8 +26,8 @@ import {
   type AuthUser,
   type TokenVerifier,
 } from "../http.ts";
-import { defaultAvatar, handleKey, levelOf, normalizeApostrophes } from "./profile-rules.ts";
-import { publicAvatar } from "./avatar-catalog.ts";
+import { handleKey, levelOf, normalizeApostrophes } from "./profile-rules.ts";
+import { publicAvatar } from "./avatars.ts";
 import { earnedPublic, loadEarned } from "./trophy-catalog.ts";
 
 export interface FriendsDb {
@@ -131,7 +131,7 @@ export function userCard(row: UserRow, relation: Relation) {
     id: row.id,
     handle: row.handle,
     name: row.name,
-    avatar: publicAvatar(row.avatar ?? defaultAvatar(row.id)),
+    avatar: publicAvatar(row.avatar),
     level: { id: level.id, label: level.label },
     relation,
     relation_label: RELATION_LABEL[relation],

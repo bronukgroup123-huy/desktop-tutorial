@@ -26,7 +26,7 @@ import 'support/memory_store.dart';
 const petro = '22222222-2222-4222-8222-222222222222';
 const olena = '11111111-1111-4111-8111-111111111111';
 const hikeId = '99999999-9999-4999-8999-999999999999';
-const avatar = {'kind': 'custom', 'sticker': 'kind', 'hat': null, 'item': null, 'fx': null};
+const avatar = {'kind': 'preset', 'id': 'default'};
 
 Map<String, dynamic> person(String id, String handle, {String? status}) => {
       'id': id,

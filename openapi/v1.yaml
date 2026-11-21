@@ -34,11 +34,6 @@ paths:
             Перевірити, чи вільний нік (підказка під полем вводу) — тоді відповідь
             `{ data: { handle, available, reason } }` замість профілю.
           schema: { type: string, example: Олена_лісова }
-        - name: avatar_catalog
-          in: query
-          required: false
-          description: 'Каталог деталей конструктора аватара з замками — відповідь { data: { categories: [{ id, label, optional, parts: [{ id, label, open, badge, lock_label }] }] } }'
-          schema: { type: string, example: '1' }
         - name: trophies
           in: query
           required: false
@@ -1055,7 +1050,7 @@ components:
         id: { type: string, format: uuid }
         handle: { type: string, example: Олена_лісова }
         name: { type: [string, 'null'] }
-        avatar: { type: object, description: Наліпка-аватар (kind custom) }
+        avatar: { type: object, description: 'Готовий аватар { kind: preset, id }; id default — заглушка' }
         level:
           type: object
           properties:
@@ -1092,13 +1087,10 @@ components:
         handle: { type: [string, 'null'], description: "Нік без «@»; у гостя — null" }
         avatar:
           type: object
-          description: 'Завжди наліпка (ADR-021 §21.7); старий «стандартний» гриб — безкоштовним персонажем'
+          description: 'Готовий аватар (ADR-021 §21.7, PO 2026-11-21; конструктора немає). id default — заглушка (застосунок малює силует); старі наліпки й стандартні гриби — теж default'
           properties:
-            kind: { type: string, enum: [custom] }
-            sticker: { type: string, example: laugh }
-            hat: { type: [string, 'null'] }
-            item: { type: [string, 'null'] }
-            fx: { type: [string, 'null'] }
+            kind: { type: string, enum: [preset] }
+            id: { type: string, example: default }
         level:
           type: object
           description: Рівень за рейтингом (ADR-013) і підпис прогресу
@@ -1152,15 +1144,11 @@ components:
         handle: { type: string, minLength: 3, maxLength: 20, description: "Нік без «@», українськими літерами" }
         avatar:
           type: object
-          required: [kind]
-          description: 'custom — наліпка: персонаж + капелюх, річ, ефект ("none"/null — без); закрита — 403 avatar_part_locked. standard (1…20) — лише для старих застосунків'
+          required: [kind, id]
+          description: 'Готовий аватар зі списку; невідомий — 400 invalid_avatar, ще не відкритий рівнем — 403 avatar_locked'
           properties:
-            kind: { type: string, enum: [custom, standard] }
-            sticker: { type: string }
-            hat: { type: [string, 'null'] }
-            item: { type: [string, 'null'] }
-            fx: { type: [string, 'null'] }
-            id: { type: integer, minimum: 1, maximum: 20 }
+            kind: { type: string, enum: [preset] }
+            id: { type: string }
         home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
         accept_terms_version: { type: string }
 

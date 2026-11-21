@@ -169,8 +169,7 @@ Deno.test("v1-me GET: після Google без ніка (ім'я з Google ла�
   const { data } = await (await run(d, req("GET", URL))).json();
   assertEquals(data.onboarding.next_step, "profile");
   assertEquals(data.name, null); // латиницю не показуємо — людина введе ім'я українською
-  assertEquals(data.avatar.kind, "custom"); // за замовчуванням — безкоштовна наліпка
-  assertEquals(typeof data.avatar.sticker, "string");
+  assertEquals(data.avatar, { kind: "preset", id: "default" }); // поки готових аватарів немає — заглушка
   assertEquals(data.level.label, "Мандрівник");
   const guest = await (await run(db({ ...consented, "users.select": { data: fresh, error: null } }), req("GET", URL), true)).json();
   assertEquals(guest.data.onboarding.next_step, "done");
@@ -233,22 +232,34 @@ Deno.test("v1-me GET ?check_handle: вільний / зайнятий / неко
   assertEquals([bad.data.available, bad.data.reason], [false, "Нік — лише українськими літерами, без латиниці"]);
 });
 
-Deno.test("v1-me: конструктор — каталог із замками; закрита деталь → 403; відкрита — зберігається", async () => {
-  const cat = await (await run(db(), req("GET", `${URL}?avatar_catalog=1`))).json();
-  const hats = cat.data.categories.find((c: { id: string }) => c.id === "hat");
-  assertEquals(hats.parts.find((p: { id: string }) => p.id === "ranger").lock_label, "З рівня «Лісовик»");
-  const locked = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", sticker: "cosmic" } }));
-  assertEquals([locked.status, (await locked.json()).error], [403, "avatar_part_locked"]);
-  const d = db();
-  const saved = await run(d, req("PATCH", URL, { avatar: { kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: "none" } }));
-  assertEquals(saved.status, 200);
-  assertEquals((find(d, "users.update")?.args[0] as Record<string, unknown>).avatar, {
-    kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: null,
-  });
+Deno.test("v1-me: конструктора більше немає — аватар лише готовий зі списку; наліпка конструктора → 400", async () => {
+  const custom = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", sticker: "dizzy" } }));
+  assertEquals([custom.status, (await custom.json()).error], [400, "invalid_avatar"]);
+  const unknown = await run(db(), req("PATCH", URL, { avatar: { kind: "preset", id: "nope" } }));
+  assertEquals(unknown.status, 400);
 });
 
-Deno.test("v1-me GET: старий «стандартний» гриб показується наліпкою", async () => {
-  const d = db({ ...consented, "users.select": { data: { ...userRow(10), avatar: { kind: "standard", id: 3 } }, error: null } });
-  const { data } = await (await run(d, req("GET", URL))).json();
-  assertEquals(data.avatar, { kind: "custom", sticker: "wow", hat: null, item: null, fx: null });
+Deno.test("v1-me GET: старі аватари (стандартний гриб, наліпка конструктора) показуються заглушкою", async () => {
+  for (const old of [{ kind: "standard", id: 3 }, { kind: "custom", sticker: "wow", hat: "cap" }]) {
+    const d = db({ ...consented, "users.select": { data: { ...userRow(10), avatar: old }, error: null } });
+    const { data } = await (await run(d, req("GET", URL))).json();
+    assertEquals(data.avatar, { kind: "preset", id: "default" });
+  }
+});
+
+Deno.test("Готові аватари: вибір лише зі списку й за рівнем", async () => {
+  const { PRESET_AVATARS, validatePresetAvatar } = await import("../../functions/_shared/v1/avatars.ts");
+  PRESET_AVATARS.push({ id: "traveler_01", title: "Мандрівник", level: "traveler" }, { id: "keeper_01", title: "Хранитель", level: "keeper" });
+  try {
+    assertEquals(validatePresetAvatar({ kind: "preset", id: "traveler_01" }, 0), { kind: "preset", id: "traveler_01" });
+    let code = "";
+    try {
+      validatePresetAvatar({ kind: "preset", id: "keeper_01" }, 120);
+    } catch (e) {
+      code = (e as { code: string }).code;
+    }
+    assertEquals(code, "avatar_locked");
+  } finally {
+    PRESET_AVATARS.length = 0;
+  }
 });

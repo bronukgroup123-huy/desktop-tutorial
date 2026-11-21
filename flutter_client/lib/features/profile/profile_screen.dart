@@ -12,7 +12,6 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/core/auth_errors.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
-import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -125,24 +124,7 @@ class _Header extends ConsumerWidget {
         children: [
           Row(
             children: [
-              GestureDetector(
-                key: const ValueKey('profile-avatar'),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
-                child: Stack(
-                  children: [
-                    UserAvatar(avatar: me.avatar, size: 76),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: AppTheme.darkGreen, shape: BoxShape.circle),
-                        child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              UserAvatar(key: const ValueKey('profile-avatar'), avatar: me.avatar, size: 76),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

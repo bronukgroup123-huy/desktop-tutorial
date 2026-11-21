@@ -67,18 +67,9 @@ class MeRepository {
   /// Ім'я й нік (ADR-021 §21.2.1). 409 handle_taken / handle_change_too_soon — у [ApiException].
   Future<Me> updateIdentity({required String name, required String handle}) => _patch({'name': name, 'handle': handle});
 
-  /// Аватар-наліпка: персонаж + деталі; закрита деталь — 403 avatar_part_locked з причиною.
-  Future<Me> setCustomAvatar(Map<String, String?> parts) => _patch({
-        'avatar': {'kind': 'custom', ...parts},
-      });
-
   /// Трофеї-медальйони: сервер перераховує, записує нові й віддає каталог (за що й скільки).
   Future<TrophiesOverview> trophies() async =>
       TrophiesOverview.fromJson(await _api.get('/v1-me', query: {'trophies': '1'}) as Map<String, dynamic>);
-
-  /// Каталог деталей конструктора з замками (рівень, «спори», Pro, сезон).
-  Future<AvatarCatalog> avatarCatalog() async =>
-      AvatarCatalog.fromJson(await _api.get('/v1-me', query: {'avatar_catalog': '1'}) as Map<String, dynamic>);
 
   /// Чи вільний нік — підказка під полем вводу.
   Future<({bool available, String? reason})> checkHandle(String handle) async {
