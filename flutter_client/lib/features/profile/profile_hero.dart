@@ -429,8 +429,9 @@ class ParchmentTile extends StatelessWidget {
   }
 }
 
-/// Вітрина трофеїв — дубова поличка (PO 2026-11-21): задня стінка з дубових дощок із
-/// волокнами й сучками, рамка з темнішого дуба.
+/// Вітрина трофеїв — темна дубова поличка (PO 2026-11-21): задня стінка з дошок морного дуба
+/// (текстура `assets/textures/oak_dark.webp`: кільця, пори, промені, сучки — збирає
+/// `scripts/textures/oak.py`), рамка з того ж дуба, ще темніша, з фаскою.
 class TrophyShowcase extends StatelessWidget {
   const TrophyShowcase({super.key, required this.child});
 
@@ -440,89 +441,47 @@ class TrophyShowcase extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF7A4E26), Color(0xFF4E2F14)]),
-          boxShadow: [BoxShadow(color: const Color(0xFF3B2A12).withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6))],
+          color: const Color(0xFF2A190C),
+          image: const DecorationImage(
+            image: AssetImage('assets/textures/oak_plank.webp'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Color(0x99140A03), BlendMode.darken),
+          ),
+          boxShadow: [BoxShadow(color: const Color(0xFF1E1208).withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 6))],
         ),
-        padding: const EdgeInsets.all(5), // рамка
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(13),
-          child: CustomPaint(
-            painter: const _OakPainter(),
-            child: Padding(padding: const EdgeInsets.fromLTRB(12, 12, 12, 8), child: child),
+        padding: const EdgeInsets.all(6), // рамка
+        child: DecoratedBox(
+          // фаска рамки: світла кромка згори, темна знизу
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: const Color(0xFF9C6B3C).withValues(alpha: 0.55)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0xFF3A2414),
+                image: DecorationImage(image: AssetImage('assets/textures/oak_dark.webp'), fit: BoxFit.cover),
+              ),
+              child: DecoratedBox(
+                // тінь від рамки всередину
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(radius: 1.05, colors: [Colors.transparent, Color(0x66140A03)], stops: [0.6, 1]),
+                ),
+                child: Padding(padding: const EdgeInsets.fromLTRB(12, 12, 12, 8), child: child),
+              ),
+            ),
           ),
         ),
       );
 }
 
-/// Дубові дошки: тепле дерево, хвилясті волокна, кілька сучків; тінь від рамки.
-class _OakPainter extends CustomPainter {
-  const _OakPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const planks = 3;
-    final h = size.height / planks;
-    final rnd = math.Random(11);
-    const tones = [Color(0xFFA8743F), Color(0xFF9B6935), Color(0xFFB07B44)];
-    for (var i = 0; i < planks; i++) {
-      final rect = Rect.fromLTWH(0, i * h, size.width, h);
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [tones[i], Color.lerp(tones[i], const Color(0xFF5E3A1A), 0.25)!])
-              .createShader(rect),
-      );
-      // волокна
-      final grain = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
-      for (var g = 0; g < 9; g++) {
-        final y0 = rect.top + rnd.nextDouble() * h;
-        final amp = 1.5 + rnd.nextDouble() * 3;
-        final len = 40 + rnd.nextDouble() * 60;
-        grain.color = const Color(0xFF4A2C12).withValues(alpha: 0.10 + rnd.nextDouble() * 0.12);
-        final path = Path()..moveTo(0, y0);
-        for (var x = 0.0; x <= size.width; x += 8) {
-          path.lineTo(x, y0 + math.sin(x / len * math.pi * 2 + g) * amp);
-        }
-        canvas.drawPath(path, grain);
-      }
-      // сучок
-      if (i != 1) {
-        final k = Offset(size.width * (0.2 + rnd.nextDouble() * 0.6), rect.top + h * (0.3 + rnd.nextDouble() * 0.4));
-        for (var ring = 3; ring >= 1; ring--) {
-          canvas.drawOval(
-            Rect.fromCenter(center: k, width: 9.0 * ring, height: 4.0 * ring),
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1
-              ..color = const Color(0xFF4A2C12).withValues(alpha: 0.18),
-          );
-        }
-        canvas.drawOval(Rect.fromCenter(center: k, width: 6, height: 3), Paint()..color = const Color(0xFF4A2C12).withValues(alpha: 0.35));
-      }
-      // шов між дошками
-      if (i > 0) {
-        canvas.drawLine(Offset(0, rect.top), Offset(size.width, rect.top), Paint()..color = const Color(0xFF3B220E).withValues(alpha: 0.45)..strokeWidth = 1.2);
-        canvas.drawLine(Offset(0, rect.top + 1.2), Offset(size.width, rect.top + 1.2), Paint()..color = const Color(0xFFD9A86A).withValues(alpha: 0.25));
-      }
-    }
-    // тінь від рамки всередину
-    final inner = Offset.zero & size;
-    canvas.drawRect(
-      inner,
-      Paint()
-        ..shader = const RadialGradient(radius: 0.9, colors: [Colors.transparent, Color(0x553B220E)], stops: [0.65, 1]).createShader(inner),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_OakPainter old) => false;
-}
-
-/// Дубова полиця під медальйонами: верхня грань світліша, передня — з тінню під собою.
+/// Дубова полиця під медальйонами: верхня грань — світліша (на неї падає світло), передня —
+/// темніша, під полицею — тінь на задню стінку.
 class OakShelfPlank extends StatelessWidget {
   const OakShelfPlank({super.key});
+
+  static const _wood = DecorationImage(image: AssetImage('assets/textures/oak_plank.webp'), fit: BoxFit.cover);
 
   @override
   Widget build(BuildContext context) => Column(
@@ -530,14 +489,27 @@ class OakShelfPlank extends StatelessWidget {
           Container(
             height: 7,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8C5A2B), Color(0xFFC08A4E)]),
+              color: Color(0xFF6E4524),
+              image: DecorationImage(
+                image: AssetImage('assets/textures/oak_plank.webp'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Color(0x40F2C48A), BlendMode.lighten),
+              ),
             ),
           ),
           Container(
-            height: 9,
+            height: 1,
+            color: const Color(0xFFD9A86A).withValues(alpha: 0.55), // кромка
+          ),
+          Container(
+            height: 10,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF6E4320), Color(0xFF4A2C12)]),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 7, offset: const Offset(0, 4))],
+              color: const Color(0xFF3A2414),
+              image: _wood,
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 9, offset: const Offset(0, 5))],
+            ),
+            foregroundDecoration: const BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x22000000), Color(0x88140A03)]),
             ),
           ),
         ],
