@@ -222,6 +222,35 @@ void main() {
       expect(body['visibility'], 'private');
     });
 
+    test('createPick: підказка розпізнавання з телефону йде як ai_check (рівні словами, без відсотків)', () async {
+      final (api, adapter) = makeClient((req) => req.path == '/v1-picks/upload-url'
+          ? uploadTarget
+          : const FakeResponse(201, {
+              'data': {'id': 'x', 'visibility': 'private', 'status_label': 'Приватна точка', 'marker_color': '#8e24aa'},
+            }));
+      final (uploads, _) = makeFilesDio((_) => const FakeResponse(200, <String, Object>{}));
+      const ai = {
+        'model_version': 'bioclip2-v1',
+        'top': [
+          {'species_id': 'boletus_edulis', 'level': 'high'},
+        ],
+        'match': true,
+        'twin_alert': false,
+      };
+      await PicksRepository(api, uploads: uploads).createPick(
+        NewPick(
+          clientId: clientId,
+          point: const LatLng(50.4501, 30.5234),
+          capturedAt: DateTime.utc(2026, 11, 10, 9, 30),
+          visibility: PickVisibility.private,
+          speciesId: 'boletus_edulis',
+          aiCheck: ai,
+        ),
+        photo(),
+      );
+      expect((adapter.requests[1].data as Map<String, dynamic>)['ai_check'], ai);
+    });
+
     test('createPick: сховище відхилило файл → upload_failed, точка не створюється', () async {
       final (api, adapter) = makeClient((_) => uploadTarget);
       final (uploads, _) = makeFilesDio((_) => const FakeResponse(413, {'error': 'Payload too large'}));

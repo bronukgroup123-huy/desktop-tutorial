@@ -37,7 +37,7 @@ import {
   validateName,
 } from "./profile-rules.ts";
 import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, publicAvatar, type Viewer } from "./avatar-catalog.ts";
-import { refreshTrophies, TROPHIES } from "./trophy-catalog.ts";
+import { countFinds, refreshTrophies, TROPHIES } from "./trophy-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
 export const CURRENT_TERMS_VERSION = "2026-11";
@@ -259,12 +259,11 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     : { allowed: true, reason_label: "Оберіть свою область" };
 
   const rating = Number(row.rating);
-  // Підтверджені знахідки — той самий підрахунок, що й для трофеїв (тук-туки з перевіреним фото).
+  // Знахідки — той самий залік, що й для трофеїв (фото на місці, одне місце за день, ≤ 5 на день).
   let finds = Number(row.total_verified_picks);
   if (!ctx.user.isAnonymous) {
-    const { data } = await ctx.db.rpc("trophy_stats", { p_user: ctx.user.id, p_now: ctx.now.toISOString() });
-    const f = (data as { finds?: number } | null)?.finds;
-    if (typeof f === "number") finds = f;
+    const f = await countFinds(ctx.db, ctx.user.id);
+    if (f !== null) finds = f;
   }
   return {
     id: row.id,

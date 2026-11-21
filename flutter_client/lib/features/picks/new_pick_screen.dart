@@ -13,6 +13,7 @@ import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/picks/photo_validation.dart';
 import 'package:flutter_client/features/picks/species_picker.dart';
+import 'package:flutter_client/features/recognize/recognizer.dart' show Likelihood, recognizerProvider;
 
 /// Знімок із камери застосунку. Галереї немає, кадр — один (ADR-018 §18.3).
 /// Фото стискається на телефоні, щоб уміститися в 5 МБ.
@@ -111,6 +112,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
         if (mounted) showToast(context, check.error!, isError: true);
         return;
       }
+      final aiCheck = await _aiCheck(species.species?.id);
       final created = await ref.read(picksRepositoryProvider).createPick(
             NewPick(
               clientId: _clientId,
@@ -119,6 +121,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               visibility: _visibility,
               speciesId: species.species?.id,
               description: _description.text,
+              aiCheck: aiCheck,
             ),
             PickPhoto(
               openRead: _photo.openRead,
@@ -140,6 +143,33 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
       if (mounted) showToast(context, 'Не вдалося зберегти тук-тук. Спробуйте ще раз.', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Підказка розпізнавання для цього фото — лише на телефоні (ADR: локальний ONNX, без
+  /// серверних запитів); на сервер іде тільки результат: до трьох видів рівнями, без відсотків.
+  /// Немає моделі чи «Не знаю, що це» — `null` (тук-тук зберігається як завжди).
+  Future<Map<String, dynamic>?> _aiCheck(String? speciesId) async {
+    if (speciesId == null) return null;
+    try {
+      final recognizer = await ref.read(recognizerProvider.future);
+      if (recognizer == null) return null;
+      final r = await recognizer.recognize([await _photo.readAsBytes()]);
+      if (r.notMushroom || r.candidates.isEmpty) return null;
+      String level(Likelihood l) => switch (l) {
+            Likelihood.likely => 'high',
+            Likelihood.possible => 'medium',
+            Likelihood.unlikely => 'low',
+          };
+      final v = recognizer.manifest.version;
+      return {
+        'model_version': v.length > 64 ? v.substring(0, 64) : v,
+        'top': [for (final c in r.candidates.take(3)) {'species_id': c.label.id, 'level': level(c.likelihood)}],
+        'match': r.candidates.first.label.id == speciesId,
+        'twin_alert': r.dangerous != null && r.dangerous!.id != speciesId,
+      };
+    } catch (_) {
+      return null;
     }
   }
 

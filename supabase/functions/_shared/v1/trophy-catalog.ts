@@ -1,14 +1,22 @@
 // ============================================================================
 // Трофеї-медальйони (ADR-021 §21.2.2, §21.10; рішення PO 2026-11-21)
 //
-// 24 трофеї: за що й скільки — тут (сервер вирішує, клієнт лише малює). Показники рахує SQL
-// `trophy_stats` (знахідки, види, походи з Наглядачем, друзі). Отриманий трофей зберігається в
-// `user_trophies` і не забирається. Картинки — у застосунку: `assets/trophies/{large,small}/<id>.webp`.
+// 24 трофеї: за що й скільки — тут (сервер вирішує, клієнт лише малює). Отриманий трофей
+// зберігається в `user_trophies` і не забирається. Картинки — `assets/trophies/<id>.webp`.
 //
-// «Підтверджена знахідка» — тук-тук із фото, що пройшло перевірку місця й часу зйомки (EXIF),
-// не відхилений і не видалений. Походи — лише з Наглядачем (похід без нього живе тільки на
-// телефоні, сервер його не бачить). Три трофеї чекають своїх функцій: запрошення (B9.5) і тести
-// знань (B3.10) — до того показуються закритими з «скоро».
+// ЯК ПЕРЕВІРЯЄМО (щоб трофей означав справжнє досягнення, а не натискання кнопок):
+//  • Знахідка зараховується, лише якщо фото пройшло перевірку місця й часу зйомки (EXIF ≤ 1 км
+//    і ≤ 24 год від точки), точка не відхилена й не видалена.
+//  • Одне місце за день — одна знахідка: точки того самого дня ближче 50 м одна від одної
+//    рахуються раз (10 фото одного гриба чи сімейка білих під одним дубом — це одна знахідка).
+//    Для видових трофеїв — те саме, але окремо для кожного виду.
+//  • У залік — не більше 5 знахідок на день (проти «накрутки» за один вихід).
+//  • Вид підтверджено — якщо розпізнавання на телефоні першою підказкою назвало той самий вид
+//    із рівнем «найімовірніше» або «можливо» (ai_check.top[0]), або фото перевірив модератор
+//    (verification_status = verified). Вид, який просто вибрали зі списку, для видових трофеїв
+//    не рахується. Види, яких розпізнавання не знає (усі з Червоної книги), — лише модератор.
+//  • Похід — з Наглядачем, завершений «Я вдома», не коротший за 30 хв, пройдено ≥ 1 км
+//    (≥ 10 точок треку з добрим GPS); у залік — один похід на день. SQL `trophy_stats`.
 // ============================================================================
 
 export type TrophyTier = "bronze" | "silver" | "gold";
@@ -47,43 +55,43 @@ export interface Trophy {
 export const TROPHIES: Trophy[] = [
   // Знахідки
   { id: "first_find", title: "Перша знахідка", tier: "bronze", group: "finds", metric: "finds", target: 1,
-    how: "Перша підтверджена знахідка — тук-тук із фото, знятим на місці" },
+    how: "Перша знахідка — тук-тук із фото, знятим на місці (перевіряємо місце й час зйомки)" },
   { id: "basket", title: "Грибний кошик", tier: "silver", group: "finds", metric: "finds", target: 10,
-    how: "10 підтверджених знахідок" },
+    how: "10 знахідок у різних місцях — тук-туки з фото, знятим на місці" },
   { id: "full_basket", title: "Повний кошик", tier: "gold", group: "finds", metric: "finds", target: 50,
-    how: "50 підтверджених знахідок" },
+    how: "50 знахідок у різних місцях — тук-туки з фото, знятим на місці" },
   // Колекція видів за сезон (календарний рік)
   { id: "collection_5", title: "Колекція: 5 видів", tier: "bronze", group: "species", metric: "species_season", target: 5,
-    how: "5 різних видів у підтверджених знахідках за сезон" },
+    how: "5 різних видів за сезон — вид підтверджує розпізнавання на телефоні або модератор" },
   { id: "collection_10", title: "Колекція: 10 видів", tier: "silver", group: "species", metric: "species_season", target: 10,
-    how: "10 різних видів у підтверджених знахідках за сезон" },
+    how: "10 різних видів за сезон — вид підтверджує розпізнавання на телефоні або модератор" },
   { id: "season_forager", title: "Грибник сезону", tier: "gold", group: "species", metric: "species_season", target: 20,
-    how: "20 різних видів у підтверджених знахідках за сезон" },
+    how: "20 різних видів за сезон — вид підтверджує розпізнавання на телефоні або модератор" },
   // Окремі види
   { id: "king_of_forest", title: "Король лісу", tier: "gold", group: "species", metric: "porcini", target: 10,
-    how: "10 підтверджених знахідок білого гриба" },
+    how: "Білий гриб у 10 різних місцях — вид підтверджує розпізнавання на телефоні або модератор" },
   { id: "chanterelle_trail", title: "Лисичкова стежка", tier: "silver", group: "species", metric: "chanterelle", target: 10,
-    how: "10 підтверджених знахідок лисичок" },
+    how: "Лисички в 10 різних місцях — вид підтверджує розпізнавання на телефоні або модератор" },
   { id: "rare_guardian", title: "Охоронець рідкісних", tier: "gold", group: "species", metric: "red_book_private", target: 1,
-    how: "Сфотографувати вид із Червоної книги України й лишити точку приватною — не зривати й не виказувати місце" },
+    how: "Сфотографувати вид із Червоної книги України, не зривати й лишити точку приватною — фото перевіряє модератор" },
   // Походи з Наглядачем
   { id: "first_hike", title: "Перший похід", tier: "bronze", group: "hikes", metric: "hikes_safe", target: 1,
-    how: "Перший похід із Наглядачем, завершений «Я вдома»" },
+    how: "Перший похід із Наглядачем: від 30 хв і 1 км, завершений «Я вдома»" },
   { id: "wanderer", title: "Мандрівник", tier: "silver", group: "hikes", metric: "hikes_safe", target: 10,
-    how: "10 походів із Наглядачем, завершених «Я вдома»" },
+    how: "10 походів із Наглядачем (від 30 хв і 1 км, «Я вдома»; один на день)" },
   { id: "forest_veteran", title: "Лісовий ветеран", tier: "gold", group: "hikes", metric: "hikes_safe", target: 50,
-    how: "50 походів із Наглядачем, завершених «Я вдома»" },
+    how: "50 походів із Наглядачем (від 30 хв і 1 км, «Я вдома»; один на день)" },
   { id: "ready_for_forest", title: "Готовий до лісу", tier: "bronze", group: "hikes", metric: "hikes_checklist", target: 10,
-    how: "10 походів із Наглядачем, перед якими пройдено чек-лист" },
+    how: "10 походів із Наглядачем, перед якими пройдено весь чек-лист" },
   { id: "home_on_time", title: "Вчасно вдома", tier: "silver", group: "hikes", metric: "hikes_on_time", target: 10,
-    how: "10 походів, завершених «Я вдома» до запланованого часу повернення, без тривог" },
+    how: "10 походів, з яких ви повернулися вчасно: не пізніше запланованого й не раніше ніж за 1,5 год, без тривог" },
   { id: "own_footsteps", title: "Своїм слідом", tier: "silver", group: "hikes", metric: "hikes_home_nav", target: 5,
     how: "5 походів, з яких ви повернулися за допомогою «Додому»" },
   // Наглядач і друзі
   { id: "under_watch", title: "Під наглядом", tier: "bronze", group: "friends", metric: "has_guardian", target: 1,
     how: "Друг погодився бути вашим Наглядачем" },
   { id: "loyal_guardian", title: "Вірний Наглядач", tier: "silver", group: "friends", metric: "guarded_hikes", target: 5,
-    how: "Бути Наглядачем у 5 походах друзів" },
+    how: "Бути Наглядачем у 5 завершених походах друзів" },
   { id: "mushroom_company", title: "Грибна компанія", tier: "bronze", group: "friends", metric: "friends", target: 5,
     how: "5 друзів у застосунку" },
   { id: "invited_friend", title: "Запросив друга", tier: "silver", group: "friends", metric: null, target: 1,
@@ -94,12 +102,12 @@ export const TROPHIES: Trophy[] = [
   { id: "mycologist", title: "Грибознавець", tier: "gold", group: "knowledge", metric: null, target: 1,
     how: "Отримати сертифікат знань — скласти всі тести" },
   { id: "recognizer", title: "Розпізнавач", tier: "bronze", group: "knowledge", metric: "ai_match", target: 10,
-    how: "10 підтверджених знахідок, де розпізнавання на телефоні підказало той самий вид" },
+    how: "10 знахідок у різних місцях, де розпізнавання на телефоні першим назвало вибраний вид" },
   // Сезони
   { id: "spring_morels", title: "Весняні зморшки", tier: "bronze", group: "seasons", metric: "morels_spring", target: 1,
-    how: "Підтверджена знахідка зморшка (сморчка) у березні–травні" },
+    how: "Зморшок (сморчок) у березні–травні — вид підтверджує розпізнавання або модератор" },
   { id: "winter_honey", title: "Зимові опеньки", tier: "silver", group: "seasons", metric: "winter_honey", target: 1,
-    how: "Підтверджена знахідка зимового опенька у грудні–лютому" },
+    how: "Зимовий опеньок у грудні–лютому — вид підтверджує розпізнавання або модератор" },
 ];
 
 export const TIER_LABEL: Record<TrophyTier, string> = { bronze: "Бронза", silver: "Срібло", gold: "Золото" };
@@ -120,6 +128,91 @@ export interface TrophyView {
   /** 0…1 — смужка прогресу. */
   progress: number;
   soon: boolean;
+}
+
+// ─── Знахідки: що зараховувати ──────────────────────────────────────────────
+
+/** Рядок `trophy_finds`: підтверджена фото знахідка (координати — лише для «одне місце»). */
+export interface FindRow {
+  species_id: string | null;
+  pick_type: string;
+  lat: number;
+  lng: number;
+  /** Місцевий час (Київ) без поясу: «2026-09-10T10:00:00». */
+  local_at: string;
+  ai_species: string | null;
+  ai_level: string | null;
+  moderated: boolean;
+  red_listed: boolean;
+}
+
+export const SAME_PLACE_M = 50;
+export const MAX_FINDS_PER_DAY = 5;
+
+function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const r = (x: number) => (x * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
+
+/** Вид підтверджено: розпізнавання на телефоні першим назвало цей вид (найімовірніше / можливо) або модератор. */
+export function speciesConfirmed(f: FindRow): boolean {
+  if (!f.species_id || f.species_id === "unknown") return false;
+  return f.moderated || aiAgrees(f);
+}
+
+function aiAgrees(f: FindRow): boolean {
+  return !!f.species_id && f.ai_species === f.species_id && (f.ai_level === "high" || f.ai_level === "medium");
+}
+
+/**
+ * Залік знахідок: одне місце за день (ближче [SAME_PLACE_M] — те саме місце), не більше
+ * [MAX_FINDS_PER_DAY] на день. [key] групує окремо (наприклад, за видом); `null` — усі разом.
+ */
+export function countPlaces(rows: FindRow[], key: (f: FindRow) => string | null = () => "all"): number {
+  const byDay = new Map<string, Array<{ lat: number; lng: number }>>();
+  let n = 0;
+  for (const f of rows) {
+    const k = key(f);
+    if (k === null) continue;
+    const day = `${f.local_at.slice(0, 10)}|${k}`;
+    const places = byDay.get(day) ?? [];
+    if (places.length >= MAX_FINDS_PER_DAY) continue;
+    if (places.some((p) => distanceM(p, f) < SAME_PLACE_M)) continue;
+    places.push({ lat: f.lat, lng: f.lng });
+    byDay.set(day, places);
+    n++;
+  }
+  return n;
+}
+
+const month = (f: FindRow) => Number(f.local_at.slice(5, 7));
+const year = (f: FindRow) => Number(f.local_at.slice(0, 4));
+
+/** Показники знахідок для трофеїв (сезон — календарний рік за Києвом). */
+export function findMetrics(rows: FindRow[], now: Date): TrophyStats {
+  const sorted = [...rows].sort((a, b) => a.local_at.localeCompare(b.local_at));
+  const kyivYear = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv", year: "numeric" }).format(now));
+  const confirmed = sorted.filter(speciesConfirmed);
+  const bySpecies = (f: FindRow) => f.species_id;
+  const only = (pred: (f: FindRow) => boolean) => (f: FindRow) => (pred(f) ? f.species_id : null);
+  return {
+    finds: countPlaces(sorted),
+    species_season: new Set(confirmed.filter((f) => year(f) === kyivYear).map((f) => f.species_id)).size,
+    porcini: countPlaces(confirmed, only((f) => f.species_id === "boletus_edulis")),
+    chanterelle: countPlaces(confirmed, only((f) => (f.species_id ?? "").startsWith("cantharellus_"))),
+    red_book_private: countPlaces(confirmed, only((f) => f.red_listed && f.pick_type === "private")),
+    ai_match: countPlaces(sorted.filter(aiAgrees), bySpecies),
+    morels_spring: countPlaces(confirmed, only((f) => (f.species_id ?? "").startsWith("morchella_") && month(f) >= 3 && month(f) <= 5)),
+    winter_honey: countPlaces(confirmed, only((f) => f.species_id === "flammulina_velutipes" && [12, 1, 2].includes(month(f)))),
+  };
+}
+
+/** Скільки знахідок у заліку (для профілю «N знахідок»). */
+export async function countFinds(db: TrophyDb, userId: string): Promise<number | null> {
+  const { data, error } = await db.rpc("trophy_finds", { p_user: userId });
+  if (error || !Array.isArray(data)) return null;
+  return countPlaces([...(data as FindRow[])].sort((a, b) => a.local_at.localeCompare(b.local_at)));
 }
 
 /** Які трофеї вже виконано за показниками (для запису в `user_trophies`). */
@@ -178,9 +271,13 @@ export async function loadEarned(db: TrophyDb, userId: string): Promise<Map<stri
 
 /** Перерахувати показники, записати нові трофеї, повернути каталог і показники. */
 export async function refreshTrophies(db: TrophyDb, userId: string, now: Date) {
-  const { data, error } = await db.rpc("trophy_stats", { p_user: userId, p_now: now.toISOString() });
+  const [{ data, error }, { data: finds, error: e1 }] = await Promise.all([
+    db.rpc("trophy_stats", { p_user: userId, p_now: now.toISOString() }),
+    db.rpc("trophy_finds", { p_user: userId }),
+  ]);
   if (error) throw error;
-  const stats = (data ?? {}) as TrophyStats;
+  if (e1) throw e1;
+  const stats: TrophyStats = { ...((data ?? {}) as TrophyStats), ...findMetrics((finds ?? []) as FindRow[], now) };
   const earned = await loadEarned(db, userId);
   const fresh = newlyEarned(stats, new Set(earned.keys()));
   if (fresh.length > 0) {
