@@ -142,30 +142,6 @@ export function isValidName(name: string | null | undefined): boolean {
   }
 }
 
-// ─── Аватар ────────────────────────────────────────────────────────────────
-
-/** Стандартні гриби-персонажі (ADR-021 §21.7) — номери 1…20. */
-export const STANDARD_AVATARS = 20;
-
-export type Avatar = { kind: "standard"; id: number };
-
-/** Аватар із запиту. Конструктор (`kind: "custom"`) — окремим кроком, з каталогом деталей. */
-export function validateAvatar(raw: unknown): Avatar {
-  const a = raw as Record<string, unknown> | null;
-  if (a && typeof a === "object" && a.kind === "standard" && Number.isInteger(a.id) &&
-    (a.id as number) >= 1 && (a.id as number) <= STANDARD_AVATARS) {
-    return { kind: "standard", id: a.id as number };
-  }
-  throw new HttpError(400, "invalid_avatar", `Аватар — один із ${STANDARD_AVATARS} стандартних грибів`);
-}
-
-/** Поки аватар не вибрано — стандартний гриб, стабільний для користувача. */
-export function defaultAvatar(userId: string): Avatar {
-  let h = 0;
-  for (const c of userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return { kind: "standard", id: (h % STANDARD_AVATARS) + 1 };
-}
-
 // ─── Рівень (ADR-013 §13.1) ────────────────────────────────────────────────
 
 export interface Level {

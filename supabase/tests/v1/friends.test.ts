@@ -69,7 +69,7 @@ Deno.test("v1-friends GET: список розкладено на друзів, 
   assertEquals(data.blocked[0].actions[0].id, "unblock");
   assertEquals(data.counts, { friends: 2, incoming: 1 });
   assertEquals(data.friends[1].level.label, "Слідопит");
-  assertEquals(data.friends[1].avatar.kind, "custom");
+  assertEquals(data.friends[1].avatar, { kind: "preset", id: "traveler_01" });
   // У картці немає нічого приватного
   for (const k of ["email", "home_region", "lat", "lng", "phone"]) assertEquals(k in data.friends[1], false);
 });

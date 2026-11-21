@@ -62,53 +62,24 @@ class Onboarding {
   bool get isComplete => nextStep == OnboardingStep.done;
 }
 
-/// Аватар (ADR-021 §21.7): один із 20 стандартних грибів (`kind: standard`, [id]) або з
-/// конструктора (`kind: custom`, [parts]: shape, color, face, arms, hat, item).
+/// Аватар (ADR-021 §21.7, PO 2026-11-21): готова картинка зі списку (`kind: preset`, [id]),
+/// `assets/avatars/<id>.webp`. Старі значення (наліпки, стандартні гриби) — перший «Мандрівник».
 class Avatar {
-  const Avatar({required this.kind, this.id = 1, this.parts = const {}});
+  const Avatar({this.kind = 'preset', this.id = defaultId});
 
-  factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(
-        kind: req<String>(json, 'kind'),
-        id: (opt<num>(json, 'id') ?? 1).toInt(),
-        parts: {
-          for (final e in json.entries)
-            if (e.key != 'kind' && e.key != 'id' && (e.value == null || e.value is String)) e.key: e.value as String?,
-        },
-      );
+  static const defaultId = 'traveler_01';
+
+  factory Avatar.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    return json['kind'] == 'preset' && id is String && id != 'default' ? Avatar(id: id) : const Avatar();
+  }
 
   final String kind;
-  final int id;
-  final Map<String, String?> parts;
+  final String id;
 
-  bool get isCustom => kind == 'custom';
+  String get asset => 'assets/avatars/$id.webp';
 
-  Map<String, dynamic> toJson() => isCustom ? {'kind': kind, ...parts} : {'kind': kind, 'id': id};
-}
-
-/// Деталі конструктора з сервера: що відкрито, а що під замком і чому.
-class AvatarCatalog {
-  const AvatarCatalog(this.categories);
-
-  factory AvatarCatalog.fromJson(Map<String, dynamic> json) => AvatarCatalog([
-        for (final c in (json['categories'] as List).cast<Map<String, dynamic>>())
-          (
-            id: c['id'] as String,
-            label: c['label'] as String,
-            optional: c['optional'] == true,
-            parts: [
-              for (final p in (c['parts'] as List).cast<Map<String, dynamic>>())
-                (
-                  id: p['id'] as String,
-                  label: p['label'] as String,
-                  open: p['open'] == true,
-                  badge: p['badge'] as String?,
-                  lockLabel: p['lock_label'] as String?,
-                ),
-            ],
-          ),
-      ]);
-
-  final List<({String id, String label, bool optional, List<({String id, String label, bool open, String? badge, String? lockLabel})> parts})> categories;
+  Map<String, dynamic> toJson() => {'kind': kind, 'id': id};
 }
 
 /// Рівень за рейтингом (ADR-013) — підписи з сервера.
@@ -153,7 +124,7 @@ class Me {
     required this.id,
     required this.name,
     this.handle,
-    this.avatar = const Avatar(kind: 'standard', id: 1),
+    this.avatar = const Avatar(),
     this.level,
     this.handleChange,
     required this.rating,
@@ -171,7 +142,7 @@ class Me {
       id: req<String>(json, 'id'),
       name: opt<String>(json, 'name'),
       handle: opt<String>(json, 'handle'),
-      avatar: opt<Map<String, dynamic>>(json, 'avatar') == null ? const Avatar(kind: 'standard', id: 1) : Avatar.fromJson(opt<Map<String, dynamic>>(json, 'avatar')!),
+      avatar: opt<Map<String, dynamic>>(json, 'avatar') == null ? const Avatar() : Avatar.fromJson(opt<Map<String, dynamic>>(json, 'avatar')!),
       level: opt<Map<String, dynamic>>(json, 'level') == null ? null : Level.fromJson(opt<Map<String, dynamic>>(json, 'level')!),
       handleChange: opt<Map<String, dynamic>>(json, 'handle_change') == null ? null : RegionChange.fromJson(opt<Map<String, dynamic>>(json, 'handle_change')!),
       rating: req<num>(json, 'rating').toInt(),

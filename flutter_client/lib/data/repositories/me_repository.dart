@@ -2,6 +2,7 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
 import '../models/me.dart';
+import '../models/avatars.dart';
 import '../models/trophies.dart';
 
 /// Профіль і онбординг (`/v1-me`). Рішення «який екран далі» приймає сервер.
@@ -67,20 +68,18 @@ class MeRepository {
   /// Ім'я й нік (ADR-021 §21.2.1). 409 handle_taken / handle_change_too_soon — у [ApiException].
   Future<Me> updateIdentity({required String name, required String handle}) => _patch({'name': name, 'handle': handle});
 
-  /// Аватар-наліпка: персонаж + деталі; закрита деталь — 403 avatar_part_locked з причиною.
-  Future<Me> setCustomAvatar(Map<String, String?> parts) => _patch({
-        'avatar': {'kind': 'custom', ...parts},
-      });
-
   /// Трофеї-медальйони: сервер перераховує, записує нові й віддає каталог (за що й скільки).
   Future<TrophiesOverview> trophies() async =>
       TrophiesOverview.fromJson(await _api.get('/v1-me', query: {'trophies': '1'}) as Map<String, dynamic>);
 
-  /// Каталог деталей конструктора з замками (рівень, «спори», Pro, сезон).
-  Future<AvatarCatalog> avatarCatalog() async =>
-      AvatarCatalog.fromJson(await _api.get('/v1-me', query: {'avatar_catalog': '1'}) as Map<String, dynamic>);
-
   /// Чи вільний нік — підказка під полем вводу.
+  /// Готові аватари за рівнями із замками (ADR-021 §21.7).
+  Future<AvatarChoices> avatars() async =>
+      AvatarChoices.fromJson(await _api.get('/v1-me', query: {'avatars': '1'}) as Map<String, dynamic>);
+
+  /// Вибрати готовий аватар; закритий — `403 avatar_locked` із причиною.
+  Future<Me> setAvatar(String id) => _patch({'avatar': {'kind': 'preset', 'id': id}});
+
   Future<({bool available, String? reason})> checkHandle(String handle) async {
     final data = await _api.get('/v1-me', query: {'check_handle': handle}) as Map<String, dynamic>;
     return (available: data['available'] == true, reason: data['reason'] as String?);

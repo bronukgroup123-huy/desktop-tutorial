@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { handle } from "../../functions/_shared/http.ts";
 import {
   CURRENT_TERMS_VERSION,
@@ -169,8 +169,7 @@ Deno.test("v1-me GET: після Google без ніка (ім'я з Google ла�
   const { data } = await (await run(d, req("GET", URL))).json();
   assertEquals(data.onboarding.next_step, "profile");
   assertEquals(data.name, null); // латиницю не показуємо — людина введе ім'я українською
-  assertEquals(data.avatar.kind, "custom"); // за замовчуванням — безкоштовна наліпка
-  assertEquals(typeof data.avatar.sticker, "string");
+  assertEquals(data.avatar, { kind: "preset", id: "traveler_01" }); // за замовчуванням — перший «Мандрівник»
   assertEquals(data.level.label, "Мандрівник");
   const guest = await (await run(db({ ...consented, "users.select": { data: fresh, error: null } }), req("GET", URL), true)).json();
   assertEquals(guest.data.onboarding.next_step, "done");
@@ -233,22 +232,55 @@ Deno.test("v1-me GET ?check_handle: вільний / зайнятий / неко
   assertEquals([bad.data.available, bad.data.reason], [false, "Нік — лише українськими літерами, без латиниці"]);
 });
 
-Deno.test("v1-me: конструктор — каталог із замками; закрита деталь → 403; відкрита — зберігається", async () => {
-  const cat = await (await run(db(), req("GET", `${URL}?avatar_catalog=1`))).json();
-  const hats = cat.data.categories.find((c: { id: string }) => c.id === "hat");
-  assertEquals(hats.parts.find((p: { id: string }) => p.id === "ranger").lock_label, "З рівня «Лісовик»");
-  const locked = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", sticker: "cosmic" } }));
-  assertEquals([locked.status, (await locked.json()).error], [403, "avatar_part_locked"]);
-  const d = db();
-  const saved = await run(d, req("PATCH", URL, { avatar: { kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: "none" } }));
-  assertEquals(saved.status, 200);
-  assertEquals((find(d, "users.update")?.args[0] as Record<string, unknown>).avatar, {
-    kind: "custom", sticker: "dizzy", hat: "cap", item: "basket", fx: null,
-  });
+Deno.test("v1-me: конструктора більше немає — аватар лише готовий зі списку; наліпка конструктора → 400", async () => {
+  const custom = await run(db(), req("PATCH", URL, { avatar: { kind: "custom", sticker: "dizzy" } }));
+  assertEquals([custom.status, (await custom.json()).error], [400, "invalid_avatar"]);
+  const unknown = await run(db(), req("PATCH", URL, { avatar: { kind: "preset", id: "nope" } }));
+  assertEquals(unknown.status, 400);
 });
 
-Deno.test("v1-me GET: старий «стандартний» гриб показується наліпкою", async () => {
-  const d = db({ ...consented, "users.select": { data: { ...userRow(10), avatar: { kind: "standard", id: 3 } }, error: null } });
-  const { data } = await (await run(d, req("GET", URL))).json();
-  assertEquals(data.avatar, { kind: "custom", sticker: "wow", hat: null, item: null, fx: null });
+Deno.test("v1-me GET: старі аватари (стандартний гриб, наліпка конструктора) → перший «Мандрівник»", async () => {
+  for (const old of [{ kind: "standard", id: 3 }, { kind: "custom", sticker: "wow", hat: "cap" }]) {
+    const d = db({ ...consented, "users.select": { data: { ...userRow(10), avatar: old }, error: null } });
+    const { data } = await (await run(d, req("GET", URL))).json();
+    assertEquals(data.avatar, { kind: "preset", id: "traveler_01" });
+  }
+});
+
+Deno.test("Готові аватари: 40 у шести рівнях, id збігаються з картинками в застосунку", async () => {
+  const { PRESET_AVATARS } = await import("../../functions/_shared/v1/avatars.ts");
+  const count: Record<string, number> = {};
+  for (const a of PRESET_AVATARS) count[a.level] = (count[a.level] ?? 0) + 1;
+  assertEquals(count, { traveler: 10, tracker: 8, expert: 7, forester: 6, keeper: 5, master: 4 });
+  assertEquals(new Set(PRESET_AVATARS.map((a) => a.id)).size, 40);
+  for (const a of PRESET_AVATARS) {
+    const file = new globalThis.URL(`../../../flutter_client/assets/avatars/${a.id}.webp`, import.meta.url);
+    assert((await Deno.stat(file)).size > 0, `немає картинки ${a.id}`);
+  }
+});
+
+Deno.test("v1-me PATCH avatar: відкритий рівнем — зберігається; вищого рівня → 403 з причиною", async () => {
+  const d = db({ "users.select": { data: { ...userRow(10), rating: 120 }, error: null } }); // 120 балів — «Слідопит»
+  assertEquals((await run(d, req("PATCH", URL, { avatar: { kind: "preset", id: "tracker_03" } }))).status, 200);
+  assertEquals(find(d, "users.update")?.args[0], { avatar: { kind: "preset", id: "tracker_03" } });
+  const locked = await run(db({ "users.select": { data: { ...userRow(10), rating: 120 }, error: null } }), req("PATCH", URL, { avatar: { kind: "preset", id: "keeper_01" } }));
+  const body = await locked.json();
+  assertEquals([locked.status, body.error, body.message], [403, "avatar_locked", "Відкриється на рівні «Хранитель лісу»"]);
+  // «Грибознавець» (сертифікат знань) відкриває й «Лісовик»
+  const forester = db({ "users.select": { data: { ...userRow(10), rating: 300 }, error: null } });
+  assertEquals((await run(forester, req("PATCH", URL, { avatar: { kind: "preset", id: "expert_02" } }))).status, 200);
+});
+
+Deno.test("v1-me GET ?avatars: групи за рівнями із замками; гостю — лише перегляд", async () => {
+  const d = db({ "users.select": { data: { ...userRow(10), rating: 120, avatar: { kind: "preset", id: "tracker_02" } }, error: null } });
+  const { data } = await (await run(d, req("GET", `${URL}?avatars=1`))).json();
+  assertEquals(data.current, { kind: "preset", id: "tracker_02" });
+  assertEquals(data.can_change, true);
+  assertEquals(data.groups.map((g: { label: string; open: boolean }) => [g.label, g.open]), [
+    ["Мандрівник", true], ["Слідопит", true], ["Грибознавець", false], ["Лісовик", false], ["Хранитель лісу", false], ["Грибний Майстер", false],
+  ]);
+  assertEquals(data.groups[5].lock_label, "Відкриється на рівні «Грибний Майстер»");
+  assertEquals(data.groups[0].avatars[1], { id: "traveler_02", title: "Лисичка", role: "Збирачка", open: true });
+  const guest = await (await run(db({ "users.select": { data: { ...userRow(10), rating: 0 }, error: null } }), req("GET", `${URL}?avatars=1`), true)).json();
+  assertEquals([guest.data.can_change, guest.data.reason_label], [false, "Змінити аватар можна після входу через Google або Apple"]);
 });

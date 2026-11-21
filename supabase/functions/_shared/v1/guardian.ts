@@ -32,8 +32,7 @@ import {
   type AuthUser,
   type TokenVerifier,
 } from "../http.ts";
-import { defaultAvatar } from "./profile-rules.ts";
-import { publicAvatar } from "./avatar-catalog.ts";
+import { publicAvatar } from "./avatars.ts";
 
 export interface GuardianDb {
   // deno-lint-ignore no-explicit-any
@@ -119,7 +118,7 @@ function person(u: UserRow | undefined, id: string) {
     id,
     handle: u?.handle ?? null,
     name: u?.name ?? null,
-    avatar: publicAvatar(u?.avatar ?? defaultAvatar(id)),
+    avatar: publicAvatar(u?.avatar),
   };
 }
 

@@ -4,8 +4,8 @@
 //
 // GET    → { data: profile }   (ім'я, @нік, аватар, рівень, онбординг, область)
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
-// GET    ?avatar_catalog=1 → { data: { categories: [...] } } — деталі конструктора з замками
 // GET    ?trophies=1 → { data: { trophies, earned_count, total, new_labels } } — трофеї-медальйони
+// GET    ?avatars=1 → { data: { current, can_change, reason_label, groups } } — вибір готового аватара
 // PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
@@ -26,17 +26,14 @@ import {
   type TokenVerifier,
 } from "../http.ts";
 import {
-  type Avatar,
-  defaultAvatar,
   HANDLE_CHANGE_DAYS,
   handleKey,
   isValidName,
   levelOf,
-  validateAvatar,
   validateHandle,
   validateName,
 } from "./profile-rules.ts";
-import { assertAvatarAllowed, catalogFor, type CustomAvatar, parseCustomAvatar, publicAvatar, type Viewer } from "./avatar-catalog.ts";
+import { type Avatar, avatarChoices, publicAvatar, validatePresetAvatar } from "./avatars.ts";
 import { countFinds, refreshTrophies, TROPHIES } from "./trophy-catalog.ts";
 
 /** Поточна версія EULA / Privacy Policy. Зміна версії → користувач знову бачить крок згоди. */
@@ -117,7 +114,8 @@ export function decideRegionChange(
 export interface UpdateMeInput {
   name?: string;
   handle?: string;
-  avatar?: Avatar | CustomAvatar;
+  /** Готовий аватар `{ kind: "preset", id }` — перевіряється з рівнем під час збереження. */
+  avatar?: Record<string, unknown>;
   home_region_slug?: string;
   accept_terms_version?: string;
 }
@@ -132,8 +130,10 @@ export function validateUpdateMe(body: unknown): UpdateMeInput {
   if (obj.name !== undefined) input.name = validateName(obj.name);
   if (obj.handle !== undefined) input.handle = validateHandle(obj.handle);
   if (obj.avatar !== undefined) {
-    const a = obj.avatar as Record<string, unknown> | null;
-    input.avatar = a && typeof a === "object" && a.kind === "custom" ? parseCustomAvatar(a) : validateAvatar(obj.avatar);
+    if (obj.avatar === null || typeof obj.avatar !== "object" || Array.isArray(obj.avatar)) {
+      throw new HttpError(400, "invalid_avatar", "Оберіть один із готових аватарів");
+    }
+    input.avatar = obj.avatar as Record<string, unknown>;
   }
   if (obj.home_region_slug !== undefined) {
     if (typeof obj.home_region_slug !== "string" || !ME_SLUG_REGEX.test(obj.home_region_slug)) {
@@ -187,7 +187,7 @@ interface UserRow {
   name: string | null;
   handle: string | null;
   handle_changed_at: string | null;
-  avatar: Avatar | CustomAvatar | null;
+  avatar: Record<string, unknown> | null;
   rating: number;
   total_verified_picks: number;
   home_region_id: number | null;
@@ -270,8 +270,8 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     // Гостю — без імені й ніка (старі імена з Google латиницею — до кроку «Профіль» не показуємо).
     name: ctx.user.isAnonymous || !isValidName(row.name) ? null : row.name,
     handle: ctx.user.isAnonymous ? null : row.handle,
-    // Завжди наліпка: старий «стандартний» гриб — безкоштовним персонажем за номером.
-    avatar: publicAvatar((row.avatar ?? defaultAvatar(row.id)) as Record<string, unknown>),
+    // Готовий аватар; старі гриби й наліпки конструктора — перший «Мандрівник».
+    avatar: publicAvatar(row.avatar),
     level: levelOf(rating),
     handle_change: handleChangeInfo(row, ctx.now),
     rating,
@@ -316,12 +316,9 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
   }
   if (input.name !== undefined) patch.name = input.name;
   if (input.avatar !== undefined) {
-    if (input.avatar.kind === "custom") {
-      // Закриті деталі (рівень, «спори», Pro, не сезон) — 403 з причиною.
-      const current = await loadUser(ctx.db, ctx.user.id);
-      assertAvatarAllowed(input.avatar, viewerOf(current, ctx.now), current.avatar as Record<string, unknown> | null);
-    }
-    patch.avatar = input.avatar;
+    // Лише готовий аватар зі списку, відкритий рівнем (403 avatar_locked з причиною).
+    const current = await loadUser(ctx.db, ctx.user.id);
+    patch.avatar = validatePresetAvatar(input.avatar, Number(current.rating)) satisfies Avatar;
   }
   if (input.handle !== undefined) {
     const current = await loadUser(ctx.db, ctx.user.id);
@@ -391,11 +388,6 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
   }
 }
 
-/** Хто вибирає деталі аватара: рівень за рейтингом; «спор» і Pro поки немає. */
-function viewerOf(row: UserRow, now: Date): Viewer {
-  return { rating: Number(row.rating), pro: false, owned: new Set(), now };
-}
-
 /** Чи вільний нік — для підказки під полем вводу (остаточно перевіряє унікальний індекс). */
 export async function checkHandle(ctx: MeContext, raw: string): Promise<{ handle: string; available: boolean; reason: string | null }> {
   let h: string;
@@ -434,6 +426,10 @@ export async function handleMe(
   const params = new URL(req.url).searchParams;
   const check = params.get("check_handle");
   if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
+  if (req.method === "GET" && params.has("avatars")) {
+    const row = await loadUser(ctx.db, user.id);
+    return ok(avatarChoices(row.avatar, Number(row.rating), user.isAnonymous), req);
+  }
   if (req.method === "GET" && params.has("trophies")) {
     // Трофеї — лише в акаунті (ADR-001: у гостя немає трофеїв). Перерахунок і запис нових — тут.
     if (user.isAnonymous) {
@@ -451,9 +447,6 @@ export async function handleMe(
     } catch (e) {
       dbFail("trophies", e);
     }
-  }
-  if (req.method === "GET" && params.has("avatar_catalog")) {
-    return ok(catalogFor(viewerOf(await loadUser(ctx.db, ctx.user.id), ctx.now)), req);
   }
   if (req.method === "PATCH") {
     const input = validateUpdateMe(await readJson(req));

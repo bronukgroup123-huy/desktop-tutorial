@@ -52,6 +52,7 @@ flutter:
     - assets/species/small/
     - assets/trophies/large/
     - assets/trophies/small/
+    - assets/avatars/
     - assets/catalog/
     - assets/safety/
     - assets/map/glyphs/noto_sans_regular/

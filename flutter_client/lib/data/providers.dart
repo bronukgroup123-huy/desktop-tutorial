@@ -12,6 +12,7 @@ import 'api/api_client.dart';
 import 'local/local_store.dart';
 import 'local/offline_result.dart';
 import 'models/analysis.dart';
+import 'models/avatars.dart';
 import 'models/catalog.dart';
 import 'models/forecast.dart';
 import 'models/friends.dart';
@@ -130,6 +131,9 @@ final trophiesProvider = FutureProvider.autoDispose<TrophiesOverview?>((ref) asy
   return ref.watch(meRepositoryProvider).trophies();
 });
 
+/// Вибір готового аватара (`GET v1-me?avatars=1`).
+final avatarChoicesProvider = FutureProvider.autoDispose<AvatarChoices>((ref) => ref.watch(meRepositoryProvider).avatars());
+
 final guardianRepositoryProvider = Provider((ref) => GuardianRepository(ref.watch(apiClientProvider)));
 
 /// Наглядач (`GET /v1-guardian`): мої Наглядачі, прохання, походи друзів. Лише для акаунта —
@@ -197,9 +201,11 @@ class MeNotifier extends AsyncNotifier<Me?> {
     state = AsyncData(await ref.read(meRepositoryProvider).updateIdentity(name: name, handle: handle));
   }
 
-  Future<void> setCustomAvatar(Map<String, String?> parts) async {
-    state = AsyncData(await ref.read(meRepositoryProvider).setCustomAvatar(parts));
+  /// Вибрати готовий аватар (ADR-021 §21.7).
+  Future<void> setAvatar(String id) async {
+    state = AsyncData(await ref.read(meRepositoryProvider).setAvatar(id));
   }
+
 
   /// Видалити акаунт і вийти.
   Future<void> deleteAccount() async {

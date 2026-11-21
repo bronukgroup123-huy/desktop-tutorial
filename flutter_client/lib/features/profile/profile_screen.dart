@@ -125,18 +125,20 @@ class _Header extends ConsumerWidget {
         children: [
           Row(
             children: [
+              // Аватар більший (PO 2026-11-21); дотик — вибір готового аватара.
               GestureDetector(
                 key: const ValueKey('profile-avatar'),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    UserAvatar(avatar: me.avatar, size: 76),
+                    UserAvatar(avatar: me.avatar, size: 104),
                     Positioned(
-                      right: 0,
-                      bottom: 0,
+                      right: 2,
+                      bottom: 2,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: AppTheme.darkGreen, shape: BoxShape.circle),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(color: AppTheme.darkGreen, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
                         child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
                       ),
                     ),
