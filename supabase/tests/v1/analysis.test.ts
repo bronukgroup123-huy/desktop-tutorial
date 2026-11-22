@@ -347,7 +347,7 @@ Deno.test("analysis POST: некоректний forest → 422", async () => {
 });
 
 Deno.test("analysis POST: найкращий вид обирається серед усіх типів лісу ділянки", async () => {
-  const forecast = (input: AreaForecastInput) =>
+  const forecast = (input: DayInput) =>
     Promise.resolve(
       input.forestType === "pine"
         ? result({ top1: species({ score: 0.5, probability: "medium" }), alternative: null })

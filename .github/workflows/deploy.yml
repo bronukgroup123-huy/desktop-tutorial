@@ -72,7 +72,7 @@ jobs:
       - name: Deploy all Edge Functions (directories only)
         run: |
           for fn in $(find supabase/functions -mindepth 1 -maxdepth 1 -type d \
-            ! -name '_shared' ! -name 'guardian-notify-test' ! -name 'test-telegram' \
+            ! -name '_shared' \
             -exec basename {} \; | sort); do
             echo "▶ Deploying $fn"
             supabase functions deploy "$fn" --project-ref "$PROJECT_ID" --no-verify-jwt
@@ -83,9 +83,16 @@ jobs:
       # щоб старі посилання більше нічого не відкривали. Уже видалені — пропускаємо.
       - name: Delete link-based Guardian functions
         run: |
+          # Видалені з продакшну: посилання Наглядача (ADR-022 §22.8), а також застарілий
+          # Guardian v0 з його cron-обробниками, демо й погодний проксі (SEC-005).
           for fn in guardian-session-get guardian-session-track guardian-session-gpx \
                     guardian-register-guardian-device guardian-rescue-get guardian-rescue-request \
-                    guardian-webhook-sms test-telegram; do
+                    guardian-webhook-sms test-telegram guardian-notify-test \
+                    guardian-active guardian-cancel-close guardian-close guardian-demo-create \
+                    guardian-exiting guardian-extend guardian-owner-gpx guardian-ping \
+                    guardian-recover guardian-register-device guardian-revoke \
+                    guardian-session-create guardian-sos guardian-sos-cancel \
+                    guardian-tick guardian-notify guardian-retry forecast-weather forecast; do
             supabase functions delete "$fn" --project-ref "$PROJECT_ID" >/dev/null 2>&1 \
               && echo "✗ Deleted $fn" || echo "· $fn already absent"
           done

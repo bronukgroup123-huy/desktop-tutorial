@@ -32,17 +32,15 @@ jobs:
           deno check $DENO_FLAGS \
             supabase/functions/_shared/http.ts \
             supabase/functions/v1-*/index.ts \
-            supabase/functions/guardian-session-create/index.ts \
-            supabase/functions/guardian-sos/index.ts \
             supabase/functions/me/index.ts
 
       # Блокує: юніт-тести (без живого Supabase).
       - name: Unit tests
         run: deno test $DENO_FLAGS --no-check --allow-net --allow-read --allow-env supabase/tests/ supabase/functions/_shared/
 
-      # Не блокує: у старому коді є відомі помилки типів (технічний борг, BACKEND_PLAN B0.7).
-      - name: Type check (legacy code, report only)
-        continue-on-error: true
+      # Блокує (QA-002): строга перевірка типів УСІХ функцій, що деплояться, тестів і спільного коду.
+      # Застарілий код із помилками типів прибрано (SEC-005).
+      - name: Type check (all deployed functions, tests, shared)
         run: deno check $DENO_FLAGS supabase/functions/*/index.ts supabase/tests/ supabase/functions/_shared/
 
   flutter:
