@@ -27,6 +27,17 @@ export interface IpRateLimitResult {
 }
 
 /**
+ * Лічильник не зміг прийняти надійне рішення. Викликач має повернути 503,
+ * а не пропускати запит без захисту від зловживань.
+ */
+export class RateLimitUnavailableError extends Error {
+  constructor() {
+    super("Rate limit service is unavailable");
+    this.name = "RateLimitUnavailableError";
+  }
+}
+
+/**
  * Перевіряє та інкрементує лічильник запитів для IP + ендпоінта за поточну хвилину.
  * Викликати ПЕРЕД обробкою запиту.
  *
@@ -36,60 +47,54 @@ export async function checkAndIncrementIpRateLimit(
   db: SupabaseClient,
   ip: string,
   endpoint: string,
-  limit?: number
+  limit?: number,
 ): Promise<IpRateLimitResult> {
   const maxCount = limit ?? IP_RATE_LIMITS[endpoint] ?? 60;
   const windowStart = currentMinuteWindowStart();
 
-  const { data, error } = await db.rpc(
-    "check_and_increment_ip_rate_limit",
-    {
-      p_ip: ip,
-      p_endpoint: endpoint,
-      p_window_start: windowStart,
-      p_limit: maxCount,
-    }
-  );
-
-  // Fallback (якщо RPC ще не задеплоєне): м'який дозвіл + ручний UPSERT.
-  if (error) {
-    console.warn("[ip-rate-limit] RPC failed, falling back to upsert:", error.message);
-    const { data: row, error: upsertError } = await db
-      .from("ip_rate_limit")
-      .upsert(
-        {
-          ip,
-          endpoint,
-          window_start: windowStart,
-          count: 1,
-        },
-        { onConflict: "ip,endpoint,window_start", ignoreDuplicates: false }
-      )
-      .select("count")
-      .single();
-
-    if (upsertError) {
-      console.error("[ip-rate-limit] upsert failed:", upsertError.message);
-      // Fail-open: краще пропустити запит, ніж блокувати всіх
-      return { allowed: true, remaining: maxCount, count: 1 };
-    }
-
-    const count = Number(row?.count ?? 1);
-    return {
-      allowed: count <= maxCount,
-      remaining: Math.max(0, maxCount - count),
-      count,
-      retryAfter: count > maxCount ? 60 : undefined,
-    };
+  let result: { data: unknown; error: { message?: string } | null };
+  try {
+    result = await db.rpc(
+      "check_and_increment_ip_rate_limit",
+      {
+        p_ip: ip,
+        p_endpoint: endpoint,
+        p_window_start: windowStart,
+        p_limit: maxCount,
+      },
+    );
+  } catch (error) {
+    console.error("[ip-rate-limit] RPC request failed:", error);
+    throw new RateLimitUnavailableError();
   }
 
-  const count = Number(data?.count ?? 1);
+  if (result.error) {
+    console.error(
+      "[ip-rate-limit] RPC failed:",
+      result.error.message ?? "unknown database error",
+    );
+    throw new RateLimitUnavailableError();
+  }
+
+  const count = readRateLimitCount(result.data);
+  if (!Number.isSafeInteger(count) || count < 1) {
+    console.error("[ip-rate-limit] RPC returned an invalid count");
+    throw new RateLimitUnavailableError();
+  }
+
   return {
     allowed: count <= maxCount,
     remaining: Math.max(0, maxCount - count),
     count,
     retryAfter: count > maxCount ? 60 : undefined,
   };
+}
+
+/** PostgREST повертає RETURNS TABLE як масив; моки та старі шлюзи могли повертати об'єкт. */
+function readRateLimitCount(data: unknown): number {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== "object" || !("count" in row)) return Number.NaN;
+  return Number((row as { count: unknown }).count);
 }
 
 /** Початок поточної хвилинної вікна (truncate до хвилини у UTC). */
@@ -101,8 +106,8 @@ function currentMinuteWindowStart(): string {
       now.getUTCMonth(),
       now.getUTCDate(),
       now.getUTCHours(),
-      now.getUTCMinutes()
-    )
+      now.getUTCMinutes(),
+    ),
   );
   return truncated.toISOString();
 }
@@ -120,7 +125,7 @@ export function getClientIp(req: Request): string {
 /** JSON-відповідь 429 з заголовком Retry-After */
 export function rateLimitResponse(
   req: Request,
-  retryAfterSeconds: number
+  retryAfterSeconds: number,
 ): Response {
   return new Response(
     JSON.stringify({
@@ -134,6 +139,24 @@ export function rateLimitResponse(
         "Content-Type": "application/json",
         "Retry-After": String(retryAfterSeconds),
       },
-    }
+    },
+  );
+}
+
+/** Fail-closed policy for both public reads and mutations when the counter is unavailable. */
+export function rateLimitUnavailableResponse(req: Request): Response {
+  return new Response(
+    JSON.stringify({
+      error: "rate_limit_unavailable",
+      message: "Сервіс тимчасово недоступний. Спробуйте ще раз.",
+    }),
+    {
+      status: 503,
+      headers: {
+        ...buildCorsHeaders(req),
+        "Content-Type": "application/json",
+        "Retry-After": "5",
+      },
+    },
   );
 }

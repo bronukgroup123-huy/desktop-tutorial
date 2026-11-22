@@ -8,7 +8,13 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCatalogRequest } from "../_shared/forecast/catalog-endpoint.ts";
-import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
+import {
+  checkAndIncrementIpRateLimit,
+  getClientIp,
+  rateLimitResponse,
+  RateLimitUnavailableError,
+  rateLimitUnavailableResponse,
+} from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req: Request) => {
   // 1. CT-14: Rate limit per-IP (60 req/min for /catalog)
@@ -23,7 +29,15 @@ Deno.serve(async (req: Request) => {
   }
   const db = createClient(url, serviceKey, { auth: { persistSession: false } });
 
-  const rl = await checkAndIncrementIpRateLimit(db, ip, "catalog");
+  let rl: Awaited<ReturnType<typeof checkAndIncrementIpRateLimit>>;
+  try {
+    rl = await checkAndIncrementIpRateLimit(db, ip, "catalog");
+  } catch (error) {
+    if (error instanceof RateLimitUnavailableError) {
+      return rateLimitUnavailableResponse(req);
+    }
+    throw error;
+  }
   if (!rl.allowed) {
     return rateLimitResponse(req, rl.retryAfter ?? 60);
   }
