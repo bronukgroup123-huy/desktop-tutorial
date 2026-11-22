@@ -70,7 +70,13 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.
-- Status: ready
+- Scope: blocking CI guard for required and undocumented top-level JSON keys in 18 core models; keep the
+  analysis weather/refresh contract aligned with the implemented server response.
+- Tests: parser/unit negative cases, repository contract check, OpenAPI and workflow YAML parsing.
+- Status: in_progress — implementation committed on `codex/qa-003-openapi-model-contract` at `91cd620`;
+  PR creation and blocking CI are pending.
+- Residual: this focused guard does not prove nested anonymous object types, enum compatibility or runtime
+  decoding; existing Flutter model tests and full PR CI remain required.
 
 ## P1 — UI/UX, accessibility, performance
 
@@ -93,8 +99,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.
-- Status: in_progress — implementation and six regression tests committed on
-  `codex/and-001-store-release-signing` at `2184704`; Android PR CI is pending.
+- Status: done — PR #117 (merged 2026-11-22).
+- Residual: the first store-signed AAB still requires owner-held signing credentials (BLK-011).
 
 ### IOS-001 — create and validate the iOS target
 - Status: blocked_macos_and_apple_configuration (source preparation possible: ios/ target, Info.plist texts)
