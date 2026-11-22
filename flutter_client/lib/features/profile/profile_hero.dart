@@ -529,9 +529,11 @@ class ProfileSectionTitle extends StatelessWidget {
           children: [
             const Icon(Icons.eco_rounded, size: 18, color: _amber),
             const SizedBox(width: 6),
-            Text(title, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: _forest)),
+            // довгий заголовок / великий шрифт — переноситься, риска лишається праворуч (UI-001)
+            Flexible(flex: 4, child: Text(title, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: _forest))),
             const SizedBox(width: 10),
             Expanded(
+              flex: 1,
               child: Container(
                 height: 1.5,
                 decoration: BoxDecoration(gradient: LinearGradient(colors: [const Color(0xFFC9A45C).withValues(alpha: 0.7), Colors.transparent])),
