@@ -122,6 +122,22 @@ Flutter model, and every top-level JSON key consumed by that model is documented
 claim full nested type, enum or nullability equivalence. The initial red run exposed real analysis weather
 contract drift before `openapi/v1.yaml` was aligned with the implemented server and Flutter client.
 
+## CI-001 verification — 2026-11-22, Codex runtime, branch `codex/ci-001-workflow-permissions`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 7/7 positive and negative tests |
+| `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, 4 reviewed write-scoped |
+| PyYAML parse of deploy, smoke and test workflows | Pass |
+| Bash syntax for all `run` blocks in those workflows | Pass, 26/26 blocks |
+| Existing OpenAPI, Android signing and Edge auth guards | Pass, 5/5 + 6/6 + 4/4 |
+| `git diff --check` | Pass |
+| Production smoke/deploy | Not run; agent branches must not mutate or probe production |
+
+The guard rejects missing top-level permissions, unreviewed write scopes, deploy/smoke repository writes,
+unmasked dynamic credentials and production secrets inherited by third-party action steps. This verifies
+repository configuration, not the unobservable repository-default permission setting or a live deployment.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
@@ -134,7 +150,8 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 ## Next quality gate
 
 - PR #113 still needs the post-deploy gateway smoke test when staging is available.
-- QA-003 must pass the full Flutter and repository checks in blocking PR CI.
+- CI-001 must pass blocking PR CI; no production workflow is triggered by this branch.
+- QA-003 is merged as PR #118 and its model guard is blocking.
 - AND-001 is merged as PR #117; a real-key manual AAB build remains an owner step.
-- UI-001 adds compact-screen / large-text / reduced-motion widget tests.
+- UI-001 is merged as PR #115; device-level accessibility remains under BLK-010.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.

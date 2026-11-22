@@ -153,6 +153,23 @@ cannot be treated as the current highest-priority task without reconciling it wi
   Flutter model tests and full PR CI. Nested anonymous object types and enums remain outside this focused
   guard and require their existing runtime tests or a future generator/schema validator.
 
+### AUD-CI-001 — production workflows inherited token permissions and exposed secrets at job scope
+
+- Severity: medium
+- Classification: confirmed least-privilege weakness; no confirmed credential leak
+- Evidence: `deploy.yml` and `smoke-test.yml` were the only workflows without explicit top-level
+  `permissions`, so their `GITHUB_TOKEN` rights depended on the repository default. Both also declared
+  management, database or smoke-test credentials at job scope, making them available to checkout/setup
+  action steps that did not need them. Smoke dynamically passed anon, service-role and user JWT values
+  between steps without explicitly masking all of them.
+- User impact: a compromised action or future step in those jobs would receive unnecessary production
+  credentials; a broad repository default could also grant the workflow token unnecessary write access.
+- Resolution: branch `codex/ci-001-workflow-permissions` sets `contents: read`, scopes production secrets to
+  the exact shell steps that use them, masks dynamic credentials, and adds a fail-closed inventory guard for
+  all 17 workflows.
+- Required verification: seven Node positive/negative tests, repository guard, YAML and shell syntax, full
+  blocking PR CI. Production smoke is not executed from an agent branch.
+
 ### AUD-SEC-005 — legacy Guardian v0 and demo endpoints are still deployed (second pass)
 
 - Severity: high

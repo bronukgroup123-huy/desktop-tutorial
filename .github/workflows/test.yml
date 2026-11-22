@@ -37,6 +37,11 @@ jobs:
           node --test scripts/ci/check-flutter-openapi-models.test.mjs
           node scripts/ci/check-flutter-openapi-models.mjs
 
+      - name: Workflow token permissions
+        run: |
+          node --test scripts/ci/check-workflow-permissions.test.mjs
+          node scripts/ci/check-workflow-permissions.mjs
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

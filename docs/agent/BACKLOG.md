@@ -61,20 +61,21 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ## P1 — product correctness
 
+Product/UI items in this section are owned by Claude and are not selected by Codex.
+
 ### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
   Flutter display, tests.
-- Status: ready (large — split into PROD-001a server, PROD-001b client)
+- Status: handed_to_claude (large — split into bounded server/client work there)
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.
 - Scope: blocking CI guard for required and undocumented top-level JSON keys in 18 core models; keep the
   analysis weather/refresh contract aligned with the implemented server response.
 - Tests: parser/unit negative cases, repository contract check, OpenAPI and workflow YAML parsing.
-- Status: in_progress — implementation committed on `codex/qa-003-openapi-model-contract` at `91cd620`;
-  PR creation and blocking CI are pending.
+- Status: done — PR #118 (merged 2026-11-22).
 - Residual: this focused guard does not prove nested anonymous object types, enum compatibility or runtime
   decoding; existing Flutter model tests and full PR CI remain required.
 
@@ -83,7 +84,7 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 ### UI-001 — accessibility and responsive baseline
 - Goal: primary screens survive compact size (320×640), large text (×1.6–2.0) and reduced motion.
 - Scope: widget tests per tab; fix overflows found (auth screen first, AUD-FL-001).
-- Status: ready (Flutter runtime available)
+- Status: done — PR #115 (merged 2026-11-22).
 
 ### UI-002 — design tokens and shared components
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
@@ -96,6 +97,18 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Status: ready (static/profile-mode analysis only)
 
 ## P1 — release
+
+### CI-001 — explicit workflow permissions and production-secret scope
+- Goal: GitHub workflows never inherit unknown token permissions, and production secrets reach only the
+  shell steps that use them.
+- Scope: explicit read-only permissions for deploy/smoke; step-scoped Supabase/DB/smoke credentials;
+  masking for dynamically fetched anon/service-role/JWT values; blocking repository guard.
+- Tests: repository inventory plus negative cases for missing permissions, unreviewed writes, production
+  write access, unmasked dynamic credentials and job-level production secrets.
+- Status: in_progress — branch `codex/ci-001-workflow-permissions` pushed; direct PR creation is blocked by
+  BLK-001 and blocking PR CI is pending.
+- Residual: repository-default permissions remain unobservable through the current GitHub API, but explicit
+  workflow declarations no longer rely on that setting. Live production smoke is intentionally not run here.
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.
@@ -114,5 +127,5 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Status: ready (part of PROD-001)
 
 ### AUT-001 — Codex scheduled workflow (codex-autonomy.yml)
-- Status: prepared_disabled. Not needed while the Claude scheduled cycle runs; enabling both at once risks
-  concurrent edits. See BLOCKERS BLK-005.
+- Status: paused_owner_choice — on 2026-11-22 the owner explicitly chose interactive Codex use only, with
+  no Codex API. Do not merge/activate `codex/aut-001-five-hour-cycle`; see BLK-005.
