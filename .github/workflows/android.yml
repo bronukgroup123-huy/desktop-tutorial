@@ -1,9 +1,11 @@
-name: Android APK
+name: Android test APK
 
-# Збірка APK для встановлення на телефон.
-#  * push у main      → APK у Artifacts + оновлений реліз «android-latest» (завантаження одним тапом);
-#  * PR / інші гілки  → APK у Artifacts (перевірка, що збірка не зламалась);
-#  * вручну           → Actions → Android APK → Run workflow.
+# Тестова збірка APK для встановлення на телефон. Вона завжди підписана публічним
+# android/app/test-signing.jks і ніколи не є артефактом для Google Play.
+#  * push у main      → test APK у Artifacts + оновлений prerelease «android-latest»;
+#  * PR / інші гілки  → test APK у Artifacts (перевірка, що збірка не зламалась);
+#  * вручну           → Actions → Android test APK → Run workflow.
+# Store AAB збирає тільки окремий ручний workflow android-store.yml.
 on:
   push:
     branches: ['**']
@@ -25,7 +27,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build release APK
+    name: Build test APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -74,28 +76,12 @@ jobs:
             echo "::notice::GOOGLE_SERVICES_JSON not set — push notifications disabled in this build"
           fi
 
-      # Постійний ключ підпису (необов'язково). Без нього — тестовий ключ із репозиторію
-      # (android/app/test-signing.jks): підпис однаковий, оновлення ставляться поверх.
-      - name: Release signing key (optional)
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
-            printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
-              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
-            echo "Signing with the release key"
-          else
-            echo "::notice::ANDROID_KEYSTORE_BASE64 not set — signing with the test key from the repository"
-          fi
-
       - name: Dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build test APK
+        env:
+          ORG_GRADLE_PROJECT_requireReleaseSigning: 'false'
         run: |
           build() {
             flutter build apk --release \
@@ -108,13 +94,13 @@ jobs:
             sleep 120
             build
           fi
-          mv build/app/outputs/flutter-apk/app-release.apk build/mushroom-radar.apk
+          mv build/app/outputs/flutter-apk/app-release.apk build/mushroom-radar-test.apk
 
-      - name: Upload APK (Artifacts)
+      - name: Upload test APK (Artifacts)
         uses: actions/upload-artifact@v4
         with:
-          name: mushroom-radar-apk
-          path: flutter_client/build/mushroom-radar.apk
+          name: mushroom-radar-test-apk
+          path: flutter_client/build/mushroom-radar-test.apk
           retention-days: 14
 
   # Лише для main: постійне посилання на останній APK у розділі Releases.
@@ -128,7 +114,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: mushroom-radar-apk
+          name: mushroom-radar-test-apk
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -137,6 +123,7 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Автоматична збірка з `main` (${{ github.sha }}).
-            Встановлення: завантажте `mushroom-radar.apk` і відкрийте файл на телефоні.
-          files: mushroom-radar.apk
+            Тестова автоматична збірка з `main` (${{ github.sha }}).
+            Підписана публічним тестовим ключем і не призначена для Google Play.
+            Встановлення: завантажте `mushroom-radar-test.apk` і відкрийте файл на телефоні.
+          files: mushroom-radar-test.apk

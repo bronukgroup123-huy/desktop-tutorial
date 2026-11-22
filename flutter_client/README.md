@@ -15,12 +15,15 @@ flutter run --dart-define-from-file=.env
 
 Генерація коду (`build_runner`) **не потрібна**: моделі й провайдери написані вручну.
 
-## APK для телефону
+## Тестовий APK для телефону
 
-Workflow `.github/workflows/android.yml` збирає release-APK:
-- на кожен push / PR, що змінює `flutter_client/` → **Actions → Android APK → Artifacts → `mushroom-radar-apk`** (zip, зберігається 14 днів);
-- на push у `main` → також **Releases → «android-latest»** → файл `mushroom-radar.apk` (завантаження одним тапом);
-- вручну: **Actions → Android APK → Run workflow**.
+Workflow `.github/workflows/android.yml` збирає APK у release-режимі, але **завжди підписує його
+публічним тестовим ключем**. Цей APK не можна публікувати в Google Play:
+- на кожен push / PR, що змінює `flutter_client/` → **Actions → Android test APK → Artifacts →
+  `mushroom-radar-test-apk`** (zip, зберігається 14 днів);
+- на push у `main` → також **Releases → «android-latest»** → файл
+  `mushroom-radar-test.apk` (завантаження одним тапом);
+- вручну: **Actions → Android test APK → Run workflow**.
 
 Потрібні **GitHub Secrets** (Settings → Secrets and variables → Actions):
 
@@ -28,7 +31,21 @@ Workflow `.github/workflows/android.yml` збирає release-APK:
 |---|---|
 | `SUPABASE_URL` | `https://<PROJECT_REF>.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | publishable (anon) key з Supabase → Settings → API |
-| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | *необов'язково*: постійний ключ підпису. Без нього APK підписується debug-ключем, і для встановлення нової збірки може знадобитися видалити попередню |
+
+## Store AAB для Google Play
+
+Окремий ручний workflow **Actions → Android Store Bundle** створює підписаний
+`mushroom-radar-store.aab` лише для перевірки власником. Він нічого не публікує автоматично і
+завершується помилкою, якщо відсутній хоча б один із секретів:
+
+- `ANDROID_KEYSTORE_BASE64`;
+- `ANDROID_KEYSTORE_PASSWORD`;
+- `ANDROID_KEY_ALIAS`;
+- `ANDROID_KEY_PASSWORD`.
+
+Gradle додатково вимагає `requireReleaseSigning=true` для store-збірки, тому вона не може тихо
+відкотитися до публічного тестового ключа. Справжній keystore не зберігається в репозиторії чи
+артефактах workflow.
 
 ## Вхід через Google на телефоні
 

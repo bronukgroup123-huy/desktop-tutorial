@@ -27,6 +27,11 @@ jobs:
           node --test scripts/ci/check-edge-auth-matrix.test.mjs
           node scripts/ci/check-edge-auth-matrix.mjs
 
+      - name: Android signing separation
+        run: |
+          node --test scripts/ci/check-android-signing.test.mjs
+          node scripts/ci/check-android-signing.mjs
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

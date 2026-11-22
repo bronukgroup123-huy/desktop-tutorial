@@ -6,17 +6,38 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Підпис релізу: android/key.properties створює CI із секретів
+// android/key.properties створює лише ручний workflow Android Store Bundle із секретів
 // ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD.
-// Без них — ТЕСТОВИЙ ключ app/test-signing.jks (рішення PO 2026-11-14): він у репозиторії,
-// тож усі тестові APK мають однаковий підпис і ставляться поверх попередніх (раніше CI щоразу
-// створював новий debug-ключ — «пакет недійсний»). Ключ публічний: для Google Play — лише
-// справжній ключ із секретів.
+// Звичайні тестові APK підписуються публічним app/test-signing.jks (рішення PO 2026-11-14),
+// щоб оновлення ставились поверх попередніх. Store workflow передає Gradle-властивість
+// requireReleaseSigning=true: без повного справжнього ключа така збірка падає, а не відкочується
+// до тестового підпису.
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
+val releasePropertyNames = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val configuredReleaseProperties = releasePropertyNames
+    .filter { !keystoreProperties.getProperty(it).isNullOrBlank() }
+val hasReleaseKey = configuredReleaseProperties.size == releasePropertyNames.size
+val requireReleaseSigningValue = providers.gradleProperty("requireReleaseSigning").orNull
+if (requireReleaseSigningValue != null && requireReleaseSigningValue !in setOf("true", "false")) {
+    throw GradleException("requireReleaseSigning must be true or false")
+}
+val requireReleaseSigning = requireReleaseSigningValue == "true"
+
+if (configuredReleaseProperties.isNotEmpty() && !hasReleaseKey) {
+    val missing = releasePropertyNames.filter { keystoreProperties.getProperty(it).isNullOrBlank() }
+    throw GradleException("Incomplete Android release signing configuration: missing ${missing.joinToString()}")
+}
+if (requireReleaseSigning && !hasReleaseKey) {
+    throw GradleException(
+        "Store release signing is required, but android/key.properties is missing or incomplete",
+    )
+}
+if (hasReleaseKey && !file(keystoreProperties.getProperty("storeFile")).isFile) {
+    throw GradleException("Configured Android release keystore file does not exist")
+}
 
 android {
     namespace = "ua.mushroomradar.app"
