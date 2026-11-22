@@ -25,7 +25,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Acceptance: fresh-DB migrations + SQL tests pass; Deno tests pass; deno check of all remaining entrypoints
   loses the legacy errors; no client reference to removed functions; smoke test no longer calls them.
 - Tests: SQL assertion that the legacy cron jobs are absent; Deno suite; grep guard in CI optional.
-- Status: ready
+- Status: in_review — PR #111 (branch claude/sec-005-retire-legacy-endpoints). Also retired the
+  legacy `forecast` function (unused, public compute) and closed QA-002 in the same PR.
 - Residual: production deletion happens on merge via deploy.yml; owner reviews the list.
 
 ### SEC-003 — rate limiting must not fail open
@@ -52,9 +53,7 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Status: ready
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
-- Goal: remove `continue-on-error` from the full `deno check` in test.yml.
-- Depends on: SEC-005 (removes 31 of 33 errors); then fix the legacy forecast function.
-- Status: ready (after SEC-005)
+- Status: in_review — PR #111 (full `deno check` of functions, tests and _shared: 0 errors, now blocking).
 
 ## P1 — product correctness
 

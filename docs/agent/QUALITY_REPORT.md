@@ -45,6 +45,8 @@ Counts describe test assets. They do not imply execution or coverage percentage.
 | iOS | — | Not available (no target, no macOS) |
 
 After PR #109: 62 migrations, 14 SQL tests (new security_definer_privileges.sql), all pass.
+After PR #111 (independent of #109): 62 migrations, 15 SQL tests (new retired_guardian_v0.sql); Deno
+579 passed / 0 failed with the CI command; full deno check 0 errors and blocking in CI.
 
 ## Coverage assessment
 
