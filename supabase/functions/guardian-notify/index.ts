@@ -1,6 +1,7 @@
 import { createServiceClient } from "../_shared/guardian/db.ts";
 import { withErrorHandling, successResponse, Errors } from "../_shared/guardian/errors.ts";
 import { dispatchAlert } from "../_shared/guardian/notifications/dispatcher.ts";
+import { isServiceRoleRequest } from "../_shared/guardian/service-auth.ts";
 import type { GuardianAlert, GuardianSession } from "../_shared/guardian/types.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
@@ -12,6 +13,9 @@ const NotifySchema = z.object({
 
 Deno.serve(withErrorHandling(async (req) => {
   if (req.method !== "POST") throw Errors.notFound("Method not allowed");
+  if (!isServiceRoleRequest(req)) {
+    throw Errors.unauthorized("Service-role authorization required");
+  }
 
   const body = await req.json().catch(() => ({}));
   const bodyParse = NotifySchema.safeParse(body);

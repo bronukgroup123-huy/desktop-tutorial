@@ -1,8 +1,9 @@
 import { createServiceClient } from "../_shared/guardian/db.ts";
-import { withErrorHandling, successResponse } from "../_shared/guardian/errors.ts";
+import { withErrorHandling, successResponse, Errors } from "../_shared/guardian/errors.ts";
 import { THRESHOLDS, DEFAULT_OVERDUE_THRESHOLDS } from "../_shared/guardian/thresholds.ts";
 import { analyzeMovement } from "../_shared/guardian/movement.ts";
 import { detectForestExit } from "../_shared/guardian/geofence.ts";
+import { isServiceRoleRequest } from "../_shared/guardian/service-auth.ts";
 import { createAlertOnce, getHoursSinceLastAlert } from "../_shared/guardian/alerts.ts";
 import type { GuardianSession, SessionStatus, AlertType } from "../_shared/guardian/types.ts";
 
@@ -15,6 +16,10 @@ interface TickStats {
 }
 
 Deno.serve(withErrorHandling(async (req) => {
+  if (req.method !== "POST") throw Errors.notFound("Method not allowed");
+  if (!isServiceRoleRequest(req)) {
+    throw Errors.unauthorized("Service-role authorization required");
+  }
   const db = createServiceClient();
 
   // Advisory lock — не допустити одночасних запусків (cron + manual виклик)
