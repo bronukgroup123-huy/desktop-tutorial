@@ -34,7 +34,10 @@ blocked by BLK-007.
   makes platform JWT verification the default; CI rejects any new or renamed function until it is
   classified. Deployed smoke tests remain pending without staging.
 - Full Deno type checking is blocking after merged PR #111.
-- Android release can use the repository's public test key. It is suitable for testing only.
+- Android signing is separated on `codex/and-001-store-release-signing`: the normal workflow produces only
+  a clearly labelled test APK and cannot access store secrets; a separate manual AAB workflow requires all
+  real signing inputs and has a Gradle fail-closed guard. Merge and owner-authorized real-key validation are
+  pending.
 
 ## Edge Function authentication matrix (second pass, 2026-11-22)
 

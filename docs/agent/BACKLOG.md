@@ -52,10 +52,9 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
   other users through v1 endpoints or RLS.
 - Scope: Deno handler tests with foreign IDs; SQL RLS tests for picks/hikes/friendships/trophies; storage
   object paths of private photos.
-- Status: in_progress — the existing endpoint and SQL suites already cover foreign precise coordinates,
-  private picks, hike/Guardian tracks, friendships and trophies. Branch
-  `codex/sec-006-private-data-idor-tests` adds the missing private-photo storage RLS regression test at
-  `40490e4`; full PR CI and merge are pending.
+- Status: done — PR #114 (merged 2026-11-22). The existing endpoint and SQL suites cover foreign precise
+  coordinates, private picks, hike/Guardian tracks, friendships and trophies; the PR added direct private
+  photo storage RLS coverage.
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
@@ -94,7 +93,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.
-- Status: ready
+- Status: in_progress — implementation and six regression tests committed on
+  `codex/and-001-store-release-signing` at `2184704`; Android PR CI is pending.
 
 ### IOS-001 — create and validate the iOS target
 - Status: blocked_macos_and_apple_configuration (source preparation possible: ios/ target, Info.plist texts)

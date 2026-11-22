@@ -9,7 +9,11 @@ Scope: repository, Flutter client, Supabase functions and migrations, Android, C
 
 ## Executive assessment
 
-The repository is an advanced product implementation with substantial domain logic and test assets. It is not release-ready yet. The main blockers are unauthenticated internal Edge Function jobs, incomplete security hardening of older SQL functions, unavailable local execution of the full Flutter and Supabase stacks in the current cloud runtime, absence of an iOS target, and release signing that intentionally falls back to a public test key.
+The repository is an advanced product implementation with substantial domain logic and test assets. It is
+not release-ready yet. The initially confirmed P0 source vulnerabilities have fixes merged through PR #114;
+remaining blockers include deployed verification without staging, absent iOS infrastructure, product/legal
+release decisions and Android store-signing credentials. Test APKs must remain visibly separate from store
+artifacts.
 
 The latest repository history is active through merged PR #107. docs/tasks/NEXT_TASK.md predates major profile, friends, Guardian, trophy, and avatar work. It cannot be treated as the current highest-priority task without reconciling it with code and ADRs.
 
@@ -92,6 +96,10 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 - Evidence: flutter_client/android/app/build.gradle.kts signs release builds with android/app/test-signing.jks when release secrets are absent. android.yml can publish that APK as the rolling prerelease.
 - User impact: such APKs are suitable for testing and cannot represent a store-ready release identity.
 - Recommendation: keep the current testing convenience, clearly label artifacts, and add a store-release job that fails unless all release signing inputs exist.
+- Current state: fixed on branch `codex/and-001-store-release-signing` at `2184704`. The normal workflow
+  always produces an explicitly named test APK and never receives store secrets. A separate manual workflow
+  produces an AAB only after all four signing secrets are present; Gradle fails closed when real signing is
+  required or partially configured. PR CI and one owner-authorized store build with the real key are pending.
 
 ### AUD-FL-001 — auth screen has an unverified small-screen accessibility risk
 

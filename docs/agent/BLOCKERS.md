@@ -40,3 +40,8 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 ## BLK-010 — device-level verification (owner)
 - Status: blocked. FPS, memory, battery, background location, push delivery and OAuth on real Android
   devices need the owner's devices or a device farm. The agent measures what is possible in tests.
+
+## BLK-011 — Android store signing identity (owner)
+- Status: blocked until publication preparation. The manual store workflow requires
+  `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
+  `ANDROID_KEY_PASSWORD`. The public repository test key must never be reused as the Google Play identity.
