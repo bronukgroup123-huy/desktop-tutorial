@@ -9,7 +9,7 @@
 - Tests: targeted service-auth test, full Deno suite, staging HTTP 401 checks.
 - Status: implemented, awaiting PR and complete CI.
 - Commit: 072ed76185930c893e5a83ace8af68b58a9751a1
-- PR: blocked until GitHub authentication is restored.
+- PR: branch pushed. API creation is blocked by GitHub authentication. Review URL: https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/security-guard-service-endpoints
 - Residual risks: production behavior is unchanged until reviewed and deployed. Full Deno suite and staging checks are pending.
 
 ## SEC-002 — harden administrative forest import RPC

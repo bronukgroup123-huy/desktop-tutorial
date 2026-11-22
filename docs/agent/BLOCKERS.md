@@ -3,7 +3,7 @@
 ## BLK-001 — GitHub API authentication
 
 - Status: blocked
-- Evidence: gh auth status reports that GH_TOKEN is invalid. Unauthenticated GitHub API requests return 403.
+- Evidence: gh auth status reports that GH_TOKEN is invalid. Unauthenticated GitHub API requests return 403. The branch is pushed, but gh pr create failed with GitHub GraphQL 403.
 - Impact: branch protection, open PR state, CI status, and PR creation cannot be confirmed through the API.
 - Owner action: restore a scoped GitHub connection with repository read/write and pull-request creation. Do not paste tokens into chat.
 - Safe continuation: local branches, commits, tests, and read-only Git fetches remain available.
