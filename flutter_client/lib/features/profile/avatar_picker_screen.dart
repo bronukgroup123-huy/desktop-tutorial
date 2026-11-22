@@ -168,15 +168,25 @@ class _GroupHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+        // Назва рівня, під нею — коли відкриється; з великим шрифтом обидва переносяться (UI-001).
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(group.open ? Icons.eco_rounded : Icons.lock_rounded, size: 18, color: group.open ? AppTheme.darkGreen : Colors.black45),
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(group.open ? Icons.eco_rounded : Icons.lock_rounded, size: 18, color: group.open ? AppTheme.darkGreen : Colors.black45),
+            ),
             const SizedBox(width: 6),
-            Text(group.label, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
-            if (group.lockLabel != null) ...[
-              const SizedBox(width: 8),
-              Expanded(child: Text(group.lockLabel!, style: const TextStyle(fontSize: 12, color: Colors.black54), overflow: TextOverflow.ellipsis)),
-            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(group.label, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
+                  if (group.lockLabel != null)
+                    Text(group.lockLabel!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                ],
+              ),
+            ),
           ],
         ),
       );

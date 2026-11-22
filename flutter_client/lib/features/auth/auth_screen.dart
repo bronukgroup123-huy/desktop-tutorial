@@ -43,26 +43,38 @@ class AuthScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
+      // На високому екрані — як раніше (розпірки розносять блоки); на малому, у альбомній
+      // орієнтації чи з великим системним шрифтом — прокручується, нічого не обрізається (UI-001).
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(flex: 2),
-              _buildLogo(),
-              const SizedBox(height: 32),
-              _buildTitle(),
-              const SizedBox(height: 12),
-              _buildSubtitle(),
-              const Spacer(flex: 3),
-              _buildSocialButtons(context),
-              const SizedBox(height: 24),
-              _buildGuestButton(context),
-              const Spacer(flex: 2),
-              _buildEulaText(),
-            ],
+        child: LayoutBuilder(
+          builder: (context, viewport) => SingleChildScrollView(
+            key: const ValueKey('auth-scroll'),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: (viewport.maxHeight - 64).clamp(0, double.infinity)),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Spacer(flex: 2),
+                    _buildLogo(),
+                    const SizedBox(height: 32),
+                    _buildTitle(),
+                    const SizedBox(height: 12),
+                    _buildSubtitle(),
+                    const Spacer(flex: 3),
+                    const SizedBox(height: 24),
+                    _buildSocialButtons(context),
+                    const SizedBox(height: 24),
+                    _buildGuestButton(context),
+                    const Spacer(flex: 2),
+                    const SizedBox(height: 16),
+                    _buildEulaText(),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
