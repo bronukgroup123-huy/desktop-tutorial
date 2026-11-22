@@ -1431,10 +1431,11 @@ components:
         area_id: { type: string, format: uuid }
         refresh:
           type: string
-          enum: [daily]
+          enum: [daily, weather]
           description: >-
-            З `area_id`: щоденне оновлення без списання аналізу — раз на київську добу або коли
-            збережений результат старішої версії (`result_version`); інакше `409 already_fresh`.
+            З `area_id`: `daily` — щоденне оновлення без списання аналізу раз на київську добу
+            або коли збережений результат старішої версії (`result_version`); `weather` — лише
+            погода без списання, не частіше ніж раз на 3 години; інакше `409 already_fresh`.
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }
         size_km: { type: integer, enum: [5, 10] }
@@ -1519,6 +1520,14 @@ components:
           oneOf:
             - $ref: '#/components/schemas/AnalysisDayWeather'
             - type: 'null'
+        weather_as_of:
+          type: string
+          format: date-time
+          description: Коли погодну частину результату було розраховано
+        weather_fresh_until:
+          type: string
+          format: date-time
+          description: 'До якого часу повторне `refresh: weather` ще не потрібне'
         warnings: { type: array, items: { type: string } }
         usage: { $ref: '#/components/schemas/AnalysisUsage' }
         no_data_reason: { type: string }
@@ -1575,6 +1584,7 @@ components:
               mushroom_type: { type: string }
               name_ua: { type: string }
               reason_label: { type: string, example: 'Холодно: 3° за тиждень, потрібно від 10°' }
+              group: { type: string, enum: [today, season] }
         finds:
           type: [object, 'null']
           description: Знахідки в ділянці — звірка ваших тук-туків за 60 днів із прогнозом того дня і ваші знахідки торік у ці тижні (лише власні)
@@ -1679,6 +1689,35 @@ components:
         range_label: { type: [string, 'null'], example: 'Різні моделі: опади 2–11 мм, 3…10°', description: Дні 5–7 (Pro) — діапазон за ансамблем моделей }
         sun_label: { type: [string, 'null'], example: 'Схід 07:12 · захід 16:08 · світла 8 год 56 хв' }
         take_label: { type: [string, 'null'], example: 'Візьміть: дощовик, гумові чоботи' }
+        parts:
+          type: array
+          description: Частини доби з окремою погодною сценою й температурою
+          items:
+            type: object
+            required: [key, label, from_hour, to_hour, scene, scene_label, temp_label]
+            properties:
+              key: { type: string, enum: [night, morning, day, evening] }
+              label: { type: string, example: Ранок }
+              from_hour: { type: integer, minimum: 0, maximum: 23 }
+              to_hour: { type: integer, minimum: 1, maximum: 24 }
+              scene: { type: string }
+              scene_label: { type: string, example: Сонячно }
+              temp_label: { type: string, example: '5…11°' }
+        rain_spans:
+          type: array
+          description: Проміжки опадів протягом доби
+          items:
+            type: object
+            required: [from_hour, to_hour, label]
+            properties:
+              from_hour: { type: integer, minimum: 0, maximum: 23 }
+              to_hour: { type: integer, minimum: 1, maximum: 24 }
+              label: { type: string, example: 'Дощ 18:00–21:00, ~5 мм' }
+        dry_rest_label: { type: [string, 'null'], example: Далі сьогодні без опадів }
+        hazards:
+          type: array
+          description: Готові попередження про грозу, спеку або заморозок
+          items: { type: string }
 
     AnalysisDay:
       type: object
@@ -1710,6 +1749,16 @@ components:
           type: array
           maxItems: 12
           items: { $ref: '#/components/schemas/AnalysisBasketSpecies' }
+        others:
+          type: array
+          description: Інші гриби для цього дня з готовою причиною
+          items:
+            type: object
+            properties:
+              mushroom_type: { type: string }
+              name_ua: { type: string }
+              reason_label: { type: string }
+              group: { type: string, enum: [today, season] }
 
     RegionGeometry:
       type: object
