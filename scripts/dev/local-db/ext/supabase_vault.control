@@ -1,0 +1,4 @@
+comment = 'Local stub of supabase_vault for migration tests (plain text)'
+default_version = '0.0'
+relocatable = false
+schema = vault
