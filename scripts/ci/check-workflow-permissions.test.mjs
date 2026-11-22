@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   checkRepository,
+  validateProductionSecretScope,
   validateSmokeSecretMasking,
   validateWorkflowPermissions,
 } from "./check-workflow-permissions.mjs";
@@ -43,4 +44,27 @@ test("dynamically fetched service-role key must be masked", () => {
     'echo "service_key=$SERVICE_KEY" >> "$GITHUB_OUTPUT"',
   ].join("\n");
   assert.throws(() => validateSmokeSecretMasking(source), /service-role key is not masked/);
+});
+
+test("dynamic smoke-test user JWT must be masked", () => {
+  const source = [
+    'echo "::add-mask::$ANON_KEY"',
+    'echo "::add-mask::$SERVICE_KEY"',
+    'SERVICE_KEY=$(echo "$RESULT" | jq -er \'.[] | select(.name=="service_role") | .api_key\')',
+    'echo "jwt=$JWT" >> "$GITHUB_OUTPUT"',
+  ].join("\n");
+  assert.throws(() => validateSmokeSecretMasking(source), /user JWT is not masked/);
+});
+
+test("production secrets cannot be inherited by third-party action steps", () => {
+  const source = [
+    "jobs:",
+    "  deploy:",
+    "    runs-on: ubuntu-latest",
+    "    env:",
+    "      TOKEN: ${{ secrets.PRODUCTION_TOKEN }}",
+    "    steps:",
+    "      - uses: actions/checkout@v4",
+  ].join("\n");
+  assert.throws(() => validateProductionSecretScope("deploy.yml", source), /exposed at job scope/);
 });

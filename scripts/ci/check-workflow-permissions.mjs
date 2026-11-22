@@ -57,7 +57,23 @@ export function validateSmokeSecretMasking(source) {
   const errors = [];
   expect(errors, source.includes('echo "::add-mask::$ANON_KEY"'), "smoke-test.yml: anonymous key is not masked");
   expect(errors, source.includes('echo "::add-mask::$SERVICE_KEY"'), "smoke-test.yml: service-role key is not masked");
+  expect(errors, source.includes('echo "::add-mask::$JWT"'), "smoke-test.yml: user JWT is not masked");
   expect(errors, /jq -er[^\n]+name=="service_role"/.test(source), "smoke-test.yml: service-role key extraction is not fail-closed");
+  if (errors.length) throw new Error(errors.join("\n"));
+}
+
+export function validateProductionSecretScope(name, source) {
+  const lines = source.split(/\r?\n/);
+  const errors = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!/^ {4}env:\s*$/.test(lines[index])) continue;
+    const block = [];
+    for (let offset = index + 1; offset < lines.length; offset += 1) {
+      if (lines[offset].trim() && lines[offset].search(/\S/) <= 4) break;
+      block.push(lines[offset]);
+    }
+    expect(errors, !block.some((line) => line.includes("secrets.")), `${name}: production secrets are exposed at job scope`);
+  }
   if (errors.length) throw new Error(errors.join("\n"));
 }
 
@@ -72,6 +88,7 @@ export function checkRepository(root) {
     const result = validateWorkflowPermissions(basename(file), source);
     if (result.writes.length) writeScoped.push(file);
     if (file === "smoke-test.yml") validateSmokeSecretMasking(source);
+    if (file === "deploy.yml" || file === "smoke-test.yml") validateProductionSecretScope(file, source);
   }
   return { workflows: files.length, writeScoped };
 }
