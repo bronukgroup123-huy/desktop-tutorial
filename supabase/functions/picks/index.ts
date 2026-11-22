@@ -26,7 +26,13 @@ import {
 import { handlePicksListRequest } from "../_shared/forecast/picks-list.ts";
 import type { PicksListDbClient } from "../_shared/forecast/picks-list.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { checkAndIncrementIpRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
+import {
+  checkAndIncrementIpRateLimit,
+  getClientIp,
+  rateLimitResponse,
+  RateLimitUnavailableError,
+  rateLimitUnavailableResponse,
+} from "../_shared/rate-limit.ts";
 // EXIF-логіка спільна з v1-picks (BACKEND_PLAN B3.1).
 import { stripImageMetadata, verifyExif } from "../_shared/picks/exif.ts";
 import {
@@ -113,7 +119,15 @@ Deno.serve(withErrorHandling(async (req: Request) => {
   const rlDb = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const rl = await checkAndIncrementIpRateLimit(rlDb, ip, "picks");
+  let rl: Awaited<ReturnType<typeof checkAndIncrementIpRateLimit>>;
+  try {
+    rl = await checkAndIncrementIpRateLimit(rlDb, ip, "picks");
+  } catch (error) {
+    if (error instanceof RateLimitUnavailableError) {
+      return rateLimitUnavailableResponse(req);
+    }
+    throw error;
+  }
   if (!rl.allowed) {
     return rateLimitResponse(req, rl.retryAfter ?? 60);
   }

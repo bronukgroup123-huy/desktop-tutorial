@@ -48,6 +48,19 @@ After PR #109: 62 migrations, 14 SQL tests (new security_definer_privileges.sql)
 After PR #111 (independent of #109): 62 migrations, 15 SQL tests (new retired_guardian_v0.sql); Deno
 579 passed / 0 failed with the CI command; full deno check 0 errors and blocking in CI.
 
+## SEC-003 verification — 2026-11-22, Codex runtime, branch `codex/sec-003-rate-limit-fail-closed`
+
+| Check | Result |
+|---|---|
+| `deno test --allow-all --node-modules-dir=none --no-check supabase/tests/rate-limit.test.ts` | Pass, 7/7 |
+| `deno check` for shared rate limiter, v1 HTTP layer, regions, catalog and regression test | Pass |
+| `deno lint --rules-exclude=no-import-prefix` for all six changed TypeScript files | Pass |
+| `deno check supabase/functions/picks/index.ts` | Blocked before checking by denied `jsr.io` access for the existing `djwt` dependency; CI remains authoritative |
+| `git diff --check` | Pass |
+
+The regression coverage includes PostgREST array results, 429 decisions, resolved and rejected RPC
+failures, malformed counter data, absence of the non-atomic fallback, and retryable 503 responses.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:

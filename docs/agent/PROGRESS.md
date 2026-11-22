@@ -88,3 +88,18 @@ See docs/agent/BLOCKERS.md.
 - Next: SEC-003 — rate limiting must not fail open
 - Blockers: unchanged (owner merges #109, #111, #110)
 
+## 2026-11-22 07:39 UTC — SEC-003 fail-closed rate limiting (Codex)
+- Branch / SHA: `codex/sec-003-rate-limit-fail-closed` @ `569e6212d19802ca6bd161b5f6d29fb13591172e`
+- Done: removed the non-atomic direct-table fallback and fail-open path; validated object and PostgREST
+  array RPC results; mapped undecidable rate limits to retryable `503 rate_limit_unavailable` for v1,
+  legacy public reads and the legacy mutation endpoint; added seven regression tests.
+- Checks: targeted Deno tests → 7 passed / 0 failed; type-check of shared limiter, v1 HTTP, regions,
+  catalog and test → pass; lint of all changed TypeScript files excluding the repository-wide existing
+  `no-import-prefix` rule → pass; `git diff --check` → pass.
+- Problems / residual risks: isolated `picks` type-check is blocked before analysis because `jsr.io` cannot
+  provide the existing `djwt` dependency in this runtime; blocking CI must run the full suite.
+- PR: branch pushed; creation pending because the Codex `GH_TOKEN` is invalid (BLK-001). Compare URL:
+  https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/sec-003-rate-limit-fail-closed
+- Next: SEC-004 — enable platform JWT verification by default with an explicit public/service/webhook matrix.
+- Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
+

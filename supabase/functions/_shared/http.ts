@@ -15,6 +15,7 @@ import { buildCorsHeaders } from "./cors.ts";
 import {
   checkAndIncrementIpRateLimit,
   getClientIp,
+  RateLimitUnavailableError,
 } from "./rate-limit.ts";
 
 // ─── Помилки ───────────────────────────────────────────────────────────────
@@ -140,12 +141,25 @@ export async function enforceRateLimit(
   req: Request,
   endpoint: string,
 ): Promise<void> {
-  const rl = await checkAndIncrementIpRateLimit(
-    db,
-    getClientIp(req),
-    endpoint,
-    V1_RATE_LIMITS[endpoint],
-  );
+  let rl: Awaited<ReturnType<typeof checkAndIncrementIpRateLimit>>;
+  try {
+    rl = await checkAndIncrementIpRateLimit(
+      db,
+      getClientIp(req),
+      endpoint,
+      V1_RATE_LIMITS[endpoint],
+    );
+  } catch (error) {
+    if (error instanceof RateLimitUnavailableError) {
+      throw new HttpError(
+        503,
+        "rate_limit_unavailable",
+        "Сервіс тимчасово недоступний. Спробуйте ще раз.",
+        { "Retry-After": "5" },
+      );
+    }
+    throw error;
+  }
   if (!rl.allowed) {
     const retry = rl.retryAfter ?? 60;
     throw new HttpError(
