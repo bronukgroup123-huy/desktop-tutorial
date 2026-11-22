@@ -12,4 +12,3 @@ You are continuing controlled maintenance of Mushroom Radar.
 10. Leave the branch in a reviewable state. The surrounding workflow will push it and open a PR.
 
 If the task needs product policy, production access, money, a new secret, or owner-only credentials, mark it blocked and choose the next unblocked item. Stop cleanly on rate limits.
-

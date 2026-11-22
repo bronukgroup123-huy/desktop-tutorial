@@ -48,4 +48,3 @@ These controls were reviewed statically. Database policy behavior and deployed e
 ## Secret handling
 
 No secret value was printed or copied. The repository contains a documented public test keystore. Real signing keys, service-role keys, webhook secrets, Firebase credentials, and OpenAI credentials must remain in secure CI or environment settings.
-

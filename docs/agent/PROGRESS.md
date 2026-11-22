@@ -44,4 +44,3 @@ SEC-002. Harden public.import_forest_zones_batch(jsonb) and add negative privile
 ### Blockers
 
 See docs/agent/BLOCKERS.md.
-

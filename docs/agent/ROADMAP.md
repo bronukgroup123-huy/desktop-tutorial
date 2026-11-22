@@ -51,4 +51,3 @@ Exit criteria: Android release candidate is reproducible, iOS preparation is exp
 - Stop on rate limits and record paused or blocked_rate_limit.
 - One scheduled job at a time through GitHub Actions concurrency.
 - Secrets are supplied only through repository or environment settings.
-

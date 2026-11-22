@@ -44,4 +44,3 @@
 - Evidence: no iOS target, macOS runner validation, Apple signing assets, bundle registration, or Apple Developer access is available.
 - Impact: iOS readiness cannot be claimed.
 - Owner action: provide Apple identifiers and signing through secure CI settings after the source target is prepared.
-

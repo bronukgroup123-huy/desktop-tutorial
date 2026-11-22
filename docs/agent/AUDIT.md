@@ -109,4 +109,3 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 ## Audit limits
 
 GitHub branch rules, open PR state, and current CI conclusions could not be queried because the supplied GH_TOKEN is rejected and unauthenticated GitHub API traffic is blocked. Production Supabase state was not inspected or modified. UI rendering, device behavior, performance, and iOS behavior remain unverified.
-

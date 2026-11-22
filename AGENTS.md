@@ -14,4 +14,3 @@ docs/BACKEND_PLAN.md, and the current files in docs/agent/.
 - Record exact commands and outcomes in docs/agent/PROGRESS.md and
   docs/agent/QUALITY_REPORT.md.
 - Reuse the existing checkout. Create a worktree only when the user explicitly asks.
-

@@ -44,4 +44,3 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 ## Next quality gate
 
 Restore Deno and Flutter artifact access, then run the exact commands in test.yml and android.yml. Record test counts, failures, skips, and artifacts without summarizing a partial run as green.
-
