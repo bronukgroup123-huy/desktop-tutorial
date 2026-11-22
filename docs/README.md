@@ -34,14 +34,9 @@ ForecastEngine прогнозує плодоношення грибів за т�
 supabase/
   migrations/     SQL-міграції (48 файлів — джерело істини схеми БД)
   functions/      Edge Functions (Deno)
-    _shared/      спільні модулі: forecast engine, guardian, auth, errors
-    forecast/     POST /forecast — основний прогноз
-    forecast-weather/  погода + хвиля (службовий)
-    picks/        POST + GET /picks
-    regions/      GET /regions
-    catalog/      GET /catalog
-    me/           GET + PATCH /me
-    guardian-*/   25 функцій контуру Наглядача
+    _shared/      спільні модулі: http-шар v1, forecast engine, picks, auth, errors
+    v1-*/         клієнтський API v1 (Flutter) — див. docs/API.md, розділ 0
+    picks/ regions/ catalog/ me/   застарілий API (поступово замінюється v1)
   tests/
     forecast/     unit + endpoint тести (deno test)
     fixtures/     golden-dataset.json + rules-subset.json (regression)

@@ -106,7 +106,7 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
   `outside_home_region` (403), `registration_required` (403), `region_change_not_allowed` (403),
   `terms_version_outdated` (409), `bbox_too_large` (400), `rate_limited` (429 + `Retry-After`).
 - Усі v1-* мають rate limit за IP.
-- `POST /guardian-session-create` і `POST /guardian-sos` для гостя → `403 registration_required`.
+- Наглядач — лише `v1-guardian` (ADR-022); для гостя → `403 registration_required`.
 - Legacy `/me` (не плутати з `v1-me`): лише `GET` — експорт власних даних (GDPR). `DELETE` та
   інші методи → `405 method_not_allowed`. Видалення акаунта — B6.2.
 
@@ -218,87 +218,9 @@ Pro ще не продається (B6.3), тож 10×10 зараз недост
 
 ---
 
-## 1. POST /forecast
+## 1. POST /forecast — прибрано (SEC-005, 2026-11-22)
 
-Прогноз плодоношення для точки: RegionGuard → погода (Open-Meteo) →
-скорінг `expert_rules` → топ-1 + альтернатива. Живе оголошення контракту —
-`supabase/functions/forecast/index.ts`.
-
-**Auth:** публічний.
-
-### Request
-
-| Поле | Тип | Обов'язкове | Опис |
-|---|---|---|---|
-| `lat` | number | так | Широта, `[-90, 90]` |
-| `lng` | number | так | Довгота, `[-180, 180]` |
-| `date` | string (ISO) | ні | Дата прогнозу; за замовчуванням — зараз |
-| `forestType` | string \| null | ні | Тип лісу (`pine`, `birch`, `deciduous`, …); `null` = невідомо |
-| `forestConfirmed` | boolean | ні | Чи підтвердив користувач тип лісу на місці |
-| `homeRegionId` | number \| null | ні | ID домашньої області (RegionGuard); `null` = пропустити перевірку |
-
-```bash
-curl -X POST "$SUPABASE_URL/functions/v1/forecast" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "lat": 50.45,
-    "lng": 30.52,
-    "date": "2026-10-12",
-    "forestType": "pine",
-    "forestConfirmed": true,
-    "homeRegionId": 1
-  }'
-```
-
-### Response 200
-
-```json
-{
-  "regionName": "Київська",
-  "date": "2026-10-12",
-  "forest": "pine (підтверджено), 50 років",
-  "top1": {
-    "mushroom_type": "boletus_edulis",
-    "name_ua": "Білий гриб",
-    "score": 0.83,
-    "probability": "high",
-    "matched": ["temp 13 within fruiting range", "in peak temp [12,18]"],
-    "missed": [],
-    "wave": "autumn",
-    "where": "Південні схили + старі сосни"
-  },
-  "alternative": {
-    "mushroom_type": "russula_vesca",
-    "name_ua": "Сироїжка",
-    "score": 0.71,
-    "probability": "medium",
-    "matched": ["temp 13 within fruiting range"],
-    "missed": [],
-    "wave": "autumn",
-    "where": null
-  },
-  "warnings": []
-}
-```
-
-> ⚠️ Це **єдиний ендпоінт без обгортки `{ data }`** — відповідь є сирим
-> `ForecastResult`. Поле `noDataReason` відсутнє в успішній відповіді
-> (з'являється лише у fallback-випадках).
-
-Рівні `probability`: `peak` ≥ 0.90 → `high` ≥ 0.70 → `medium` ≥ 0.50 →
-`low` ≥ 0.30 → `no_data` < 0.30.
-
-### Помилки
-
-```json
-{ "error": "invalid_coordinates", "message": "lat/lng мають бути числами в межах [-90,90] / [-180,180]" }
-```
-```json
-{ "error": "outside_home_region", "message": "Ви поза вашою областю. Прогноз обмежено." }
-```
-
-`outside_home_region` → **403**. Fallback (погода недоступна / жоден вид не
-пройшов фільтр) → **200** з `noDataReason` і можливим базовим `top1`.
+Застаріла функція `forecast` видалена з проєкту: клієнти користуються `v1-forecast` (розділ 0).
 
 ---
 
@@ -688,73 +610,19 @@ curl -X PATCH "$SUPABASE_URL/functions/v1/me" \
 
 ---
 
-## 8. forecast-weather (службовий)
+## 8. forecast-weather — прибрано (SEC-005, 2026-11-22)
 
-> ⚠️ **Внутрішній endpoint. Не використовується клієнтом.**
-> Наведено лише для повноти контракту — Flutter-команда використовує
-> `POST /forecast`. Опис може змінюватися без попередження.
-
-**Auth:** публічний. При збої Open-Meteo → **200** з `source: "unavailable"`
-(graceful degradation). Відсутні/нечислові `lat`/`lng` → **400**
-`{ "error": "lat and lng required (numbers)" }` (людиночитабельний рядок,
-не `snake_case`-код); неочікувана помилка → **500** `internal_error`.
-
-```bash
-curl -X POST "$SUPABASE_URL/functions/v1/forecast-weather" \
-  -H "Content-Type: application/json" \
-  -d '{ "lat": 50.45, "lng": 30.52, "date": "2026-10-12" }'
-```
-
-### Response 200
-
-```json
-{
-  "data": {
-    "weather": {
-      "tempAvg7d": 13.0,
-      "tempAvg14d": 13.0,
-      "tempAvg20d": 13.0,
-      "tempMin": 9,
-      "tempMax": 17,
-      "humidity": 70,
-      "rain1d": 3,
-      "rain2d": 6,
-      "rain3d": 16,
-      "rain7d": 20,
-      "rain14d": 30,
-      "rain30d": 50,
-      "droughtDays": 0,
-      "daysAfterRain": 2,
-      "pressure": 1013,
-      "pressureTrend": "stable",
-      "soilState": "normal",
-      "gdd": 240,
-      "fetchedAt": "2026-10-12T06:00:00.000Z",
-      "source": "open-meteo"
-    },
-    "wave": "autumn",
-    "date": "2026-10-12"
-  }
-}
-```
+Публічний погодний проксі без авторизації й ліміту видалено; погода — у відповіді `v1-forecast`.
 
 ---
 
-## Guardian endpoints (інтерфейс Наглядача)
+## Guardian endpoints — прибрано (ADR-022, SEC-005)
 
-Окремий контур безпеки: **не Supabase-JWT**, а власний токен Наглядача
-(`X-Guardian-Token`, видається через `guardian-register-*`). ~25 функцій
-(`guardian-session-*`, `guardian-ping`, `guardian-sos`, `guardian-tick`,
-`guardian-notify`, `guardian-webhook-sms`, …).
-
-Повна документація контуру — **TODO/V2** (окремий документ
-`docs/GUARDIAN_API.md`). Для Flutter-команди актуальні лише:
-`POST /guardian-register-device` (FCM-токен грибника) та
-`POST /guardian-register-guardian-device` (Web Push Наглядача) — обидва
-вимагають відповідного контексту сесії; решта — внутрішні.
-
-Ключові відповіді помилок: `unauthorized` / `invalid_token` → **401**,
-`not_found` → **404**, `invalid_transition` → **409**, `rate_limited` → **429**.
+Наглядач — лише в застосунку серед друзів: `v1-guardian`, `v1-guardian-tick` (лише service_role) і
+`v1-telegram-webhook` (секрет вебхука), розділ 0. Посилання Наглядача (ADR-022 §22.8) і застарілий
+Guardian v0 (`guardian-session-*`, `guardian-ping`, `guardian-sos*`, `guardian-tick`, `guardian-notify`,
+`guardian-retry`, `guardian-demo-create`, …) видалено з репозиторію й проєкту (`deploy.yml`). Таблиці v0
+поки лишаються в БД — рішення про зберігання даних за власником.
 
 ---
 
