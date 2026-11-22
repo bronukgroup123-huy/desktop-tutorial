@@ -19,32 +19,31 @@ Verified on a fresh database: the global PUBLIC EXECUTE default left eight SECUR
 executable by anon and authenticated, including the administrative forest import (no fixed search path) and
 four PostGIS lookups that bypass Edge Function rate limits.
 
-Current state: fixed in PR #109 (migration + regression test that fails CI for any future SECURITY DEFINER
-function reachable by API roles or without search_path). Effective after merge and deployment.
+Current state: fixed and merged in PR #109 (migration + regression test that fails CI for any future
+SECURITY DEFINER function reachable by API roles or without search_path). Staging verification remains
+blocked by BLK-007.
 
 ## Confirmed high-risk weaknesses
 
-- Legacy Guardian v0 endpoints (14), their cron processors and an unauthenticated demo endpoint are still
-  deployed although ADR-022 replaced them and no client uses them (SEC-005).
-- A public weather proxy accepts arbitrary coordinates without token or rate limit (SEC-005 retires it).
-
-- IP rate limiting fails open and has a non-atomic fallback.
+- Legacy Guardian v0, demo, weather proxy and legacy forecast sources were retired in merged PR #111.
+  Legacy data tables remain until the owner decides their retention policy (BLK-009).
+- IP rate limiting failed open and used a non-atomic fallback. SEC-003 removes the fallback, validates the
+  RPC result (including PostgREST's array form), and applies one documented policy to public reads and
+  mutations: return retryable 503 when the counter cannot decide. Implementation is pushed on
+  `codex/sec-003-rate-limit-fail-closed`; merge and CI are pending.
 - Every deployed function uses --no-verify-jwt, so one omitted handler guard exposes the endpoint.
-- Blocking Deno type checking covers selected entrypoints. The all-function check is advisory.
+- Full Deno type checking is blocking after merged PR #111.
 - Android release can use the repository's public test key. It is suitable for testing only.
-- The legacy Guardian notification schema does not declare the alert_id it reads (removed with SEC-005).
 
 ## Edge Function authentication matrix (second pass, 2026-11-22)
 
 | Class | Functions |
 |---|---|
 | User JWT via `requireUser` (v1 http layer) | v1-me, v1-picks, v1-regions, v1-forecast, v1-analysis, v1-forest-zones, v1-friends, v1-guardian, v1-air-alerts, v1-app-config, v1-wave-alerts |
-| Service role (exact bearer) | v1-guardian-tick, guardian-tick, guardian-notify, guardian-retry |
+| Service role (exact bearer) | v1-guardian-tick |
 | Webhook secret | v1-telegram-webhook |
-| User JWT, legacy Guardian v0 (unused, ADR-022) | guardian-active, -cancel-close, -close, -exiting, -extend, -owner-gpx, -ping, -recover, -register-device, -revoke, -session-create, -sos, -sos-cancel |
 | Legacy, partly public | me, picks (public read + JWT for own), regions, catalog (IP-limited public reads) |
-| **Public, no auth** | forecast (IP-limited), **forecast-weather (no limit)**, **guardian-demo-create (writes rows)** |
-| Not deployed | guardian-notify-test, test-telegram |
+| Not deployed / retired | Guardian v0 functions, guardian demo, legacy forecast/weather proxy, guardian-notify-test, test-telegram |
 
 Platform JWT verification is off for all (`--no-verify-jwt`); SEC-004 makes it the default with an allowlist.
 

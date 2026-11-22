@@ -13,8 +13,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Goal: anon/authenticated cannot execute any SECURITY DEFINER function in public; fixed search_path.
 - Scope: migration 20261122100000, SQL regression security_definer_privileges.sql, local DB harness.
 - Acceptance: 62 migrations apply; all SQL tests pass; the new test fails without the migration.
-- Status: in_review — PR #109 (branch claude/sec-002-definer-privileges). Owner should merge first.
-- Residual: production grants change only after merge + deploy.
+- Status: done — PR #109 (merged 2026-11-22).
+- Residual: staging verification remains blocked by BLK-007.
 
 ### SEC-005 — retire legacy Guardian v0, demo and weather-proxy endpoints
 - Goal: remove deployed surface that ADR-022 replaced and no client uses (AUD-SEC-005, AUD-SEC-006).
@@ -25,9 +25,9 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Acceptance: fresh-DB migrations + SQL tests pass; Deno tests pass; deno check of all remaining entrypoints
   loses the legacy errors; no client reference to removed functions; smoke test no longer calls them.
 - Tests: SQL assertion that the legacy cron jobs are absent; Deno suite; grep guard in CI optional.
-- Status: in_review — PR #111 (branch claude/sec-005-retire-legacy-endpoints). Also retired the
-  legacy `forecast` function (unused, public compute) and closed QA-002 in the same PR.
-- Residual: production deletion happens on merge via deploy.yml; owner reviews the list.
+- Status: done — PR #111 (merged 2026-11-22). Also retired the legacy `forecast` function
+  (unused, public compute) and closed QA-002 in the same PR.
+- Residual: legacy data retention is still an owner decision (BLK-009).
 
 ### SEC-003 — rate limiting must not fail open
 - Goal: abuse protection survives RPC/database failures.
@@ -35,7 +35,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Acceptance: mutating/notification endpoints fail closed (503) when the limiter cannot decide; public reads
   follow a documented policy; no non-atomic fallback counter.
 - Tests: RPC failure, storage failure, 429, concurrency where possible.
-- Status: ready
+- Status: in_progress — implementation and 7 regression tests pushed on
+  `codex/sec-003-rate-limit-fail-closed` at `569e621`; PR creation pending BLK-001.
 
 ### SEC-004 — Edge Function authentication matrix and default JWT verification
 - Goal: every deployed function classified (public / user JWT / service role / webhook secret) and platform
@@ -53,7 +54,7 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Status: ready
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
-- Status: in_review — PR #111 (full `deno check` of functions, tests and _shared: 0 errors, now blocking).
+- Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
 
 ## P1 — product correctness
 
