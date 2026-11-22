@@ -1,5 +1,10 @@
 # Prioritized engineering backlog
 
+This backlog is owned by Codex and contains security, backend, CI/CD, and
+infrastructure work. Product behavior and UI tasks are tracked by Claude under
+`docs/tasks/*`. Cross-zone work remains unassigned until one owner and its file
+scope are recorded in `WORK_OWNERSHIP.md`.
+
 ## SEC-001 — protect internal Guardian jobs
 
 - Priority: P0
@@ -92,6 +97,7 @@
 ## IOS-001 — create and validate iOS target
 
 - Priority: P1
+- Owner: unassigned cross-zone task
 - Goal: prepare iOS source, permissions, deep links, Firebase, and CI.
 - Scope: Flutter iOS target and macOS workflow.
 - Acceptance criteria: static analysis passes and an unsigned simulator build succeeds on macOS.
@@ -103,10 +109,11 @@
 ## UI-001 — accessibility and responsive baseline
 
 - Priority: P1
+- Owner: Claude
 - Goal: verify all primary screens under compact size, large text, and reduced motion.
 - Scope: widget and golden tests plus documented screenshots before visual changes.
 - Acceptance criteria: no overflow in critical actions, semantic labels exist, motion respects system settings.
 - Tests: widget tests at representative constraints and golden diffs.
-- Status: blocked_flutter_runtime
+- Status: handed_to_claude
 - PR: pending
 - Residual risks: device-specific rendering requires emulator or hardware validation.

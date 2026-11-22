@@ -53,3 +53,11 @@ See docs/agent/BLOCKERS.md.
 - Rate-limit instructions now forbid repeated retries within one run and delegate recovery to the next scheduled run.
 - GitHub API access is still blocked in this environment, so OPENAI_API_KEY presence and an actual scheduled run remain unverified.
 - Branch codex/autonomy-five-hour-cycle was pushed. gh pr create failed with GitHub GraphQL 403. Review URL: https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/autonomy-five-hour-cycle
+
+## Codex and Claude coordination 2026-11-22
+
+- Codex owns security, backend, CI/CD, infrastructure, and docs/agent.
+- Claude owns product tasks, docs/tasks, profiles, maps, screens, assets, and UI.
+- Each agent works in its own branch and opens a PR into main without auto-merge.
+- Cross-zone tasks require one recorded owner and a file list before implementation.
+- Codex scheduled runs must inspect the active Claude branch and skip overlapping files.
