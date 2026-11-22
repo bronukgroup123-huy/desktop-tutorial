@@ -44,3 +44,11 @@ SEC-002. Harden public.import_forest_zones_batch(jsonb) and add negative privile
 ### Blockers
 
 See docs/agent/BLOCKERS.md.
+
+## Autonomy authorization update 2026-11-22
+
+- The owner authorized autonomous continuation and rate-limit recovery.
+- The schedule was changed to run at 00:17, 05:17, 10:17, 15:17, and 20:17 UTC every day. The maximum interval is five hours.
+- The manual CODEX_AUTONOMY_ENABLED gate was removed.
+- Rate-limit instructions now forbid repeated retries within one run and delegate recovery to the next scheduled run.
+- GitHub API access is still blocked in this environment, so OPENAI_API_KEY presence and an actual scheduled run remain unverified.

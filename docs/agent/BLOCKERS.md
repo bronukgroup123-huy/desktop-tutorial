@@ -32,11 +32,11 @@
 
 ## BLK-005 — scheduled agent credentials and budget
 
-- Status: waiting_owner
-- Evidence: codex-autonomy.yml is disabled unless repository variable CODEX_AUTONOMY_ENABLED equals true. It requires OPENAI_API_KEY.
-- Impact: autonomous continuation is prepared but not active or tested.
-- Owner action: set an explicit budget, add the secret securely, enable the variable, and authorize one manual workflow run.
-- Safety: the workflow has concurrency 1, a 55-minute timeout, opens PRs without auto-merge, and receives no production secrets.
+- Status: authorized_pending_configuration_check
+- Evidence: the owner authorized autonomous work on 2026-11-22. The workflow is scheduled no less often than every five hours and requires OPENAI_API_KEY. The current invalid GH_TOKEN prevents checking repository secret metadata or workflow runs.
+- Impact: the schedule becomes active after this change is merged, but successful agent execution cannot be claimed until one run is observed.
+- Owner action: ensure OPENAI_API_KEY is present with an explicit budget or acceptable provider limit. Do not paste the value into chat.
+- Safety: the workflow has concurrency 1, a 55-minute timeout, opens PRs without auto-merge, receives no production secrets, and retries rate limits only on the next scheduled run.
 
 ## BLK-006 — iOS release infrastructure
 

@@ -11,4 +11,11 @@ You are continuing controlled maintenance of Mushroom Radar.
 9. Update BACKLOG, PROGRESS, QUALITY_REPORT, SECURITY_REPORT, and BLOCKERS as applicable.
 10. Leave the branch in a reviewable state. The surrounding workflow will push it and open a PR.
 
-If the task needs product policy, production access, money, a new secret, or owner-only credentials, mark it blocked and choose the next unblocked item. Stop cleanly on rate limits.
+If the task needs product policy, production access, money, a new secret, or owner-only credentials, mark it blocked and choose the next unblocked item.
+
+If an API, model, or infrastructure rate limit is reached:
+
+1. Do not retry repeatedly in this run.
+2. Preserve already verified work and update the task status to blocked_rate_limit or paused when possible.
+3. Record the provider message and retry-after time without exposing secrets.
+4. End cleanly. The external workflow will retry within five hours.

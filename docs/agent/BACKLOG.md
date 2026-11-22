@@ -60,10 +60,10 @@
 
 - Priority: P0
 - Goal: allow one bounded Codex run on a schedule and persist results through Git and PRs.
-- Scope: disabled-by-default GitHub workflow, agent prompt, concurrency, timeout, budget and secret gate.
-- Acceptance criteria: owner enables the repository variable, provides the API key and budget, a manual run opens one PR, and a subsequent run reads the persisted state.
+- Scope: authorized GitHub workflow, five-hour schedule, agent prompt, concurrency, timeout, budget, and secret check.
+- Acceptance criteria: the API key and budget or provider limit are configured, a manual or scheduled run opens one PR, and a subsequent run reads the persisted state.
 - Tests: workflow syntax plus one owner-authorized manual run.
-- Status: prepared_disabled
+- Status: authorized_schedule_prepared
 - PR: pending
 - Residual risks: untested until credentials and budget are supplied.
 

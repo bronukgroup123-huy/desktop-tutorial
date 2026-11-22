@@ -8,7 +8,7 @@ This roadmap is risk-driven. Each run selects one unblocked item from BACKLOG.md
 - Make full Deno checks reproducible.
 - Run Flutter analyze and tests on pinned Flutter 3.47.9.
 - Run all migrations and SQL/RLS tests on a fresh disposable database.
-- Establish the disabled-by-default scheduled Codex workflow and test one manual run after the owner supplies a budget and secret.
+- Establish the authorized five-hour Codex schedule and test one run after the API key and budget or provider limit are confirmed.
 - Confirm branch protection and required checks for main.
 
 Exit criteria: baseline commands are reproducible, blockers are explicit, and every deployed endpoint has an authentication classification.
