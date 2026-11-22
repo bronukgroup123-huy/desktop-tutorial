@@ -50,15 +50,22 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 - User impact: abuse protection can disappear during a database or migration failure.
 - Recommendation: remove the non-atomic fallback and define endpoint-specific failure behavior. Mutating and notification endpoints should fail closed.
 - Required verification: injected RPC failure tests and concurrent limit tests.
+- Current state: fixed in merged PR #112; seven regression tests cover RPC failures, invalid results,
+  PostgREST response shape, 429 and retryable 503 behavior. Staging verification remains blocked.
 
 ### AUD-SEC-004 — broad no-verify-jwt deployment policy
 
 - Severity: high
 - Classification: systemic risk
-- Evidence: .github/workflows/deploy.yml passes --no-verify-jwt to all 38 Edge Function directories.
+- Evidence: before SEC-005/SEC-004, .github/workflows/deploy.yml passed --no-verify-jwt to every Edge
+  Function directory. The current source has 17 deployed function directories.
 - User impact: every endpoint depends on correct in-handler authentication. A newly added function is public until its own guard is implemented.
 - Recommendation: maintain a reviewed public-endpoint allowlist and enable platform JWT verification by default. Keep explicit in-handler service-role or webhook-secret validation where platform JWT alone is insufficient.
 - Required verification: endpoint authorization matrix covering missing, malformed, anonymous, authenticated, service-role, and webhook-secret requests.
+- Current state: fixed on branch `codex/sec-004-edge-jwt-matrix` at `cb96b1c`. The deploy workflow now
+  reads a fail-closed 17-function matrix; only seven reviewed public/mixed/webhook functions bypass gateway
+  JWT verification. CI rejects missing classifications and config drift. Merge, CI and deployed smoke tests
+  are still pending.
 
 ### AUD-BE-001 — legacy notification handler schema omits alert_id
 

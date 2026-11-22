@@ -103,3 +103,18 @@ See docs/agent/BLOCKERS.md.
 - Next: SEC-004 — enable platform JWT verification by default with an explicit public/service/webhook matrix.
 - Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
 
+## 2026-11-22 07:55 UTC — SEC-004 Edge Function JWT matrix (Codex)
+- Branch / SHA: `codex/sec-004-edge-jwt-matrix` @ `cb96b1c299900d6fdedd0fc10792adeb527e8c4a`
+- Done: classified all 17 deployed Edge Functions in one machine-readable auth matrix; made gateway JWT
+  verification the deployment default; limited bypass to seven reviewed public/mixed/webhook functions;
+  mirrored the bypasses in `config.toml`; added a blocking CI drift checker and manual deployed smoke checks
+  for public access, missing/malformed/anon-role tokens, service endpoints and webhook secrets.
+- Checks: Node matrix tests → 4 passed / 0 failed; repository matrix check → 17 classified, 7 bypasses;
+  workflow YAML parse → pass; Supabase CLI parsed config and then stopped because no local container is
+  running; `git diff --check` → pass.
+- Problems / residual risks: platform behavior cannot be exercised pre-merge without staging; production
+  smoke is intentionally manual and has not been run. Full repository CI is pending on the PR.
+- PR: branch will be pushed; creation may require the compare URL because Codex `GH_TOKEN` remains invalid.
+- Next: SEC-006 — private-data and IDOR/BOLA negative tests.
+- Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
+
