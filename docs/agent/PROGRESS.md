@@ -163,8 +163,13 @@ See docs/agent/BLOCKERS.md.
 - Problems / residual risks: the focused static guard checks top-level consumed/required keys, not complete
   nested types, enums or nullability. Flutter analyze/tests did not run locally because the restored SDK is
   incomplete; blocking PR CI remains authoritative.
-- PR: branch will be pushed; GitHub API creation may still require the compare URL because of BLK-001.
+- PR: branch pushed. GitHub GraphQL creation returned `403 Forbidden`; create/review without automerge at
+  https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/qa-003-openapi-model-contract
+- Environment: onboarding draft revision 5 was saved with Flutter 3.47.9 setup, lockfile-safe dependency
+  restore, current verification commands and `storage.googleapis.com`. It requires owner Review/Save and
+  Publish before a fresh-task Flutter validation; saving the draft did not alter this running instance.
 - Next: verify QA-003 PR CI after it is opened/merged, then select the next backend/security/CI backlog item
   without entering Claude's product/UI files.
-- Blockers: BLK-001 (API PR creation only); no implementation blocker.
+- Blockers: BLK-001 (API PR creation only); onboarding draft publication for reproducible local Flutter;
+  no implementation blocker.
 

@@ -4,15 +4,18 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 
 ## BLK-001 — GitHub API authentication in the Codex runtime
 - Status: not blocking the Claude cycle. The Claude runtime reads PRs/CI and opens PRs through its GitHub
-  connection. Codex still has an invalid GH_TOKEN (owner: replace with a fine-grained PAT if Codex should
-  open PRs itself).
+  connection. Codex can fetch and push through the platform HTTPS proxy, but GitHub GraphQL PR creation
+  still returns `403 Forbidden`; pushed branches expose a compare URL. Owner action is optional: create the
+  PR from that URL, or provide Codex an approved GitHub API integration if direct PR creation is required.
 
 ## BLK-002 / BLK-003 / BLK-004 — Deno hosts, Flutter SDK, disposable database
 - Status: resolved in the Claude runtime. Deno runs with scripts/agent/deno_import_map.json (deno.land is
   blocked, jsr/npm are not); Flutter 3.47.9 runs; all migrations and SQL tests run on local PostgreSQL 16 +
   PostGIS + pg_cron (scripts/dev/local-db/run.sh). A new container restores tools with
-  scripts/agent/bootstrap.sh (the Flutter step mirrors the original manual install and is not yet exercised
-  by the script).
+  scripts/agent/bootstrap.sh. The restored Codex instance still has an incomplete Flutter cache because
+  `storage.googleapis.com` is denied. Onboarding draft revision 5 adds that domain plus tested-version setup
+  instructions; the owner must Review/Save and Publish it before reproducibility can be validated in a new
+  task. Node/Git work is not blocked.
 
 ## BLK-005 — Codex scheduled workflow (owner, optional)
 - Status: prepared_disabled. Needs OPENAI_API_KEY (billed separately from a ChatGPT subscription), repository
