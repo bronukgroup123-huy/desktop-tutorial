@@ -1,0 +1,21 @@
+{
+  "functions": {
+    "catalog": "public",
+    "me": "user_jwt",
+    "picks": "mixed_handler_auth",
+    "regions": "public",
+    "v1-air-alerts": "public",
+    "v1-analysis": "user_jwt",
+    "v1-app-config": "public",
+    "v1-forecast": "user_jwt",
+    "v1-forest-zones": "user_jwt",
+    "v1-friends": "user_jwt",
+    "v1-guardian": "user_jwt",
+    "v1-guardian-tick": "service_role",
+    "v1-me": "user_jwt",
+    "v1-picks": "user_jwt",
+    "v1-regions": "public",
+    "v1-telegram-webhook": "webhook_secret",
+    "v1-wave-alerts": "service_role"
+  }
+}

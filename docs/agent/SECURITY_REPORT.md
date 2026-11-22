@@ -27,11 +27,12 @@ blocked by BLK-007.
 
 - Legacy Guardian v0, demo, weather proxy and legacy forecast sources were retired in merged PR #111.
   Legacy data tables remain until the owner decides their retention policy (BLK-009).
-- IP rate limiting failed open and used a non-atomic fallback. SEC-003 removes the fallback, validates the
-  RPC result (including PostgREST's array form), and applies one documented policy to public reads and
-  mutations: return retryable 503 when the counter cannot decide. Implementation is pushed on
-  `codex/sec-003-rate-limit-fail-closed`; merge and CI are pending.
-- Every deployed function uses --no-verify-jwt, so one omitted handler guard exposes the endpoint.
+- IP rate limiting failed open and used a non-atomic fallback. Fixed in merged PR #112: the fallback is
+  removed, RPC results are validated, and public reads and mutations return retryable 503 when the counter
+  cannot decide. Deployed behavior remains unverified without staging.
+- The global `--no-verify-jwt` deployment policy is removed on branch
+  `codex/sec-004-edge-jwt-matrix`. A machine-readable matrix makes platform JWT verification the default;
+  CI rejects any new or renamed function until it is classified. Merge and deployed smoke tests are pending.
 - Full Deno type checking is blocking after merged PR #111.
 - Android release can use the repository's public test key. It is suitable for testing only.
 
@@ -39,13 +40,15 @@ blocked by BLK-007.
 
 | Class | Functions |
 |---|---|
-| User JWT via `requireUser` (v1 http layer) | v1-me, v1-picks, v1-regions, v1-forecast, v1-analysis, v1-forest-zones, v1-friends, v1-guardian, v1-air-alerts, v1-app-config, v1-wave-alerts |
-| Service role (exact bearer) | v1-guardian-tick |
-| Webhook secret | v1-telegram-webhook |
-| Legacy, partly public | me, picks (public read + JWT for own), regions, catalog (IP-limited public reads) |
+| Platform JWT + user/session verification | me, v1-analysis, v1-forecast, v1-forest-zones, v1-friends, v1-guardian, v1-me, v1-picks |
+| Platform JWT + exact service-role bearer | v1-guardian-tick, v1-wave-alerts |
+| Public, no bearer required | catalog, regions, v1-air-alerts, v1-app-config, v1-regions |
+| Mixed public read + handler auth for mutation | picks |
+| Webhook secret (gateway JWT bypass) | v1-telegram-webhook |
 | Not deployed / retired | Guardian v0 functions, guardian demo, legacy forecast/weather proxy, guardian-notify-test, test-telegram |
 
-Platform JWT verification is off for all (`--no-verify-jwt`); SEC-004 makes it the default with an allowlist.
+Supabase Anonymous Sign-In produces a valid user JWT, so guest flows continue through `user_jwt` endpoints.
+Handler-level `assertRegistered` remains responsible for operations forbidden to guests by ADR-001.
 
 ## Database privileges (verified on a fresh database)
 

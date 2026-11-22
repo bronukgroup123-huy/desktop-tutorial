@@ -35,8 +35,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Acceptance: mutating/notification endpoints fail closed (503) when the limiter cannot decide; public reads
   follow a documented policy; no non-atomic fallback counter.
 - Tests: RPC failure, storage failure, 429, concurrency where possible.
-- Status: in_progress — implementation and 7 regression tests pushed on
-  `codex/sec-003-rate-limit-fail-closed` at `569e621`; PR creation pending BLK-001.
+- Status: done — PR #112 (merged 2026-11-22).
+- Residual: deployed 503 behavior remains unverified without staging (BLK-007).
 
 ### SEC-004 — Edge Function authentication matrix and default JWT verification
 - Goal: every deployed function classified (public / user JWT / service role / webhook secret) and platform
@@ -44,7 +44,8 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Scope: supabase/config.toml per-function verify_jwt (or deploy flags), docs/agent/SECURITY_REPORT.md matrix,
   negative tests for missing/invalid/anonymous tokens.
 - Depends on: SEC-005 (fewer functions to classify).
-- Status: ready (after SEC-005)
+- Status: in_progress — implementation and CI guards committed on
+  `codex/sec-004-edge-jwt-matrix` at `cb96b1c`; PR creation pending BLK-001.
 
 ### SEC-006 — private data and IDOR/BOLA negative tests
 - Goal: prove that precise coordinates, private picks, hike tracks, friends and Guardian data never leak to

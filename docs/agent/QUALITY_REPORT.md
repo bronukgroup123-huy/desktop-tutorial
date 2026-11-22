@@ -61,18 +61,32 @@ After PR #111 (independent of #109): 62 migrations, 15 SQL tests (new retired_gu
 The regression coverage includes PostgREST array results, 429 decisions, resolved and rejected RPC
 failures, malformed counter data, absence of the non-atomic fallback, and retryable 503 responses.
 
+## SEC-004 verification — 2026-11-22, Codex runtime, branch `codex/sec-004-edge-jwt-matrix`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-edge-auth-matrix.test.mjs` | Pass, 4/4 negative/positive tests |
+| `node scripts/ci/check-edge-auth-matrix.mjs` | Pass: 17 deployed functions, 7 explicit JWT bypasses |
+| YAML parse for deploy, test and smoke workflows | Pass |
+| Supabase CLI config load | Parsed function config; then stopped as expected because the local Supabase container is not running |
+| Production gateway smoke | Not run; added to manual smoke workflow for post-merge/deploy verification (BLK-007) |
+| `git diff --check` | Pass |
+
+The CI guard fails for an unclassified directory, a stale matrix entry, an unsupported auth class, config
+drift, or a user/service function with gateway JWT verification disabled. Existing Deno handler tests cover
+missing/invalid user tokens, exact service-role checks and webhook-secret rejection; blocking CI reruns them.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
 
-- deployed legacy Edge Functions are outside blocking type checks
-- authorization tests are not organized as a complete endpoint matrix
+- deployed gateway behavior cannot be verified before merge without a staging Supabase project
 - UI rendering across text scale and compact screens is unverified
 - Android release and iOS builds are unverified
 - end-to-end auth, location permission, offline queue, and notification delivery need environment-backed tests
 
 ## Next quality gate
 
-- SEC-005 removes the legacy code behind 31 of the 33 type errors; QA-002 then makes the full check blocking.
+- SEC-004 must pass blocking CI and the post-deploy gateway smoke test.
 - UI-001 adds compact-screen / large-text / reduced-motion widget tests.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.
