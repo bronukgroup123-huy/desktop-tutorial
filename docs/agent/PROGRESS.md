@@ -152,3 +152,19 @@ See docs/agent/BLOCKERS.md.
   entering Claude's product/UI files.
 - Blockers: BLK-001 (PR creation), BLK-011 (real store signing validation).
 
+## 2026-11-22 16:09 UTC — QA-003 Flutter/OpenAPI model contract (Codex)
+- Branch / SHA: `codex/qa-003-openapi-model-contract` @
+  `91cd6207d9a541b094dbe7c52bb1f07c556b9c9b` (implementation; documentation commit follows).
+- Done: added a blocking compatibility guard for 18 core Flutter/OpenAPI model bindings and five focused
+  parser/drift tests. The initial red run found genuine analysis contract drift; documented the implemented
+  `refresh: weather`, weather freshness, day parts, rain spans, hazards and per-day other-species fields.
+- Checks: contract tests 5 passed / 0 failed; repository guard 18 models passed; Android signing tests 6/6;
+  Edge auth tests 4/4 and 17-function matrix; OpenAPI/workflow YAML parsing and `git diff --check` passed.
+- Problems / residual risks: the focused static guard checks top-level consumed/required keys, not complete
+  nested types, enums or nullability. Flutter analyze/tests did not run locally because the restored SDK is
+  incomplete; blocking PR CI remains authoritative.
+- PR: branch will be pushed; GitHub API creation may still require the compare URL because of BLK-001.
+- Next: verify QA-003 PR CI after it is opened/merged, then select the next backend/security/CI backlog item
+  without entering Claude's product/UI files.
+- Blockers: BLK-001 (API PR creation only); no implementation blocker.
+

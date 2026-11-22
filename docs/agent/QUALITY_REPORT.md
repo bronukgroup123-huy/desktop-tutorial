@@ -105,6 +105,23 @@ Negative tests prove that automatic store triggers, store secrets in the test wo
 guard, empty signing inputs and partial Gradle signing configuration are rejected. The manual store workflow
 uploads an AAB for owner review only; it never publishes to Google Play.
 
+## QA-003 verification — 2026-11-22, Codex runtime, branch `codex/qa-003-openapi-model-contract`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-flutter-openapi-models.test.mjs` | Pass, 5/5 positive and negative tests |
+| `node scripts/ci/check-flutter-openapi-models.mjs` | Pass, 18 core model bindings checked |
+| Existing Android signing guard | Pass, 6/6 tests and repository check |
+| Existing Edge auth guard | Pass, 4/4 tests and 17-function matrix |
+| PyYAML parse of `openapi/v1.yaml` and `test.yml` | Pass, OpenAPI 3.1.0 with 32 schemas; 3 workflow jobs |
+| `git diff --check` | Pass |
+| Flutter analyze/model tests | Not rerun locally: restored Flutter SDK lacks Dart artifacts; blocking PR CI remains authoritative |
+
+The guard checks two high-value top-level invariants: every required OpenAPI field is consumed by its bound
+Flutter model, and every top-level JSON key consumed by that model is documented. It deliberately does not
+claim full nested type, enum or nullability equivalence. The initial red run exposed real analysis weather
+contract drift before `openapi/v1.yaml` was aligned with the implemented server and Flutter client.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
@@ -117,6 +134,7 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 ## Next quality gate
 
 - PR #113 still needs the post-deploy gateway smoke test when staging is available.
-- AND-001 must pass blocking repository and Android PR CI. A real-key manual AAB build remains an owner step.
+- QA-003 must pass the full Flutter and repository checks in blocking PR CI.
+- AND-001 is merged as PR #117; a real-key manual AAB build remains an owner step.
 - UI-001 adds compact-screen / large-text / reduced-motion widget tests.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.

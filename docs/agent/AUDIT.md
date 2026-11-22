@@ -15,7 +15,9 @@ remaining blockers include deployed verification without staging, absent iOS inf
 release decisions and Android store-signing credentials. Test APKs must remain visibly separate from store
 artifacts.
 
-The latest repository history is active through merged PR #107. docs/tasks/NEXT_TASK.md predates major profile, friends, Guardian, trophy, and avatar work. It cannot be treated as the current highest-priority task without reconciling it with code and ADRs.
+The latest repository history includes security/infrastructure work through merged PR #117.
+docs/tasks/NEXT_TASK.md predates major profile, friends, Guardian, trophy, avatar and hardening work. It
+cannot be treated as the current highest-priority task without reconciling it with code and ADRs.
 
 ## Findings
 
@@ -96,10 +98,10 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 - Evidence: flutter_client/android/app/build.gradle.kts signs release builds with android/app/test-signing.jks when release secrets are absent. android.yml can publish that APK as the rolling prerelease.
 - User impact: such APKs are suitable for testing and cannot represent a store-ready release identity.
 - Recommendation: keep the current testing convenience, clearly label artifacts, and add a store-release job that fails unless all release signing inputs exist.
-- Current state: fixed on branch `codex/and-001-store-release-signing` at `2184704`. The normal workflow
+- Current state: fixed in merged PR #117. The normal workflow
   always produces an explicitly named test APK and never receives store secrets. A separate manual workflow
   produces an AAB only after all four signing secrets are present; Gradle fails closed when real signing is
-  required or partially configured. PR CI and one owner-authorized store build with the real key are pending.
+  required or partially configured. One owner-authorized store build with the real key is still pending.
 
 ### AUD-FL-001 — auth screen has an unverified small-screen accessibility risk
 
@@ -133,6 +135,23 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
   deno.land imports to jsr/npm), all 61 migrations and 13 SQL tests pass on PostgreSQL 16 + PostGIS +
   pg_cron without Docker (scripts/dev/local-db/run.sh). GitHub Actions on main are green, including the
   migrations job. Tools are restored in a fresh container by scripts/agent/bootstrap.sh.
+
+### AUD-QA-003 — Flutter analysis models and OpenAPI drifted without a blocking compatibility check
+
+- Severity: medium
+- Classification: confirmed contract and test-coverage defect
+- Evidence: the initial QA-003 repository check failed because Flutter parses `weather_fresh_until`,
+  `dry_rest_label`, `hazards`, `parts`, `rain_spans` and per-day `others`, while `openapi/v1.yaml` omitted
+  them. The server returns those fields and accepts `refresh: weather`, but the request enum documented only
+  `daily`.
+- User impact: clients generated or implemented from the published contract can reject valid refresh
+  requests or silently omit weather presentation data returned by the server.
+- Resolution: branch `codex/qa-003-openapi-model-contract` aligns the analysis contract and adds a blocking
+  CI check for required or undocumented top-level JSON keys across 18 core Flutter models, with negative
+  parser and drift tests.
+- Required verification: Node contract tests and repository guard, valid OpenAPI/workflow YAML, existing
+  Flutter model tests and full PR CI. Nested anonymous object types and enums remain outside this focused
+  guard and require their existing runtime tests or a future generator/schema validator.
 
 ### AUD-SEC-005 — legacy Guardian v0 and demo endpoints are still deployed (second pass)
 
