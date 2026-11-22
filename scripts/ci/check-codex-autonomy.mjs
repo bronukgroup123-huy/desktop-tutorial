@@ -19,7 +19,7 @@ export function maximumScheduleGap(hours) {
   return Math.max(...gaps);
 }
 
-export function validateAutonomy({ workflow, prompt, ownership }) {
+export function validateAutonomy({ workflow, prompt, ownership, claudeRunbook }) {
   const errors = [];
   const hours = scheduleHours(workflow);
   expect(errors, maximumScheduleGap(hours) <= 5, "scheduled retry gap exceeds five hours");
@@ -39,6 +39,7 @@ export function validateAutonomy({ workflow, prompt, ownership }) {
   expect(errors, prompt.includes("blocked_rate_limit") && prompt.includes("within five hours"), "agent prompt lacks bounded rate-limit recovery");
   expect(errors, /Do not deploy, merge, auto-merge/.test(prompt), "agent prompt lacks production and merge prohibition");
   expect(errors, ownership.includes("## Codex") && ownership.includes("## Claude") && ownership.includes("Collision rule"), "ownership contract is incomplete");
+  expect(errors, claudeRunbook.includes("Treat `docs/agent/*` as read-only") && claudeRunbook.includes("docs/tasks/*"), "Claude runbook can collide with Codex state files");
   if (errors.length) throw new Error(errors.join("\n"));
   return { scheduledHours: hours, maximumGapHours: maximumScheduleGap(hours) };
 }
@@ -48,6 +49,7 @@ export function checkRepository(root) {
     workflow: readFileSync(resolve(root, ".github/workflows/codex-autonomy.yml"), "utf8"),
     prompt: readFileSync(resolve(root, ".github/codex/autonomy.md"), "utf8"),
     ownership: readFileSync(resolve(root, "docs/agent/WORK_OWNERSHIP.md"), "utf8"),
+    claudeRunbook: readFileSync(resolve(root, "docs/agent/AUTONOMY.md"), "utf8"),
   });
 }
 

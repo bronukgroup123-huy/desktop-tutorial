@@ -10,6 +10,7 @@ const valid = {
   workflow: readFileSync(resolve(root, ".github/workflows/codex-autonomy.yml"), "utf8"),
   prompt: readFileSync(resolve(root, ".github/codex/autonomy.md"), "utf8"),
   ownership: readFileSync(resolve(root, "docs/agent/WORK_OWNERSHIP.md"), "utf8"),
+  claudeRunbook: readFileSync(resolve(root, "docs/agent/AUTONOMY.md"), "utf8"),
 };
 
 test("repository autonomy configuration is bounded and review-only", () => {
@@ -37,4 +38,12 @@ test("merge commands fail the review-only guard", () => {
 test("missing collision handling fails", () => {
   const prompt = valid.prompt.replace("overlap Claude", "conflict with other work");
   assert.throws(() => validateAutonomy({ ...valid, prompt }), /file-collision handling/);
+});
+
+test("Claude state writes fail the ownership guard", () => {
+  const claudeRunbook = valid.claudeRunbook.replace(
+    "Treat `docs/agent/*` as read-only",
+    "Update `docs/agent/*` after every run",
+  );
+  assert.throws(() => validateAutonomy({ ...valid, claudeRunbook }), /collide with Codex state files/);
 });
