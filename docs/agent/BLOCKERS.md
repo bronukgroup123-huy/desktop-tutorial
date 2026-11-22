@@ -1,46 +1,42 @@
 # Blockers and owner dependencies
 
-## BLK-001 — GitHub API authentication
+Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the agent continues with other work.
 
-- Status: blocked
-- Evidence: gh auth status reports that GH_TOKEN is invalid. Unauthenticated GitHub API requests return 403. The branch is pushed, but gh pr create failed with GitHub GraphQL 403.
-- Impact: branch protection, open PR state, CI status, and PR creation cannot be confirmed through the API.
-- Owner action: restore a scoped GitHub connection with repository read/write and pull-request creation. Do not paste tokens into chat.
-- Safe continuation: local branches, commits, tests, and read-only Git fetches remain available.
+## BLK-001 — GitHub API authentication in the Codex runtime
+- Status: not blocking the Claude cycle. The Claude runtime reads PRs/CI and opens PRs through its GitHub
+  connection. Codex still has an invalid GH_TOKEN (owner: replace with a fine-grained PAT if Codex should
+  open PRs itself).
 
-## BLK-002 — Deno dependency hosts
+## BLK-002 / BLK-003 / BLK-004 — Deno hosts, Flutter SDK, disposable database
+- Status: resolved in the Claude runtime. Deno runs with scripts/agent/deno_import_map.json (deno.land is
+  blocked, jsr/npm are not); Flutter 3.47.9 runs; all migrations and SQL tests run on local PostgreSQL 16 +
+  PostGIS + pg_cron (scripts/dev/local-db/run.sh). A new container restores tools with
+  scripts/agent/bootstrap.sh (the Flutter step mirrors the original manual install and is not yet exercised
+  by the script).
 
-- Status: blocked
-- Evidence: imports from deno.land and jsr.io fail with a denied CONNECT tunnel even after an escalated retry.
-- Impact: full Deno type checking and unit suite cannot run.
-- Owner action: publish the saved cloud network settings or allow deno.land, jsr.io, and esm.sh.
-- Safe continuation: tests with only local imports can run.
+## BLK-005 — Codex scheduled workflow (owner, optional)
+- Status: prepared_disabled. Needs OPENAI_API_KEY (billed separately from a ChatGPT subscription), repository
+  variable CODEX_AUTONOMY_ENABLED=true and «Allow GitHub Actions to create and approve pull requests».
+  Do not enable it while the Claude cycle runs, or give the two agents disjoint areas first.
 
-## BLK-003 — Flutter SDK bootstrap
+## BLK-006 — iOS release infrastructure (owner)
+- Status: blocked. No iOS target, macOS runner, Apple signing or Apple Developer access.
 
-- Status: blocked
-- Evidence: Flutter 3.47.9 source was cloned, but its pinned Dart SDK download from storage.googleapis.com returns 403.
-- Impact: Flutter analyze, tests, golden rendering, Android build, and emulator checks cannot run locally.
-- Owner action: allow the official Flutter artifact host or provide a cloud image with Flutter 3.47.9 preinstalled.
+## BLK-007 — no staging Supabase project (owner)
+- Status: blocked. Security fixes are verified on a local fresh database and in CI, but deployed behavior
+  (e.g. 401 on internal jobs) can only be checked after merge on production. A staging project with its own
+  secrets would allow pre-merge verification.
 
-## BLK-004 — disposable Supabase database
+## BLK-008 — merges and production deployment (owner)
+- Status: by design. The agent never merges. Merging anything under supabase/** deploys to production via
+  deploy.yml. Recommended merge order: PR #109 (SEC-002) first, then agent PRs in BACKLOG order; the
+  agent-state PR (docs only) can be merged any time.
 
-- Status: blocked
-- Evidence: the Supabase PostgreSQL image exhausted the Docker daemon's storage during extraction in this cloud runtime.
-- Impact: fresh migrations and 13 SQL/RLS test scripts remain unverified locally.
-- Owner action: use a runner with sufficient Docker storage. Production must not be used for destructive verification.
+## BLK-009 — product/legal decisions before publication (owner)
+- Open-Meteo commercial key, privacy policy and terms, Apple sign-in (BACKEND_PLAN §5.1).
+- Retention of legacy Guardian v0 data tables after SEC-005 retires the endpoints.
+- Whether anything outside this repository still hosts web-guardian (WEB-001).
 
-## BLK-005 — scheduled agent credentials and budget
-
-- Status: waiting_owner
-- Evidence: codex-autonomy.yml is disabled unless repository variable CODEX_AUTONOMY_ENABLED equals true. It requires OPENAI_API_KEY.
-- Impact: autonomous continuation is prepared but not active or tested.
-- Owner action: set an explicit budget, add the secret securely, enable the variable, and authorize one manual workflow run.
-- Safety: the workflow has concurrency 1, a 55-minute timeout, opens PRs without auto-merge, and receives no production secrets.
-
-## BLK-006 — iOS release infrastructure
-
-- Status: blocked
-- Evidence: no iOS target, macOS runner validation, Apple signing assets, bundle registration, or Apple Developer access is available.
-- Impact: iOS readiness cannot be claimed.
-- Owner action: provide Apple identifiers and signing through secure CI settings after the source target is prepared.
+## BLK-010 — device-level verification (owner)
+- Status: blocked. FPS, memory, battery, background location, push delivery and OAuth on real Android
+  devices need the owner's devices or a device farm. The agent measures what is possible in tests.

@@ -1,0 +1,5 @@
+{ "imports": {
+  "https://deno.land/std@0.208.0/assert/mod.ts": "jsr:@std/assert@1.0.19",
+  "https://deno.land/x/zod@v3.22.4/mod.ts": "npm:zod@3.22.4",
+  "https://deno.land/x/djwt@v3.0.2/mod.ts": "jsr:@zaubrik/djwt@3.0.2"
+} }

@@ -14,3 +14,12 @@ docs/BACKEND_PLAN.md, and the current files in docs/agent/.
 - Record exact commands and outcomes in docs/agent/PROGRESS.md and
   docs/agent/QUALITY_REPORT.md.
 - Reuse the existing checkout. Create a worktree only when the user explicitly asks.
+
+## Autonomous cycle (2026-11-22 → 2026-12-22)
+
+- The scheduled cycle is run by Claude Code; follow docs/agent/AUTONOMY.md.
+- State is kept on branch claude/agent-state (docs/agent/*); task work goes to claude/<id> branches, one PR
+  per task, never auto-merged.
+- Only one agent edits a given area at a time. If the Codex workflow is enabled, skip files touched by
+  open claude/* PRs (and vice versa).
+- The repository is public: security write-ups name components and fixes, not exploitation steps.
