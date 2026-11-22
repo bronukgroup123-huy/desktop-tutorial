@@ -4,6 +4,12 @@ Statuses: ready · in_progress · in_review (PR open) · done (merged) · blocke
 Order inside a priority is the execution order. The scheduled agent takes the first `ready` item
 (docs/agent/AUTONOMY.md). Every item ends in its own branch and PR; nothing is merged by the agent.
 
+**Two agents work from this list (since 2026-11-22).** To avoid parallel edits, items carry an owner:
+Codex — security, backend hardening, CI/release infrastructure (SEC-*, AND-*, QA-002/003);
+Claude — Flutter UI/UX, accessibility, performance, product features with migrations (UI-*, PERF-*,
+PROD-*, WEB-*, DOC-*). Take an item of the other agent only if it has been `ready` and untouched for 24 h,
+and say so in PROGRESS.
+
 ## P0 — security and correctness
 
 ### SEC-001 — protect internal Guardian jobs
@@ -52,17 +58,14 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
   other users through v1 endpoints or RLS.
 - Scope: Deno handler tests with foreign IDs; SQL RLS tests for picks/hikes/friendships/trophies; storage
   object paths of private photos.
-- Status: in_progress — the existing endpoint and SQL suites already cover foreign precise coordinates,
-  private picks, hike/Guardian tracks, friendships and trophies. Branch
-  `codex/sec-006-private-data-idor-tests` adds the missing private-photo storage RLS regression test at
-  `40490e4`; full PR CI and merge are pending.
+- Status: done — PR #114 (merged 2026-11-22; Codex).
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
 
 ## P1 — product correctness
 
-### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2)
+### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2) (owner: Claude)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
@@ -75,10 +78,11 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ## P1 — UI/UX, accessibility, performance
 
-### UI-001 — accessibility and responsive baseline
-- Goal: primary screens survive compact size (320×640), large text (×1.6–2.0) and reduced motion.
-- Scope: widget tests per tab; fix overflows found (auth screen first, AUD-FL-001).
-- Status: ready (Flutter runtime available)
+### UI-001 — accessibility and responsive baseline (owner: Claude)
+- Goal: primary screens survive compact size (320×568), large text (×2) and landscape, and respect reduced motion.
+- Part 1: in_review — PR #115: stress test harness test/a11y/layout_stress_test.dart; fixed auth screen
+  (AUD-FL-001, overflow up to 768 px), profile section titles, avatar picker group headers; reduced-motion test.
+- Part 2: ready — Forecast, Map, Catalog, Safety tabs and onboarding (region selection) in the same harness.
 
 ### UI-002 — design tokens and shared components
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the

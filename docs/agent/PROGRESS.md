@@ -134,3 +134,16 @@ See docs/agent/BLOCKERS.md.
 - Next: AND-001 — ensure store artifacts can never fall back to the public test signing key.
 - Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
 
+## 2026-11-22 08:35 UTC — scheduled run 2: UI-001 part 1 (Claude)
+- Sync: owner merged #109, #110, #111; Codex delivered SEC-003 (#112), SEC-004 (#113), SEC-006 (#114), all merged.
+  Agreed split recorded in BACKLOG: Codex — security/backend/CI; Claude — Flutter/UI/product.
+- Branch / SHA: claude/ui-001-a11y-baseline @ 17dc87b (PR #115)
+- Done: layout stress harness (320×568, 360×640 text ×2, 640×360 text ×1.3) for auth, profile, settings and
+  avatar picker; fixed the auth screen overflow (88 px at normal text, 768 px at ×2), profile section titles and
+  avatar picker group headers; reduced-motion test for the animated hero spores.
+- Checks: `flutter analyze` → no issues; `flutter test` → 322 passed (13 new); stress tests red before the fixes.
+- Problems / residual risks: other tabs not yet covered (UI-001 part 2); device rendering not verified (BLK-010).
+- PR: #115
+- Next: UI-001 part 2 — Forecast, Map, Catalog, Safety, onboarding under the same stress conditions
+- Blockers: unchanged
+
