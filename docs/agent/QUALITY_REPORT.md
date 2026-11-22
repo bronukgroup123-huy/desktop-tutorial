@@ -76,6 +76,19 @@ The CI guard fails for an unclassified directory, a stale matrix entry, an unsup
 drift, or a user/service function with gateway JWT verification disabled. Existing Deno handler tests cover
 missing/invalid user tokens, exact service-role checks and webhook-secret rejection; blocking CI reruns them.
 
+## SEC-006 verification — 2026-11-22, Codex runtime, branch `codex/sec-006-private-data-idor-tests`
+
+| Check | Result |
+|---|---|
+| PostgreSQL 16 bootstrap + `20260912000012_storage_picks.sql` + `rls_storage_picks.sql` | Pass: owner isolation, foreign/server-only write denial and anon denial |
+| Targeted picks/Guardian/friends/trophies Deno tests | Blocked before execution: configured `jsr.io` registry manifest could not be loaded in this runtime |
+| Full `supabase db start` migration suite | Blocked locally: `public.ecr.aws` returned 403; the exact Docker Hub mirror exceeded the rootless VFS extraction quota |
+| `git diff --check` | Pass |
+
+The new SQL script is the missing storage-policy boundary test. The existing handler and RLS files cover the
+other SEC-006 domains; blocking PR CI remains authoritative for the full 63-migration / 16-SQL-script run
+and the complete Deno regression suite.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
@@ -87,6 +100,7 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 
 ## Next quality gate
 
-- SEC-004 must pass blocking CI and the post-deploy gateway smoke test.
+- PR #113 still needs the post-deploy gateway smoke test when staging is available.
+- SEC-006 must pass blocking CI, including all 63 migrations and 16 SQL scripts.
 - UI-001 adds compact-screen / large-text / reduced-motion widget tests.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.

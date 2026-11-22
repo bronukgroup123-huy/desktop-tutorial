@@ -30,9 +30,9 @@ blocked by BLK-007.
 - IP rate limiting failed open and used a non-atomic fallback. Fixed in merged PR #112: the fallback is
   removed, RPC results are validated, and public reads and mutations return retryable 503 when the counter
   cannot decide. Deployed behavior remains unverified without staging.
-- The global `--no-verify-jwt` deployment policy is removed on branch
-  `codex/sec-004-edge-jwt-matrix`. A machine-readable matrix makes platform JWT verification the default;
-  CI rejects any new or renamed function until it is classified. Merge and deployed smoke tests are pending.
+- The global `--no-verify-jwt` deployment policy was removed in merged PR #113. A machine-readable matrix
+  makes platform JWT verification the default; CI rejects any new or renamed function until it is
+  classified. Deployed smoke tests remain pending without staging.
 - Full Deno type checking is blocking after merged PR #111.
 - Android release can use the repository's public test key. It is suitable for testing only.
 
@@ -65,15 +65,22 @@ Handler-level `assertRegistered` remains responsible for operations forbidden to
 - Friend profile responses intentionally omit coordinates, phone, email, points, and region.
 - Local recognition is designed to keep recognition photos on-device.
 
-These controls were reviewed statically. Database policy behavior and deployed endpoint responses remain to be tested on a disposable environment.
+The repository's existing Deno and SQL suites exercise foreign pick IDs, precise-coordinate isolation,
+private picks, Guardian tracks, friendships and trophies. SEC-006 adds the previously missing direct storage
+RLS test for two authenticated users, anon and the server-only final-photo prefix. Deployed endpoint
+responses remain unverified without staging.
 
 ## Required negative tests
 
 - anonymous and authenticated roles cannot call administrative RPCs — covered by security_definer_privileges.sql (PR #109)
-- a user cannot read another user's precise pick coordinates
-- a non-Guardian cannot read route or last-location data
-- blocked users disappear from search and profile access
-- upload URLs cannot target another user's prefix or overwrite verified photos
+- a user cannot read another user's precise pick coordinates — covered by `rls_picks_map.sql`,
+  `rls_picks_adr018.sql` and `v1/picks-map.test.ts`
+- a non-Guardian cannot read route or last-location data — covered by `rls_guardian_in_app.sql` and
+  `v1/guardian.test.ts`
+- blocked users disappear from search and profile access — covered by `rls_friends.sql` and
+  `v1/friends.test.ts`
+- upload URLs cannot target another user's prefix or overwrite verified photos — handler coverage in
+  `v1/picks.test.ts`; direct storage RLS coverage added by `rls_storage_picks.sql` in SEC-006
 - guests cannot create public picks, Guardian sessions, or SOS server events
 - service jobs reject missing, anon, user, expired, and malformed bearer tokens
 
