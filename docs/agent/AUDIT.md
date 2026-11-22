@@ -62,10 +62,10 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 - User impact: every endpoint depends on correct in-handler authentication. A newly added function is public until its own guard is implemented.
 - Recommendation: maintain a reviewed public-endpoint allowlist and enable platform JWT verification by default. Keep explicit in-handler service-role or webhook-secret validation where platform JWT alone is insufficient.
 - Required verification: endpoint authorization matrix covering missing, malformed, anonymous, authenticated, service-role, and webhook-secret requests.
-- Current state: fixed on branch `codex/sec-004-edge-jwt-matrix` at `cb96b1c`. The deploy workflow now
+- Current state: fixed in merged PR #113. The deploy workflow now
   reads a fail-closed 17-function matrix; only seven reviewed public/mixed/webhook functions bypass gateway
-  JWT verification. CI rejects missing classifications and config drift. Merge, CI and deployed smoke tests
-  are still pending.
+  JWT verification. CI rejects missing classifications and config drift. Deployed smoke tests are still
+  pending because no staging Supabase project is available.
 
 ### AUD-BE-001 — legacy notification handler schema omits alert_id
 
@@ -151,6 +151,20 @@ The latest repository history is active through merged PR #107. docs/tasks/NEXT_
 - User impact: third-party quota and cost abuse attributed to the project (BACKEND_PLAN §5.1 requires a
   commercial Open-Meteo key before publication).
 - Recommendation: retire together with AUD-SEC-005 or put behind JWT and the IP limiter.
+
+### AUD-PRIV-001 — private-photo storage isolation lacked a direct RLS regression test
+
+- Severity: medium (regression risk; no confirmed data leak)
+- Classification: test coverage gap
+- Evidence: handler tests already reject foreign upload paths and SQL/handler suites cover exact pick
+  coordinates, private picks, Guardian routes, friendships and trophies. The private `mushroom-photos`
+  bucket has owner-folder policies, but no SQL test directly exercised SELECT/INSERT/UPDATE/DELETE as two
+  different authenticated users and anon.
+- User impact: a future storage-policy regression could expose draft photos or allow a client to target a
+  foreign or server-only object path without a focused failing test.
+- Resolution: `rls_storage_picks.sql` on `codex/sec-006-private-data-idor-tests` verifies the bucket remains
+  private, user-folder isolation, denial of foreign writes, denial of the server-only `picks/` prefix and
+  denial for anon. The targeted PostgreSQL 16 run passes; full migration/SQL CI is pending.
 
 ### AUD-PROD-001 — rating has no sources, so levels never progress (second pass)
 

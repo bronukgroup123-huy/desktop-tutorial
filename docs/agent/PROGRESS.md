@@ -118,3 +118,19 @@ See docs/agent/BLOCKERS.md.
 - Next: SEC-006 — private-data and IDOR/BOLA negative tests.
 - Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
 
+## 2026-11-22 08:27 UTC — SEC-006 private-data / IDOR negative coverage (Codex)
+- Branch / SHA: `codex/sec-006-private-data-idor-tests` @
+  `40490e4937b0fec15fcd897afe7bbfb866c2195c`
+- Done: audited existing endpoint and RLS coverage for precise/private picks, Guardian routes, friends and
+  trophies; added the missing direct RLS regression for the private `mushroom-photos` bucket. It proves
+  two-user folder isolation, denial of foreign and server-only paths, and denial for anon.
+- Checks: targeted PostgreSQL 16 bootstrap + storage migration + new SQL test → pass; `git diff --check` →
+  pass. Targeted Deno suite did not execute because `jsr.io/@std/assert` was unavailable in this runtime.
+  Full local Supabase startup was also blocked by ECR access and the rootless Docker extraction quota;
+  blocking PR CI must run all 63 migrations, 16 SQL scripts and Deno tests.
+- Problems / residual risks: no staging project for deployed IDOR smoke tests; full PR CI pending.
+- PR: branch will be pushed; creation may require the compare URL because Codex GitHub API auth remains
+  unavailable (BLK-001).
+- Next: AND-001 — ensure store artifacts can never fall back to the public test signing key.
+- Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
+

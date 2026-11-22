@@ -44,15 +44,18 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 - Scope: supabase/config.toml per-function verify_jwt (or deploy flags), docs/agent/SECURITY_REPORT.md matrix,
   negative tests for missing/invalid/anonymous tokens.
 - Depends on: SEC-005 (fewer functions to classify).
-- Status: in_progress — implementation and CI guards committed on
-  `codex/sec-004-edge-jwt-matrix` at `cb96b1c`; PR creation pending BLK-001.
+- Status: done — PR #113 (merged 2026-11-22).
+- Residual: deployed gateway smoke remains blocked without staging (BLK-007).
 
 ### SEC-006 — private data and IDOR/BOLA negative tests
 - Goal: prove that precise coordinates, private picks, hike tracks, friends and Guardian data never leak to
   other users through v1 endpoints or RLS.
 - Scope: Deno handler tests with foreign IDs; SQL RLS tests for picks/hikes/friendships/trophies; storage
   object paths of private photos.
-- Status: ready
+- Status: in_progress — the existing endpoint and SQL suites already cover foreign precise coordinates,
+  private picks, hike/Guardian tracks, friendships and trophies. Branch
+  `codex/sec-006-private-data-idor-tests` adds the missing private-photo storage RLS regression test at
+  `40490e4`; full PR CI and merge are pending.
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
