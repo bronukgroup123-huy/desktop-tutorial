@@ -120,7 +120,7 @@ Product/UI items below are owned by Claude and are not selected by the Codex sch
   review-only PR delivery and a blocking fail-closed repository guard.
 - Tests: positive repository validation plus negative schedule, production-secret, merge-command, prompt
   collision and Claude-state-collision cases.
-- Status: in_progress — implementation committed on `codex/aut-001-five-hour-cycle` at `dfa68fc`; PR and
-  one owner-authorized real workflow run are pending.
+- Status: in_progress — branch `codex/aut-001-five-hour-cycle` pushed; direct PR creation is blocked by
+  BLK-001, and one owner-authorized real workflow run remains pending.
 - Residual: successful execution still depends on an owner-budgeted `OPENAI_API_KEY` and repository
   permission for GitHub Actions to create PRs (BLK-005). No successful scheduled run is claimed yet.

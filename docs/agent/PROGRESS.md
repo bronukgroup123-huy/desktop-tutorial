@@ -184,7 +184,8 @@ See docs/agent/BLOCKERS.md.
   existing OpenAPI, Android signing and Edge auth guards all pass; `git diff --check` passes.
 - Problems / residual risks: no actual Codex API run was attempted. The owner-budgeted API key and GitHub
   Actions PR permission cannot be verified through the current 403-limited GitHub API (BLK-001/BLK-005).
-- PR: branch will be pushed; creation may require the compare URL because of BLK-001. No automerge.
+- PR: branch pushed; GitHub GraphQL creation returned `403 Forbidden`. Review without automerge at
+  https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/aut-001-five-hour-cycle
 - Next: after merge, observe one review-only run; otherwise continue the next Codex-owned backend/CI item.
 - Blockers: BLK-005 for first-run proof; BLK-001 for direct PR creation.
 
