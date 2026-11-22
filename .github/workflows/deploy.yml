@@ -72,7 +72,8 @@ jobs:
       - name: Deploy all Edge Functions (directories only)
         run: |
           for fn in $(find supabase/functions -mindepth 1 -maxdepth 1 -type d \
-            ! -name '_shared' ! -name 'guardian-notify-test' -exec basename {} \; | sort); do
+            ! -name '_shared' ! -name 'guardian-notify-test' ! -name 'test-telegram' \
+            -exec basename {} \; | sort); do
             echo "▶ Deploying $fn"
             supabase functions deploy "$fn" --project-ref "$PROJECT_ID" --no-verify-jwt
           done
@@ -84,7 +85,7 @@ jobs:
         run: |
           for fn in guardian-session-get guardian-session-track guardian-session-gpx \
                     guardian-register-guardian-device guardian-rescue-get guardian-rescue-request \
-                    guardian-webhook-sms; do
+                    guardian-webhook-sms test-telegram; do
             supabase functions delete "$fn" --project-ref "$PROJECT_ID" >/dev/null 2>&1 \
               && echo "✗ Deleted $fn" || echo "· $fn already absent"
           done
