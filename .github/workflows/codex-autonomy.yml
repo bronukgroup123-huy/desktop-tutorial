@@ -3,7 +3,8 @@ name: Codex autonomous maintenance
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 3 * * 1-5'
+    # Maximum gap is five hours; the final daily interval (20:17 → 00:17) is four.
+    - cron: '17 0,5,10,15,20 * * *'
 
 permissions:
   contents: write
@@ -15,7 +16,6 @@ concurrency:
 
 jobs:
   maintain:
-    if: vars.CODEX_AUTONOMY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
@@ -23,16 +23,32 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
+      - name: Check autonomous maintenance window
+        id: window
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          today=$(date -u +%F)
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [[ "$today" < "2026-12-23" ]]; then
+            echo "active=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "active=false" >> "$GITHUB_OUTPUT"
+            echo "Autonomous maintenance window ended on 2026-12-22; scheduled run skipped."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.window.outputs.active == 'true'
         with:
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
+        if: steps.window.outputs.active == 'true'
         with:
           node-version: '22'
           cache: npm
 
       - name: Check required configuration
+        if: steps.window.outputs.active == 'true'
         run: |
           if [ -z "$OPENAI_API_KEY" ]; then
             echo "::error::OPENAI_API_KEY is required after budget approval"
@@ -40,6 +56,7 @@ jobs:
           fi
 
       - name: Create isolated branch
+        if: steps.window.outputs.active == 'true'
         run: |
           branch="codex/auto-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           git switch -c "$branch"
@@ -48,9 +65,11 @@ jobs:
           echo "AUTONOMY_BRANCH=$branch" >> "$GITHUB_ENV"
 
       - name: Install pinned Codex CLI
+        if: steps.window.outputs.active == 'true'
         run: npm install --global @openai/codex@0.171.0
 
       - name: Execute one bounded task
+        if: steps.window.outputs.active == 'true'
         run: |
           codex exec \
             --approve-for-me \
@@ -60,6 +79,7 @@ jobs:
             - < .github/codex/autonomy.md
 
       - name: Commit verified work
+        if: steps.window.outputs.active == 'true'
         run: |
           if ! git diff --quiet || ! git diff --cached --quiet; then
             git add --all
@@ -72,6 +92,7 @@ jobs:
           git push --set-upstream origin "$AUTONOMY_BRANCH"
 
       - name: Open review-only pull request
+        if: steps.window.outputs.active == 'true'
         run: |
           if [ "$(git rev-list --count origin/main..HEAD)" -eq 0 ]; then
             exit 0

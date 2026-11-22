@@ -17,9 +17,11 @@ docs/BACKEND_PLAN.md, and the current files in docs/agent/.
 
 ## Autonomous cycle (2026-11-22 → 2026-12-22)
 
-- The scheduled cycle is run by Claude Code; follow docs/agent/AUTONOMY.md.
+- Claude Code runs the product/UI cycle described in docs/agent/AUTONOMY.md. The Codex GitHub workflow
+  runs security/backend/CI tasks at most five hours apart; its exact ownership rules are in
+  docs/agent/WORK_OWNERSHIP.md.
 - State is kept on branch claude/agent-state (docs/agent/*); task work goes to claude/<id> branches, one PR
   per task, never auto-merged.
-- Only one agent edits a given area at a time. If the Codex workflow is enabled, skip files touched by
-  open claude/* PRs (and vice versa).
+- Only one agent edits a given area at a time. Codex must fetch the active Claude branch and skip files
+  touched there; Claude skips files in open codex/* PRs. Cross-zone work has one recorded owner.
 - The repository is public: security write-ups name components and fixes, not exploitation steps.
