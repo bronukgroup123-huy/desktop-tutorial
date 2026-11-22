@@ -186,7 +186,8 @@ See docs/agent/BLOCKERS.md.
   403. Live smoke/deploy was not run and must remain outside an agent branch.
 - Owner decision: Codex API automation is paused; `codex/aut-001-five-hour-cycle` must not be merged. Work
   continues only interactively after an owner message (BLK-005).
-- PR: branch will be pushed; direct creation may require the compare URL because of BLK-001. No automerge.
+- PR: branch pushed; GitHub GraphQL creation returned `403 Forbidden`. Review without automerge at
+  https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/ci-001-workflow-permissions
 - Next: verify CI-001 PR CI, then select another Codex-owned security/backend/CI item.
 - Blockers: BLK-001 affects direct PR creation only; no implementation blocker.
 

@@ -105,8 +105,8 @@ Product/UI items in this section are owned by Claude and are not selected by Cod
   masking for dynamically fetched anon/service-role/JWT values; blocking repository guard.
 - Tests: repository inventory plus negative cases for missing permissions, unreviewed writes, production
   write access, unmasked dynamic credentials and job-level production secrets.
-- Status: in_progress — implementation committed on `codex/ci-001-workflow-permissions` at `410888b`;
-  PR and blocking CI are pending.
+- Status: in_progress — branch `codex/ci-001-workflow-permissions` pushed; direct PR creation is blocked by
+  BLK-001 and blocking PR CI is pending.
 - Residual: repository-default permissions remain unobservable through the current GitHub API, but explicit
   workflow declarations no longer rely on that setting. Live production smoke is intentionally not run here.
 
