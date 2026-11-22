@@ -69,13 +69,28 @@ jobs:
       - name: Migrations — apply
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Deploy all Edge Functions (directories only)
+      - name: Deploy all Edge Functions (JWT verification by auth matrix)
         run: |
           for fn in $(find supabase/functions -mindepth 1 -maxdepth 1 -type d \
             ! -name '_shared' \
             -exec basename {} \; | sort); do
-            echo "▶ Deploying $fn"
-            supabase functions deploy "$fn" --project-ref "$PROJECT_ID" --no-verify-jwt
+            AUTH_CLASS=$(jq -er --arg fn "$fn" '.functions[$fn]' \
+              supabase/functions/auth-matrix.json)
+            case "$AUTH_CLASS" in
+              public|mixed_handler_auth|webhook_secret)
+                echo "▶ Deploying $fn ($AUTH_CLASS; handler-level verification)"
+                JWT_ARGS=(--no-verify-jwt)
+                ;;
+              user_jwt|service_role)
+                echo "▶ Deploying $fn ($AUTH_CLASS; platform JWT verification)"
+                JWT_ARGS=()
+                ;;
+              *)
+                echo "::error::Unsupported auth class '$AUTH_CLASS' for $fn"
+                exit 1
+                ;;
+            esac
+            supabase functions deploy "$fn" --project-ref "$PROJECT_ID" "${JWT_ARGS[@]}"
           done
 
       # ADR-022 §22.1, B4.9: Наглядач лише в застосунку — функції за кодом-посиланням (/s/<код>,

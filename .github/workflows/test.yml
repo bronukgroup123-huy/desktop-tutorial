@@ -22,6 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Edge Function authentication matrix
+        run: |
+          node --test scripts/ci/check-edge-auth-matrix.test.mjs
+          node scripts/ci/check-edge-auth-matrix.mjs
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

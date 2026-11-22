@@ -88,6 +88,42 @@ jobs:
             fi
           done
 
+      - name: Gateway auth matrix rejects invalid callers and keeps public safety available
+        env:
+          ANON_KEY: ${{ steps.keys.outputs.anon_key }}
+        run: |
+          # Explicit public allowlist: no Authorization bearer is required.
+          CODE=$(curl -s -o /tmp/v1-app-config.json -w '%{http_code}' \
+            "https://$PROJECT_ID.supabase.co/functions/v1/v1-app-config" \
+            -H "apikey: $ANON_KEY")
+          echo "v1-app-config (public, no bearer) → $CODE"
+          if [ "$CODE" != "200" ] || ! jq -e '.data.safety' /tmp/v1-app-config.json >/dev/null; then
+            echo "Expected public safety config without an Authorization bearer"; exit 1
+          fi
+
+          # Protected user endpoint: missing, malformed and project anon-role JWTs are not user sessions.
+          for AUTH in "" "Bearer not-a-jwt" "Bearer $ANON_KEY"; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+              "https://$PROJECT_ID.supabase.co/functions/v1/v1-me" \
+              ${AUTH:+-H "Authorization: $AUTH"} -H "apikey: $ANON_KEY")
+            echo "v1-me (${AUTH:+with invalid/non-user token}${AUTH:-no token}) → $CODE"
+            if [ "$CODE" != "401" ] && [ "$CODE" != "403" ]; then
+              echo "Expected 401/403 from protected user endpoint"; exit 1
+            fi
+          done
+
+          # Webhook bypasses gateway JWT only because its own secret is mandatory.
+          for SECRET in "" "wrong-secret"; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+              "https://$PROJECT_ID.supabase.co/functions/v1/v1-telegram-webhook" \
+              -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+              ${SECRET:+-H "X-Telegram-Bot-Api-Secret-Token: $SECRET"} -d '{}')
+            echo "v1-telegram-webhook (${SECRET:+wrong secret}${SECRET:-no secret}) → $CODE"
+            if [ "$CODE" != "401" ] && [ "$CODE" != "403" ]; then
+              echo "Expected 401/403 from webhook without the configured secret"; exit 1
+            fi
+          done
+
       - name: Internal job rejects callers without the service key
         env:
           ANON_KEY: ${{ steps.keys.outputs.anon_key }}
