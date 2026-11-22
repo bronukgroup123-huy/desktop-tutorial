@@ -51,3 +51,11 @@ Exit criteria: Android release candidate is reproducible, iOS preparation is exp
 - Stop on rate limits and record paused or blocked_rate_limit.
 - One scheduled job at a time through GitHub Actions concurrency.
 - Secrets are supplied only through repository or environment settings.
+
+## Status — 2026-11-22 (second pass)
+
+- Phase 1 exit criteria met: baseline reproduced (Flutter, Deno, fresh DB, CI green), blockers explicit,
+  every deployed endpoint classified (SECURITY_REPORT matrix). Scheduled cycle active (AUTONOMY.md).
+- Phase 2 started: SEC-001 merged (#108), SEC-002 in review (#109). Next: SEC-005, SEC-003, SEC-006,
+  SEC-004, QA-002; then PROD-001 (rating sources) before UI work, because levels, avatars and public picks
+  depend on it.

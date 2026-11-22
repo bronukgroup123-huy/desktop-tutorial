@@ -44,3 +44,47 @@ SEC-002. Harden public.import_forest_zones_batch(jsonb) and add negative privile
 ### Blockers
 
 See docs/agent/BLOCKERS.md.
+
+## 2026-11-22 02:35 UTC — second pass: verified baseline, audit, SEC-002, autonomous cycle (Claude)
+- Branch / SHA: main @ 50f93ec (baseline); claude/sec-002-definer-privileges @ PR #109; claude/agent-state (this)
+- Done:
+  - Reproduced the full baseline that was blocked in the Codex runtime (Flutter, Deno, fresh DB).
+  - Second-pass audit: SECURITY DEFINER privileges on a real database (8 functions exposed), Edge Function
+    authentication matrix, legacy Guardian v0 / demo / weather proxy still deployed (SEC-005), rating has no
+    sources (PROD-001), web-guardian dead link pages (WEB-001). AUDIT, SECURITY_REPORT, QUALITY_REPORT,
+    BACKLOG and BLOCKERS updated.
+  - SEC-002 fixed: migration + regression test + local DB harness → PR #109.
+  - Autonomous cycle: docs/agent/AUTONOMY.md runbook, scripts/agent/bootstrap.sh, deno import map,
+    scheduled task trig_01Bc28cWHYwhYc8uHrE2t8iF («Mushroom Radar — autonomous cycle», every 4 h at :30,
+    first run 2026-11-22 04:38 UTC) delivering into session_01QAqVzCi4Q7QaBgkAWQxUoK.
+- Checks:
+  - `flutter analyze` → no issues; `flutter test` → 309 passed
+  - `deno test … supabase/tests/` → 637 passed, 0 failed
+  - `deno check … supabase/functions/*/index.ts` → 33 errors (legacy only, see QUALITY_REPORT)
+  - `scripts/dev/local-db/run.sh` → 61/61 migrations, 13/13 SQL tests (main); 62/62 and 14/14 with PR #109;
+    new test fails without the migration
+  - bootstrap.sh Deno step → installs deno 2.5.6 into a clean directory
+- Problems / residual risks: production changes only after owner merges (BLK-008); no staging (BLK-007).
+- PR: #109 (SEC-002); agent-state PR (this)
+- Next: SEC-005 — retire legacy Guardian v0, demo and weather-proxy endpoints
+- Blockers: see BLOCKERS.md (owner: merge #109; optional Codex setup)
+
+## 2026-11-22 04:40 UTC — scheduled run 1: SEC-005 + QA-002
+- Branch / SHA: claude/sec-005-retire-legacy-endpoints (PR #111)
+- Open agent PRs checked first: #109 and #110 — Tests (incl. migrations job on Supabase CLI) and Security green.
+- Done: retired legacy Guardian v0 (14 owner functions, guardian-tick/-notify/-retry + cron jobs + notify
+  trigger), guardian-demo-create, forecast-weather and the legacy forecast; 18 unused _shared/guardian modules
+  removed (static import graph); deploy.yml deletes them from the project; migration 20261122110000 +
+  SQL regression retired_guardian_v0.sql; smoke-test.yml rewritten for v1 (200 / 401 / 404 checks);
+  full deno check made blocking (QA-002); docs updated.
+- Checks:
+  - `scripts/dev/local-db/run.sh` → 62/62 migrations, 15/15 SQL tests; new test red without the migration
+  - `deno test … supabase/tests/ supabase/functions/_shared/` → 579 passed, 0 failed
+  - `deno check supabase/functions/*/index.ts supabase/tests/ supabase/functions/_shared/` → 0 errors (was 33)
+  - Flutter not touched
+- Problems / residual risks: production deletion happens on merge; legacy v0 tables kept (BLK-009);
+  deploy.yml still sets legacy SMS/TextBee secrets (harmless, cleanup later).
+- PR: #111
+- Next: SEC-003 — rate limiting must not fail open
+- Blockers: unchanged (owner merges #109, #111, #110)
+
