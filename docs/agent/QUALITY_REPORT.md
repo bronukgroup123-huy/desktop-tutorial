@@ -122,6 +122,25 @@ Flutter model, and every top-level JSON key consumed by that model is documented
 claim full nested type, enum or nullability equivalence. The initial red run exposed real analysis weather
 contract drift before `openapi/v1.yaml` was aligned with the implemented server and Flutter client.
 
+## AUT-001 verification — 2026-11-22, Codex runtime, branch `codex/aut-001-five-hour-cycle`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-codex-autonomy.test.mjs` | Pass, 6/6 positive and negative tests |
+| `node scripts/ci/check-codex-autonomy.mjs` | Pass: maximum scheduled gap 5 hours |
+| PyYAML parse of `codex-autonomy.yml` and `test.yml` | Pass |
+| Bash syntax for all autonomy workflow `run` blocks | Pass, 7/7 blocks |
+| `npm view @openai/codex@0.171.0 version` | Pass, exact version exists |
+| `npx --yes @openai/codex@0.171.0 exec --help` | Pass; required approval, sandbox and ephemeral flags exist |
+| Existing CI guards | Pass: OpenAPI 5/5, Android signing 6/6, Edge auth 4/4 |
+| `git diff --check` | Pass |
+| Real scheduled/manual Codex run | Not run: owner-budgeted API key and GitHub PR permission are BLK-005 |
+
+Negative tests reject a schedule gap over five hours, production-secret access, merge commands, missing
+Claude overlap handling, and a Claude runbook that writes Codex state files. Scheduled API execution ends
+after 2026-12-22; manual recovery remains possible. Passing static checks does not prove the external API,
+budget or GitHub PR settings.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
@@ -134,7 +153,8 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 ## Next quality gate
 
 - PR #113 still needs the post-deploy gateway smoke test when staging is available.
-- QA-003 must pass the full Flutter and repository checks in blocking PR CI.
+- AUT-001 must pass blocking PR CI and one post-merge review-only workflow run (BLK-005).
+- QA-003 is merged as PR #118; its compatibility guard is now blocking.
 - AND-001 is merged as PR #117; a real-key manual AAB build remains an owner step.
-- UI-001 adds compact-screen / large-text / reduced-motion widget tests.
+- UI-001 is merged as PR #115; device-level accessibility remains part of BLK-010.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.

@@ -173,3 +173,18 @@ See docs/agent/BLOCKERS.md.
 - Blockers: BLK-001 (API PR creation only); onboarding draft publication for reproducible local Flutter;
   no implementation blocker.
 
+## 2026-11-22 16:58 UTC — AUT-001 five-hour autonomous maintenance (Codex)
+- Branch / SHA: `codex/aut-001-five-hour-cycle` @
+  `dfa68fc` (implementation and cross-agent collision guard; documentation commit follows).
+- Done: replaced the weekday-only disabled schedule with runs at 00:17, 05:17, 10:17, 15:17 and 20:17
+  UTC; added a 2026-12-22 cutoff, bounded rate-limit handoff, explicit Codex/Claude ownership, review-only
+  delivery and a blocking fail-closed CI guard. Reconciled the Claude runbook so it cannot write Codex state.
+- Checks: autonomy tests 6 passed / 0 failed; repository guard reports a 5-hour maximum gap; seven workflow
+  shell blocks and both changed YAML files parse; exact Codex CLI 0.171.0 and required flags verified;
+  existing OpenAPI, Android signing and Edge auth guards all pass; `git diff --check` passes.
+- Problems / residual risks: no actual Codex API run was attempted. The owner-budgeted API key and GitHub
+  Actions PR permission cannot be verified through the current 403-limited GitHub API (BLK-001/BLK-005).
+- PR: branch will be pushed; creation may require the compare URL because of BLK-001. No automerge.
+- Next: after merge, observe one review-only run; otherwise continue the next Codex-owned backend/CI item.
+- Blockers: BLK-005 for first-run proof; BLK-001 for direct PR creation.
+

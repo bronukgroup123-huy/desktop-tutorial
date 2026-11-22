@@ -34,10 +34,17 @@ blocked by BLK-007.
   makes platform JWT verification the default; CI rejects any new or renamed function until it is
   classified. Deployed smoke tests remain pending without staging.
 - Full Deno type checking is blocking after merged PR #111.
-- Android signing is separated on `codex/and-001-store-release-signing`: the normal workflow produces only
+- Android signing is separated in merged PR #117: the normal workflow produces only
   a clearly labelled test APK and cannot access store secrets; a separate manual AAB workflow requires all
-  real signing inputs and has a Gradle fail-closed guard. Merge and owner-authorized real-key validation are
-  pending.
+  real signing inputs and has a Gradle fail-closed guard. Owner-authorized real-key validation is pending.
+
+## Autonomous workflow controls
+
+AUT-001 limits Codex automation to security/backend/CI files, queues concurrent runs, opens review-only PRs,
+and stops scheduled API execution after 2026-12-22. A blocking repository guard rejects production secrets,
+merge commands, retry gaps over five hours, and ownership rules that let Claude and Codex edit the same
+state files. The job receives only `OPENAI_API_KEY` and the scoped GitHub token needed to push its branch and
+open a PR. Actual execution remains unverified until BLK-005 is satisfied.
 
 ## Edge Function authentication matrix (second pass, 2026-11-22)
 

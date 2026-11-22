@@ -17,10 +17,15 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
   instructions; the owner must Review/Save and Publish it before reproducibility can be validated in a new
   task. Node/Git work is not blocked.
 
-## BLK-005 — Codex scheduled workflow (owner, optional)
-- Status: prepared_disabled. Needs OPENAI_API_KEY (billed separately from a ChatGPT subscription), repository
-  variable CODEX_AUTONOMY_ENABLED=true and «Allow GitHub Actions to create and approve pull requests».
-  Do not enable it while the Claude cycle runs, or give the two agents disjoint areas first.
+## BLK-005 — Codex scheduled workflow credentials, budget and first-run verification (owner)
+- Status: authorized_in_review. The owner authorized five-hour autonomous retries. AUT-001 removes the old
+  repository-variable gate, limits the schedule to 2026-11-22…2026-12-22, and gives Codex and Claude
+  disjoint files through `WORK_OWNERSHIP.md` plus a blocking collision guard.
+- Still required: an `OPENAI_API_KEY` with an owner-defined budget/provider limit and the repository setting
+  that lets GitHub Actions create pull requests. Never paste the key into chat. The workflow receives no
+  Supabase, deployment, store-signing or other production secrets.
+- Verification pending: after merge, observe one manual or scheduled run creating a review-only `codex/*`
+  PR. Until that succeeds, persistent autonomy is prepared but not proven.
 
 ## BLK-006 — iOS release infrastructure (owner)
 - Status: blocked. No iOS target, macOS runner, Apple signing or Apple Developer access.
