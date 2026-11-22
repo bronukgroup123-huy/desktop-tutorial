@@ -89,6 +89,22 @@ The new SQL script is the missing storage-policy boundary test. The existing han
 other SEC-006 domains; blocking PR CI remains authoritative for the full 63-migration / 16-SQL-script run
 and the complete Deno regression suite.
 
+## AND-001 verification — 2026-11-22, Codex runtime, branch `codex/and-001-store-release-signing`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-android-signing.test.mjs` | Pass, 6/6 |
+| `node scripts/ci/check-android-signing.mjs` | Pass: test APK isolated; all four store secrets required |
+| Existing Edge auth guard | Pass, 4/4 tests and 17-function matrix |
+| YAML parse for `android.yml`, `android-store.yml`, `test.yml` | Pass |
+| Bash syntax for every `run` block in the three workflows | Pass |
+| `git diff --check` | Pass |
+| Flutter/Gradle configuration and Android build | Blocked locally: the restored Flutter checkout lacks its Dart SDK and `storage.googleapis.com` returns 403; PR Android CI remains authoritative |
+
+Negative tests prove that automatic store triggers, store secrets in the test workflow, a disabled Gradle
+guard, empty signing inputs and partial Gradle signing configuration are rejected. The manual store workflow
+uploads an AAB for owner review only; it never publishes to Google Play.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:
@@ -101,6 +117,6 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 ## Next quality gate
 
 - PR #113 still needs the post-deploy gateway smoke test when staging is available.
-- SEC-006 must pass blocking CI, including all 63 migrations and 16 SQL scripts.
+- AND-001 must pass blocking repository and Android PR CI. A real-key manual AAB build remains an owner step.
 - UI-001 adds compact-screen / large-text / reduced-motion widget tests.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.

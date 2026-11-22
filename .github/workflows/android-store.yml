@@ -1,0 +1,103 @@
+name: Android Store Bundle
+
+# Ручна контрольована збірка для Google Play. Workflow не публікує AAB у магазин і не
+# запускається від push/PR. Якщо будь-якого секрету підпису немає, збірка завершується до Gradle.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-store-bundle
+  cancel-in-progress: false
+
+jobs:
+  build-store:
+    name: Build signed store AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            flutter_client/android/*.gradle*
+            flutter_client/android/app/*.gradle*
+            flutter_client/android/gradle/wrapper/gradle-wrapper.properties
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+          channel: stable
+          cache: true
+
+      - name: Require production app configuration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are required for a store bundle"
+            exit 1
+          fi
+          printf 'SUPABASE_URL=%s\nSUPABASE_PUBLISHABLE_KEY=%s\n' \
+            "$SUPABASE_URL" "$SUPABASE_PUBLISHABLE_KEY" > .env
+
+      - name: Require and validate store signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for secret_name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error::$secret_name is required for a store bundle"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          keytool -list \
+            -keystore android/app/release.jks \
+            -storepass:env KEYSTORE_PASSWORD \
+            -alias "$KEY_ALIAS" > /dev/null
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Build signed store AAB
+        env:
+          # build.gradle.kts падає без повної release-конфігурації замість fallback на тестовий ключ.
+          ORG_GRADLE_PROJECT_requireReleaseSigning: 'true'
+        run: |
+          flutter build appbundle --release \
+            --dart-define-from-file=.env \
+            --build-number=${{ github.run_number }}
+          mv build/app/outputs/bundle/release/app-release.aab build/mushroom-radar-store.aab
+
+      - name: Upload store AAB for owner review
+        uses: actions/upload-artifact@v4
+        with:
+          name: mushroom-radar-store-aab-${{ github.run_number }}
+          path: flutter_client/build/mushroom-radar-store.aab
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/app/release.jks

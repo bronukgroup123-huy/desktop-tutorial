@@ -134,3 +134,21 @@ See docs/agent/BLOCKERS.md.
 - Next: AND-001 — ensure store artifacts can never fall back to the public test signing key.
 - Blockers: BLK-001 (PR creation), BLK-007 (staging verification).
 
+## 2026-11-22 08:44 UTC — AND-001 Android signing separation (Codex)
+- Branch / SHA: `codex/and-001-store-release-signing` @
+  `2184704397941e10d2662ceb71b6d9e31290a34c`
+- Done: made the rolling Android workflow test-only and removed all store secrets from it; added a separate
+  manual store AAB workflow requiring four signing secrets; added Gradle fail-closed checks for required,
+  partial or missing release signing; clearly renamed artifacts and documentation; added a blocking CI guard.
+- Checks: Android signing Node tests → 6 passed / 0 failed; repository signing guard → pass; existing Edge
+  auth tests/matrix → pass; workflow YAML parse → pass; Bash syntax for all changed workflow scripts → pass;
+  `git diff --check` → pass.
+- Problems / residual risks: Flutter/Gradle could not run locally because the restored Flutter checkout lacks
+  Dart SDK artifacts and `storage.googleapis.com` is denied. Android PR CI must compile both Gradle and the
+  test APK. A real store AAB cannot be validated without the owner's signing identity (BLK-011).
+- PR: branch will be pushed; creation may require the compare URL because Codex GitHub API auth remains
+  unavailable (BLK-001).
+- Next: check this PR's Android/Tests CI; after merge, continue the highest-priority backend/CI task without
+  entering Claude's product/UI files.
+- Blockers: BLK-001 (PR creation), BLK-011 (real store signing validation).
+
