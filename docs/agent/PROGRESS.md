@@ -173,3 +173,20 @@ See docs/agent/BLOCKERS.md.
 - Blockers: BLK-001 (API PR creation only); onboarding draft publication for reproducible local Flutter;
   no implementation blocker.
 
+## 2026-11-22 18:38 UTC — CI-001 workflow permissions and credential scope (Codex)
+- Branch / SHA: `codex/ci-001-workflow-permissions` @
+  `410888b` (permissions guard plus production-secret scoping; documentation commit follows).
+- Done: gave all 17 workflows explicit top-level permissions; constrained deploy/smoke to `contents: read`;
+  removed production secrets from job scope; made API-key extraction fail closed; masked dynamic anon,
+  service-role and user JWT values; added a blocking repository guard with seven regression tests.
+- Checks: workflow-permission tests 7 passed / 0 failed; repository guard reports 17 explicit and four
+  reviewed write-scoped workflows; three YAML files and 26 shell blocks parse; existing OpenAPI, Android
+  signing and Edge auth guards pass; `git diff --check` passes.
+- Problems / residual risks: GitHub repository-default rights remain unobservable because the API returns
+  403. Live smoke/deploy was not run and must remain outside an agent branch.
+- Owner decision: Codex API automation is paused; `codex/aut-001-five-hour-cycle` must not be merged. Work
+  continues only interactively after an owner message (BLK-005).
+- PR: branch will be pushed; direct creation may require the compare URL because of BLK-001. No automerge.
+- Next: verify CI-001 PR CI, then select another Codex-owned security/backend/CI item.
+- Blockers: BLK-001 affects direct PR creation only; no implementation blocker.
+
