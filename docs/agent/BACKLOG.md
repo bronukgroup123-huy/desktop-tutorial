@@ -64,7 +64,7 @@
 - Acceptance criteria: the API key and budget or provider limit are configured, a manual or scheduled run opens one PR, and a subsequent run reads the persisted state.
 - Tests: workflow syntax plus one owner-authorized manual run.
 - Status: authorized_schedule_prepared
-- PR: pending
+- PR: branch pushed. API creation is blocked. Review URL: https://github.com/bronukgroup123-huy/desktop-tutorial/pull/new/codex/autonomy-five-hour-cycle
 - Residual risks: untested until credentials and budget are supplied.
 
 ## QA-002 — make all deployed Deno entrypoints blocking
