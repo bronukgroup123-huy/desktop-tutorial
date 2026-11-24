@@ -232,4 +232,5 @@ See docs/agent/BLOCKERS.md.
   success can only be confirmed after owner review/merge through the next schedule or an owner-authorized run.
 - Ownership: PR #116 was reviewed for boundaries. Codex retains OPS/CI/security/release infrastructure;
   Claude retains UI/PERF/PROD/WEB/DOC work unless the owner directly reassigns it.
+- Commit / PR: `6935859` / PR #121. No auto-merge; full PR CI and post-merge scheduled verification pending.
 

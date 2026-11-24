@@ -77,7 +77,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   with curl exit 22; the latest failure is on `main` at `b710d10e` (2026-11-23).
 - Safety: investigate through workflow metadata and non-production/local tests first; do not probe or mutate
   production from an agent branch.
-- Status: in_progress — branch `codex/ops-001-wave-alert-workflow` (2026-11-24).
+- Status: in_review — PR #121, branch `codex/ops-001-wave-alert-workflow` (2026-11-24). Local regression
+  checks pass; live scheduled verification remains post-merge/owner-authorized.
 
 ### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2) (owner: Claude)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
