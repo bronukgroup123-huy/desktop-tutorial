@@ -3,10 +3,9 @@
 Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the agent continues with other work.
 
 ## BLK-001 — GitHub API authentication in the Codex runtime
-- Status: not blocking the Claude cycle. The Claude runtime reads PRs/CI and opens PRs through its GitHub
-  connection. Codex can fetch and push through the platform HTTPS proxy, but GitHub GraphQL PR creation
-  still returns `403 Forbidden`; pushed branches expose a compare URL. Owner action is optional: create the
-  PR from that URL, or provide Codex an approved GitHub API integration if direct PR creation is required.
+- Status: resolved in the 2026-11-24 interactive runtime. `gh auth status`, REST/GraphQL PR reads and Actions
+  metadata reads succeed as `bronukgroup123-huy`. Recheck authentication in each fresh runtime; this does not
+  authorize merges, production changes or direct pushes to `main`.
 
 ## BLK-002 / BLK-003 / BLK-004 — Deno hosts, Flutter SDK, disposable database
 - Status: resolved in the Claude runtime. Deno runs with scripts/agent/deno_import_map.json (deno.land is
@@ -34,8 +33,8 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 
 ## BLK-008 — merges and production deployment (owner)
 - Status: by design. The agent never merges. Merging anything under supabase/** deploys to production via
-  deploy.yml. Recommended merge order: PR #109 (SEC-002) first, then agent PRs in BACKLOG order; the
-  agent-state PR (docs only) can be merged any time.
+  deploy.yml. PRs #108–115 and #117–119 are merged. PR #116 is the only open agent-authored PR, is docs-only,
+  conflicts with `main`, and contains statuses superseded by those merges; do not merge it unchanged.
 
 ## BLK-009 — product/legal decisions before publication (owner)
 - Open-Meteo commercial key, privacy policy and terms, Apple sign-in (BACKEND_PLAN §5.1).

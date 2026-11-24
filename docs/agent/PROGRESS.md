@@ -191,3 +191,23 @@ See docs/agent/BLOCKERS.md.
 - Next: verify CI-001 PR CI, then select another Codex-owned security/backend/CI item.
 - Blockers: BLK-001 affects direct PR creation only; no implementation blocker.
 
+## 2026-11-24 — manual state reconciliation (Codex)
+- Baseline: `main` / `origin/main` at `b710d10e1061719c7a7bb0357935910e8b76cf9b` (merge PR #119).
+- GitHub: PRs #108–115 and #117–119 are merged. PR #116 is open, docs-only, `CONFLICTING/DIRTY`, and stale
+  relative to merged UI-001, AND-001, QA-003 and CI-001 work. No PROD-001 implementation PR is open.
+- Main CI: `Tests` (Flutter, Deno, fresh migrations), `Security` and `Deploy to Supabase` passed on `b710d10e`.
+  The most recent Android test APK passed on `f0e2a829` (PR #115 merge), not on the final documentation/CI SHA.
+- Confirmed open defect: scheduled `Wave alerts` failed three consecutive runs with curl exit 22, most recently
+  run `45211395928` on `b710d10e`. Exact HTTP response is absent from check annotations; no production retry
+  or probe was performed.
+- Data workflow findings: Dependabot PRs #3/#23 fail the secret-dependent `Supabase public config` job;
+  PR #23 additionally fails the OSM-label download step with curl exit 22 and no artifact. Generator unit/type
+  checks pass, so these failures do not currently demonstrate a generator regression.
+- Code/docs reconciliation: `rating_events`, `compute_level` and rating award sources are absent; public picks
+  still use the temporary hard-coded 201-point/5-per-day rule. `flutter_client/ios` is absent. NEXT_TASK,
+  BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA contain material historical assumptions and require DOC-001.
+- Changes in this session are documentation only: BACKLOG status/priority corrections plus current GitHub/CI
+  evidence. No workflow, product code, production system or external automation was changed.
+- Recommended next Codex task: OPS-001, because a current scheduled product workflow is failing and it does
+  not overlap the historically Claude-assigned PROD/UI work. Wait for the owner's explicit command.
+
