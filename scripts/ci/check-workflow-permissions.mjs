@@ -77,6 +77,14 @@ export function validateProductionSecretScope(name, source) {
   if (errors.length) throw new Error(errors.join("\n"));
 }
 
+export function validateWaveAlertWorkflow(source) {
+  const errors = [];
+  expect(errors, source.includes("node scripts/ci/run-wave-alerts.mjs"), "wave-alerts.yml: guarded runner script is not used");
+  expect(errors, source.includes("SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}"), "wave-alerts.yml: management token is missing");
+  expect(errors, source.includes("SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}"), "wave-alerts.yml: project ref is missing");
+  if (errors.length) throw new Error(errors.join("\n"));
+}
+
 export function checkRepository(root) {
   const workflowsRoot = resolve(root, ".github/workflows");
   const files = readdirSync(workflowsRoot)
@@ -88,7 +96,10 @@ export function checkRepository(root) {
     const result = validateWorkflowPermissions(basename(file), source);
     if (result.writes.length) writeScoped.push(file);
     if (file === "smoke-test.yml") validateSmokeSecretMasking(source);
-    if (file === "deploy.yml" || file === "smoke-test.yml") validateProductionSecretScope(file, source);
+    if (file === "wave-alerts.yml") validateWaveAlertWorkflow(source);
+    if (file === "deploy.yml" || file === "smoke-test.yml" || file === "wave-alerts.yml") {
+      validateProductionSecretScope(file, source);
+    }
   }
   return { workflows: files.length, writeScoped };
 }

@@ -211,3 +211,25 @@ See docs/agent/BLOCKERS.md.
 - Recommended next Codex task: OPS-001, because a current scheduled product workflow is failing and it does
   not overlap the historically Claude-assigned PROD/UI work. Wait for the owner's explicit command.
 
+## 2026-11-24 — OPS-001 wave-alert workflow recovery (Codex)
+- Baseline: `main` at `ec7eba26799f62c205038fdeab0b916b57e58e2a` (PR #120 merged); branch
+  `codex/ops-001-wave-alert-workflow`.
+- Evidence: every scheduled `Wave alerts` run since the workflow was introduced failed immediately in the
+  single `Send wave alerts` step with curl exit 22. The workflow omitted the `apikey` header that the same
+  repository uses for service-role Supabase calls, and combined Management API/key lookup and Edge Function
+  invocation into one opaque shell step.
+- Done: replaced the inline curl with a tested Node runner; the Edge Function request now sends both
+  `Authorization` and `apikey`; missing secrets/key, Management API failures, Edge HTTP failures and malformed
+  success payloads fail closed with stage-specific diagnostics. Only a validated snake_case remote error code
+  may reach logs; key material and response messages do not. Production secrets are scoped to the consumer
+  step, and the dynamic service key is masked before use.
+- Regression protection: the blocking workflow guard requires the tested runner and rejects job-scoped
+  secrets for `wave-alerts.yml`; the old `main` workflow fails this new guard as expected.
+- Local checks: `run-wave-alerts.test.mjs` 8/8; `check-workflow-permissions.test.mjs` 8/8; repository workflow
+  guard passed (17 workflows, four reviewed write-scoped); Node syntax, workflow YAML parse and
+  `git diff --check` passed.
+- Safety: no scheduled/manual dispatch, production request, secret read or deployment was performed. A live
+  success can only be confirmed after owner review/merge through the next schedule or an owner-authorized run.
+- Ownership: PR #116 was reviewed for boundaries. Codex retains OPS/CI/security/release infrastructure;
+  Claude retains UI/PERF/PROD/WEB/DOC work unless the owner directly reassigns it.
+
