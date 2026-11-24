@@ -1,8 +1,9 @@
 # Prioritized engineering backlog
 
 Statuses: ready · in_progress · in_review (PR open) · done (merged) · blocked_* · paused · blocked_rate_limit.
-Order inside a priority is the execution order. The scheduled agent takes the first `ready` item
-(docs/agent/AUTONOMY.md). Every item ends in its own branch and PR; nothing is merged by the agent.
+Order inside a priority is the recommended execution order. Work is manual/interactive: an agent starts
+only after an owner message, uses a dedicated branch and PR, and never merges its own work. Historical
+Claude/Codex ownership notes prevent accidental overlap but never override a direct owner instruction.
 
 ## P0 — security and correctness
 
@@ -61,14 +62,22 @@ Order inside a priority is the execution order. The scheduled agent takes the fi
 
 ## P1 — product correctness
 
-Product/UI items in this section are owned by Claude and are not selected by Codex.
+### OPS-001 — restore the scheduled wave-alert job
+- Goal: daily wave notifications run reliably and fail with enough diagnostics to distinguish Management
+  API/key lookup failures from an Edge Function response failure.
+- Evidence: scheduled runs `44909047424`, `45027103716` and `45211395928` all failed in `Send wave alerts`
+  with curl exit 22; the latest failure is on `main` at `b710d10e` (2026-11-23).
+- Safety: investigate through workflow metadata and non-production/local tests first; do not probe or mutate
+  production from an agent branch.
+- Status: ready (Codex-aligned CI/backend area; no open implementation PR as of 2026-11-24).
 
 ### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
   Flutter display, tests.
-- Status: handed_to_claude (large — split into bounded server/client work there)
+- Status: handed_to_claude (historical assignment; no open implementation PR as of 2026-11-24). Recheck
+  Claude branches before intervention and split the large server/client scope into bounded PRs.
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.
@@ -105,10 +114,20 @@ Product/UI items in this section are owned by Claude and are not selected by Cod
   masking for dynamically fetched anon/service-role/JWT values; blocking repository guard.
 - Tests: repository inventory plus negative cases for missing permissions, unreviewed writes, production
   write access, unmasked dynamic credentials and job-level production secrets.
-- Status: in_progress — branch `codex/ci-001-workflow-permissions` pushed; direct PR creation is blocked by
-  BLK-001 and blocking PR CI is pending.
+- Status: done — PR #119 merged 2026-11-22; `Tests`, `Security` and `Deploy to Supabase` passed on merge SHA
+  `b710d10e`.
 - Residual: repository-default permissions remain unobservable through the current GitHub API, but explicit
-  workflow declarations no longer rely on that setting. Live production smoke is intentionally not run here.
+  workflow declarations no longer rely on that setting. Live production smoke remains intentionally outside
+  agent branches.
+
+### CI-002 — make data workflows safe and useful on dependency PRs
+- Goal: secret-dependent data-generation jobs do not fail noisily on Dependabot PRs, while generator/unit
+  checks remain blocking and real scheduled/manual generation still fails closed.
+- Evidence: PR #3 (`actions/checkout@7`) fails `Forests data / Supabase public config` with exit 5; PR #23
+  also fails that step and separately fails `Forest type / OSM labels` with curl exit 22 after producing no
+  artifact. Dependabot PRs do not receive repository secrets, so the Management API fallback cannot be a
+  required PR check. The OSM download failure needs separate reproducible diagnostics before a code change.
+- Status: ready (Codex-aligned CI area; do not weaken scheduled/manual release checks).
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.
@@ -121,10 +140,13 @@ Product/UI items in this section are owned by Claude and are not selected by Cod
 ## P2 — cleanup
 
 ### WEB-001 — remove link-based web-guardian pages (AUD-WEB-001)
-- Status: ready (confirm with owner whether anything external still hosts web-guardian → BLOCKERS)
+- Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
 
 ### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code
-- Status: ready (part of PROD-001)
+- Status: ready (historically Claude-aligned; broadened to include stale AUTH_FLOW and DB_SCHEMA claims).
+- Current evidence: NEXT_TASK still prescribes PROD-001 automatically; BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA
+  describe retired Guardian v0/base64 flows or old migration/table counts. Reconcile against migrations,
+  OpenAPI and current handlers before using them to drive code.
 
 ### AUT-001 — Codex scheduled workflow (codex-autonomy.yml)
 - Status: paused_owner_choice — on 2026-11-22 the owner explicitly chose interactive Codex use only, with
