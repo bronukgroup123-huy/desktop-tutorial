@@ -223,3 +223,16 @@ See docs/agent/BLOCKERS.md.
 - Next: PROD-001a — rating_events, level_of, +1 for EXIF private picks, ADR-019 limits (migration + SQL tests)
 - Blockers: BLK-012 (owner confirmation of the Claude cycle), others unchanged.
 
+## 2026-11-25 04:35 UTC — scheduled run 4: PROD-001a (Claude)
+- Branch / SHA: claude/prod-001a-rating-server (PR #123)
+- Done: migration 20261125100000 — rating_events + trigger (rating = sum, ≥ 0), certificate columns,
+  level_of (same bounds as levelOf), +1 for private picks with server-verified EXIF (≤ 5 / 7 days) inside
+  create_pick, can_create_pick per ADR-019 §19.10 (private 5 at once + 10 new / 7 days; public from
+  forester 7, keeper 15 / 7 days); v1-picks maps the new codes to 429; OpenAPI updated.
+- Checks: `scripts/dev/local-db/run.sh` → 64 migrations, 20/20 SQL tests (new rls_rating.sql;
+  rls_picks_adr018.sql moved from the daily rule to ADR-019); `deno test` → 588 passed / 0 failed;
+  full `deno check` → 0 errors. Flutter untouched.
+- Problems / residual risks: limits change on deploy; existing picks give no retroactive points.
+- PR: #123
+- Next: PROD-001b — v1-me certified level and picks permissions + OpenAPI
+
