@@ -167,7 +167,7 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   every artifact action reference with Node 24 majors.
 - Evidence: PR #22 is green but its `download-artifact@v8` steps exist only in publish jobs skipped on PRs;
   PR #23 still points at a stale pre-CI-002 head with unrelated data-job failures.
-- Status: in_progress — branch `codex/ci-003-artifact-roundtrip`. The blocking `Tests` workflow uses
+- Status: in_review — PR #133, branch `codex/ci-003-artifact-roundtrip`. The blocking `Tests` workflow uses
   `upload-artifact@v7` and `download-artifact@v8` for a one-day smoke artifact and verifies the downloaded
   bytes with `cmp`. The first PR runs exposed eventual consistency immediately after upload for both name-
   and ID-based lookup, so the download is keyed by the immutable upload output `artifact-id` and gets one

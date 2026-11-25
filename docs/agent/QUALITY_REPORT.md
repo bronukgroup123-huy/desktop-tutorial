@@ -207,3 +207,21 @@ owner-authorized manual run must confirm the live Edge Function returns a valid 
 The regression uses separate PostgreSQL sessions and waits until the first transaction has inserted its event
 and holds the user row before starting the second. This verifies the database boundary directly rather than
 mocking trigger behavior.
+
+## CI-003 verification — 2026-11-25, Codex runtime, PR #133
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 11/11 |
+| `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, 4 reviewed write-scoped |
+| Workflow YAML structure and exact artifact majors | Pass: upload v7, download v8, ID-based bounded retry |
+| Push run `45688868324` artifact round trip | Pass in 7 s; first download and byte comparison passed |
+| PR run `45688881322` artifact round trip | Pass in 12 s; bounded retry handled Artifact API consistency lag, byte comparison passed |
+| Deno unit tests, Flutter analyze/tests and fresh migrations (both final runs) | Pass |
+| Gitleaks (both final runs) | Pass |
+| `git diff --check` | Pass |
+| Production/deployment | Not run; the smoke job has no secrets or production access |
+
+The earlier failing PR runs were retained as evidence: upload finalized successfully, but immediate lookup by
+both name and immutable ID could transiently report `Artifact not found`. The final gate retries only once
+after five seconds and still fails closed if the artifact cannot be downloaded or its payload differs.

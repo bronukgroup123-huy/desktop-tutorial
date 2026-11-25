@@ -338,3 +338,18 @@ See docs/agent/BLOCKERS.md.
 - Next Codex priority: review the refreshed, green GitHub Actions Dependabot PRs (#3, #22, #23); IOS-001
   remains blocked by macOS and Apple configuration. Claude owns remaining UI-002 and product performance work;
   PERF-001 part 1 merged as PR #129.
+
+## 2026-11-25 19:51 UTC — CI-003 artifact action round trip (Codex)
+- Baseline: `main` at `13aa529`; branch `codex/ci-003-artifact-roundtrip`, PR #133.
+- Found: Dependabot PR #22 did not execute `download-artifact@v8` because its download steps are limited to
+  publish jobs, while PR #23 still exposes a stale pre-CI-002 PR ref. The first CI-003 runs also demonstrated
+  GitHub Artifact API eventual consistency immediately after a finalized upload.
+- Done: added a blocking generated-payload round trip using `upload-artifact@v7`,
+  `download-artifact@v8`, immutable `artifact-id`, one bounded five-second retry and byte comparison with
+  `cmp`; artifact retention is one day. Reconciled completed SEC-007, OPS-001, PERF-001 and CI-002 statuses.
+- Checks: local workflow-permission tests 11/11 and repository guard passed; final push and pull-request runs
+  both passed artifact round trip, Deno, Flutter, fresh migrations and Gitleaks. PR #133 is clean/mergeable.
+- Safety: the job generates one text file, receives no secrets, checks out no repository code, calls no
+  production service and performs no deployment.
+- Next: owner reviews/merges #133; then refresh Dependabot #3/#22/#23 against `main` and assess them separately.
+  Claude owns open UI-002 part 2 PRs #131/#132.
