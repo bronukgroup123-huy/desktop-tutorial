@@ -129,6 +129,10 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Status: done — PR #115 (merged 2026-11-22).
 - Part 2 (UI-001b): tabs — Safety, Forecast (area with result), Catalog (AI banner not downloaded), species
   card, pick form. Status: done — PR #127 (merged 2026-11-25).
+- Part 3 (UI-001c): friends, friend profile, safety guides, checklist, rescue card, SOS, name & handle,
+  licenses. Found: friend profile trophies title and shelf at text ×2. Status: in_review — PR #137.
+- Not covered by stress tests yet: map (MapLibre platform view), capture/recognition flow (camera), compass
+  and return (sensors) — need device fakes beyond the current ones.
 
 ### UI-002 — design tokens and shared components (owner: Claude)
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
@@ -204,7 +208,7 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
 
 ### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code (owner: Claude)
-- Status: in_review — PR #134. AUTH_FLOW rewritten from code (guest, auth matrix, onboarding steps, region
+- Status: done — PR #134 (merged 2026-11-25). AUTH_FLOW rewritten from code (guest, auth matrix, onboarding steps, region
   change rules, upload URL, push, account deletion); DB_SCHEMA overview = 42 tables from migrations (Guardian
   v0 marked legacy); API/README auth and security sections; BACKEND_PLAN §1 marked as an audit snapshot.
   NEXT_TASK was already reconciled. Found SEC-008 while checking RLS.
