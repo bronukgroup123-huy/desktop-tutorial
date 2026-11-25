@@ -169,9 +169,9 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   PR #23 still points at a stale pre-CI-002 head with unrelated data-job failures.
 - Status: in_progress — branch `codex/ci-003-artifact-roundtrip`. The blocking `Tests` workflow uses
   `upload-artifact@v7` and `download-artifact@v8` for a one-day smoke artifact and verifies the downloaded
-  bytes with `cmp`. The first PR run exposed eventual consistency in name-based lookup immediately after
-  upload, so the download is keyed by the immutable upload output `artifact-id`. After merge, refresh PRs
-  #3/#22/#23 against current `main`.
+  bytes with `cmp`. The first PR runs exposed eventual consistency immediately after upload for both name-
+  and ID-based lookup, so the download is keyed by the immutable upload output `artifact-id` and gets one
+  bounded retry after five seconds. After merge, refresh PRs #3/#22/#23 against current `main`.
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.

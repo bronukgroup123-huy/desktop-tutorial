@@ -36,9 +36,21 @@ jobs:
           retention-days: 1
 
       - name: Download smoke artifact
+        id: smoke-download
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          # The name index is eventually consistent immediately after upload.
+          artifact-ids: ${{ steps.smoke-upload.outputs.artifact-id }}
+          path: artifact-download/
+
+      - name: Wait for artifact API consistency
+        if: steps.smoke-download.outcome == 'failure'
+        run: sleep 5
+
+      - name: Retry smoke artifact download
+        if: steps.smoke-download.outcome == 'failure'
+        uses: actions/download-artifact@v8
+        with:
           artifact-ids: ${{ steps.smoke-upload.outputs.artifact-id }}
           path: artifact-download/
 
