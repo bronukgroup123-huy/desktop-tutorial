@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -173,10 +175,14 @@ class TrophyShelfRow extends StatelessWidget {
         );
       },
     );
-    if (!onDark) return SizedBox(height: 112, child: list);
+    // Звичайно 112 / 128 px; з великим шрифтом ряд росте під дворядковий підпис і прогрес (UI-001c).
+    final scaler = MediaQuery.textScalerOf(context);
+    final progress = items.any((t) => !t.earned && t.progressLabel != null) ? scaler.scale(10.5) * 1.25 : 0.0;
+    final needed = badge + (onDark ? 20 : 4) + scaler.scale(11) * 1.15 * 2 + progress + 4;
+    if (!onDark) return SizedBox(height: math.max(112, needed), child: list);
     // Полиця на всю ширину; медальйони стоять на її верхній грані.
     return SizedBox(
-      height: 128,
+      height: math.max(128, needed),
       child: Stack(
         clipBehavior: Clip.none,
         children: [

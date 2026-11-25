@@ -153,9 +153,11 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
                       children: [
                         const Icon(Icons.emoji_events_rounded, size: 20, color: heroGold),
                         const SizedBox(width: 6),
-                        Text(
-                          p == null || p.trophies.isEmpty ? 'Трофеї' : 'Трофеї · ${p.trophies.length}',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)]),
+                        Flexible(
+                          child: Text(
+                            p == null || p.trophies.isEmpty ? 'Трофеї' : 'Трофеї · ${p.trophies.length}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)]),
+                          ),
                         ),
                       ],
                     ),
