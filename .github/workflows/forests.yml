@@ -11,8 +11,8 @@ name: Forests data
 #    → файли публікуються в реліз «forests-data» (GitHub Releases, CDN).
 #  * Щомісяця: перебудова всіх областей (OSM постійно доповнюється). Застосунок
 #    перекачує файл лише тоді, коли змінилась його версія.
-#  * PR, що змінює генератор: швидкі перевірки завжди; пробна збірка лише для
-#    довіреного PR з цього репозиторію → Artifacts (без публікації).
+#  * PR, що змінює генератор: швидкі тести й artifact smoke без секретів,
+#    зовнішніх production API та завантаження повного OSM extract.
 #  * Тип лісу без породи в OSM — з карт релізу «forest-type-data» (Sentinel-2), якщо є.
 # Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
 # тип за супутником — Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0).
@@ -69,10 +69,7 @@ jobs:
   build:
     name: Build forests (${{ github.event.inputs.region || 'all' }})
     needs: test
-    if: >-
-      github.event_name != 'pull_request' ||
-      (github.actor != 'dependabot[bot]' &&
-      github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:

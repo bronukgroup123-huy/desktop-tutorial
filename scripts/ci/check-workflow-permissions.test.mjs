@@ -81,17 +81,17 @@ test("workflow-level secrets cannot be inherited by every data job", () => {
   assert.throws(() => validateProductionSecretScope("forests.yml", source), /exposed at workflow scope/);
 });
 
-test("heavy data builds must not run for Dependabot or fork pull requests", () => {
+test("heavy data builds must not run for pull requests", () => {
   const source = [
     "jobs:",
     "  build:",
-    "    if: github.event_name != 'pull_request'",
+    "    if: github.actor != 'dependabot[bot]'",
     "    permissions:",
     "      contents: read",
   ].join("\n");
   assert.throws(
     () => validateDataWorkflowSafety("forests.yml", source),
-    /heavy PR job must skip Dependabot.*heavy PR job must skip fork pull requests/s,
+    /heavy data job must not run for pull requests/,
   );
 });
 
@@ -99,7 +99,7 @@ test("heavy data jobs cannot retain release write permission", () => {
   const source = [
     "jobs:",
     "  map:",
-    "    if: github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository",
+    "    if: github.event_name != 'pull_request'",
     "    permissions:",
     "      contents: write",
     "    steps:",

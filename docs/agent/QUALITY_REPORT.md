@@ -151,8 +151,8 @@ repository configuration, not the unobservable repository-default permission set
 | `git diff --check` | Pass |
 | Scheduled/manual data builds and release publication | Not run; this branch must not publish or mutate production data |
 
-The data workflows keep fast checks available to Dependabot and fork PRs, while secret-dependent and
-large-download jobs are limited to trusted same-repository PRs, schedules and manual runs. Release writes
+The data workflows keep fast checks available to every PR, while secret-dependent, production-API and
+large-download jobs are limited to schedules and manual runs. Release writes
 are separated from the forests and forest-type build jobs, and Supabase credentials are no longer inherited
 at workflow scope. Fast artifact smoke steps exercise artifact action upgrades without downloading the
 Ukraine OSM extract.

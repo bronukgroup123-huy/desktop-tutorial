@@ -12,8 +12,8 @@ name: Forest type (Sentinel-2)
 #  * Публікується лише карта, перевірена на лісах OSM, яких модель не бачила: точність
 #    ≥ 75% і досить перевірочних лісів (див. s2_leaf_type.py). Інакше область лишається з
 #    типом лише з OSM.
-#  * PR, що змінює скрипти: швидка перевірка завжди; пробний прогін для
-#    Житомирщини лише для довіреного PR з цього репозиторію → Artifacts.
+#  * PR, що змінює скрипти: швидка Python-перевірка й artifact smoke без
+#    завантаження повного OSM extract та Sentinel-2 сцен.
 # Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors.
 on:
   workflow_dispatch:
@@ -114,10 +114,7 @@ jobs:
   map:
     name: Map ${{ matrix.region.slug }}
     needs: [validate, regions]
-    if: >-
-      github.event_name != 'pull_request' ||
-      (github.actor != 'dependabot[bot]' &&
-      github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:

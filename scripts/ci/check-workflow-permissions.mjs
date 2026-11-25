@@ -128,11 +128,10 @@ export function validateDataWorkflowSafety(name, source) {
   if (heavyJob) {
     const block = jobBlock(source, heavyJob);
     expect(errors, block.length > 0, `${name}: ${heavyJob} job is missing`);
-    expect(errors, block.includes("github.actor != 'dependabot[bot]'"), `${name}: heavy PR job must skip Dependabot`);
     expect(
       errors,
-      block.includes("github.event.pull_request.head.repo.full_name == github.repository"),
-      `${name}: heavy PR job must skip fork pull requests`,
+      block.includes("if: github.event_name != 'pull_request'"),
+      `${name}: heavy data job must not run for pull requests`,
     );
     expect(errors, block.includes("contents: read"), `${name}: heavy data job must be read-only`);
     expect(errors, !block.includes("contents: write"), `${name}: heavy data job cannot publish directly`);
