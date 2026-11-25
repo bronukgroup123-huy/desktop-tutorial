@@ -3,6 +3,8 @@
 Statuses: ready · in_progress · in_review (PR open) · done (merged) · blocked_* · paused · blocked_rate_limit.
 Order inside a priority is the recommended execution order. Work is manual/interactive: an agent starts
 only after an owner message, uses a dedicated branch and PR, and never merges its own work.
+Agent state (this directory) is updated in its own small PR after the task PR, not inside it — two task
+PRs appending to PROGRESS.md conflicted (#129).
 
 **Default ownership confirmed by the owner on 2026-11-24 (boundary source: PR #116):**
 - **Codex:** security, backend hardening, CI, operations and release infrastructure (`SEC-*`, `OPS-*`,
@@ -123,8 +125,11 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Part 1 (colors): semantic tokens `AppTheme.danger/success/warning`; 94 literal copies of token values in
   23 screens replaced; `test/design_tokens_test.dart` blocks new copies. Status: done — branch
   `claude/ui-002-design-tokens`. Merged as PR #128 (2026-11-25).
-- Part 2: radii (12/14/16/20 used ~110 times), Merriweather heading styles (52 calls), shared card
-  decoration. Status: ready.
+- Part 2 (headings): `AppTheme.appBarTitle` and `AppTheme.heading(size)` replace 33 identical Merriweather
+  calls in 22 files (same TextStyle, guarded by test). Status: in_review — PR #131.
+- Not done on purpose: radii (12/14/16/20 px are not tied to roles — cards, chips and buttons mix them;
+  naming numbers without a design decision would be churn) and a shared card decoration (only 4–7 identical
+  uses). Revisit if the owner defines component roles.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
@@ -134,7 +139,7 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   (`core/image_decode.dart`), thumbnail 0.22 MB. Checked and not a hotspot: animated stickers do not repaint
   the mini-map (Opacity layers, 0 map repaints / 60 frames — guard test); infinite animations stop on
   reduce-motion and inactive tabs (go_router TickerMode); history thumbnails are already 320 px.
-  Status: in_review — branch `claude/perf-001-static`.
+  Status: done — PR #129 (merged 2026-11-25).
 - Remaining: frame timings on a real device (BLK-010).
 
 ## P1 — release
