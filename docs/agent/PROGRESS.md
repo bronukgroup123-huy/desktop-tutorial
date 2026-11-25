@@ -298,3 +298,13 @@ See docs/agent/BLOCKERS.md.
 - Checks: new test without the fixes → 5 failures (overflows 8–394 px); with fixes → `flutter test` 341 passed;
   `flutter analyze` → no issues.
 - Next: UI-002 (design tokens) or PERF-001 (static analysis).
+
+## 2026-11-25 16:45 UTC — UI-002 part 1: color tokens (Claude)
+- UI-001b merged as PR #127 (owner created the PR after GitHub returned 500 to the agent).
+- Branch: claude/ui-002-design-tokens (from main)
+- Done: `AppTheme.danger` (#C62828), `success` (#2E7D32), `warning` (#B45309); every literal copy of these
+  and of the existing tokens (background, dark green, accent orange) in lib/ replaced by the token — 94
+  places in 23 files, same values, so no visual change. New `test/design_tokens_test.dart` pins token values
+  and fails on a new literal copy in lib/.
+- Checks: `flutter analyze` → no issues; `flutter test` → 343 passed (2 new).
+- Next: UI-002 part 2 (radii, heading styles, card decoration) or PERF-001.

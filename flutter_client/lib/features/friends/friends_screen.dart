@@ -336,8 +336,8 @@ class FriendActionChip extends StatelessWidget {
             key: key,
             onPressed: busy ? null : onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen,
-              side: onDark ? BorderSide(color: const Color(0xFFF4F1E1).withValues(alpha: 0.6)) : null,
+              foregroundColor: onDark ? AppTheme.backgroundColor : AppTheme.darkGreen,
+              side: onDark ? BorderSide(color: AppTheme.backgroundColor.withValues(alpha: 0.6)) : null,
               padding: pad,
               visualDensity: VisualDensity.compact,
             ),

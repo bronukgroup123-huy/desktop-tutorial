@@ -14,7 +14,7 @@ import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailsSyncProvider;
 import 'package:flutter_client/features/safety/safety_content.dart';
 
-const kSosRed = Color(0xffc62828);
+const kSosRed = AppTheme.danger;
 
 /// Довідковий екран (ADR-022 §22.3 п.9, 10, 14): тексти з сервера, кроки нумеровані.
 class SafetyGuideScreen extends StatelessWidget {
@@ -74,7 +74,7 @@ class SafetyNoticeBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (notice.severity) {
-      'warning' => const Color(0xffb45309),
+      'warning' => AppTheme.warning,
       'info' => const Color(0xff1e6091),
       _ => kSosRed,
     };
@@ -196,7 +196,7 @@ class _AirStatusRow extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: muted ? AppTheme.darkGreen.withValues(alpha: 0.5) : const Color(0xff2e7d32)),
+            Icon(icon, size: 18, color: muted ? AppTheme.darkGreen.withValues(alpha: 0.5) : AppTheme.success),
             const SizedBox(width: 6),
             Expanded(
               child: Text(text, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: muted ? 0.6 : 0.75))),
@@ -232,14 +232,14 @@ class WeatherHazardsCard extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: const Color(0xfffff4e5),
-        border: Border.all(color: const Color(0xffb45309).withValues(alpha: 0.4)),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Небезпечна погода сьогодні · ${area.title}',
-              style: const TextStyle(color: Color(0xffb45309), fontWeight: FontWeight.w800)),
+              style: const TextStyle(color: AppTheme.warning, fontWeight: FontWeight.w800)),
           for (final h in hazards)
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -249,7 +249,7 @@ class WeatherHazardsCard extends ConsumerWidget {
                   Icon(
                     h.startsWith('Гроза') ? Icons.thunderstorm_rounded : h.startsWith('Спека') ? Icons.wb_sunny_rounded : Icons.ac_unit_rounded,
                     size: 18,
-                    color: const Color(0xffb45309),
+                    color: AppTheme.warning,
                   ),
                   const SizedBox(width: 6),
                   Expanded(child: Text(h, style: const TextStyle(fontSize: 13.5, color: AppTheme.darkGreen, height: 1.3))),
@@ -314,7 +314,7 @@ class DangerousMushrooms extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
                       child: Text(deadlyOne ? 'Смертельно отруйний' : 'Отруйний',
-                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: deadlyOne ? kSosRed : const Color(0xffb45309))),
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: deadlyOne ? kSosRed : AppTheme.warning)),
                     ),
                   ],
                 ),
@@ -421,7 +421,7 @@ class ChecklistScreen extends ConsumerWidget {
               key: ValueKey('ready-${r.id}'),
               contentPadding: EdgeInsets.zero,
               leading: Icon(r.ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined,
-                  color: r.ready ? const Color(0xff2e7d32) : const Color(0xffb45309)),
+                  color: r.ready ? AppTheme.success : AppTheme.warning),
               title: Text(r.label, style: const TextStyle(color: AppTheme.darkGreen)),
               subtitle: Text(r.ready ? 'Є на телефоні' : 'Не завантажено — у лісі може не бути зв\'язку'),
               trailing: r.ready ? null : TextButton(onPressed: () => context.go(r.route), child: Text(r.action)),

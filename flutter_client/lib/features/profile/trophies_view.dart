@@ -76,7 +76,7 @@ class TrophiesSection extends ConsumerWidget {
       if (labels.isNotEmpty && prev?.valueOrNull?.newLabels != labels) showToast(context, labels.join('\n'));
     });
     final data = async.valueOrNull;
-    final ink = onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen;
+    final ink = onDark ? AppTheme.backgroundColor : AppTheme.darkGreen;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,7 +131,7 @@ class TrophyShelfRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = onDark ? const Color(0xFFF4F1E1) : AppTheme.darkGreen;
+    final ink = onDark ? AppTheme.backgroundColor : AppTheme.darkGreen;
     const badge = 64.0;
     final list = ListView.separated(
       scrollDirection: Axis.horizontal,
@@ -166,7 +166,7 @@ class TrophyShelfRow extends StatelessWidget {
                     )),
                 if (!t.earned && t.progressLabel != null)
                   Text(t.progressLabel!,
-                      style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFFFD98A) : const Color(0xffb45309), fontWeight: FontWeight.w700, shadows: onDark ? _woodShadow : null)),
+                      style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFFFD98A) : AppTheme.warning, fontWeight: FontWeight.w700, shadows: onDark ? _woodShadow : null)),
               ],
             ),
           ),
@@ -211,7 +211,7 @@ Future<void> showTrophySheet(BuildContext context, Trophy t) => showModalBottomS
               Text(t.howLabel, key: const ValueKey('trophy-how'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, height: 1.35)),
               const SizedBox(height: 14),
               if (t.earned && t.earnedAt != null)
-                Text('Отримано ${_date(t.earnedAt!)}', style: const TextStyle(color: Color(0xff2e7d32), fontWeight: FontWeight.w700))
+                Text('Отримано ${_date(t.earnedAt!)}', style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.w700))
               else if (t.soon)
                 Text('Скоро — з\'явиться разом із новою функцією', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6)))
               else if (t.progressLabel != null) ...[
@@ -220,12 +220,12 @@ Future<void> showTrophySheet(BuildContext context, Trophy t) => showModalBottomS
                   child: LinearProgressIndicator(
                     value: t.progress,
                     minHeight: 8,
-                    color: const Color(0xffd97706),
-                    backgroundColor: const Color(0xffd97706).withValues(alpha: 0.15),
+                    color: AppTheme.accentOrange,
+                    backgroundColor: AppTheme.accentOrange.withValues(alpha: 0.15),
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(t.progressLabel!, key: const ValueKey('trophy-progress'), style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xffb45309))),
+                Text(t.progressLabel!, key: const ValueKey('trophy-progress'), style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.warning)),
               ] else
                 Text('Ще не отримано', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
             ],
