@@ -34,3 +34,16 @@ Deno.test("Зарезервовані ніки — і з обходами (Ад�
   assertEquals(isReserved("адмінка_ліс"), false);
   assertEquals(skeleton("Хууу_ЙЙ.ло"), "хуило");
 });
+
+// Ті самі межі перевіряє SQL public.level_of (supabase/tests/rls_rating.sql): ліміти публічних точок у БД
+// і рівень у профілі мають збігатися (PROD-001a).
+Deno.test("levelOf: межі рівнів збігаються з SQL level_of", () => {
+  const cases: Array<[number, boolean, string]> = [
+    [0, false, "traveler"], [50, false, "traveler"], [51, false, "tracker"], [51, true, "expert"],
+    [200, false, "tracker"], [200, true, "expert"], [201, false, "forester"], [201, true, "forester"],
+    [500, false, "forester"], [501, false, "keeper"], [1000, false, "keeper"], [1001, false, "keeper"],
+    [1001, true, "master"],
+  ];
+  for (const [rating, certified, id] of cases) assertEquals(levelOf(rating, certified).id, id, `${rating}/${certified}`);
+});
+
