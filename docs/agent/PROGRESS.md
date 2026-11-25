@@ -365,3 +365,18 @@ See docs/agent/BLOCKERS.md.
 - Rebase/merge status: merged current `main` at `54bbe1e`, retaining both the Claude UI-002 and Codex CI-003
   records. PRs #131 and #132 are merged; DOC-001 remains Claude-owned.
 - Next: owner reviews/merges #133; then refresh Dependabot #3/#22/#23 against `main` and assess them separately.
+
+## 2026-11-25 20:45 UTC — CI-003 post-merge action upgrades (Codex)
+- Baseline: PR #133 merged as `be5d0dc`. Dependabot #22 had already refreshed itself; #3 and the detached
+  stale PR ref for #23 were updated through GitHub's non-force update-branch API.
+- Reviewed: #3 changes only `actions/checkout@v4` to `@v7` (23 uses); #22 changes all five
+  `download-artifact` uses to v8; #23 changes all eleven `upload-artifact` uses to v7.
+- Compatibility: all 28 jobs use GitHub-hosted `ubuntu-latest`; the repository has no `pull_request_target`
+  or `workflow_run` trigger affected by checkout v7's fork hardening. Upload v7's optional direct-file mode
+  is not enabled. Download v8 keeps its new fail-closed digest-mismatch default.
+- Checks: #3, #22 and #23 each finished with zero failures and zero pending checks. Artifact round trip,
+  Deno, Flutter, fresh migrations, Gitleaks, data-generator validation and both Android APK runs passed;
+  production publication jobs were correctly skipped. Each PR is clean/mergeable.
+- Safety: no dependency PR was merged, no production workflow was dispatched, and no force push was used.
+- Next: owner reviews and merges #3, #22 and #23 separately. Claude owns DOC-001; IOS-001 remains blocked
+  by macOS and Apple configuration.
