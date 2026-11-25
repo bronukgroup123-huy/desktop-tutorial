@@ -243,7 +243,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
               left.isNegative ? 'Сонце зайшло о ${_hm(sunset)} — повертайтеся' : 'Захід о ${_hm(sunset)} — через ${_dur(left)}',
               key: const ValueKey('hike-sunset'),
               style: TextStyle(
-                color: left <= const Duration(hours: 1) ? const Color(0xffb45309) : dim,
+                color: left <= const Duration(hours: 1) ? AppTheme.warning : dim,
                 fontWeight: left <= const Duration(hours: 1) ? FontWeight.w700 : FontWeight.w400,
               ),
             ),
@@ -252,13 +252,13 @@ class _HikeCardState extends ConsumerState<HikeCard> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text('Батарея ${hike.battery ?? '≤ 20'} % — трек пишемо рідше, бережіть заряд',
-                key: const ValueKey('hike-battery'), style: const TextStyle(color: Color(0xffb45309), fontWeight: FontWeight.w700)),
+                key: const ValueKey('hike-battery'), style: const TextStyle(color: AppTheme.warning, fontWeight: FontWeight.w700)),
           ),
         if (hike.rejected > 0)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text('Можливі збої GPS: пропущено точок — ${hike.rejected}',
-                key: const ValueKey('hike-gps'), style: const TextStyle(color: Color(0xffb45309), fontSize: 12.5)),
+                key: const ValueKey('hike-gps'), style: const TextStyle(color: AppTheme.warning, fontSize: 12.5)),
           ),
         if (session.active) _GuardianStatus(view: session.view, onAction: _guardianAction),
         const SizedBox(height: 10),
@@ -271,7 +271,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
                   if (hike.returnMode == null) ctrl.goHome();
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReturnScreen()));
                 },
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xffd97706), padding: const EdgeInsets.symmetric(vertical: 12)),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.accentOrange, padding: const EdgeInsets.symmetric(vertical: 12)),
                 icon: const Icon(Icons.home_rounded),
                 label: const Text('Додому'),
               ),
@@ -308,7 +308,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: hike.active ? Border.all(color: const Color(0xffd97706), width: 1.5) : null,
+        border: hike.active ? Border.all(color: AppTheme.accentOrange, width: 1.5) : null,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
@@ -340,7 +340,7 @@ class _GuardianStatus extends StatelessWidget {
       child: Text(
         ask ? (v.detailLabel ?? v.statusLabel) : 'Наглядач $who · ${v.detailLabel ?? v.statusLabel}',
         key: const ValueKey('hike-guardian'),
-        style: TextStyle(color: ask ? const Color(0xffc62828) : violet, fontWeight: FontWeight.w600),
+        style: TextStyle(color: ask ? AppTheme.danger : violet, fontWeight: FontWeight.w600),
       ),
     );
     if (!ask) return line;
@@ -352,7 +352,7 @@ class _GuardianStatus extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(v.sos ? 'SOS надіслано' : 'Все добре?', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xffc62828))),
+          Text(v.sos ? 'SOS надіслано' : 'Все добре?', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.danger)),
           line,
           const SizedBox(height: 8),
           Wrap(
@@ -363,7 +363,7 @@ class _GuardianStatus extends StatelessWidget {
                 a.style == 'primary' || a.style == 'danger'
                     ? FilledButton(
                         key: ValueKey('hike-guardian-${a.id}'),
-                        style: FilledButton.styleFrom(backgroundColor: a.style == 'danger' ? const Color(0xffc62828) : AppTheme.darkGreen),
+                        style: FilledButton.styleFrom(backgroundColor: a.style == 'danger' ? AppTheme.danger : AppTheme.darkGreen),
                         onPressed: () => onAction(a),
                         child: Text(a.label),
                       )

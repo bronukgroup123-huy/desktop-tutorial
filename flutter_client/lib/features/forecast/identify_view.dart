@@ -110,8 +110,8 @@ class _IdentifyViewState extends State<IdentifyView> with TickerProviderStateMix
           title: 'Кільце на ніжці',
           text: card.ring! ? 'Є — «спідничка» на ніжці' : 'Немає кільця',
           badge: card.ring!
-              ? const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xff2e7d32))
-              : const Icon(Icons.cancel_rounded, size: 18, color: Color(0xffc62828)),
+              ? const Icon(Icons.check_circle_rounded, size: 18, color: AppTheme.success)
+              : const Icon(Icons.cancel_rounded, size: 18, color: AppTheme.danger),
         ),
     ];
     final twin = card.twin;
@@ -241,7 +241,7 @@ class _TwinCompare extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final danger = twin.dangerous;
-    final red = const Color(0xffc62828);
+    final red = AppTheme.danger;
     final dangerColor = danger ? red : const Color(0xff8a6d3b);
     return Container(
       key: const ValueKey('identify-twin'),
@@ -360,7 +360,7 @@ class _DiffCell extends StatelessWidget {
   Widget build(BuildContext context) {
     // Книжкові ✅ / ❌ — у значок, а не в текст.
     final clean = text.replaceAll(RegExp(r'[✅❌]\s*'), '');
-    final color = good ? const Color(0xff2e7d32) : const Color(0xffc62828);
+    final color = good ? AppTheme.success : AppTheme.danger;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -430,7 +430,7 @@ class _GlyphPainter extends CustomPainter {
 
   static const _dim = Color(0xffd9d2c3);
   static const _ink = Color(0xff4a3b2a);
-  static const _hi = Color(0xff2e7d32);
+  static const _hi = AppTheme.success;
 
   Color get _capColor {
     if (colors.isEmpty) return const Color(0xff8b5a2b);
@@ -518,7 +518,7 @@ class _GlyphPainter extends CustomPainter {
         canvas.drawOval(band.shift(Offset(sway, 0)), hiStroke);
       } else {
         final dash = Paint()
-          ..color = const Color(0xffc62828)
+          ..color = AppTheme.danger
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.4 * s;
         for (var a = 0.0; a < 2 * math.pi; a += math.pi / 5) {

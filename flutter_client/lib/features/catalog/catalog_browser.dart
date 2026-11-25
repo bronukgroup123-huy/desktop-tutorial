@@ -260,7 +260,7 @@ class CatalogCard extends StatelessWidget {
                       child: Container(
                         key: ValueKey('season-now-${species.id}'),
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(color: const Color(0xff2e7d32).withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
                         child: const Text('Сезон', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                       ),
                     ),

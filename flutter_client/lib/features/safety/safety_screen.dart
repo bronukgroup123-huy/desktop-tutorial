@@ -174,8 +174,8 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
                   child: CircularProgressIndicator(
                     value: _c.value,
                     strokeWidth: 8,
-                    color: const Color(0xffc62828),
-                    backgroundColor: const Color(0xffc62828).withValues(alpha: 0.15),
+                    color: AppTheme.danger,
+                    backgroundColor: AppTheme.danger.withValues(alpha: 0.15),
                   ),
                 ),
                 Container(
@@ -184,7 +184,7 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color.lerp(const Color(0xffe53935), const Color(0xffb71c1c), _c.value),
-                    boxShadow: [BoxShadow(color: const Color(0xffc62828).withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
+                    boxShadow: [BoxShadow(color: AppTheme.danger.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
                   ),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(16),
@@ -225,7 +225,7 @@ class EmergencyNumbers extends ConsumerWidget {
                   height: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: n.number == '112' ? const Color(0xffc62828) : AppTheme.darkGreen.withValues(alpha: 0.1),
+                    color: n.number == '112' ? AppTheme.danger : AppTheme.darkGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(n.number,
