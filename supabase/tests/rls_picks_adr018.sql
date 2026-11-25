@@ -240,8 +240,9 @@ BEGIN
   WHERE user_id = 'b2b2b2b2-0000-4000-8000-0000000018b2' AND client_id = 'c1c1c1c1-0000-4000-8000-000000000101';
   IF n <> 1 THEN RAISE EXCEPTION 'Test 5g failed: % rows for one client_id', n; END IF;
 
-  -- ще 4 приватні → разом 5 за добу; шоста — daily_limit_reached, рядок не створюється
-  FOR i IN 2..5 LOOP
+  -- ADR-019 §19.10: до 5 приватних одночасно. Уже є давня (25 год) і щойно створена → ще 3 = 5;
+  -- шоста — private_limit_reached, рядок не створюється
+  FOR i IN 2..4 LOOP
     res := public.create_pick(
       gen_random_uuid(), 'b2b2b2b2-0000-4000-8000-0000000018b2', gen_random_uuid(),
       50.4, 30.5, 'picks/x.jpg', 'private');
@@ -250,12 +251,12 @@ BEGIN
   res := public.create_pick(
     gen_random_uuid(), 'b2b2b2b2-0000-4000-8000-0000000018b2', gen_random_uuid(),
     50.4, 30.5, 'picks/x.jpg', 'private');
-  IF (res->>'allowed')::boolean OR res->>'code' <> 'daily_limit_reached' THEN
+  IF (res->>'allowed')::boolean OR res->>'code' <> 'private_limit_reached' THEN
     RAISE EXCEPTION 'Test 5i failed: 6th private pick returned %', res;
   END IF;
   SELECT * INTO r FROM public.can_create_pick('b2b2b2b2-0000-4000-8000-0000000018b2', 'private');
-  IF r.allowed OR r.code <> 'daily_limit_reached' THEN
-    RAISE EXCEPTION 'Test 5j failed: expected daily_limit_reached, got (%, %)', r.allowed, r.code;
+  IF r.allowed OR r.code <> 'private_limit_reached' THEN
+    RAISE EXCEPTION 'Test 5j failed: expected private_limit_reached, got (%, %)', r.allowed, r.code;
   END IF;
   -- повтор уже створеної точки дозволений і після вичерпання ліміту
   res := public.create_pick(
@@ -281,16 +282,16 @@ BEGIN
     AND extensions.ST_X(display_geom::extensions.geometry) = 30.504;
   IF NOT FOUND THEN RAISE EXCEPTION 'Test 5n failed: public pick stored incorrectly'; END IF;
 
-  -- у Лісовика вже 2 публічні (фікстура + щойно створена): ще 3 → ліміт
-  FOR i IN 3..5 LOOP
+  -- у Лісовика вже 2 публічні (фікстура + щойно створена): ще 5 → 7 за 7 днів (ADR-019 §19.10) → ліміт
+  FOR i IN 3..7 LOOP
     res := public.create_pick(
       gen_random_uuid(), 'a1a1a1a1-0000-4000-8000-0000000018a1', gen_random_uuid(),
       50.4, 30.5, 'picks/x.jpg', 'public', 'boletus_edulis', NULL, NULL, false, now(), 50.403, 30.504);
     IF NOT (res->>'created')::boolean THEN RAISE EXCEPTION 'Test 5o failed: public pick % not created: %', i, res; END IF;
   END LOOP;
   SELECT * INTO r FROM public.can_create_pick('a1a1a1a1-0000-4000-8000-0000000018a1', 'public');
-  IF r.allowed OR r.code <> 'daily_limit_reached' THEN
-    RAISE EXCEPTION 'Test 5p failed: expected public daily_limit_reached, got (%, %)', r.allowed, r.code;
+  IF r.allowed OR r.code <> 'weekly_limit_reached' THEN
+    RAISE EXCEPTION 'Test 5p failed: expected public weekly_limit_reached, got (%, %)', r.allowed, r.code;
   END IF;
   -- окремі лічильники: приватні для нього ще доступні (ADR-011)
   SELECT * INTO r FROM public.can_create_pick('a1a1a1a1-0000-4000-8000-0000000018a1', 'private');

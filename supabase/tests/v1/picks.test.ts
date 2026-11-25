@@ -509,6 +509,16 @@ Deno.test("create: добовий ліміт → 429 daily_limit_reached з те
   assertEquals(find(d, "rpc.create_pick"), undefined);
 });
 
+Deno.test("create: ліміти ADR-019 — 5 приватних одночасно й тижневі → 429 з текстом із БД", async () => {
+  for (const code of ["private_limit_reached", "weekly_limit_reached"]) {
+    const message = "Текст ліміту з БД";
+    const d = db({ "rpc.can_create_pick": { data: [{ allowed: false, code, message }], error: null } });
+    const { res, json, calls } = await run(d, req("POST", CREATE, body()));
+    assertEquals([res.status, json], [429, { error: code, message }]);
+    assertEquals(calls.length, 0); // відмова — до роботи з файлом
+  }
+});
+
 Deno.test("create: public нижче рівня «Лісовик» → 403 level_required", async () => {
   const message = "Публічні точки — з рівня Лісовик. Поки що зробіть приватний тук-тук.";
   const d = db({ "rpc.can_create_pick": { data: [{ allowed: false, code: "level_required", message }], error: null } });

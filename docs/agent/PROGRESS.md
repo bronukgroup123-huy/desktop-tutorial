@@ -211,6 +211,29 @@ See docs/agent/BLOCKERS.md.
 - Recommended next Codex task: OPS-001, because a current scheduled product workflow is failing and it does
   not overlap the historically Claude-assigned PROD/UI work. Wait for the owner's explicit command.
 
+## 2026-11-24 — OPS-001 wave-alert workflow recovery (Codex)
+- Baseline: `main` at `ec7eba26799f62c205038fdeab0b916b57e58e2a` (PR #120 merged); branch
+  `codex/ops-001-wave-alert-workflow`.
+- Evidence: every scheduled `Wave alerts` run since the workflow was introduced failed immediately in the
+  single `Send wave alerts` step with curl exit 22. The workflow omitted the `apikey` header that the same
+  repository uses for service-role Supabase calls, and combined Management API/key lookup and Edge Function
+  invocation into one opaque shell step.
+- Done: replaced the inline curl with a tested Node runner; the Edge Function request now sends both
+  `Authorization` and `apikey`; missing secrets/key, Management API failures, Edge HTTP failures and malformed
+  success payloads fail closed with stage-specific diagnostics. Only a validated snake_case remote error code
+  may reach logs; key material and response messages do not. Production secrets are scoped to the consumer
+  step, and the dynamic service key is masked before use.
+- Regression protection: the blocking workflow guard requires the tested runner and rejects job-scoped
+  secrets for `wave-alerts.yml`; the old `main` workflow fails this new guard as expected.
+- Local checks: `run-wave-alerts.test.mjs` 8/8; `check-workflow-permissions.test.mjs` 8/8; repository workflow
+  guard passed (17 workflows, four reviewed write-scoped); Node syntax, workflow YAML parse and
+  `git diff --check` passed.
+- Safety: no scheduled/manual dispatch, production request, secret read or deployment was performed. A live
+  success can only be confirmed after owner review/merge through the next schedule or an owner-authorized run.
+- Ownership: PR #116 was reviewed for boundaries. Codex retains OPS/CI/security/release infrastructure;
+  Claude retains UI/PERF/PROD/WEB/DOC work unless the owner directly reassigns it.
+- Commit / PR: `6935859` / PR #121. No auto-merge; full PR CI and post-merge scheduled verification pending.
+
 ## 2026-11-25 00:40 UTC — scheduled run 3: PROD-001 step 0 (Claude)
 - Outage: 15 runs queued 2026-11-22 16:34 → 2026-11-25 00:34 while the session worker restarted; processed as
   one run (BLK-012).
@@ -255,4 +278,10 @@ See docs/agent/BLOCKERS.md.
 - Checks: `flutter analyze` → no issues; `flutter test` → 326 passed (4 new); OpenAPI model contract → valid.
 - PR: #125 (merge after #124)
 - Next: owner merges the PROD-001 series; meanwhile UI-002 (design tokens) or PERF-001 (static analysis).
+
+## 2026-11-25 17:30 UTC — PROD-001 merged; docs conflicts resolved (Claude)
+- Owner merged #123 (server), #124 (v1-me picks), #125 (Flutter). PROD-001 is done; PR #122 (spec + agent
+  records) merged main and resolved BACKLOG/PROGRESS conflicts with Codex's OPS-001 records (both kept).
+- PR #116 (agent state after run 2) is superseded by #120 and #122 — closed without merge.
+- Residual: BACKEND_PLAN B3.7/B3.2 statuses and the pick form in the a11y stress test (follow-up).
 
