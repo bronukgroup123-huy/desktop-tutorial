@@ -756,6 +756,8 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final bounds = _g.bounds;
     final picks = ref.watch(picksMapProvider).valueOrNull?.points ?? const <MapPick>[];
     final showPrivate = ref.watch(showPrivatePicksProvider);
+    // Публічні сервер ще не дозволяє (рівень / ліміт) — кнопка одразу «Приватний тук-тук» (ADR-018 §18.2)
+    final publicAllowed = ref.watch(meProvider.select((m) => m.valueOrNull?.picks?.publicAllowed)) ?? true;
     final center = _analysisCenter;
     final square = _analysisMode && center != null ? squareAround(center, _analysisSizeKm) : null;
     final overview = ref.watch(analysisOverviewProvider);
@@ -936,7 +938,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.photo_camera_rounded),
-                label: Text(showPrivate ? 'Приватний тук-тук' : 'Тук-тук'),
+                label: Text(showPrivate || !publicAllowed ? 'Приватний тук-тук' : 'Тук-тук'),
               ),
             ),
           ],

@@ -2,8 +2,16 @@
 
 Statuses: ready · in_progress · in_review (PR open) · done (merged) · blocked_* · paused · blocked_rate_limit.
 Order inside a priority is the recommended execution order. Work is manual/interactive: an agent starts
-only after an owner message, uses a dedicated branch and PR, and never merges its own work. Historical
-Claude/Codex ownership notes prevent accidental overlap but never override a direct owner instruction.
+only after an owner message, uses a dedicated branch and PR, and never merges its own work.
+
+**Default ownership confirmed by the owner on 2026-11-24 (boundary source: PR #116):**
+- **Codex:** security, backend hardening, CI, operations and release infrastructure (`SEC-*`, `OPS-*`,
+  `CI-*`, `AND-*`, `IOS-*`, `QA-002/003`).
+- **Claude:** Flutter UI/UX, accessibility, performance, product features (including their migrations),
+  web cleanup and product documentation (`UI-*`, `PERF-*`, `PROD-*`, `WEB-*`, `DOC-*`).
+
+Do not take an item from the other zone without a direct owner instruction. PR #116 contains the original
+split but also stale task statuses; use it to review boundaries, not as a merge-ready state update.
 
 ## P0 — security and correctness
 
@@ -62,22 +70,26 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
 
 ## P1 — product correctness
 
-### OPS-001 — restore the scheduled wave-alert job
+### OPS-001 — restore the scheduled wave-alert job (owner: Codex)
 - Goal: daily wave notifications run reliably and fail with enough diagnostics to distinguish Management
   API/key lookup failures from an Edge Function response failure.
 - Evidence: scheduled runs `44909047424`, `45027103716` and `45211395928` all failed in `Send wave alerts`
   with curl exit 22; the latest failure is on `main` at `b710d10e` (2026-11-23).
 - Safety: investigate through workflow metadata and non-production/local tests first; do not probe or mutate
   production from an agent branch.
-- Status: ready (Codex-aligned CI/backend area; no open implementation PR as of 2026-11-24).
+- Status: in_review — PR #121, branch `codex/ops-001-wave-alert-workflow` (2026-11-24). Local regression
+  checks pass; live scheduled verification remains post-merge/owner-authorized.
 
-### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2)
+### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2) (owner: Claude)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
   Flutter display, tests.
-- Status: handed_to_claude (historical assignment; no open implementation PR as of 2026-11-24). Recheck
-  Claude branches before intervention and split the large server/client scope into bounded PRs.
+- Status: done — spec PR #122; PROD-001a #123, PROD-001b #124, PROD-001c #125 merged 2026-11-25.
+  Rating has its first source (+1 for private picks with server-verified EXIF, ≤ 5 / 7 days), levels honour
+  the knowledge certificate, ADR-019 §19.10 limits are enforced, v1-me exposes pick permissions and the
+  Flutter form/map show them. Follow-ups: BACKEND_PLAN B3.7/B3.2 statuses; pick form in test/a11y; further
+  rating sources (B3.10 knowledge tests, B3.11 feedback, B3.8 community confirmation).
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.
@@ -95,12 +107,12 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
 - Scope: widget tests per tab; fix overflows found (auth screen first, AUD-FL-001).
 - Status: done — PR #115 (merged 2026-11-22).
 
-### UI-002 — design tokens and shared components
+### UI-002 — design tokens and shared components (owner: Claude)
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
   forest/parchment language) without changing approved looks.
 - Status: ready (after UI-001)
 
-### PERF-001 — measured hotspots
+### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
   hotspots. Device measurements need the owner (BLK-010).
 - Status: ready (static/profile-mode analysis only)
@@ -120,7 +132,7 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
   workflow declarations no longer rely on that setting. Live production smoke remains intentionally outside
   agent branches.
 
-### CI-002 — make data workflows safe and useful on dependency PRs
+### CI-002 — make data workflows safe and useful on dependency PRs (owner: Codex)
 - Goal: secret-dependent data-generation jobs do not fail noisily on Dependabot PRs, while generator/unit
   checks remain blocking and real scheduled/manual generation still fails closed.
 - Evidence: PR #3 (`actions/checkout@7`) fails `Forests data / Supabase public config` with exit 5; PR #23
@@ -134,16 +146,16 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
 - Status: done — PR #117 (merged 2026-11-22).
 - Residual: the first store-signed AAB still requires owner-held signing credentials (BLK-011).
 
-### IOS-001 — create and validate the iOS target
+### IOS-001 — create and validate the iOS target (owner: Codex; owner dependencies remain)
 - Status: blocked_macos_and_apple_configuration (source preparation possible: ios/ target, Info.plist texts)
 
 ## P2 — cleanup
 
-### WEB-001 — remove link-based web-guardian pages (AUD-WEB-001)
+### WEB-001 — remove link-based web-guardian pages (AUD-WEB-001) (owner: Claude)
 - Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
 
-### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code
-- Status: ready (historically Claude-aligned; broadened to include stale AUTH_FLOW and DB_SCHEMA claims).
+### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code (owner: Claude)
+- Status: ready (broadened to include stale AUTH_FLOW and DB_SCHEMA claims).
 - Current evidence: NEXT_TASK still prescribes PROD-001 automatically; BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA
   describe retired Guardian v0/base64 flows or old migration/table counts. Reconcile against migrations,
   OpenAPI and current handlers before using them to drive code.

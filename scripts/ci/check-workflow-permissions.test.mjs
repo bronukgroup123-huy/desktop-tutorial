@@ -7,6 +7,7 @@ import {
   validateDataWorkflowSafety,
   validateProductionSecretScope,
   validateSmokeSecretMasking,
+  validateWaveAlertWorkflow,
   validateWorkflowPermissions,
 } from "./check-workflow-permissions.mjs";
 
@@ -110,4 +111,13 @@ test("heavy data jobs cannot retain release write permission", () => {
     () => validateDataWorkflowSafety("forest-type-pilot.yml", source),
     /heavy data job must be read-only.*cannot publish directly/s,
   );
+});
+
+test("wave alerts must use the guarded runner", () => {
+  const source = [
+    "SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}",
+    "SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}",
+    "run: curl https://example.test",
+  ].join("\n");
+  assert.throws(() => validateWaveAlertWorkflow(source), /guarded runner script is not used/);
 });

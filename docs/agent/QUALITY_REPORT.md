@@ -142,7 +142,7 @@ repository configuration, not the unobservable repository-default permission set
 
 | Check | Result |
 |---|---|
-| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 10/10 positive and negative tests |
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 11/11 combined CI-002 and OPS-001 positive/negative tests |
 | `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, 4 reviewed top-level write scopes |
 | `actionlint` v1.7.12 | Pass, all repository workflows |
 | Forest generator tests and type checks | Pass, 11/11 tests; `build_all.ts` and `build_region.ts` checked |
@@ -174,3 +174,18 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 - AND-001 is merged as PR #117; a real-key manual AAB build remains an owner step.
 - UI-001 is merged as PR #115; device-level accessibility remains under BLK-010.
 - Record test counts, failures, skips and artifacts per run in PROGRESS.md; never report a partial run as green.
+
+## OPS-001 verification — 2026-11-24, Codex runtime
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/run-wave-alerts.test.mjs` | Pass, 8/8: headers, fail-closed config/key lookup, safe diagnostics, command-injection rejection and response validation |
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 8/8 |
+| `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, four reviewed write-scoped |
+| Node syntax + workflow YAML parse | Pass |
+| Guard against the pre-fix `main` workflow | Expected failure: guarded runner/project-ref requirements absent |
+| `git diff --check` | Pass |
+| Live scheduled invocation | Not run: it would call production and is outside an agent branch |
+
+The PR CI must rerun the full Deno, Flutter and migration gates. After merge, the next scheduled or explicitly
+owner-authorized manual run must confirm the live Edge Function returns a valid count payload.

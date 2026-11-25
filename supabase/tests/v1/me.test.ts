@@ -26,6 +26,7 @@ function db(extra: Results = {}) {
     "user_consents.select": { data: [], error: null },
     "region_change_log.select": { data: [], error: null },
     "rpc.find_region_by_slug": { data: [{ id: 10 }], error: null },
+    "rpc.can_create_pick": { data: [{ allowed: true, code: null, message: null }], error: null },
     ...extra,
   });
 }
@@ -283,4 +284,70 @@ Deno.test("v1-me GET ?avatars: групи за рівнями із замкам�
   assertEquals(data.groups[0].avatars[1], { id: "traveler_02", title: "Лисичка", role: "Збирачка", open: true });
   const guest = await (await run(db({ "users.select": { data: { ...userRow(10), rating: 0 }, error: null } }), req("GET", `${URL}?avatars=1`), true)).json();
   assertEquals([guest.data.can_change, guest.data.reason_label], [false, "Змінити аватар можна після входу через Google або Apple"]);
+});
+
+// ─── PROD-001b: дозволи на точки й сертифікат знань у профілі ──────────────
+
+/** can_create_pick за видимістю: що відповідає БД для private / public. */
+function canCreate(byVisibility: Record<string, { allowed: boolean; code?: string; message?: string }>) {
+  return (call: Call) => {
+    const vis = (call.args[0] as { p_visibility: string }).p_visibility;
+    const r = byVisibility[vis];
+    return { data: [{ allowed: r.allowed, code: r.code ?? null, message: r.message ?? null }], error: null };
+  };
+}
+
+Deno.test("v1-me GET picks: Мандрівник — приватні можна, публічні ні з причиною з БД", async () => {
+  const d = db({
+    ...consented,
+    "users.select": { data: userRow(10), error: null },
+    "rpc.can_create_pick": canCreate({
+      private: { allowed: true },
+      public: { allowed: false, code: "level_required", message: "Публічні точки — з рівня «Лісовик»." },
+    }),
+  });
+  const { data } = await (await run(d, req("GET", URL))).json();
+  assertEquals(data.picks, {
+    public_allowed: false,
+    public_hint_label: "Публічні точки — з рівня «Лісовик».",
+    private_allowed: true,
+    private_hint_label: null,
+  });
+});
+
+Deno.test("v1-me GET picks: Лісовик на межі — публічні можна, 5 з 5 приватних — підказка «видаліть одну»", async () => {
+  const d = db({
+    ...consented,
+    "users.select": { data: { ...userRow(10), rating: 250 }, error: null },
+    "rpc.can_create_pick": canCreate({
+      private: { allowed: false, code: "private_limit_reached", message: "У вас 5 з 5 приватних точок — видаліть одну, щоб додати нову." },
+      public: { allowed: true },
+    }),
+  });
+  const { data } = await (await run(d, req("GET", URL))).json();
+  assertEquals([data.level.label, data.picks.public_allowed, data.picks.private_allowed], ["Лісовик", true, false]);
+  assertEquals(data.picks.private_hint_label, "У вас 5 з 5 приватних точок — видаліть одну, щоб додати нову.");
+});
+
+Deno.test("v1-me GET picks: гість — публічні лише після входу, БД про публічні не питаємо", async () => {
+  const d = db({
+    ...consented,
+    "users.select": { data: userRow(10), error: null },
+    "rpc.can_create_pick": canCreate({ private: { allowed: true }, public: { allowed: true } }),
+  });
+  const { data } = await (await run(d, req("GET", URL), true)).json();
+  assertEquals([data.picks.public_allowed, data.picks.public_hint_label], [false, "Публічні точки — після входу через Google або Apple"]);
+  assertEquals(data.picks.private_allowed, true);
+  assertEquals(d.calls.filter((c: Call) => c.key === "rpc.can_create_pick").map((c: Call) => (c.args[0] as { p_visibility: string }).p_visibility), ["private"]);
+});
+
+Deno.test("v1-me GET: сертифікат знань → Грибознавець; збій can_create_pick не ламає профіль (picks = null)", async () => {
+  const d = db({
+    ...consented,
+    "users.select": { data: { ...userRow(10), rating: 120, knowledge_certified_at: "2026-11-20T10:00:00Z" }, error: null },
+    "rpc.can_create_pick": { data: null, error: { message: "boom" } },
+  });
+  const res = await run(d, req("GET", URL));
+  const { data } = await res.json();
+  assertEquals([res.status, data.level.id, data.level.label, data.picks], [200, "expert", "Грибознавець", null]);
 });

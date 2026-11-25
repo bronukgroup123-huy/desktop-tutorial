@@ -245,8 +245,10 @@ paths:
         * Точка має бути в Home Region користувача (`403 outside_home_region`).
         * `species_id: null` — «Не знаю, що це»; така точка може бути лише приватною
           (`422 species_required`).
-        * Ліміти (до появи Pro і рівнів): 5 приватних на добу; публічні — з рівня
-          «Лісовик» (`403 level_required`), 5 на добу. Перевищення — `429 daily_limit_reached`.
+        * Ліміти (ADR-019 §19.10; Pro — пізніше): приватні — до 5 одночасно
+          (`429 private_limit_reached`) і до 10 нових за 7 днів; публічні — з рівня «Лісовик»
+          (`403 level_required`): Лісовик 7, Хранитель лісу 15 за 7 днів (`429 weekly_limit_reached`).
+          Приватна точка з фото, знятим на місці (EXIF), дає +1 бал рейтингу, до 5 за 7 днів.
           Текст для користувача — у `message`.
         * `ai_check` — підказка локального ШІ з телефону, а не доказ: рівні словами, без
           відсотків. Сервер ШІ не запускає (ADR-006).
@@ -290,7 +292,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '429':
-          description: '`daily_limit_reached` (добовий ліміт точок) або `rate_limited` (+ `Retry-After`)'
+          description: '`private_limit_reached` (5 приватних одночасно), `weekly_limit_reached` (тижневий ліміт точок) або `rate_limited` (+ `Retry-After`)'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1026,7 +1028,7 @@ components:
         terms_version_outdated, rate_limited (+ Retry-After), db_error, internal_error.
         Тук-тук (v1-picks): validation_error, photo_too_large, invalid_photo_format,
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
-        daily_limit_reached, storage_error, invalid_mine, pick_not_found.
+        private_limit_reached, weekly_limit_reached, storage_error, invalid_mine, pick_not_found.
         Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
         forest_edit_limit_reached (+ Retry-After).
         Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,
@@ -1110,6 +1112,14 @@ components:
           properties:
             allowed: { type: boolean }
             reason_label: { type: string }
+        picks:
+          type: [object, 'null']
+          description: 'Чи можна зараз створити точку (PROD-001b, ADR-019 §19.10): вирішує та сама БД-функція, що й при створенні; null — дізнатися не вдалося (застосунок покаже відповідь на створення)'
+          properties:
+            public_allowed: { type: boolean }
+            public_hint_label: { type: [string, 'null'], description: 'Чому ні: гість — вхід; рівень — з «Лісовика»; тижневий ліміт' }
+            private_allowed: { type: boolean }
+            private_hint_label: { type: [string, 'null'], description: 'Чому ні: «У вас 5 з 5 — видаліть одну» або тижневий ліміт' }
         rating: { type: integer }
         total_verified_picks: { type: integer }
         home_region:
