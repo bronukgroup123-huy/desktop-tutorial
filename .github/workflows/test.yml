@@ -27,6 +27,7 @@ jobs:
 
       # CI-003: execute the Node 24 artifact majors before upgrading every workflow.
       - name: Upload smoke artifact
+        id: smoke-upload
         uses: actions/upload-artifact@v7
         with:
           name: ci-artifact-roundtrip
@@ -37,7 +38,8 @@ jobs:
       - name: Download smoke artifact
         uses: actions/download-artifact@v8
         with:
-          name: ci-artifact-roundtrip
+          # The name index is eventually consistent immediately after upload.
+          artifact-ids: ${{ steps.smoke-upload.outputs.artifact-id }}
           path: artifact-download/
 
       - name: Verify smoke artifact
