@@ -225,3 +225,15 @@ mocking trigger behavior.
 The earlier failing PR runs were retained as evidence: upload finalized successfully, but immediate lookup by
 both name and immutable ID could transiently report `Artifact not found`. The final gate retries only once
 after five seconds and still fails closed if the artifact cannot be downloaded or its payload differs.
+
+### CI-003 post-merge Dependabot validation
+
+| PR | Scope | Final result against `be5d0dc` |
+|---|---|---|
+| #3 | 23 × `actions/checkout@v7` | Clean/mergeable; 19 passed, 8 expected skips, 0 failures/pending |
+| #22 | 5 × `actions/download-artifact@v8` | Clean/mergeable; 17 passed, 6 expected skips, 0 failures/pending |
+| #23 | 11 × `actions/upload-artifact@v7` | Clean/mergeable; 19 passed, 8 expected skips, 0 failures/pending |
+
+All three PRs passed the blocking artifact byte round trip. The checkout PR additionally exercised every
+fast data check and both Android builds. The skipped jobs are production publication or heavy data generation
+intentionally excluded from dependency pull requests; their scheduled/manual semantics were not weakened.
