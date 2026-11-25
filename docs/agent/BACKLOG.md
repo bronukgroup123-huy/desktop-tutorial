@@ -113,15 +113,21 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
   forest/parchment language) without changing approved looks.
 - Part 1 (colors): semantic tokens `AppTheme.danger/success/warning`; 94 literal copies of token values in
-  23 screens replaced; `test/design_tokens_test.dart` blocks new copies. Status: in_review — branch
-  `claude/ui-002-design-tokens`.
+  23 screens replaced; `test/design_tokens_test.dart` blocks new copies. Status: done — branch
+  `claude/ui-002-design-tokens`. Merged as PR #128 (2026-11-25).
 - Part 2: radii (12/14/16/20 used ~110 times), Merriweather heading styles (52 calls), shared card
-  decoration. Status: ready (after part 1).
+  decoration. Status: ready.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
   hotspots. Device measurements need the owner (BLK-010).
-- Status: ready (static/profile-mode analysis only)
+- Part 1 (static + widget-test measurements): camera photos decoded at full size in 58×58 capture
+  thumbnails (3 × 3.7 MB for 720p) and in the 220 px pick preview (up to 1600 px) → decode to the box
+  (`core/image_decode.dart`), thumbnail 0.22 MB. Checked and not a hotspot: animated stickers do not repaint
+  the mini-map (Opacity layers, 0 map repaints / 60 frames — guard test); infinite animations stop on
+  reduce-motion and inactive tabs (go_router TickerMode); history thumbnails are already 320 px.
+  Status: in_review — branch `claude/perf-001-static`.
+- Remaining: frame timings on a real device (BLK-010).
 
 ## P1 — release
 
