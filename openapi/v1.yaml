@@ -1112,6 +1112,14 @@ components:
           properties:
             allowed: { type: boolean }
             reason_label: { type: string }
+        picks:
+          type: [object, 'null']
+          description: 'Чи можна зараз створити точку (PROD-001b, ADR-019 §19.10): вирішує та сама БД-функція, що й при створенні; null — дізнатися не вдалося (застосунок покаже відповідь на створення)'
+          properties:
+            public_allowed: { type: boolean }
+            public_hint_label: { type: [string, 'null'], description: 'Чому ні: гість — вхід; рівень — з «Лісовика»; тижневий ліміт' }
+            private_allowed: { type: boolean }
+            private_hint_label: { type: [string, 'null'], description: 'Чому ні: «У вас 5 з 5 — видаліть одну» або тижневий ліміт' }
         rating: { type: integer }
         total_verified_picks: { type: integer }
         home_region:

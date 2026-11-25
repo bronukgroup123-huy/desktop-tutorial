@@ -192,12 +192,14 @@ interface UserRow {
   total_verified_picks: number;
   home_region_id: number | null;
   created_at: string;
+  /** Сертифікат знань (B3.10): Грибознавець / Грибний Майстер (ADR-013). */
+  knowledge_certified_at?: string | null;
 }
 
 async function loadUser(db: MeDb, userId: string): Promise<UserRow> {
   const { data, error } = await db
     .from("users")
-    .select("id, name, handle, handle_changed_at, avatar, rating, total_verified_picks, home_region_id, created_at")
+    .select("id, name, handle, handle_changed_at, avatar, rating, total_verified_picks, home_region_id, created_at, knowledge_certified_at")
     .eq("id", userId)
     .maybeSingle();
   if (error) dbFail("users select", error);
@@ -272,7 +274,8 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     handle: ctx.user.isAnonymous ? null : row.handle,
     // Готовий аватар; старі гриби й наліпки конструктора — перший «Мандрівник».
     avatar: publicAvatar(row.avatar),
-    level: levelOf(rating),
+    level: levelOf(rating, !!row.knowledge_certified_at),
+    picks: await pickPermissions(ctx),
     handle_change: handleChangeInfo(row, ctx.now),
     rating,
     total_verified_picks: finds,
@@ -289,6 +292,46 @@ export async function buildProfile(ctx: MeContext): Promise<Record<string, unkno
     },
     region_change: { allowed: change.allowed, reason_label: change.reason_label },
   };
+}
+
+/**
+ * Чи може користувач зараз створити точку (PROD-001b, ADR-019 §19.10, ADR-018 §18.2). Вирішує та сама
+ * SQL-функція can_create_pick, що й при створенні, — клієнт лише показує дозвіл і підказку.
+ * Помилка БД не ламає профіль: picks = null (застосунок дізнається з відповіді на створення).
+ */
+export interface PickPermissions {
+  public_allowed: boolean;
+  public_hint_label: string | null;
+  private_allowed: boolean;
+  private_hint_label: string | null;
+}
+
+async function canCreatePick(ctx: MeContext, visibility: "private" | "public") {
+  const { data, error } = await ctx.db.rpc("can_create_pick", { p_user_id: ctx.user.id, p_visibility: visibility });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as { allowed?: unknown; message?: unknown } | undefined;
+  if (!row) throw new Error("can_create_pick: empty result");
+  return { allowed: row.allowed === true, message: typeof row.message === "string" ? row.message : null };
+}
+
+async function pickPermissions(ctx: MeContext): Promise<PickPermissions | null> {
+  try {
+    const [priv, pub] = await Promise.all([
+      canCreatePick(ctx, "private"),
+      ctx.user.isAnonymous
+        ? Promise.resolve({ allowed: false, message: "Публічні точки — після входу через Google або Apple" })
+        : canCreatePick(ctx, "public"),
+    ]);
+    return {
+      public_allowed: pub.allowed,
+      public_hint_label: pub.allowed ? null : pub.message,
+      private_allowed: priv.allowed,
+      private_hint_label: priv.allowed ? null : priv.message,
+    };
+  } catch (e) {
+    console.error("[v1-me] can_create_pick failed:", e);
+    return null;
+  }
 }
 
 /** Чи можна зараз змінити нік (раз на 30 днів; перший раз — будь-коли). */
