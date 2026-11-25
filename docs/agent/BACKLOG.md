@@ -75,6 +75,17 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Status: done — PR #130 merged 2026-11-25. Migration `20261125191233` locks the user's row before
   recomputing the sum; merge tests, Security and Supabase deployment passed on `13aa529`.
 
+### SEC-008 — migrations do not enable RLS on four service tables (owner: Codex)
+- Evidence (DOC-001, fresh local DB from all 65 migrations, 2026-11-25): RLS is enabled on 38 of 42 public
+  tables. `forest_polygons`, `guardian_tick_log`, `user_push_tokens`, `guardian_push_tokens` only get
+  `FORCE ROW LEVEL SECURITY` (20260912000017), never `ENABLE`; production presumably has it from the 2026-09
+  Dashboard setup, so migrations and production may differ.
+- Current exposure: none found — `anon` and `authenticated` have no SELECT/INSERT on them (REVOKE in the same
+  migration). This is defense in depth and migration/production parity.
+- Suggested scope: migration enabling RLS on the four tables (or dropping the retired Guardian v0 ones after
+  BLK-009), SQL regression «every public table has relrowsecurity».
+- Status: ready (Codex zone; not taken by Claude).
+
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
 
@@ -193,10 +204,11 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
 
 ### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code (owner: Claude)
-- Status: ready (broadened to include stale AUTH_FLOW and DB_SCHEMA claims).
-- Current evidence: NEXT_TASK still prescribes PROD-001 automatically; BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA
-  describe retired Guardian v0/base64 flows or old migration/table counts. Reconcile against migrations,
-  OpenAPI and current handlers before using them to drive code.
+- Status: in_review — PR #134. AUTH_FLOW rewritten from code (guest, auth matrix, onboarding steps, region
+  change rules, upload URL, push, account deletion); DB_SCHEMA overview = 42 tables from migrations (Guardian
+  v0 marked legacy); API/README auth and security sections; BACKEND_PLAN §1 marked as an audit snapshot.
+  NEXT_TASK was already reconciled. Found SEC-008 while checking RLS.
+- Residual: DB_SCHEMA column sections still cover only the older tables (a full regeneration is larger).
 
 ### AUT-001 — Codex scheduled workflow (codex-autonomy.yml)
 - Status: paused_owner_choice — on 2026-11-22 the owner explicitly chose interactive Codex use only, with
