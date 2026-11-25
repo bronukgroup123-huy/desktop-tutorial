@@ -320,3 +320,21 @@ See docs/agent/BLOCKERS.md.
   still covers the box, never upscales); applied to capture thumbnails and the pick preview; tests in test/perf.
 - Checks: `flutter analyze` → no issues; `flutter test` → 346 passed (5 new).
 - Next: UI-002 part 2 after #128, or DOC-001.
+
+## 2026-11-25 19:15 UTC — SEC-007 rating ledger concurrency (Codex)
+- Baseline: `main` at `9d19985` after Claude UI-002 part 1; branch
+  `codex/sec-007-rating-ledger-concurrency`, PR #130.
+- Found: `rating_events_apply()` recomputed `users.rating` without a per-user lock. Two independent server
+  transactions could both commit ledger events while the last stale user-row update lost one point.
+- Regression first: commit `d3be70d`, run `45656240950`; all existing SQL/RLS tests passed and the new
+  two-connection `Rating ledger concurrency` step failed on the unfixed trigger.
+- Done: migration `20261125191233` locks the `public.users` row before reading the ledger, then recomputes
+  the exact sum using a fresh READ COMMITTED snapshot; trigger-function ACLs remain revoked from API roles.
+- Checks after fix: commit `bcbd721`, run `45682938812`; migrations, all SQL/RLS tests, the concurrency
+  regression, Deno tests/type checks and Security passed. Flutter was unchanged; its CI job was still
+  completing when documentation was written and will rerun on the final branch commit.
+- Safety: no production query or manual deployment was performed. Merge applies one Supabase migration;
+  owner review is required and the PR must not auto-merge.
+- Next Codex priority: review the refreshed, green GitHub Actions Dependabot PRs (#3, #22, #23); IOS-001
+  remains blocked by macOS and Apple configuration. Claude owns remaining UI-002 and product performance work;
+  PERF-001 part 1 merged as PR #129.

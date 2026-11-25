@@ -189,3 +189,21 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 
 The PR CI must rerun the full Deno, Flutter and migration gates. After merge, the next scheduled or explicitly
 owner-authorized manual run must confirm the live Edge Function returns a valid count payload.
+
+## SEC-007 verification — 2026-11-25, Codex runtime, PR #130
+
+| Check | Result |
+|---|---|
+| Two-transaction regression on unfixed trigger (`d3be70d`, run `45656240950`) | Expected failure: both ledger rows committed but the new concurrency step exited 1 |
+| Fresh migrations + all SQL/RLS tests after fix (`bcbd721`, run `45682938812`) | Pass |
+| `Rating ledger concurrency` after fix | Pass: two concurrent events produce rating 2 |
+| Deno unit tests and both type-check gates | Pass |
+| Security workflow | Pass |
+| Workflow-permission tests and repository guard (local) | Pass, 11/11; 17 workflows, 4 reviewed write scopes |
+| `bash -n scripts/ci/check-rating-ledger-concurrency.sh` | Pass |
+| `git diff --check` | Pass |
+| Production migration/deploy | Not run; owner-controlled merge only |
+
+The regression uses separate PostgreSQL sessions and waits until the first transaction has inserted its event
+and holds the user row before starting the second. This verifies the database boundary directly rather than
+mocking trigger behavior.

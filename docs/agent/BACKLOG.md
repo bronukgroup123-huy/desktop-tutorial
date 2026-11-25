@@ -65,6 +65,14 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   coordinates, private picks, hike/Guardian tracks, friendships and trophies; the PR added direct private
   photo storage RLS coverage.
 
+### SEC-007 — serialize rating ledger updates (owner: Codex)
+- Goal: keep `users.rating` equal to the `rating_events` sum when independent server sources award points
+  concurrently.
+- Evidence: the two-transaction regression added in commit `d3be70d` fails on the PROD-001 trigger even
+  though both ledger rows commit; the last stale `UPDATE users` loses one point.
+- Status: in_review — PR #130. Migration `20261125191233` locks the user's row before recomputing the sum;
+  the same regression and the full fresh-database SQL/RLS suite pass after the fix.
+
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
 
