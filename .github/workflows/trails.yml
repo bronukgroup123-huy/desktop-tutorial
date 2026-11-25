@@ -53,7 +53,7 @@ jobs:
         run: |
           mkdir -p ci-artifact
           sha256sum build_region.ts regions_config.ts lib.ts > ci-artifact/sha256.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trails-generator-check
           path: scripts/trails/ci-artifact/
@@ -150,7 +150,7 @@ jobs:
             jq -r '"| \(.slug) | \(.stats.nodes) | \(.stats.edges) | \(.stats.length_km) | \(.stats.wet_edges) | \(.stats.water_polys) | \(.stats.wetland_polys) | \(.stats.river_lines) | \((.bytes/1048576*10|round)/10) МБ |"' "$m" >> "$GITHUB_STEP_SUMMARY"
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trails-${{ env.REGION }}
           path: dist/
