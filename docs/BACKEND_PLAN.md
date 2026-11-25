@@ -47,18 +47,23 @@
 
 ## 1. Поточний стан (аудит коду)
 
+> **Знімок аудиту листопада 2026 (до робочих блоків).** Розділ зберігається для історії: таблиці 1.1–1.2 описують
+> код **до** v1-ендпоінтів. Актуальний стан — статуси задач у розділах нижче (✅), [AUTH_FLOW.md](./AUTH_FLOW.md),
+> [DB_SCHEMA.md](./DB_SCHEMA.md) (огляд таблиць) і `docs/agent/BACKLOG.md`. Рядки, що стали хибними, позначено
+> «Зараз:» (звірено 2026-11-25, DOC-001).
+
 ### 1.1 Що готово і переходить без змін
 
 | Блок | Де | Стан |
 |---|---|---|
-| Схема БД, RLS, PostGIS | `supabase/migrations/` (37 файлів) | ✅ |
+| Схема БД, RLS, PostGIS | `supabase/migrations/` (37 файлів) | ✅ Зараз: 65 міграцій, 42 таблиці (DB_SCHEMA) |
 | Ліси: 20 807 полігонів + RPC `get_forest_zones_geojson` | `20261021120*` | ✅ |
 | ForecastEngine (46 параметрів/вид, хвилі, GDD, crowd, калібрування) | `_shared/forecast/` | ✅, покрито тестами + golden dataset |
-| Guardian: state machine, geofence, SOS, rescue, GPX, cron tick, Push/SMS/Telegram | `_shared/guardian/`, `guardian-*` | ✅ |
-| Auth + профіль: `GET/PATCH /me`, `GET /regions` (slug-only) | `me/`, `regions/` | ✅ |
-| `POST /picks` з EXIF-перевіркою (1 км / 24 год) і вирізанням EXIF | `picks/index.ts` | ✅ (документація помилково пише «TODO») |
+| Guardian: state machine, geofence, SOS, rescue, GPX, cron tick, Push/SMS/Telegram | `_shared/guardian/`, `guardian-*` | Зараз: v0 прибрано 2026-11-22 (SEC-005); Наглядач — `v1-guardian` серед друзів (ADR-022) |
+| Auth + профіль: `GET/PATCH /me`, `GET /regions` (slug-only) | `me/`, `regions/` | ✅ Зараз: клієнт працює з `v1-me` (онбординг, гість, область — AUTH_FLOW); `GET /regions` — досі |
+| `POST /picks` з EXIF-перевіркою (1 км / 24 год) і вирізанням EXIF | `picks/index.ts` | ✅ Зараз: клієнт — `v1-picks` через Signed Upload URL (B3.0/B3.1); base64 `POST /picks` клієнт не викликає |
 | Каталог 326 видів, фото в Storage | `catalog/`, bucket `mushroom-catalog-photos` | ✅ |
-| Rate limit (IP) для `forecast`, `catalog`, `regions`, `picks` | `_shared/rate-limit.ts`, міграція `..._ip_rate_limit` | ✅ |
+| Rate limit (IP) для `forecast`, `catalog`, `regions`, `picks` | `_shared/rate-limit.ts`, міграція `..._ip_rate_limit` | ✅ Зараз: `forecast` прибрано (SEC-005); у `v1-*` — `enforceRateLimit`, fail closed (SEC-003) |
 
 ### 1.2 Знайдені розриви
 
