@@ -81,7 +81,8 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
   bounded PRs: PROD-001a server (rating_events, level_of, +1 for EXIF private picks ≤5/7d, ADR-019 limits),
   PROD-001b API (v1-me certified level, picks permissions + OpenAPI), PROD-001c Flutter.
   PROD-001a: in_review — PR #123 (the EXIF flag is read from the server-built ai_check, so v1-picks needs no
-  new parameter). Next: PROD-001b.
+  new parameter). PROD-001b: in_review — PR #124 (v1-me picks permissions from can_create_pick, certified
+  level; depends on #123). Next: PROD-001c (Flutter).
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.

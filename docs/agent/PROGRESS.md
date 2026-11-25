@@ -236,3 +236,14 @@ See docs/agent/BLOCKERS.md.
 - PR: #123
 - Next: PROD-001b — v1-me certified level and picks permissions + OpenAPI
 
+## 2026-11-25 08:35 UTC — scheduled run 5: PROD-001b (Claude)
+- Open agent PRs: #123 — Tests (incl. migrations) and Security green; #122 docs only.
+- Branch / SHA: claude/prod-001b-me-picks (from #123's branch) → PR #124
+- Done: v1-me `picks { public_allowed, public_hint_label, private_allowed, private_hint_label }` decided by the
+  same can_create_pick as creation; guests get the sign-in hint without a DB call; DB failure → picks null;
+  level honours knowledge_certified_at; OpenAPI Me.picks.
+- Checks: `deno test` → 592 passed / 0 failed (4 new); full `deno check` → 0 errors;
+  `check-flutter-openapi-models.mjs` → 18 models valid.
+- PR: #124 (merge after #123)
+- Next: PROD-001c — Flutter form uses picks permissions and hints
+
