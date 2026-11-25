@@ -285,3 +285,16 @@ See docs/agent/BLOCKERS.md.
 - PR #116 (agent state after run 2) is superseded by #120 and #122 — closed without merge.
 - Residual: BACKEND_PLAN B3.7/B3.2 statuses and the pick form in the a11y stress test (follow-up).
 
+
+## 2026-11-25 16:10 UTC — UI-001b: stress test of the main tabs (Claude)
+- Branch: claude/ui-001b-stress-tabs (from main after PROD-001)
+- Done: new `test/a11y/tabs_stress_test.dart` (Safety, Forecast area with result, Catalog with the AI banner
+  in «not downloaded» state, species card, pick form with public picks not allowed) × the three stress cases.
+  It found and the PR fixes: SOS circle text (FittedBox inside the fixed circle), forecast area tiles (grow
+  with text, 68 px minimum), forecast header (scrolls within 55 % of the height), AI banner (210 px minimum,
+  grows; overflowed by 37 px even on a 320×568 phone at normal text size), species-card photo badges (both
+  shrink with ellipsis). Normal-size layout unchanged (tile 68 px, banner 210 px measured).
+  BACKEND_PLAN B3.2/B3.7 marked done for PROD-001.
+- Checks: new test without the fixes → 5 failures (overflows 8–394 px); with fixes → `flutter test` 341 passed;
+  `flutter analyze` → no issues.
+- Next: UI-002 (design tokens) or PERF-001 (static analysis).

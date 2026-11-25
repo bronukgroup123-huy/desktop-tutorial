@@ -360,158 +360,172 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
     }
     final stale = result != null && result.isStale(_today());
 
-    return Column(
-      children: [
-        AreaSlotsRow(
-          slots: o.slots,
-          selectedAreaId: _area.id,
-          onTap: _onSlotTap,
-          onRename: (slot) {
-            final a = o.areaById(slot.areaId);
-            if (a != null) _rename(a);
-          },
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: _area.usage == null
-                    ? const SizedBox.shrink()
-                    : Text(_area.usage!.label, style: TextStyle(fontSize: 13, color: muted)),
+    // Верх (ділянки, дії, плашки) зазвичай займає менше половини екрана; з великим шрифтом на
+    // малому екрані він гортається, а результат лишається видимим (UI-001).
+    return LayoutBuilder(
+      builder: (context, constraints) => Column(
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: constraints.maxHeight * 0.55),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+            AreaSlotsRow(
+              slots: o.slots,
+              selectedAreaId: _area.id,
+              onTap: _onSlotTap,
+              onRename: (slot) {
+                final a = o.areaById(slot.areaId);
+                if (a != null) _rename(a);
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _area.usage == null
+                        ? const SizedBox.shrink()
+                        : Text(_area.usage!.label, style: TextStyle(fontSize: 13, color: muted)),
+                  ),
+                  // «Оновити аналіз» — компактний значок замість великої кнопки (рішення PO 2026-11-14).
+                  if (result != null)
+                    IconButton(
+                      key: const ValueKey('reanalyze'),
+                      tooltip: 'Оновити аналіз',
+                      onPressed: _busy || offline ? null : _confirmReanalyze,
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.4, color: AppTheme.darkGreen),
+                            )
+                          : const Icon(Icons.refresh_rounded, color: AppTheme.darkGreen),
+                    ),
+                  // «Хвиля по днях» — завжди тут; доступ і старий аналіз пояснює натискання.
+                  if (result != null)
+                    ListenableBuilder(
+                      listenable: _play,
+                      builder: (context, _) => IconButton(
+                        key: const ValueKey('play-days'),
+                        tooltip: _play.playing ? 'Пауза' : 'Хвиля по днях',
+                        onPressed: _play.press,
+                        icon: Icon(
+                          _play.playing ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+                          color: AppTheme.darkGreen,
+                        ),
+                      ),
+                    ),
+                  IconButton(
+                    tooltip: 'Показати на карті',
+                    onPressed: _showOnMap,
+                    icon: const Icon(Icons.map_outlined, color: AppTheme.darkGreen),
+                  ),
+                  IconButton(
+                    tooltip: 'Видалити ділянку',
+                    onPressed: _busy || offline ? null : _delete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                ],
               ),
-              // «Оновити аналіз» — компактний значок замість великої кнопки (рішення PO 2026-11-14).
-              if (result != null)
-                IconButton(
-                  key: const ValueKey('reanalyze'),
-                  tooltip: 'Оновити аналіз',
-                  onPressed: _busy || offline ? null : _confirmReanalyze,
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2.4, color: AppTheme.darkGreen),
-                        )
-                      : const Icon(Icons.refresh_rounded, color: AppTheme.darkGreen),
+            ),
+            if (result != null && PushService.available && !_pushHidden)
+              _WaveAlertsCard(
+                onEnable: _enablePush,
+                onClose: () => setState(() => _pushHidden = true),
+              ),
+            if (_autoRefreshing)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Row(
+                  key: const ValueKey('auto-refreshing'),
+                  children: [
+                    const SizedBox(
+                        width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
+                    const SizedBox(width: 8),
+                    Text(_weatherOnly ? 'Оновлюємо погоду…' : 'Оновлюємо прогноз на сьогодні…',
+                        style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
+                  ],
                 ),
-              // «Хвиля по днях» — завжди тут; доступ і старий аналіз пояснює натискання.
-              if (result != null)
-                ListenableBuilder(
-                  listenable: _play,
-                  builder: (context, _) => IconButton(
-                    key: const ValueKey('play-days'),
-                    tooltip: _play.playing ? 'Пауза' : 'Хвиля по днях',
-                    onPressed: _play.press,
-                    icon: Icon(
-                      _play.playing ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
-                      color: AppTheme.darkGreen,
+              )
+            else if (stale && (offline || _autoFailed))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: ForecastInfoCard(
+                  key: const ValueKey('stale-banner'),
+                  icon: Icons.update_rounded,
+                  color: AppTheme.accentOrange,
+                  text: result.resultVersion < kExpectedResultVersion
+                      ? 'Аналіз зроблено до оновлення застосунку — частина даних недоступна. '
+                          '${offline ? 'Оновиться, коли з\'явиться інтернет.' : 'Натисніть ⟳.'}'
+                      : 'Прогноз від ${result.date.substring(8, 10)}.${result.date.substring(5, 7)}. '
+                          '${offline ? 'Оновиться автоматично, коли з\'явиться інтернет.' : 'Не вдалося оновити — натисніть ⟳.'}',
+                ),
+              ),
+            if (offline)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                child: ForecastInfoCard(
+                  icon: Icons.cloud_off_rounded,
+                  color: AppTheme.accentOrange,
+                  text: 'Немає інтернету — показано збережений результат.',
+                ),
+              ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: result == null
+                ? _Message(
+                    icon: Icons.insights_rounded,
+                    title: 'Аналізу ще немає',
+                    text: 'Натисніть «Аналізувати ділянку», щоб отримати прогноз.',
+                    action: FilledButton.icon(
+                      onPressed: _busy || offline ? null : _reanalyze,
+                      style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, minimumSize: const Size(220, 46)),
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.insights_rounded),
+                      label: Text(_busy ? 'Аналізуємо…' : 'Аналізувати ділянку'),
+                    ),
+                  )
+                : RefreshIndicator(
+                    // Потягнути вниз — оновити ділянки з сервера (без нового аналізу).
+                    color: AppTheme.darkGreen,
+                    onRefresh: () => ref.refresh(analysisOverviewProvider.future),
+                    child: AnalysisResultView(
+                    key: ValueKey('result-${_area.id}'),
+                    result: result,
+                    playController: _play,
+                    miniMapBuilder: result.area.bounds == null
+                        ? null
+                        : (species) => AreaMiniMap(
+                              areaId: result.area.id,
+                              bounds: result.area.bounds!,
+                              species: species,
+                              analyzedAt: _area.lastAnalyzedAt,
+                              history: result.finds?.lastYear ?? const [],
+                            ),
+                    refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
+                    // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
+                    onRefineForest: o.forestEditOptions != null &&
+                            result.forestTypes.isNotEmpty &&
+                            (_area.forestEdit?.canEdit ?? false) &&
+                            !_busy &&
+                            !offline
+                        ? () => _refineForest(result, o.forestEditOptions!)
+                        : null,
                     ),
                   ),
-                ),
-              IconButton(
-                tooltip: 'Показати на карті',
-                onPressed: _showOnMap,
-                icon: const Icon(Icons.map_outlined, color: AppTheme.darkGreen),
-              ),
-              IconButton(
-                tooltip: 'Видалити ділянку',
-                onPressed: _busy || offline ? null : _delete,
-                icon: const Icon(Icons.delete_outline_rounded),
-              ),
-            ],
           ),
-        ),
-        if (result != null && PushService.available && !_pushHidden)
-          _WaveAlertsCard(
-            onEnable: _enablePush,
-            onClose: () => setState(() => _pushHidden = true),
-          ),
-        if (_autoRefreshing)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Row(
-              key: const ValueKey('auto-refreshing'),
-              children: [
-                const SizedBox(
-                    width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.darkGreen)),
-                const SizedBox(width: 8),
-                Text(_weatherOnly ? 'Оновлюємо погоду…' : 'Оновлюємо прогноз на сьогодні…',
-                    style: const TextStyle(fontSize: 13, color: AppTheme.darkGreen)),
-              ],
-            ),
-          )
-        else if (stale && (offline || _autoFailed))
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: ForecastInfoCard(
-              key: const ValueKey('stale-banner'),
-              icon: Icons.update_rounded,
-              color: AppTheme.accentOrange,
-              text: result.resultVersion < kExpectedResultVersion
-                  ? 'Аналіз зроблено до оновлення застосунку — частина даних недоступна. '
-                      '${offline ? 'Оновиться, коли з\'явиться інтернет.' : 'Натисніть ⟳.'}'
-                  : 'Прогноз від ${result.date.substring(8, 10)}.${result.date.substring(5, 7)}. '
-                      '${offline ? 'Оновиться автоматично, коли з\'явиться інтернет.' : 'Не вдалося оновити — натисніть ⟳.'}',
-            ),
-          ),
-        if (offline)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: ForecastInfoCard(
-              icon: Icons.cloud_off_rounded,
-              color: AppTheme.accentOrange,
-              text: 'Немає інтернету — показано збережений результат.',
-            ),
-          ),
-        Expanded(
-          child: result == null
-              ? _Message(
-                  icon: Icons.insights_rounded,
-                  title: 'Аналізу ще немає',
-                  text: 'Натисніть «Аналізувати ділянку», щоб отримати прогноз.',
-                  action: FilledButton.icon(
-                    onPressed: _busy || offline ? null : _reanalyze,
-                    style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, minimumSize: const Size(220, 46)),
-                    icon: _busy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.insights_rounded),
-                    label: Text(_busy ? 'Аналізуємо…' : 'Аналізувати ділянку'),
-                  ),
-                )
-              : RefreshIndicator(
-                  // Потягнути вниз — оновити ділянки з сервера (без нового аналізу).
-                  color: AppTheme.darkGreen,
-                  onRefresh: () => ref.refresh(analysisOverviewProvider.future),
-                  child: AnalysisResultView(
-                  key: ValueKey('result-${_area.id}'),
-                  result: result,
-                  playController: _play,
-                  miniMapBuilder: result.area.bounds == null
-                      ? null
-                      : (species) => AreaMiniMap(
-                            areaId: result.area.id,
-                            bounds: result.area.bounds!,
-                            species: species,
-                            analyzedAt: _area.lastAnalyzedAt,
-                            history: result.finds?.lastYear ?? const [],
-                          ),
-                  refineHintLabel: result.forestTypes.isEmpty ? null : _area.forestEdit?.label,
-                  // Уточнювати є що, лише коли в ділянці є ліс; без мережі й понад ліміт — ні.
-                  onRefineForest: o.forestEditOptions != null &&
-                          result.forestTypes.isNotEmpty &&
-                          (_area.forestEdit?.canEdit ?? false) &&
-                          !_busy &&
-                          !offline
-                      ? () => _refineForest(result, o.forestEditOptions!)
-                      : null,
-                  ),
-                ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -567,9 +581,12 @@ class AreaSlotsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-        child: SizedBox(
-          height: 68,
+        // Звичайно 68 px; з великим шрифтом плитки ростуть разом із текстом (UI-001).
+        child: IntrinsicHeight(
+          child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 68),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var i = 0; i < slots.length; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
@@ -581,6 +598,7 @@ class AreaSlotsRow extends StatelessWidget {
                 )),
               ],
             ],
+          ),
           ),
         ),
       );
@@ -656,10 +674,11 @@ class _SlotTile extends StatelessWidget {
         ),
       AnalysisSlotState.locked => Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.lock_outline_rounded, size: 18, color: dim),
             const SizedBox(height: 2),
-            Text(slot.title, style: TextStyle(fontSize: 12, color: dim)),
+            Text(slot.title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: dim)),
           ],
         ),
     };

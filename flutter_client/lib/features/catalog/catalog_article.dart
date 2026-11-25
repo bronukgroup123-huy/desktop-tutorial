@@ -815,6 +815,7 @@ class _TwinFlip extends StatelessWidget {
                 right: 10,
                 top: 10,
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Flexible(
                       child: Container(
@@ -827,20 +828,26 @@ class _TwinFlip extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.flip_rounded, size: 14, color: AppTheme.darkGreen),
-                          const SizedBox(width: 4),
-                          Text(hint,
-                              style: const TextStyle(
-                                  fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
-                        ],
+                    // Підказка теж стискається — з великим шрифтом обидві плашки ділять рядок (UI-001).
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.flip_rounded, size: 14, color: AppTheme.darkGreen),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(hint,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
