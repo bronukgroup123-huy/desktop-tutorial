@@ -187,13 +187,18 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
                     boxShadow: [BoxShadow(color: const Color(0xffc62828).withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
                   ),
                   alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('SOS', style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 3)),
-                      Text(_c.value > 0 ? 'Тримайте…' : 'Утримати 3 с',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
+                  padding: const EdgeInsets.all(16),
+                  // Коло фіксованого розміру: з великим шрифтом напис зменшується, а не вилазить (UI-001).
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('SOS', style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 3)),
+                        Text(_c.value > 0 ? 'Тримайте…' : 'Утримати 3 с',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ),
                 ),
               ],
