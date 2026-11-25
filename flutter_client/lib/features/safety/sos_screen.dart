@@ -7,8 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_client/features/safety/guardian/guardian_session.dart';
 import 'package:flutter_client/features/safety/safety_device.dart';
 import 'package:flutter_client/features/safety/safety_guides.dart' show RescueCardView;
+import 'package:flutter_client/core/app_theme.dart';
 
-const _sosRed = Color(0xffc62828);
+const _sosRed = AppTheme.danger;
 
 /// Екран SOS (ADR-022 §22.3 п.1): сирена вмикається одразу, «Подзвонити 112», мої координати
 /// великими цифрами, світловий сигнал. Похід із Наглядачем — тривога Наглядачам (push +
@@ -209,7 +210,7 @@ class _MyCoordinatesCardState extends ConsumerState<MyCoordinatesCard> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.dark ? Colors.white : const Color(0xff14532d);
+    final fg = widget.dark ? Colors.white : AppTheme.darkGreen;
     final dim = fg.withValues(alpha: 0.75);
     final fix = _fix;
     return Container(
@@ -252,7 +253,7 @@ class _MyCoordinatesCardState extends ConsumerState<MyCoordinatesCard> {
                   : 'Точність ±${fix.accuracyM.round()} м',
               key: const ValueKey('coords-accuracy'),
               style: TextStyle(
-                color: fix.lowAccuracy ? (widget.dark ? const Color(0xffffe082) : const Color(0xffb45309)) : dim,
+                color: fix.lowAccuracy ? (widget.dark ? const Color(0xffffe082) : AppTheme.warning) : dim,
                 fontSize: 12.5,
                 fontWeight: fix.lowAccuracy ? FontWeight.w700 : FontWeight.w400,
               ),

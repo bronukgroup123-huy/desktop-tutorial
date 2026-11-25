@@ -232,7 +232,7 @@ class _MagnifierPainter extends CustomPainter {
 // ─── Результат ──────────────────────────────────────────────────────────────
 
 Color likelihoodColor(Likelihood l) => switch (l) {
-      Likelihood.likely => const Color(0xff2e7d32),
+      Likelihood.likely => AppTheme.success,
       Likelihood.possible => const Color(0xffd9822b),
       Likelihood.unlikely => const Color(0xff6b7a70),
     };
@@ -257,7 +257,7 @@ class RecognitionResultView extends ConsumerWidget {
             key: const ValueKey('result-danger'),
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xffc62828), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(14)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -363,7 +363,7 @@ class _CandidateCard extends StatelessWidget {
                     if (badge != null)
                       EdibilityBadge(label: badge.label, color: Color(badge.color))
                     else if (l.poisonous)
-                      const EdibilityBadge(label: 'Отруйний', color: Color(0xffc62828)),
+                      const EdibilityBadge(label: 'Отруйний', color: AppTheme.danger),
                   ],
                 ),
               ),
