@@ -153,7 +153,7 @@ deno test supabase/tests/forecast/regression.test.ts --allow-net --allow-read
 | `20260912000018` | formalize `rls_auto_enable` (audit E) | функція + event trigger `ensure_rls` були створені вручну в Dashboard 2026-09-11 — тепер у міграціях |
 
 Правила для нових міграцій:
-- Наступний номер — **`20260912000019`** (наступний робочий день — нова дата-частина).
+- Наступний номер — пізніший за останню міграцію в `supabase/migrations/` (формат `YYYYMMDDHHMMSS`).
 - Тримати gaps відображеними в цій таблиці (не «пере нумеровувати»).
 - Жодного DDL через Dashboard — усе через міграції (урок audit E).
 
@@ -161,12 +161,16 @@ deno test supabase/tests/forecast/regression.test.ts --allow-net --allow-read
 
 ## Безпека (коротко)
 
-- JWT (Supabase Auth) для `POST /picks`, `GET/PATCH /me`; публічні:
-  `POST /forecast`, `GET /regions`, `GET /catalog`.
-- Guardian-контур — окремий токен (`X-Guardian-Token`), не JWT.
-- RLS на 15/19 таблицях; 4 службові таблиці — deny-all + service_role only
-  (аудит B, міграція `20260912000017`).
+- Хто що може викликати — `supabase/functions/auth-matrix.json` (SEC-004): публічні `regions`, `catalog`,
+  `v1-regions`, `v1-app-config`, `v1-air-alerts`; решта `v1-*` — JWT (гість теж, ADR-001); розклад і вебхук —
+  service_role / секрет. Деталі — [AUTH_FLOW.md](./AUTH_FLOW.md).
+- Наглядач — `v1-guardian` серед друзів, JWT (ADR-022); старий `X-Guardian-Token` прибрано (SEC-005).
+- RLS — на 38 з 42 таблиць (свіжа БД з міграцій, 2026-11-25). 4 службові (`forest_polygons`, `guardian_tick_log`,
+  `user_push_tokens`, `guardian_push_tokens`) закриті для ролей API через REVOKE; RLS на них міграції не
+  вмикають (лише FORCE) — розбіжність записано як SEC-008. SECURITY DEFINER-функції недоступні ролям API
+  (SEC-002, `supabase/tests/security_definer_privileges.sql`). Звіт — `docs/agent/SECURITY_REPORT.md`.
 - Home Region — тільки через `slug`, ніколи не хардкодь `regions.id`.
+- Нумерація міграцій: дата + час (`YYYYMMDDHHMMSS`), наступна — пізніша за останню в `supabase/migrations/`.
 
 ---
 
@@ -174,7 +178,5 @@ deno test supabase/tests/forecast/regression.test.ts --allow-net --allow-read
 
 | Де | Що |
 |---|---|
-| [API.md](./API.md#rate-limiting) | Rate limiting Edge Functions (план §15) |
-| [AUTH_FLOW.md](./AUTH_FLOW.md#home-region) | Anti-abuse: 1 зміна Home Region / 30 днів (`region_change_log` готовий) |
-| [API.md](./API.md#guardian-endpoints-інтерфейс-наглядача) | `docs/GUARDIAN_API.md` — повна документація контуру Наглядача |
+| [AUTH_FLOW.md](./AUTH_FLOW.md#4-home-region) | Зміна Home Region у Pro — після entitlements (B6.3); правило й журнал `region_change_log` уже працюють |
 | Golden Dataset | Наповнення реальними даними бета-тесту (ціль 100+ записів) |

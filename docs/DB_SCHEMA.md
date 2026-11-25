@@ -3,21 +3,33 @@
 Схема бази даних Supabase (PostgreSQL + PostGIS). Всі таблиці — у схемі `public`,
 геометрія — `extensions.GEOMETRY(MultiPolygon, 4326)` / `GEOGRAPHY`.
 
-Джерело істини — міграції `supabase/migrations/` (48 файлів).
-Зміни робочого блоку 1 (2026-11-09) — розділ [«Оновлення 2026-11-09»](#оновлення-2026-11-09-робочий-блок-1). API-контракти —
-[API.md](./API.md).
+Джерело істини — міграції `supabase/migrations/` (65 файлів на 2026-11-25). API-контракти —
+[openapi/v1.yaml](../openapi/v1.yaml) і [API.md](./API.md).
+
+> **Звірено з міграціями 2026-11-25 (DOC-001).** Огляд нижче — повний і актуальний. Детальні розділи про
+> колонки писалися поетапно (2026-09…11) і описують не всі нові таблиці; якщо розділ розходиться з міграцією,
+> правда — у міграції.
 
 ---
 
-## Огляд таблиць (19)
+## Огляд таблиць (42)
 
 | Категорія | Таблиці |
 |---|---|
-| Користувачі | `users`, `region_change_log` |
+| Користувачі | `users`, `region_change_log`, `user_consents`, `user_trophies`, `rating_events` (журнал балів, ADR-012) |
 | Довідники | `regions`, `mushroom_catalog`, `expert_rules`, `feature_flags` |
 | Геодані | `forest_zones`, `forest_polygons` |
-| Туки-туки | `mushroom_picks`, `calibration_log` |
-| Наглядач | `guardian_sessions`, `guardians`, `guardian_track`, `guardian_alerts`, `guardian_notifications`, `guardian_rescue_requests`, `guardian_push_tokens`, `user_push_tokens`, `guardian_tick_log` |
+| Тук-туки | `mushroom_picks`, `calibration_log` |
+| Аналіз ділянки | `analysis_areas`, `analysis_usage`, `analysis_forest_edits`, `analysis_history`, `gdd_state`, `weather_cache` |
+| Сповіщення | `push_devices`, `wave_alerts`, `air_alerts_cache` |
+| Друзі | `friendships`, `friend_request_log`, `user_reports` |
+| Наглядач (ADR-022, `v1-guardian`) | `guardian_links`, `hikes`, `hike_guardians`, `hike_points`, `guardian_telegram`, `telegram_link_codes` |
+| Ліміти запитів | `ip_rate_limit`, `notification_rate_limit` |
+| Наглядач v0 — **застарілі** | `guardian_sessions`, `guardians`, `guardian_track`, `guardian_alerts`, `guardian_notifications`, `guardian_rescue_requests`, `guardian_push_tokens`, `user_push_tokens`, `guardian_tick_log` |
+
+Наглядача v0 (функції `guardian-*`, cron-завдання й тригер сповіщень) прибрано 2026-11-22 (SEC-005, міграція
+`20261122110000_retire_guardian_v0_jobs.sql`). Таблиці з даними лишилися: видалення чи строк зберігання — рішення
+власника (docs/agent/BLOCKERS.md, BLK-009). Розділ «Наглядача (Guardian)» нижче описує саме їх.
 
 ---
 
@@ -224,7 +236,7 @@ message)` — добові ліміти та рівень «Лісовик» д�
 
 ---
 
-## Наглядача (Guardian)
+## Наглядача (Guardian) — v0, застарілі (див. огляд)
 
 Контур сесій грибника з Наглядачем. Auth — не JWT, а токен Наглядача
 (`X-Guardian-Token`).

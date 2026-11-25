@@ -378,5 +378,18 @@ See docs/agent/BLOCKERS.md.
   Deno, Flutter, fresh migrations, Gitleaks, data-generator validation and both Android APK runs passed;
   production publication jobs were correctly skipped. Each PR is clean/mergeable.
 - Safety: no dependency PR was merged, no production workflow was dispatched, and no force push was used.
-- Next: owner reviews and merges #3, #22 and #23 separately. Claude owns DOC-001; IOS-001 remains blocked
-  by macOS and Apple configuration.
+- Next: owner reviews and merges #3, #22 and #23 separately. IOS-001 remains blocked by macOS and Apple
+  configuration; Claude's DOC-001 subsequently merged as PR #134/#135.
+
+## 2026-11-25 21:10 UTC — scheduled run: DOC-001 (Claude)
+- Open agent PRs: none (#131 UI-002 part 2 and #132 state merged; Codex merged #130 SEC-007, #133 CI-003).
+- Branch: claude/doc-001-reconcile (from main) → PR #134 (docs only)
+- Done: AUTH_FLOW rewritten from code; DB_SCHEMA overview of 42 tables; API/README auth and security
+  sections; BACKEND_PLAN §1 marked as a snapshot with «Зараз:» corrections; broken `#home-region` links fixed.
+- Checks: claims verified against me.ts, auth_repository.dart, auth-matrix.json, http.ts, v1-guardian; table
+  list parsed from migrations; `scripts/dev/local-db/run.sh --no-tests` → 65 migrations applied; pg_class /
+  has_table_privilege queries.
+- Finding: RLS enabled on 38/42 tables on a fresh DB; four service tables only FORCE, never ENABLE, but have
+  no API privileges → SEC-008 for Codex (no current exposure found).
+- Next: no ready Claude item left except WEB-001 (blocked on owner, BLK-009). Candidates for the owner to
+  confirm: DB_SCHEMA column sections regeneration (DOC-001 residual), PERF-001 device measurements (BLK-010).
