@@ -550,7 +550,7 @@ class _Message extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                style: AppTheme.heading(20),
               ),
               const SizedBox(height: 8),
               Text(text, textAlign: TextAlign.center),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
@@ -99,7 +98,7 @@ class _PickCardContent extends StatelessWidget {
             Expanded(
               child: Text(
                 pick.nameLabel,
-                style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                style: AppTheme.heading(20),
               ),
             ),
             Container(

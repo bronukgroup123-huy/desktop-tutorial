@@ -35,7 +35,7 @@ class SafetyGuideScreen extends StatelessWidget {
           for (final s in guide.sections) ...[
             if (s.title != null) ...[
               const SizedBox(height: 18),
-              Text(s.title!, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+              Text(s.title!, style: AppTheme.heading(16)),
             ],
             const SizedBox(height: 8),
             for (final (i, item) in s.items.indexed)
@@ -414,7 +414,7 @@ class ChecklistScreen extends ConsumerWidget {
             ),
           const SizedBox(height: 14),
           Text('Готові до лісу без інтернету?',
-              style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+              style: AppTheme.heading(16)),
           const SizedBox(height: 6),
           for (final r in readiness)
             ListTile(

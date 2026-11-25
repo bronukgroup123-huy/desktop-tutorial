@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/safety/guardian/guardian_card.dart';
@@ -28,12 +27,12 @@ class SafetyScreen extends ConsumerWidget {
     final rescue = ref.watch(rescueCardProvider).valueOrNull;
     Widget header(String t) => Padding(
           padding: const EdgeInsets.only(top: 18, bottom: 8),
-          child: Text(t, style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          child: Text(t, style: AppTheme.heading(17)),
         );
     void open(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     return Scaffold(
       appBar: AppBar(
-        title: Text('Безпека', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Безпека', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
@@ -253,7 +252,7 @@ class _Heading extends StatelessWidget {
             Expanded(
               child: Text(title,
                   style:
-                      GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                      AppTheme.heading(16)),
             ),
           ],
         ),
