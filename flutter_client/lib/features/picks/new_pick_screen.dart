@@ -9,6 +9,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/core/uuid.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
+import 'package:flutter_client/data/models/me.dart' show PickPermissions;
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/picks/photo_validation.dart';
@@ -68,6 +69,10 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
     _checkPhoto(widget.photo);
   }
 
+  /// Публічні сервер зараз не дозволяє — точка лише приватна, хоч би що було вибрано раніше.
+  PickVisibility _effectiveVisibility(PickPermissions? picks) =>
+      picks != null && !picks.publicAllowed && _visibility == PickVisibility.public ? PickVisibility.private : _visibility;
+
   Future<void> _checkPhoto(XFile photo) async {
     final check = await validatePickPhoto(photo);
     if (mounted && identical(photo, _photo)) setState(() => _photoError = check.error);
@@ -118,7 +123,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               clientId: _clientId,
               point: widget.point,
               capturedAt: _capturedAt,
-              visibility: _visibility,
+              visibility: _effectiveVisibility(ref.read(meProvider).valueOrNull?.picks),
               speciesId: species.species?.id,
               description: _description.text,
               aiCheck: aiCheck,
@@ -135,6 +140,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
         ref.read(showPrivatePicksProvider.notifier).state = true;
       }
       ref.invalidate(picksMapProvider);
+      ref.invalidate(meProvider); // бали й дозволи на точки змінилися (PROD-001)
       showToast(context, 'Тук-тук збережено: ${created.statusLabel}');
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -176,6 +182,8 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
   @override
   Widget build(BuildContext context) {
     final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final picks = ref.watch(meProvider.select((m) => m.valueOrNull?.picks));
+    final visibility = _effectiveVisibility(picks);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Новий тук-тук'),
@@ -257,29 +265,35 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
             Text('Хто бачить точку', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             SegmentedButton<PickVisibility>(
-              segments: const [
-                ButtonSegment(
+              segments: [
+                const ButtonSegment(
                   value: PickVisibility.private,
                   icon: Icon(Icons.lock_outline_rounded),
                   label: Text('Лише я'),
                 ),
+                // «Усі» — лише коли сервер дозволяє публічні (рівень, тижневий ліміт; PROD-001)
                 ButtonSegment(
                   value: PickVisibility.public,
-                  icon: Icon(Icons.public_rounded),
-                  label: Text('Усі'),
+                  icon: const Icon(Icons.public_rounded),
+                  label: const Text('Усі'),
+                  enabled: picks?.publicAllowed ?? true,
                 ),
               ],
-              selected: {_visibility},
+              selected: {visibility},
               onSelectionChanged: _saving ? null : (s) => setState(() => _visibility = s.first),
             ),
             const SizedBox(height: 8),
             Text(
-              _visibility == PickVisibility.public
+              visibility == PickVisibility.public
                   ? 'Публічну точку бачать усі в області — приблизно, з похибкою 300–500 м. '
                       'Спершу її перевірить спільнота.'
                   : 'Приватну точку з точним місцем бачите лише ви.',
               style: TextStyle(fontSize: 12, color: muted),
             ),
+            if (picks != null && !picks.publicAllowed && picks.publicHint != null)
+              _PermissionHint(key: const ValueKey('pick-public-hint'), icon: Icons.public_off_rounded, text: picks.publicHint!),
+            if (visibility == PickVisibility.private && picks != null && !picks.privateAllowed && picks.privateHint != null)
+              _PermissionHint(key: const ValueKey('pick-private-hint'), icon: Icons.info_outline_rounded, text: picks.privateHint!, warning: true),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _saving || _photoError != null ? null : _save,
@@ -298,6 +312,31 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Підказка сервера, чому видимість недоступна (рівень, ліміт, «видаліть одну»).
+class _PermissionHint extends StatelessWidget {
+  const _PermissionHint({super.key, required this.icon, required this.text, this.warning = false});
+
+  final IconData icon;
+  final String text;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning ? const Color(0xffb45309) : AppTheme.darkGreen.withValues(alpha: 0.75);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 12.5, color: color, fontWeight: warning ? FontWeight.w600 : FontWeight.w400))),
+        ],
       ),
     );
   }

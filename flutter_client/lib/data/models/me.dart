@@ -134,6 +134,7 @@ class Me {
     required this.isGuest,
     required this.onboarding,
     required this.regionChange,
+    this.picks,
   });
 
   factory Me.fromJson(Map<String, dynamic> json) {
@@ -152,6 +153,7 @@ class Me {
       isGuest: req<bool>(json, 'is_guest'),
       onboarding: Onboarding.fromJson(req<Map<String, dynamic>>(json, 'onboarding')),
       regionChange: RegionChange.fromJson(req<Map<String, dynamic>>(json, 'region_change')),
+      picks: opt<Map<String, dynamic>>(json, 'picks') == null ? null : PickPermissions.fromJson(opt<Map<String, dynamic>>(json, 'picks')!),
     );
   }
 
@@ -174,4 +176,25 @@ class Me {
   final bool isGuest;
   final Onboarding onboarding;
   final RegionChange regionChange;
+
+  /// Чи можна зараз створити точку — вирішує сервер (PROD-001b); `null` — невідомо (тоді вирішить
+  /// відповідь на створення).
+  final PickPermissions? picks;
+}
+
+/// Дозволи на тук-тук із сервера (ADR-019 §19.10, ADR-018 §18.2): клієнт лише показує.
+class PickPermissions {
+  const PickPermissions({required this.publicAllowed, this.publicHint, required this.privateAllowed, this.privateHint});
+
+  factory PickPermissions.fromJson(Map<String, dynamic> json) => PickPermissions(
+        publicAllowed: opt<bool>(json, 'public_allowed') ?? false,
+        publicHint: opt<String>(json, 'public_hint_label'),
+        privateAllowed: opt<bool>(json, 'private_allowed') ?? true,
+        privateHint: opt<String>(json, 'private_hint_label'),
+      );
+
+  final bool publicAllowed;
+  final String? publicHint;
+  final bool privateAllowed;
+  final String? privateHint;
 }
