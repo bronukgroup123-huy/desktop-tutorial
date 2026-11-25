@@ -108,3 +108,8 @@ jobs:
             echo "▶ $f"
             psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
           done
+
+      - name: Rating ledger concurrency
+        run: |
+          bash scripts/ci/check-rating-ledger-concurrency.sh \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
