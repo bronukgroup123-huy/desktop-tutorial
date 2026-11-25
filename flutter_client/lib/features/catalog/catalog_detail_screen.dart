@@ -277,7 +277,7 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.name, style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                  Text(s.name, style: AppTheme.heading(20)),
                   if (s.latin.isNotEmpty) Text(s.latin, style: TextStyle(fontStyle: FontStyle.italic, color: dim)),
                 ],
               ),
@@ -291,7 +291,7 @@ class _Header extends StatelessWidget {
           children: [
             EdibilityBadge(label: badge.label, color: Color(badge.color)),
             if (s.redListed) _Tag(text: s.rarity.isEmpty ? '📕 Червона книга' : '📕 Червона книга · ${s.rarity}', color: const Color(0xffb7791f)),
-            if (s.inSeason(DateTime.now().month)) const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: Color(0xff2e7d32)),
+            if (s.inSeason(DateTime.now().month)) const _Tag(key: ValueKey('catalog-in-season'), text: '🍂 Зараз сезон', color: AppTheme.success),
             if (s.top20) const _Tag(text: '⭐ Топ-20', color: Color(0xff7b4fb5)),
             if (s.popular) const _Tag(text: '🍲 Популярний', color: Color(0xff2f6fb3)),
           ],

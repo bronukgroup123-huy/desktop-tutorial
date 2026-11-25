@@ -15,7 +15,7 @@ import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
 import 'package:flutter_client/features/safety/guardian/watched_hikes.dart';
 
-const _alarmRed = Color(0xffc62828);
+const _alarmRed = AppTheme.danger;
 const _violet = Color(0xff6d28d9);
 
 /// «Наглядач» на вкладці «Безпека» (ADR-022 §22.2): походи друзів, де я Наглядач (тривожні —
@@ -360,7 +360,7 @@ class WatchedHikeScreen extends ConsumerWidget {
                   Text(h.lastSignalLabel, style: TextStyle(color: h.noSignal ? _alarmRed : Colors.black87)),
                   if (h.batteryLabel != null) Text(h.batteryLabel!),
                   if (h.gpsIssueLabel != null)
-                    Text(h.gpsIssueLabel!, key: const ValueKey('watched-gps'), style: const TextStyle(color: Color(0xffb45309))),
+                    Text(h.gpsIssueLabel!, key: const ValueKey('watched-gps'), style: const TextStyle(color: AppTheme.warning)),
                   if (h.last != null) ...[
                     const SizedBox(height: 10),
                     FilledButton.icon(

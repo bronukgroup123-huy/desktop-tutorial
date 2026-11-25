@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
@@ -208,7 +207,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
               Expanded(
                 child: Text(
                   'Ваші місця в ділянці',
-                  style: GoogleFonts.merriweather(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                  style: AppTheme.heading(15),
                 ),
               ),
               // День, який зараз на мінікарті (видно під час «хвилі по днях»).
@@ -783,7 +782,7 @@ class _WeatherCardState extends State<_WeatherCard> {
   bool _advanced = false;
 
   static const _tone = {
-    'good': (Color(0xff2e7d32), Icons.check_circle_rounded),
+    'good': (AppTheme.success, Icons.check_circle_rounded),
     'bad': (Color(0xffd9480f), Icons.warning_amber_rounded),
     'neutral': (Color(0xff5f6b62), Icons.info_outline_rounded),
   };
@@ -876,12 +875,12 @@ class _WeatherCardState extends State<_WeatherCard> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xffb45309)),
+                    const Icon(Icons.warning_amber_rounded, size: 16, color: AppTheme.warning),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(h,
                           key: const ValueKey('weather-hazard'),
-                          style: const TextStyle(fontSize: 12.5, color: Color(0xffb45309), fontWeight: FontWeight.w600)),
+                          style: const TextStyle(fontSize: 12.5, color: AppTheme.warning, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),

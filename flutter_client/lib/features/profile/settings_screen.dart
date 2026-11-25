@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -25,7 +24,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text('Налаштування', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Налаштування', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -101,7 +100,7 @@ Future<bool> _confirmDelete(BuildContext context, WidgetRef ref) async {
         TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Скасувати')),
         FilledButton(
           key: const ValueKey('delete-yes'),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xffc62828)),
+          style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
           onPressed: () => Navigator.of(c).pop(true),
           child: const Text('Видалити'),
         ),
@@ -282,7 +281,7 @@ class _DataRow extends StatelessWidget {
                     children: [
                       Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
                       Row(children: [
-                        Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? const Color(0xff2e7d32) : const Color(0xffb45309)),
+                        Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? AppTheme.success : AppTheme.warning),
                         const SizedBox(width: 4),
                         Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)))),
                       ]),

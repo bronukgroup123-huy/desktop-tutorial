@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/catalog/catalog_browser.dart';
@@ -18,7 +17,7 @@ class RecognizeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Розпізнати', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Розпізнати', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -61,7 +60,7 @@ class RecognitionHistorySheet extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text('Історія розпізнавань',
-                        style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                        style: AppTheme.heading(17)),
                   ),
                   if (history.isNotEmpty)
                     TextButton(
@@ -126,7 +125,7 @@ class _HistoryTile extends StatelessWidget {
           title: Text(r.notMushroom ? 'Не схоже на гриб' : (top?.label.name ?? '—'), style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
           subtitle: Text(
             [historyDate(entry.at), if (top != null && !r.notMushroom) top.likelihood.label, if (r.dangerous != null) '⚠ серед схожих отруйний'].join(' · '),
-            style: TextStyle(fontSize: 12, color: r.dangerous != null ? const Color(0xffc62828) : AppTheme.darkGreen.withValues(alpha: 0.65)),
+            style: TextStyle(fontSize: 12, color: r.dangerous != null ? AppTheme.danger : AppTheme.darkGreen.withValues(alpha: 0.65)),
           ),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HistoryResultScreen(entry: entry, thumb: thumb))),
         );

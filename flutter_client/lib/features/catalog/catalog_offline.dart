@@ -260,7 +260,7 @@ class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(
           children: [
-            const Icon(Icons.offline_pin_rounded, size: 18, color: Color(0xff2e7d32)),
+            const Icon(Icons.offline_pin_rounded, size: 18, color: AppTheme.success),
             const SizedBox(width: 6),
             Expanded(child: Text('Усі фото збережено — довідник працює без інтернету', style: TextStyle(fontSize: 12, color: muted))),
             TextButton(

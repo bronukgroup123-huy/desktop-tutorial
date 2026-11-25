@@ -189,3 +189,39 @@ The repository has broad unit coverage for domain calculations, API handlers, Fl
 
 The PR CI must rerun the full Deno, Flutter and migration gates. After merge, the next scheduled or explicitly
 owner-authorized manual run must confirm the live Edge Function returns a valid count payload.
+
+## SEC-007 verification — 2026-11-25, Codex runtime, PR #130
+
+| Check | Result |
+|---|---|
+| Two-transaction regression on unfixed trigger (`d3be70d`, run `45656240950`) | Expected failure: both ledger rows committed but the new concurrency step exited 1 |
+| Fresh migrations + all SQL/RLS tests after fix (`bcbd721`, run `45682938812`) | Pass |
+| `Rating ledger concurrency` after fix | Pass: two concurrent events produce rating 2 |
+| Deno unit tests and both type-check gates | Pass |
+| Security workflow | Pass |
+| Workflow-permission tests and repository guard (local) | Pass, 11/11; 17 workflows, 4 reviewed write scopes |
+| `bash -n scripts/ci/check-rating-ledger-concurrency.sh` | Pass |
+| `git diff --check` | Pass |
+| Production migration/deploy | Not run; owner-controlled merge only |
+
+The regression uses separate PostgreSQL sessions and waits until the first transaction has inserted its event
+and holds the user row before starting the second. This verifies the database boundary directly rather than
+mocking trigger behavior.
+
+## CI-003 verification — 2026-11-25, Codex runtime, PR #133
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 11/11 |
+| `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, 4 reviewed write-scoped |
+| Workflow YAML structure and exact artifact majors | Pass: upload v7, download v8, ID-based bounded retry |
+| Push run `45688868324` artifact round trip | Pass in 7 s; first download and byte comparison passed |
+| PR run `45688881322` artifact round trip | Pass in 12 s; bounded retry handled Artifact API consistency lag, byte comparison passed |
+| Deno unit tests, Flutter analyze/tests and fresh migrations (both final runs) | Pass |
+| Gitleaks (both final runs) | Pass |
+| `git diff --check` | Pass |
+| Production/deployment | Not run; the smoke job has no secrets or production access |
+
+The earlier failing PR runs were retained as evidence: upload finalized successfully, but immediate lookup by
+both name and immutable ID could transiently report `Artifact not found`. The final gate retries only once
+after five seconds and still fails closed if the artifact cannot be downloaded or its payload differs.

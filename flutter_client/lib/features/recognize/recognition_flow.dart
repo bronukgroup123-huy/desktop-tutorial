@@ -66,7 +66,7 @@ class _RecognitionFlowScreenState extends ConsumerState<RecognitionFlowScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.darkGreen,
-        title: Text(r == null && _error == null ? 'Розпізнаю…' : 'Результат', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text(r == null && _error == null ? 'Розпізнаю…' : 'Результат', style: AppTheme.appBarTitle),
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 350),
@@ -187,7 +187,7 @@ class _ThinkingViewState extends ConsumerState<ThinkingView> with SingleTickerPr
             children: [
               const Mascot(size: 48),
               const SizedBox(width: 8),
-              Text('ШІ розглядає гриб…', style: GoogleFonts.merriweather(fontSize: 16, color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
+              Text('ШІ розглядає гриб…', style: AppTheme.heading(16)),
             ],
           ),
           const SizedBox(height: 6),
@@ -232,7 +232,7 @@ class _MagnifierPainter extends CustomPainter {
 // ─── Результат ──────────────────────────────────────────────────────────────
 
 Color likelihoodColor(Likelihood l) => switch (l) {
-      Likelihood.likely => const Color(0xff2e7d32),
+      Likelihood.likely => AppTheme.success,
       Likelihood.possible => const Color(0xffd9822b),
       Likelihood.unlikely => const Color(0xff6b7a70),
     };
@@ -257,7 +257,7 @@ class RecognitionResultView extends ConsumerWidget {
             key: const ValueKey('result-danger'),
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xffc62828), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(14)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -281,7 +281,7 @@ class RecognitionResultView extends ConsumerWidget {
             ClipRRect(borderRadius: BorderRadius.circular(12), child: Image(image: photo, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 64, height: 64))),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Схожі гриби', style: GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+              child: Text('Схожі гриби', style: AppTheme.heading(18)),
             ),
           ],
         ),
@@ -363,7 +363,7 @@ class _CandidateCard extends StatelessWidget {
                     if (badge != null)
                       EdibilityBadge(label: badge.label, color: Color(badge.color))
                     else if (l.poisonous)
-                      const EdibilityBadge(label: 'Отруйний', color: Color(0xffc62828)),
+                      const EdibilityBadge(label: 'Отруйний', color: AppTheme.danger),
                   ],
                 ),
               ),
@@ -426,7 +426,7 @@ class _NotMushroom extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Хм… Це не схоже на гриб', style: GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          Text('Хм… Це не схоже на гриб', style: AppTheme.heading(18)),
           const SizedBox(height: 6),
           Text('Спробуйте ще раз — ближче до шапки, щоб гриб займав більшу частину кадру.',
               textAlign: TextAlign.center, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75))),

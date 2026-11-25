@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_client/data/models/catalog.dart';
 import 'package:flutter_client/features/catalog/catalog_motion.dart' show reduceMotion;
 import 'package:flutter_client/features/analysis/mushroom_stickers.dart' show SpeciesIcon;
+import 'package:flutter_client/core/app_theme.dart';
 
 /// Фото довідника: з телефону (якщо вже переглядали) або з релізу «catalog-photos» — і
 /// зберігається на телефоні, щоб наступного разу працювало без інтернету.
@@ -200,7 +201,7 @@ class CatalogPhotoCache {
 
 /// Тло навколо цілого фото: розмите те саме фото ([kWholeBackdropOpacity]) під світлою
 /// вуаллю кольору картки ([kWholeVeil]), знизу плавно переходить у картку.
-const kCardColor = Color(0xFFF4F1E1);
+const kCardColor = AppTheme.backgroundColor;
 const kWholeBackdropOpacity = 1.0;
 const kWholeVeil = 0.04;
 

@@ -33,7 +33,7 @@ class WeatherInsightView extends StatelessWidget {
   };
 
   static const _tone = {
-    'good': Color(0xff2e7d32),
+    'good': AppTheme.success,
     'bad': Color(0xffd9480f),
     'neutral': Color(0xff6b7a70),
   };
@@ -62,7 +62,7 @@ class WeatherInsightView extends StatelessWidget {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(insight.wave!.label,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xff2e7d32))),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.success)),
                   ),
                 ],
               ),
