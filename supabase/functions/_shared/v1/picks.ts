@@ -372,7 +372,10 @@ async function assertSpecies(db: PicksDb, input: CreatePickInput): Promise<void>
 
 const LIMIT_STATUS: Record<string, number> = {
   level_required: 403,
-  daily_limit_reached: 429,
+  // ADR-019 §19.10: до 5 приватних одночасно; тижневі ліміти нових приватних і публічних
+  private_limit_reached: 429,
+  weekly_limit_reached: 429,
+  daily_limit_reached: 429, // старі БД до міграції 20261125100000
   validation_error: 422,
 };
 
