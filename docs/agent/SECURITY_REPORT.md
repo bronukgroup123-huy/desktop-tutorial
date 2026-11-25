@@ -41,9 +41,14 @@ blocked by BLK-007.
 ## CI credential scope
 
 CI-001 found no confirmed leak, but production deploy and smoke workflows relied on repository-default
-token rights and exposed their secrets to every step in each job. The proposed hardening makes both tokens
-read-only, moves credentials to exact consumer steps, masks dynamically fetched anon/service-role/JWT
+token rights and exposed their secrets to every step in each job. The hardening merged in PR #119 makes both
+tokens read-only, moves credentials to exact consumer steps, masks dynamically fetched anon/service-role/JWT
 values, and blocks regression across all workflow files. No secret value was inspected or printed.
+
+OPS-001 applies the same boundary to `wave-alerts.yml`: management credentials exist only on the invocation
+step, the fetched service-role key is format-validated and masked before use, and failure logs contain only
+the failing stage, HTTP status and an allowlisted snake_case error code. The Edge Function call supplies both
+required Supabase headers (`Authorization` and `apikey`) without persisting or printing the key.
 
 ## Edge Function authentication matrix (second pass, 2026-11-22)
 

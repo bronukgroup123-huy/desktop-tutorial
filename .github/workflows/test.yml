@@ -41,6 +41,7 @@ jobs:
         run: |
           node --test scripts/ci/check-workflow-permissions.test.mjs
           node scripts/ci/check-workflow-permissions.mjs
+          node --test scripts/ci/run-wave-alerts.test.mjs
 
       - uses: denoland/setup-deno@v2
         with:
