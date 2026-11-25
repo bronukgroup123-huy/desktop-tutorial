@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
@@ -81,7 +80,7 @@ class _ForestRefineSheetState extends State<ForestRefineSheet> {
         children: [
           Text(
             'Уточнити ліс ділянки',
-            style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+            style: AppTheme.heading(20),
           ),
           const SizedBox(height: 6),
           Text(

@@ -66,7 +66,7 @@ class _ForecastContent extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+          style: AppTheme.heading(20),
         ),
         if (f.regionName != null)
           Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),

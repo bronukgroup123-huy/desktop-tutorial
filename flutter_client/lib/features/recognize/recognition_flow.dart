@@ -66,7 +66,7 @@ class _RecognitionFlowScreenState extends ConsumerState<RecognitionFlowScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.darkGreen,
-        title: Text(r == null && _error == null ? 'Розпізнаю…' : 'Результат', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text(r == null && _error == null ? 'Розпізнаю…' : 'Результат', style: AppTheme.appBarTitle),
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 350),
@@ -187,7 +187,7 @@ class _ThinkingViewState extends ConsumerState<ThinkingView> with SingleTickerPr
             children: [
               const Mascot(size: 48),
               const SizedBox(width: 8),
-              Text('ШІ розглядає гриб…', style: GoogleFonts.merriweather(fontSize: 16, color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
+              Text('ШІ розглядає гриб…', style: AppTheme.heading(16)),
             ],
           ),
           const SizedBox(height: 6),
@@ -281,7 +281,7 @@ class RecognitionResultView extends ConsumerWidget {
             ClipRRect(borderRadius: BorderRadius.circular(12), child: Image(image: photo, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 64, height: 64))),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Схожі гриби', style: GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+              child: Text('Схожі гриби', style: AppTheme.heading(18)),
             ),
           ],
         ),
@@ -426,7 +426,7 @@ class _NotMushroom extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Хм… Це не схоже на гриб', style: GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          Text('Хм… Це не схоже на гриб', style: AppTheme.heading(18)),
           const SizedBox(height: 6),
           Text('Спробуйте ще раз — ближче до шапки, щоб гриб займав більшу частину кадру.',
               textAlign: TextAlign.center, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75))),

@@ -32,7 +32,7 @@ class ProfileScreen extends ConsumerWidget {
     final guest = me == null || me.isGuest;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Профіль', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Профіль', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [

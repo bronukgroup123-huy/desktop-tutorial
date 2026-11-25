@@ -5,7 +5,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/push.dart';
@@ -106,7 +105,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text('Друзі', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Друзі', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -196,7 +195,7 @@ class _BlockedScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text('Заблоковані', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Заблоковані', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

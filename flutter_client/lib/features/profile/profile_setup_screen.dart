@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -20,7 +19,7 @@ class ProfileSetupScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
             children: [
-              Text('Як вас звати?', style: GoogleFonts.merriweather(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+              Text('Як вас звати?', style: AppTheme.heading(26)),
               const SizedBox(height: 8),
               Text(
                 'Ім\'я бачать друзі й ваш Наглядач. Нік — щоб вас знайти й додати в друзі.',
@@ -40,7 +39,7 @@ class EditIdentityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text('Ім\'я й нік', style: GoogleFonts.merriweather(color: AppTheme.darkGreen))),
+        appBar: AppBar(title: Text('Ім\'я й нік', style: AppTheme.appBarTitle)),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [IdentityForm(submitLabel: 'Зберегти', onSaved: () => Navigator.of(context).pop())],
