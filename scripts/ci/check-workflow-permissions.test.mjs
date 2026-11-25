@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   checkRepository,
+  validateDataWorkflowSafety,
   validateProductionSecretScope,
   validateSmokeSecretMasking,
   validateWaveAlertWorkflow,
@@ -68,6 +69,48 @@ test("production secrets cannot be inherited by third-party action steps", () =>
     "      - uses: actions/checkout@v4",
   ].join("\n");
   assert.throws(() => validateProductionSecretScope("deploy.yml", source), /exposed at job scope/);
+});
+
+test("workflow-level secrets cannot be inherited by every data job", () => {
+  const source = [
+    "env:",
+    "  TOKEN: ${{ secrets.DATA_TOKEN }}",
+    "jobs:",
+    "  validate:",
+    "    runs-on: ubuntu-latest",
+  ].join("\n");
+  assert.throws(() => validateProductionSecretScope("forests.yml", source), /exposed at workflow scope/);
+});
+
+test("heavy data builds must not run for pull requests", () => {
+  const source = [
+    "jobs:",
+    "  build:",
+    "    if: github.actor != 'dependabot[bot]'",
+    "    permissions:",
+    "      contents: read",
+  ].join("\n");
+  assert.throws(
+    () => validateDataWorkflowSafety("forests.yml", source),
+    /heavy data job must not run for pull requests/,
+  );
+});
+
+test("heavy data jobs cannot retain release write permission", () => {
+  const source = [
+    "jobs:",
+    "  map:",
+    "    if: github.event_name != 'pull_request'",
+    "    permissions:",
+    "      contents: write",
+    "    steps:",
+    "      - run: python -m py_compile scripts/forest_type/s2_leaf_type.py scripts/forest_type/zonal.py",
+    "      - run: 'name: ci-forest-type-validation'",
+  ].join("\n");
+  assert.throws(
+    () => validateDataWorkflowSafety("forest-type-pilot.yml", source),
+    /heavy data job must be read-only.*cannot publish directly/s,
+  );
 });
 
 test("wave alerts must use the guarded runner", () => {
