@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -25,7 +24,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text('Налаштування', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Налаштування', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

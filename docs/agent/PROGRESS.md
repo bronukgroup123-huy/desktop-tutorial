@@ -339,6 +339,17 @@ See docs/agent/BLOCKERS.md.
   remains blocked by macOS and Apple configuration. Claude owns remaining UI-002 and product performance work;
   PERF-001 part 1 merged as PR #129.
 
+## 2026-11-25 19:30 UTC — UI-002 part 2: heading styles (Claude)
+- Owner merged #128 (color tokens) and #129 (PERF-001 part 1, after the PROGRESS.md conflict was resolved
+  by merging main and keeping both entries).
+- Branch: claude/ui-002b-radii-headings (from main) → PR #131
+- Done: `AppTheme.appBarTitle` / `AppTheme.heading(size)`; 33 identical Merriweather calls in 22 files
+  replaced; 17 special ones (shadow, other color, conditional size) left. Radii and card decoration left on
+  purpose (see BACKLOG UI-002).
+- Checks: `flutter analyze` → no issues; `flutter test` → 350 passed (2 new).
+- Process: agent state now goes in a separate small PR (this one), so task PRs no longer conflict.
+- Next: DOC-001 — reconcile NEXT_TASK, BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA with the code.
+
 ## 2026-11-25 19:51 UTC — CI-003 artifact action round trip (Codex)
 - Baseline: `main` at `13aa529`; branch `codex/ci-003-artifact-roundtrip`, PR #133.
 - Found: Dependabot PR #22 did not execute `download-artifact@v8` because its download steps are limited to
@@ -348,8 +359,9 @@ See docs/agent/BLOCKERS.md.
   `download-artifact@v8`, immutable `artifact-id`, one bounded five-second retry and byte comparison with
   `cmp`; artifact retention is one day. Reconciled completed SEC-007, OPS-001, PERF-001 and CI-002 statuses.
 - Checks: local workflow-permission tests 11/11 and repository guard passed; final push and pull-request runs
-  both passed artifact round trip, Deno, Flutter, fresh migrations and Gitleaks. PR #133 is clean/mergeable.
+  both passed artifact round trip, Deno, Flutter, fresh migrations and Gitleaks.
 - Safety: the job generates one text file, receives no secrets, checks out no repository code, calls no
   production service and performs no deployment.
+- Rebase/merge status: merged current `main` at `54bbe1e`, retaining both the Claude UI-002 and Codex CI-003
+  records. PRs #131 and #132 are merged; DOC-001 remains Claude-owned.
 - Next: owner reviews/merges #133; then refresh Dependabot #3/#22/#23 against `main` and assess them separately.
-  Claude owns open UI-002 part 2 PRs #131/#132.

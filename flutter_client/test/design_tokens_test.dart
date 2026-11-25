@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   final tokens = <String, Color>{
@@ -40,5 +41,29 @@ void main() {
       }
     }
     expect(found, isEmpty, reason: 'Замініть літерали на токени AppTheme');
+  });
+
+  testWidgets('стилі заголовків — ті самі, що були в екранах', (tester) async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    expect(AppTheme.appBarTitle, GoogleFonts.merriweather(color: AppTheme.darkGreen));
+    expect(AppTheme.heading(20), GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen));
+    expect(AppTheme.heading(18, weight: FontWeight.w700),
+        GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.darkGreen));
+  });
+
+  test('lib/ не повторює стиль заголовка вручну', () {
+    final manual = [
+      RegExp(r'GoogleFonts\.merriweather\(color: AppTheme\.darkGreen\)'),
+      RegExp(r'GoogleFonts\.merriweather\(\s*fontSize: [\d.]+,\s*fontWeight: FontWeight\.(bold|w700),\s*color: AppTheme\.darkGreen,?\s*\)'),
+    ];
+    final found = <String>[];
+    for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {
+      if (!f.path.endsWith('.dart') || f.path.endsWith('app_theme.dart')) continue;
+      final text = f.readAsStringSync();
+      for (final r in manual) {
+        if (r.hasMatch(text)) found.add(f.path);
+      }
+    }
+    expect(found, isEmpty, reason: 'Використайте AppTheme.appBarTitle / AppTheme.heading');
   });
 }

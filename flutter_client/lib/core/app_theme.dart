@@ -24,6 +24,13 @@ class AppTheme {
   /// Увага, але не небезпека: ліміт близько, застаріло, обережно.
   static const Color warning = Color(0xFFB45309);
 
+  /// Назва екрана в AppBar (UI-002): Merriweather темно-зеленим; розмір — з теми AppBar.
+  static TextStyle get appBarTitle => GoogleFonts.merriweather(color: darkGreen);
+
+  /// Заголовок картки чи розділу (UI-002): Merriweather, жирний, темно-зелений.
+  static TextStyle heading(double size, {FontWeight weight = FontWeight.bold, Color color = darkGreen}) =>
+      GoogleFonts.merriweather(fontSize: size, fontWeight: weight, color: color);
+
   static ThemeData get lightTheme {
     final base = ThemeData(
       useMaterial3: true,

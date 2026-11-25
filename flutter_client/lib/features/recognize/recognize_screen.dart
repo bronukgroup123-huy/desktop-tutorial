@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/catalog/catalog_browser.dart';
@@ -18,7 +17,7 @@ class RecognizeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Розпізнати', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Розпізнати', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -61,7 +60,7 @@ class RecognitionHistorySheet extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text('Історія розпізнавань',
-                        style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                        style: AppTheme.heading(17)),
                   ),
                   if (history.isNotEmpty)
                     TextButton(

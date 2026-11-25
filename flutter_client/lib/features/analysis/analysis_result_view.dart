@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
@@ -208,7 +207,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
               Expanded(
                 child: Text(
                   'Ваші місця в ділянці',
-                  style: GoogleFonts.merriweather(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                  style: AppTheme.heading(15),
                 ),
               ),
               // День, який зараз на мінікарті (видно під час «хвилі по днях»).

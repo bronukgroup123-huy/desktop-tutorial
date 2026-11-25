@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/providers.dart';
@@ -53,10 +52,10 @@ class LicensesScreen extends ConsumerWidget {
     final dim = AppTheme.darkGreen.withValues(alpha: 0.7);
     Widget header(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(0, 18, 0, 6),
-          child: Text(t, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          child: Text(t, style: AppTheme.heading(16)),
         );
     return Scaffold(
-      appBar: AppBar(title: Text('Джерела та ліцензії', style: GoogleFonts.merriweather(color: AppTheme.darkGreen))),
+      appBar: AppBar(title: Text('Джерела та ліцензії', style: AppTheme.appBarTitle)),
       body: ListView(
         key: const ValueKey('licenses-list'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),

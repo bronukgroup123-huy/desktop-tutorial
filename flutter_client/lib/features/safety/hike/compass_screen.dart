@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
@@ -115,7 +114,7 @@ class ReturnScreen extends ConsumerWidget {
     final mode = hike.returnMode ?? (hike.outbound.length >= 2 ? ReturnMode.track : ReturnMode.direct);
     const warnings = {'water': 'через воду', 'wetland': 'через болото', 'river': 'через річку'};
     return Scaffold(
-      appBar: AppBar(title: Text('Додому', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)), actions: const [VoiceToggle()]),
+      appBar: AppBar(title: Text('Додому', style: AppTheme.appBarTitle), actions: const [VoiceToggle()]),
       body: ListView(
         key: const ValueKey('return-screen'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -382,7 +381,7 @@ class CompassScreen extends ConsumerWidget {
     final target = ref.watch(navTargetProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Компас', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Компас', style: AppTheme.appBarTitle),
         actions: [if (target != null) const VoiceToggle()],
       ),
       body: target == null
