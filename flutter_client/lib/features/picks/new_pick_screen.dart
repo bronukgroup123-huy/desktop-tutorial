@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/core/image_decode.dart';
 import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/core/uuid.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
@@ -196,9 +197,12 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                File(_photo.path),
+              child: LayoutBuilder(
+                builder: (context, box) => Image(
+                // Прев'ю 220 px заввишки — без декодування фото в повному розмірі (PERF-001).
+                image: coverDecoded(FileImage(File(_photo.path)), Size(box.maxWidth, 220), context),
                 height: 220,
+                width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stack) => Container(
                   height: 220,
@@ -206,6 +210,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
                   alignment: Alignment.center,
                   child: const Icon(Icons.broken_image_outlined, size: 48),
                 ),
+              ),
               ),
             ),
             if (_photoError != null)

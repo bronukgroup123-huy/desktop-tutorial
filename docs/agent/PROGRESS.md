@@ -298,3 +298,15 @@ See docs/agent/BLOCKERS.md.
 - Checks: new test without the fixes → 5 failures (overflows 8–394 px); with fixes → `flutter test` 341 passed;
   `flutter analyze` → no issues.
 - Next: UI-002 (design tokens) or PERF-001 (static analysis).
+
+## 2026-11-25 17:20 UTC — scheduled run: PERF-001 part 1 (Claude)
+- Open agent PRs: #128 (UI-002 part 1) — CI running, nothing red.
+- Branch: claude/perf-001-static (from main; independent of #128)
+- Measured in widget tests (no device):
+  - mini-map stickers: 0 map repaints in 60 animation frames → not a hotspot, guard test added;
+  - capture thumbnails: 1280×720 frame decoded at full size = 3.69 MB each (×3) → 310×174 = 0.22 MB;
+  - pick preview: decode width limited to the box (e.g. 1600×1200 = 7.7 MB → 1173×880 = 4.1 MB at dpr 3).
+- Done: `core/image_decode.dart` (cover-safe decode width: short side of a 16:9 frame in either orientation
+  still covers the box, never upscales); applied to capture thumbnails and the pick preview; tests in test/perf.
+- Checks: `flutter analyze` → no issues; `flutter test` → 346 passed (5 new).
+- Next: UI-002 part 2 after #128, or DOC-001.

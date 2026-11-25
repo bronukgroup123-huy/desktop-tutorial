@@ -117,7 +117,13 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
   hotspots. Device measurements need the owner (BLK-010).
-- Status: ready (static/profile-mode analysis only)
+- Part 1 (static + widget-test measurements): camera photos decoded at full size in 58×58 capture
+  thumbnails (3 × 3.7 MB for 720p) and in the 220 px pick preview (up to 1600 px) → decode to the box
+  (`core/image_decode.dart`), thumbnail 0.22 MB. Checked and not a hotspot: animated stickers do not repaint
+  the mini-map (Opacity layers, 0 map repaints / 60 frames — guard test); infinite animations stop on
+  reduce-motion and inactive tabs (go_router TickerMode); history thumbnails are already 320 px.
+  Status: in_review — branch `claude/perf-001-static`.
+- Remaining: frame timings on a real device (BLK-010).
 
 ## P1 — release
 
