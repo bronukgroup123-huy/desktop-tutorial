@@ -76,8 +76,10 @@ Claude/Codex ownership notes prevent accidental overlap but never override a dir
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
   Flutter display, tests.
-- Status: handed_to_claude (historical assignment; no open implementation PR as of 2026-11-24). Recheck
-  Claude branches before intervention and split the large server/client scope into bounded PRs.
+- Status: in_progress (Claude). Step 0 — reconciled spec in docs/tasks/NEXT_TASK.md (this PR): what is
+  already done (server levels, v1-me level, avatars by level), what ADR-019 §19.10 changed, and three
+  bounded PRs: PROD-001a server (rating_events, level_of, +1 for EXIF private picks ≤5/7d, ADR-019 limits),
+  PROD-001b API (v1-picks EXIF flag, v1-me picks permissions + OpenAPI), PROD-001c Flutter. Next: PROD-001a.
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.

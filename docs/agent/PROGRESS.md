@@ -211,3 +211,15 @@ See docs/agent/BLOCKERS.md.
 - Recommended next Codex task: OPS-001, because a current scheduled product workflow is failing and it does
   not overlap the historically Claude-assigned PROD/UI work. Wait for the owner's explicit command.
 
+## 2026-11-25 00:40 UTC — scheduled run 3: PROD-001 step 0 (Claude)
+- Outage: 15 runs queued 2026-11-22 16:34 → 2026-11-25 00:34 while the session worker restarted; processed as
+  one run (BLK-012).
+- Sync: merged since run 2 — #115 (UI-001), Codex #117 (AND-001), #118 (QA-003), #119 (CI-001), #120 (DOC-001
+  state reconciliation). Open: Codex #121 (OPS-001). No open claude/* PRs.
+- Branch: claude/prod-001-spec
+- Done: reconciled docs/tasks/NEXT_TASK.md (written 2026-11-11) with current code and ADR-019 §19.10 into a
+  PROD-001 spec with three bounded PRs; numbers checked against ADR-019 §19.10.
+- Checks: docs only (no code changed).
+- Next: PROD-001a — rating_events, level_of, +1 for EXIF private picks, ADR-019 limits (migration + SQL tests)
+- Blockers: BLK-012 (owner confirmation of the Claude cycle), others unchanged.
+
