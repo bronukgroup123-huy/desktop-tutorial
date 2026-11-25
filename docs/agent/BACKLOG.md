@@ -85,8 +85,11 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Scope: reconcile docs/tasks/NEXT_TASK.md with ADR-012/013/019 and ADR-021 §21.10 first (write the
   reconciliation into the PR), then migration (rating events, award functions, limits), v1-me/v1-picks,
   Flutter display, tests.
-- Status: handed_to_claude (no open implementation PR as of 2026-11-24). Claude should recheck current
-  branches and split the large server/client scope into bounded PRs.
+- Status: done — spec PR #122; PROD-001a #123, PROD-001b #124, PROD-001c #125 merged 2026-11-25.
+  Rating has its first source (+1 for private picks with server-verified EXIF, ≤ 5 / 7 days), levels honour
+  the knowledge certificate, ADR-019 §19.10 limits are enforced, v1-me exposes pick permissions and the
+  Flutter form/map show them. Follow-ups: BACKEND_PLAN B3.7/B3.2 statuses; pick form in test/a11y; further
+  rating sources (B3.10 knowledge tests, B3.11 feedback, B3.8 community confirmation).
 
 ### QA-003 — Flutter OpenAPI model compatibility check
 - Goal: models in flutter_client/lib/data/models match openapi/v1.yaml for v1 endpoints.

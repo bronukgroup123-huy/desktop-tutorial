@@ -234,3 +234,54 @@ See docs/agent/BLOCKERS.md.
   Claude retains UI/PERF/PROD/WEB/DOC work unless the owner directly reassigns it.
 - Commit / PR: `6935859` / PR #121. No auto-merge; full PR CI and post-merge scheduled verification pending.
 
+## 2026-11-25 00:40 UTC — scheduled run 3: PROD-001 step 0 (Claude)
+- Outage: 15 runs queued 2026-11-22 16:34 → 2026-11-25 00:34 while the session worker restarted; processed as
+  one run (BLK-012).
+- Sync: merged since run 2 — #115 (UI-001), Codex #117 (AND-001), #118 (QA-003), #119 (CI-001), #120 (DOC-001
+  state reconciliation). Open: Codex #121 (OPS-001). No open claude/* PRs.
+- Branch: claude/prod-001-spec
+- Done: reconciled docs/tasks/NEXT_TASK.md (written 2026-11-11) with current code and ADR-019 §19.10 into a
+  PROD-001 spec with three bounded PRs; numbers checked against ADR-019 §19.10.
+- Checks: docs only (no code changed).
+- Next: PROD-001a — rating_events, level_of, +1 for EXIF private picks, ADR-019 limits (migration + SQL tests)
+- Blockers: BLK-012 (owner confirmation of the Claude cycle), others unchanged.
+
+## 2026-11-25 04:35 UTC — scheduled run 4: PROD-001a (Claude)
+- Branch / SHA: claude/prod-001a-rating-server (PR #123)
+- Done: migration 20261125100000 — rating_events + trigger (rating = sum, ≥ 0), certificate columns,
+  level_of (same bounds as levelOf), +1 for private picks with server-verified EXIF (≤ 5 / 7 days) inside
+  create_pick, can_create_pick per ADR-019 §19.10 (private 5 at once + 10 new / 7 days; public from
+  forester 7, keeper 15 / 7 days); v1-picks maps the new codes to 429; OpenAPI updated.
+- Checks: `scripts/dev/local-db/run.sh` → 64 migrations, 20/20 SQL tests (new rls_rating.sql;
+  rls_picks_adr018.sql moved from the daily rule to ADR-019); `deno test` → 588 passed / 0 failed;
+  full `deno check` → 0 errors. Flutter untouched.
+- Problems / residual risks: limits change on deploy; existing picks give no retroactive points.
+- PR: #123
+- Next: PROD-001b — v1-me certified level and picks permissions + OpenAPI
+
+## 2026-11-25 08:35 UTC — scheduled run 5: PROD-001b (Claude)
+- Open agent PRs: #123 — Tests (incl. migrations) and Security green; #122 docs only.
+- Branch / SHA: claude/prod-001b-me-picks (from #123's branch) → PR #124
+- Done: v1-me `picks { public_allowed, public_hint_label, private_allowed, private_hint_label }` decided by the
+  same can_create_pick as creation; guests get the sign-in hint without a DB call; DB failure → picks null;
+  level honours knowledge_certified_at; OpenAPI Me.picks.
+- Checks: `deno test` → 592 passed / 0 failed (4 new); full `deno check` → 0 errors;
+  `check-flutter-openapi-models.mjs` → 18 models valid.
+- PR: #124 (merge after #123)
+- Next: PROD-001c — Flutter form uses picks permissions and hints
+
+## 2026-11-25 12:35 UTC — scheduled run 6: PROD-001c (Claude)
+- Open agent PRs: #123 and #124 — all checks green (Deno, Flutter, migrations, Gitleaks).
+- Branch / SHA: claude/prod-001c-flutter-picks (from #124) → PR #125
+- Done: Me.picks; pick form disables «Усі» with the server hint and forces private; private-limit warning
+  without blocking save; map FAB «Приватний тук-тук» when public picks are not allowed; profile refresh after save.
+- Checks: `flutter analyze` → no issues; `flutter test` → 326 passed (4 new); OpenAPI model contract → valid.
+- PR: #125 (merge after #124)
+- Next: owner merges the PROD-001 series; meanwhile UI-002 (design tokens) or PERF-001 (static analysis).
+
+## 2026-11-25 17:30 UTC — PROD-001 merged; docs conflicts resolved (Claude)
+- Owner merged #123 (server), #124 (v1-me picks), #125 (Flutter). PROD-001 is done; PR #122 (spec + agent
+  records) merged main and resolved BACKLOG/PROGRESS conflicts with Codex's OPS-001 records (both kept).
+- PR #116 (agent state after run 2) is superseded by #120 and #122 — closed without merge.
+- Residual: BACKEND_PLAN B3.7/B3.2 statuses and the pick form in the a11y stress test (follow-up).
+

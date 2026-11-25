@@ -49,3 +49,12 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 - Status: blocked until publication preparation. The manual store workflow requires
   `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
   `ANDROID_KEY_PASSWORD`. The public repository test key must never be reused as the Google Play identity.
+
+## BLK-012 — Claude scheduled cycle outage and policy confirmation (owner)
+- 2026-11-22 12:35 → 2026-11-25 00:35 UTC: the Claude session worker kept restarting, so 15 scheduled runs
+  queued and none executed. On 2026-11-25 the backlog was processed as one run (no catch-up burst).
+- The backlog header (PR #120) now says work is manual/interactive; AUT-001 records that choice for Codex.
+  The Claude cycle still follows the owner's master prompt of 2026-11-22 and AUTONOMY.md. Owner: if the Claude
+  cycle should stop too, disable the scheduled task «Mushroom Radar — autonomous cycle» (or say so in a PR);
+  the agent will then only work after owner messages.
+
