@@ -247,3 +247,12 @@ See docs/agent/BLOCKERS.md.
 - PR: #124 (merge after #123)
 - Next: PROD-001c — Flutter form uses picks permissions and hints
 
+## 2026-11-25 12:35 UTC — scheduled run 6: PROD-001c (Claude)
+- Open agent PRs: #123 and #124 — all checks green (Deno, Flutter, migrations, Gitleaks).
+- Branch / SHA: claude/prod-001c-flutter-picks (from #124) → PR #125
+- Done: Me.picks; pick form disables «Усі» with the server hint and forces private; private-limit warning
+  without blocking save; map FAB «Приватний тук-тук» when public picks are not allowed; profile refresh after save.
+- Checks: `flutter analyze` → no issues; `flutter test` → 326 passed (4 new); OpenAPI model contract → valid.
+- PR: #125 (merge after #124)
+- Next: owner merges the PROD-001 series; meanwhile UI-002 (design tokens) or PERF-001 (static analysis).
+
