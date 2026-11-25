@@ -393,3 +393,14 @@ See docs/agent/BLOCKERS.md.
   no API privileges → SEC-008 for Codex (no current exposure found).
 - Next: no ready Claude item left except WEB-001 (blocked on owner, BLK-009). Candidates for the owner to
   confirm: DB_SCHEMA column sections regeneration (DOC-001 residual), PERF-001 device measurements (BLK-010).
+
+## 2026-11-25 22:00 UTC — UI-001c: stress test of the remaining screens (Claude)
+- Owner merged #134 (DOC-001) and #135 (state, SEC-008 for Codex).
+- Branch: claude/ui-001c-stress-more (from main) → PR #137
+- Done: `test/a11y/more_stress_test.dart` — 10 screens × 3 stress cases. Fixed the friend profile at text ×2:
+  trophies title (47 px right) and trophy shelf height (6 px bottom; now grows with text, unchanged at normal
+  size).
+- Checks: new test before the fix → 1 failure; after → 30/30; `flutter analyze` → no issues;
+  `flutter test` → 380 passed.
+- Next: no ready Claude item; candidates need owner input (WEB-001 / BLK-009, PERF-001 device timings /
+  BLK-010) or new fakes (map, camera, compass stress tests).
