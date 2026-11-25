@@ -142,10 +142,10 @@ class ArticleSummary {
 Color statusColor(CatalogSpecies s) => switch (s.edibility) {
       _ when s.redListed => const Color(0xffb7791f),
       'deadly_poisonous' => const Color(0xff8e1b1b),
-      'poisonous' => const Color(0xffc62828),
+      'poisonous' => AppTheme.danger,
       'conditionally_edible' => const Color(0xffd9822b),
       'inedible' => const Color(0xff6b7a70),
-      'edible' => const Color(0xff2e7d32),
+      'edible' => AppTheme.success,
       _ => const Color(0xff6b7a70),
     };
 
@@ -199,7 +199,7 @@ class CatalogArticle extends StatelessWidget {
         ArticleKind.recipes => _Accordion(section: s, child: _Recipes(lines: s.lines)),
         ArticleKind.memo => _Memo(section: s),
         ArticleKind.why => _Callout(
-            color: const Color(0xffc62828),
+            color: AppTheme.danger,
             icon: Icons.science_outlined,
             title: s.title,
             child: DescBlocks(lines: s.lines),
@@ -207,7 +207,7 @@ class CatalogArticle extends StatelessWidget {
         ArticleKind.fact => _MascotTip(title: s.title, lines: s.lines),
         ArticleKind.taxonomy => _Taxonomy(section: s),
         ArticleKind.action => _Callout(
-            color: const Color(0xff2e7d32),
+            color: AppTheme.success,
             icon: Icons.photo_camera_outlined,
             title: s.title,
             child: DescBlocks(lines: s.lines),
@@ -366,7 +366,7 @@ class _Summary extends StatelessWidget {
       for (final f in s.facts)
         _SummaryLine(
           icon: f.startsWith('Симптоми') ? Icons.schedule_rounded : Icons.report_rounded,
-          color: const Color(0xffc62828),
+          color: AppTheme.danger,
           child: Text.rich(kvSpan(f, kDescText)),
         ),
       for (final (i, d) in s.dangers.indexed)
@@ -375,14 +375,14 @@ class _Summary extends StatelessWidget {
           margin: const EdgeInsets.only(top: 8),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xffc62828).withValues(alpha: 0.08),
+            color: AppTheme.danger.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xffc62828).withValues(alpha: 0.5)),
+            border: Border.all(color: AppTheme.danger.withValues(alpha: 0.5)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.warning_rounded, color: Color(0xffc62828), size: 22),
+              const Icon(Icons.warning_rounded, color: AppTheme.danger, size: 22),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -615,11 +615,11 @@ Widget markCell(String text, TextStyle style) {
   var rest = t;
   if (t.startsWith('✅')) {
     icon = Icons.check_circle_rounded;
-    color = const Color(0xff2e7d32);
+    color = AppTheme.success;
     rest = t.substring(1).trim();
   } else if (t.startsWith('❌')) {
     icon = Icons.cancel_rounded;
-    color = const Color(0xffc62828);
+    color = AppTheme.danger;
     rest = t.substring(1).trim();
   }
   final txt = Text.rich(inlineSpans(rest, style));
@@ -660,7 +660,7 @@ class _Twins extends ConsumerWidget {
       final head = rows.first;
       final twin = findByName(catalog, head[2]);
       Widget side(String name, CatalogSpecies? sp, {required bool ours}) {
-        final color = ours ? const Color(0xff2e7d32) : const Color(0xffc62828);
+        final color = ours ? AppTheme.success : AppTheme.danger;
         final card = Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
@@ -884,7 +884,7 @@ class _TwinFlip extends StatelessWidget {
         photo: species.photos.isEmpty ? null : species.photos.first,
         id: species.id,
         title: species.name,
-        color: const Color(0xff2e7d32),
+        color: AppTheme.success,
         chip: 'Наш гриб',
         hint: 'Торкніться — двійник',
       ),
@@ -894,7 +894,7 @@ class _TwinFlip extends StatelessWidget {
               photo: twin!.photos.first,
               id: twin?.id ?? '',
               title: twinName,
-              color: twinBadge == null ? const Color(0xffc62828) : Color(twinBadge.color),
+              color: twinBadge == null ? AppTheme.danger : Color(twinBadge.color),
               chip: twinBadge == null ? 'Двійник' : 'Двійник · ${twinBadge.label}',
               hint: 'Назад',
               action: twin == null

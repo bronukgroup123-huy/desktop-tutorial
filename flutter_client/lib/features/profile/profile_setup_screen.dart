@@ -163,7 +163,7 @@ class _IdentityFormState extends ConsumerState<IdentityForm> {
                 ? me!.handleChange!.reasonLabel
                 : _handleHint ?? 'Українські літери, цифри, «_» і «.»; 3–20 символів',
             helperStyle: TextStyle(
-              color: _available == true ? const Color(0xff2e7d32) : (_handleHint != null && _available != true ? const Color(0xffb45309) : null),
+              color: _available == true ? AppTheme.success : (_handleHint != null && _available != true ? AppTheme.warning : null),
             ),
           ),
           onChanged: (v) {
@@ -174,7 +174,7 @@ class _IdentityFormState extends ConsumerState<IdentityForm> {
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(_error!, key: const ValueKey('identity-error'), style: const TextStyle(color: Color(0xffc62828))),
+            child: Text(_error!, key: const ValueKey('identity-error'), style: const TextStyle(color: AppTheme.danger)),
           ),
         const SizedBox(height: 20),
         FilledButton(

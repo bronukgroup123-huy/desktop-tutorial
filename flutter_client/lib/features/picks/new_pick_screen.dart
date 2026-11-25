@@ -332,7 +332,7 @@ class _PermissionHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warning ? const Color(0xffb45309) : AppTheme.darkGreen.withValues(alpha: 0.75);
+    final color = warning ? AppTheme.warning : AppTheme.darkGreen.withValues(alpha: 0.75);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(

@@ -238,7 +238,7 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
             if (_advanced) ...[
               if (species.whyLabels.isNotEmpty) ...[
                 const _SectionTitle('Сприяє'),
-                for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, color: const Color(0xff2e7d32)),
+                for (final why in species.whyLabels) _Line(icon: Icons.check_rounded, text: why, color: AppTheme.success),
               ],
               // Чому рівень не вищий — інакше «✓» суперечили б бейджу (напр. «Низька»).
               if (species.limitLabels.isNotEmpty) ...[
@@ -332,7 +332,7 @@ class WaveStrip extends StatelessWidget {
 
   final SpeciesWave wave;
 
-  static const stageColors = [Color(0xff9ccc65), Color(0xff2e7d32), Color(0xffc9a227)];
+  static const stageColors = [Color(0xff9ccc65), AppTheme.success, Color(0xffc9a227)];
 
   @override
   Widget build(BuildContext context) {

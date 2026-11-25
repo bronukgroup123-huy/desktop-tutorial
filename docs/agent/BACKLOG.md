@@ -107,12 +107,16 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Scope: widget tests per tab; fix overflows found (auth screen first, AUD-FL-001).
 - Status: done — PR #115 (merged 2026-11-22).
 - Part 2 (UI-001b): tabs — Safety, Forecast (area with result), Catalog (AI banner not downloaded), species
-  card, pick form. Status: in_review — branch `claude/ui-001b-stress-tabs`.
+  card, pick form. Status: done — PR #127 (merged 2026-11-25).
 
 ### UI-002 — design tokens and shared components (owner: Claude)
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
   forest/parchment language) without changing approved looks.
-- Status: ready (after UI-001)
+- Part 1 (colors): semantic tokens `AppTheme.danger/success/warning`; 94 literal copies of token values in
+  23 screens replaced; `test/design_tokens_test.dart` blocks new copies. Status: done — branch
+  `claude/ui-002-design-tokens`. Merged as PR #128 (2026-11-25).
+- Part 2: radii (12/14/16/20 used ~110 times), Merriweather heading styles (52 calls), shared card
+  decoration. Status: ready.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven

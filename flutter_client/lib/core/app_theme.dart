@@ -14,6 +14,16 @@ class AppTheme {
   static const Color orange = accentOrange;
   static const Color errorRed = Color(0xFFB91C1C);
 
+  // Семантичні кольори (UI-002): одне значення на весь застосунок замість літералів у екранах.
+  /// Небезпека: SOS, отруйні гриби, тривога, «не їсти».
+  static const Color danger = Color(0xFFC62828);
+
+  /// Добре / готово: їстівний, у сезоні, збережено офлайн, напрям правильний.
+  static const Color success = Color(0xFF2E7D32);
+
+  /// Увага, але не небезпека: ліміт близько, застаріло, обережно.
+  static const Color warning = Color(0xFFB45309);
+
   static ThemeData get lightTheme {
     final base = ThemeData(
       useMaterial3: true,
