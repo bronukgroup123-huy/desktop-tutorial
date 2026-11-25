@@ -338,3 +338,14 @@ See docs/agent/BLOCKERS.md.
 - Next Codex priority: review the refreshed, green GitHub Actions Dependabot PRs (#3, #22, #23); IOS-001
   remains blocked by macOS and Apple configuration. Claude owns remaining UI-002 and product performance work;
   PERF-001 part 1 merged as PR #129.
+
+## 2026-11-25 19:30 UTC — UI-002 part 2: heading styles (Claude)
+- Owner merged #128 (color tokens) and #129 (PERF-001 part 1, after the PROGRESS.md conflict was resolved
+  by merging main and keeping both entries).
+- Branch: claude/ui-002b-radii-headings (from main) → PR #131
+- Done: `AppTheme.appBarTitle` / `AppTheme.heading(size)`; 33 identical Merriweather calls in 22 files
+  replaced; 17 special ones (shadow, other color, conditional size) left. Radii and card decoration left on
+  purpose (see BACKLOG UI-002).
+- Checks: `flutter analyze` → no issues; `flutter test` → 350 passed (2 new).
+- Process: agent state now goes in a separate small PR (this one), so task PRs no longer conflict.
+- Next: DOC-001 — reconcile NEXT_TASK, BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA with the code.
