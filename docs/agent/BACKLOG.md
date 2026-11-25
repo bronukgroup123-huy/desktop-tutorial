@@ -184,11 +184,12 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   every artifact action reference with Node 24 majors.
 - Evidence: PR #22 is green but its `download-artifact@v8` steps exist only in publish jobs skipped on PRs;
   PR #23 still points at a stale pre-CI-002 head with unrelated data-job failures.
-- Status: in_review — PR #133, branch `codex/ci-003-artifact-roundtrip`. The blocking `Tests` workflow uses
+- Status: done — PR #133 merged 2026-11-25. The blocking `Tests` workflow uses
   `upload-artifact@v7` and `download-artifact@v8` for a one-day smoke artifact and verifies the downloaded
   bytes with `cmp`. The first PR runs exposed eventual consistency immediately after upload for both name-
   and ID-based lookup, so the download is keyed by the immutable upload output `artifact-id` and gets one
-  bounded retry after five seconds. After merge, refresh PRs #3/#22/#23 against current `main`.
+  bounded retry after five seconds. Follow-up: PRs #3/#22/#23 were refreshed against merge SHA `be5d0dc`,
+  all current checks passed, and all three are clean/mergeable; owner review and separate merges remain.
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.
@@ -204,7 +205,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
 
 ### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code (owner: Claude)
-- Status: in_review — PR #134. AUTH_FLOW rewritten from code (guest, auth matrix, onboarding steps, region
+- Status: done — PR #134 merged 2026-11-25; state reconciliation merged in PR #135. AUTH_FLOW rewritten
+  from code (guest, auth matrix, onboarding steps, region
   change rules, upload URL, push, account deletion); DB_SCHEMA overview = 42 tables from migrations (Guardian
   v0 marked legacy); API/README auth and security sections; BACKEND_PLAN §1 marked as an audit snapshot.
   NEXT_TASK was already reconciled. Found SEC-008 while checking RLS.
