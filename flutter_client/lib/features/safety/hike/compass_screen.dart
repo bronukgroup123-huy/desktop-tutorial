@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
@@ -115,7 +114,7 @@ class ReturnScreen extends ConsumerWidget {
     final mode = hike.returnMode ?? (hike.outbound.length >= 2 ? ReturnMode.track : ReturnMode.direct);
     const warnings = {'water': 'через воду', 'wetland': 'через болото', 'river': 'через річку'};
     return Scaffold(
-      appBar: AppBar(title: Text('Додому', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)), actions: const [VoiceToggle()]),
+      appBar: AppBar(title: Text('Додому', style: AppTheme.appBarTitle), actions: const [VoiceToggle()]),
       body: ListView(
         key: const ValueKey('return-screen'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -159,7 +158,7 @@ class ReturnScreen extends ConsumerWidget {
               child: Text(
                 'Обережно: до найближчої стежки — ${warnings[hike.homeWarning] ?? 'через перешкоду'}. Інших доріг поруч немає.',
                 key: const ValueKey('home-warning'),
-                style: const TextStyle(fontSize: 12.5, color: Color(0xffb45309)),
+                style: const TextStyle(fontSize: 12.5, color: AppTheme.warning),
               ),
             ),
           if (mode == ReturnMode.direct && hike.route.length > 1) ...[
@@ -184,7 +183,7 @@ class ReturnScreen extends ConsumerWidget {
               child: Text(
                 'Навпростець — по прямій: дивіться під ноги, обходьте воду й болота. Надійніше — своїм слідом.',
                 key: ValueKey('direct-warning'),
-                style: TextStyle(fontSize: 12.5, color: Color(0xffb45309)),
+                style: TextStyle(fontSize: 12.5, color: AppTheme.warning),
               ),
             ),
           const SizedBox(height: 12),
@@ -283,14 +282,14 @@ class _NavigationPanelState extends ConsumerState<NavigationPanel> {
           const Text('Ви на місці!',
               key: ValueKey('return-arrived'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xff2e7d32)))
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.success))
         else ...[
           if (cue != null)
             Text(
               cueText(cue),
               key: const ValueKey('nav-cue'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: good ? const Color(0xff2e7d32) : const Color(0xffd97706)),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: good ? AppTheme.success : AppTheme.accentOrange),
             ),
           const SizedBox(height: 4),
           Text(distanceLabel(g.remainingM),
@@ -305,7 +304,7 @@ class _NavigationPanelState extends ConsumerState<NavigationPanel> {
                 'Компас недоступний — тримайте телефон рівно. Напрямок: на ${directionWord(g.aimBearing)} (${g.aimBearing.round()}°)',
                 key: const ValueKey('return-no-compass'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xffb45309)),
+                style: const TextStyle(color: AppTheme.warning),
               ),
             ),
         ],
@@ -316,7 +315,7 @@ class _NavigationPanelState extends ConsumerState<NavigationPanel> {
               'Пропущено точок: ${hike.rejected} — можливі збої GPS. Стрілка може відхилятися, звіряйтеся з місцевістю.',
               key: const ValueKey('return-gps-warning'),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xffb45309), fontSize: 12.5),
+              style: const TextStyle(color: AppTheme.warning, fontSize: 12.5),
             ),
           ),
       ],
@@ -332,7 +331,7 @@ class _InstructionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final off = g.offRoute;
-    final color = off ? const Color(0xffb45309) : AppTheme.darkGreen;
+    final color = off ? AppTheme.warning : AppTheme.darkGreen;
     final title = off ? 'Ви зійшли з маршруту на ${distanceLabel(g.offRouteM)}' : legInstruction(g.leg);
     final sub = off
         ? 'Поверніться на ${directionWord(g.aimBearing)} — стрілка веде до маршруту'
@@ -347,7 +346,7 @@ class _InstructionCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(off ? Icons.wrong_location_rounded : Icons.navigation_rounded, size: 40, color: off ? color : const Color(0xffd97706)),
+          Icon(off ? Icons.wrong_location_rounded : Icons.navigation_rounded, size: 40, color: off ? color : AppTheme.accentOrange),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -382,7 +381,7 @@ class CompassScreen extends ConsumerWidget {
     final target = ref.watch(navTargetProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Компас', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Компас', style: AppTheme.appBarTitle),
         actions: [if (target != null) const VoiceToggle()],
       ),
       body: target == null
@@ -420,7 +419,7 @@ class CompassScreen extends ConsumerWidget {
                       ref.read(hikeProvider.notifier).goHome();
                       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ReturnScreen()));
                     },
-                    style: FilledButton.styleFrom(backgroundColor: const Color(0xffd97706), padding: const EdgeInsets.symmetric(vertical: 14)),
+                    style: FilledButton.styleFrom(backgroundColor: AppTheme.accentOrange, padding: const EdgeInsets.symmetric(vertical: 14)),
                     icon: const Icon(Icons.home_rounded),
                     label: const Text('Додому'),
                   ),
@@ -546,8 +545,8 @@ class _DialPainter extends CustomPainter {
   final bool arrived;
   final bool onTrack;
 
-  static const _orange = Color(0xffd97706);
-  static const _green = Color(0xff2e7d32);
+  static const _orange = AppTheme.accentOrange;
+  static const _green = AppTheme.success;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -593,7 +592,7 @@ class _DialPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: t,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: d == 0 ? const Color(0xffc62828) : AppTheme.darkGreen),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: d == 0 ? AppTheme.danger : AppTheme.darkGreen),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

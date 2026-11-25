@@ -71,6 +71,14 @@ Handler-level `assertRegistered` remains responsible for operations forbidden to
 - Two SECURITY INVOKER helpers (get_gdd_state, upsert_gdd_state) remain executable by anon; RLS allows read
   only, writes fail. Low risk; clean up with SEC-005 if unused.
 
+## Rating ledger integrity
+
+PROD-001 introduced an append-only `rating_events` ledger, but its initial trigger did not serialize the
+read-sum-write sequence. SEC-007 (PR #130) adds a real two-connection regression and locks the affected
+`public.users` row before recomputing the sum. This prevents concurrent trusted server sources from leaving
+`users.rating` below the committed ledger total. The trigger remains SECURITY INVOKER, has a fixed empty
+`search_path`, and is not executable by `PUBLIC`, `anon` or `authenticated`.
+
 ## Privacy controls observed
 
 - Public mushroom picks use server-derived display geometry while owners receive exact coordinates.

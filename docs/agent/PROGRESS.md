@@ -285,3 +285,83 @@ See docs/agent/BLOCKERS.md.
 - PR #116 (agent state after run 2) is superseded by #120 and #122 — closed without merge.
 - Residual: BACKEND_PLAN B3.7/B3.2 statuses and the pick form in the a11y stress test (follow-up).
 
+
+## 2026-11-25 16:10 UTC — UI-001b: stress test of the main tabs (Claude)
+- Branch: claude/ui-001b-stress-tabs (from main after PROD-001)
+- Done: new `test/a11y/tabs_stress_test.dart` (Safety, Forecast area with result, Catalog with the AI banner
+  in «not downloaded» state, species card, pick form with public picks not allowed) × the three stress cases.
+  It found and the PR fixes: SOS circle text (FittedBox inside the fixed circle), forecast area tiles (grow
+  with text, 68 px minimum), forecast header (scrolls within 55 % of the height), AI banner (210 px minimum,
+  grows; overflowed by 37 px even on a 320×568 phone at normal text size), species-card photo badges (both
+  shrink with ellipsis). Normal-size layout unchanged (tile 68 px, banner 210 px measured).
+  BACKEND_PLAN B3.2/B3.7 marked done for PROD-001.
+- Checks: new test without the fixes → 5 failures (overflows 8–394 px); with fixes → `flutter test` 341 passed;
+  `flutter analyze` → no issues.
+- Next: UI-002 (design tokens) or PERF-001 (static analysis).
+
+## 2026-11-25 16:45 UTC — UI-002 part 1: color tokens (Claude)
+- UI-001b merged as PR #127 (owner created the PR after GitHub returned 500 to the agent).
+- Branch: claude/ui-002-design-tokens (from main)
+- Done: `AppTheme.danger` (#C62828), `success` (#2E7D32), `warning` (#B45309); every literal copy of these
+  and of the existing tokens (background, dark green, accent orange) in lib/ replaced by the token — 94
+  places in 23 files, same values, so no visual change. New `test/design_tokens_test.dart` pins token values
+  and fails on a new literal copy in lib/.
+- Checks: `flutter analyze` → no issues; `flutter test` → 343 passed (2 new).
+- Next: UI-002 part 2 (radii, heading styles, card decoration) or PERF-001.
+
+## 2026-11-25 17:20 UTC — scheduled run: PERF-001 part 1 (Claude)
+- Open agent PRs: #128 (UI-002 part 1) — CI running, nothing red.
+- Branch: claude/perf-001-static (from main; independent of #128)
+- Measured in widget tests (no device):
+  - mini-map stickers: 0 map repaints in 60 animation frames → not a hotspot, guard test added;
+  - capture thumbnails: 1280×720 frame decoded at full size = 3.69 MB each (×3) → 310×174 = 0.22 MB;
+  - pick preview: decode width limited to the box (e.g. 1600×1200 = 7.7 MB → 1173×880 = 4.1 MB at dpr 3).
+- Done: `core/image_decode.dart` (cover-safe decode width: short side of a 16:9 frame in either orientation
+  still covers the box, never upscales); applied to capture thumbnails and the pick preview; tests in test/perf.
+- Checks: `flutter analyze` → no issues; `flutter test` → 346 passed (5 new).
+- Next: UI-002 part 2 after #128, or DOC-001.
+
+## 2026-11-25 19:15 UTC — SEC-007 rating ledger concurrency (Codex)
+- Baseline: `main` at `9d19985` after Claude UI-002 part 1; branch
+  `codex/sec-007-rating-ledger-concurrency`, PR #130.
+- Found: `rating_events_apply()` recomputed `users.rating` without a per-user lock. Two independent server
+  transactions could both commit ledger events while the last stale user-row update lost one point.
+- Regression first: commit `d3be70d`, run `45656240950`; all existing SQL/RLS tests passed and the new
+  two-connection `Rating ledger concurrency` step failed on the unfixed trigger.
+- Done: migration `20261125191233` locks the `public.users` row before reading the ledger, then recomputes
+  the exact sum using a fresh READ COMMITTED snapshot; trigger-function ACLs remain revoked from API roles.
+- Checks after fix: commit `bcbd721`, run `45682938812`; migrations, all SQL/RLS tests, the concurrency
+  regression, Deno tests/type checks and Security passed. Flutter was unchanged; its CI job was still
+  completing when documentation was written and will rerun on the final branch commit.
+- Safety: no production query or manual deployment was performed. Merge applies one Supabase migration;
+  owner review is required and the PR must not auto-merge.
+- Next Codex priority: review the refreshed, green GitHub Actions Dependabot PRs (#3, #22, #23); IOS-001
+  remains blocked by macOS and Apple configuration. Claude owns remaining UI-002 and product performance work;
+  PERF-001 part 1 merged as PR #129.
+
+## 2026-11-25 19:30 UTC — UI-002 part 2: heading styles (Claude)
+- Owner merged #128 (color tokens) and #129 (PERF-001 part 1, after the PROGRESS.md conflict was resolved
+  by merging main and keeping both entries).
+- Branch: claude/ui-002b-radii-headings (from main) → PR #131
+- Done: `AppTheme.appBarTitle` / `AppTheme.heading(size)`; 33 identical Merriweather calls in 22 files
+  replaced; 17 special ones (shadow, other color, conditional size) left. Radii and card decoration left on
+  purpose (see BACKLOG UI-002).
+- Checks: `flutter analyze` → no issues; `flutter test` → 350 passed (2 new).
+- Process: agent state now goes in a separate small PR (this one), so task PRs no longer conflict.
+- Next: DOC-001 — reconcile NEXT_TASK, BACKEND_PLAN, AUTH_FLOW and DB_SCHEMA with the code.
+
+## 2026-11-25 19:51 UTC — CI-003 artifact action round trip (Codex)
+- Baseline: `main` at `13aa529`; branch `codex/ci-003-artifact-roundtrip`, PR #133.
+- Found: Dependabot PR #22 did not execute `download-artifact@v8` because its download steps are limited to
+  publish jobs, while PR #23 still exposes a stale pre-CI-002 PR ref. The first CI-003 runs also demonstrated
+  GitHub Artifact API eventual consistency immediately after a finalized upload.
+- Done: added a blocking generated-payload round trip using `upload-artifact@v7`,
+  `download-artifact@v8`, immutable `artifact-id`, one bounded five-second retry and byte comparison with
+  `cmp`; artifact retention is one day. Reconciled completed SEC-007, OPS-001, PERF-001 and CI-002 statuses.
+- Checks: local workflow-permission tests 11/11 and repository guard passed; final push and pull-request runs
+  both passed artifact round trip, Deno, Flutter, fresh migrations and Gitleaks.
+- Safety: the job generates one text file, receives no secrets, checks out no repository code, calls no
+  production service and performs no deployment.
+- Rebase/merge status: merged current `main` at `54bbe1e`, retaining both the Claude UI-002 and Codex CI-003
+  records. PRs #131 and #132 are merged; DOC-001 remains Claude-owned.
+- Next: owner reviews/merges #133; then refresh Dependabot #3/#22/#23 against `main` and assess them separately.

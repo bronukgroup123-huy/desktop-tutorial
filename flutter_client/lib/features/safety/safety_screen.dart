@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/features/safety/guardian/guardian_card.dart';
@@ -28,12 +27,12 @@ class SafetyScreen extends ConsumerWidget {
     final rescue = ref.watch(rescueCardProvider).valueOrNull;
     Widget header(String t) => Padding(
           padding: const EdgeInsets.only(top: 18, bottom: 8),
-          child: Text(t, style: GoogleFonts.merriweather(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+          child: Text(t, style: AppTheme.heading(17)),
         );
     void open(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     return Scaffold(
       appBar: AppBar(
-        title: Text('Безпека', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Безпека', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -174,8 +173,8 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
                   child: CircularProgressIndicator(
                     value: _c.value,
                     strokeWidth: 8,
-                    color: const Color(0xffc62828),
-                    backgroundColor: const Color(0xffc62828).withValues(alpha: 0.15),
+                    color: AppTheme.danger,
+                    backgroundColor: AppTheme.danger.withValues(alpha: 0.15),
                   ),
                 ),
                 Container(
@@ -184,16 +183,21 @@ class _SosHoldButtonState extends ConsumerState<SosHoldButton> with SingleTicker
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color.lerp(const Color(0xffe53935), const Color(0xffb71c1c), _c.value),
-                    boxShadow: [BoxShadow(color: const Color(0xffc62828).withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
+                    boxShadow: [BoxShadow(color: AppTheme.danger.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6))],
                   ),
                   alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('SOS', style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 3)),
-                      Text(_c.value > 0 ? 'Тримайте…' : 'Утримати 3 с',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
+                  padding: const EdgeInsets.all(16),
+                  // Коло фіксованого розміру: з великим шрифтом напис зменшується, а не вилазить (UI-001).
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('SOS', style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 3)),
+                        Text(_c.value > 0 ? 'Тримайте…' : 'Утримати 3 с',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -220,7 +224,7 @@ class EmergencyNumbers extends ConsumerWidget {
                   height: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: n.number == '112' ? const Color(0xffc62828) : AppTheme.darkGreen.withValues(alpha: 0.1),
+                    color: n.number == '112' ? AppTheme.danger : AppTheme.darkGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(n.number,

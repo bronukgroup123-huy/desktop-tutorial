@@ -2,16 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_client/core/app_theme.dart';
 
 /// Оформлення вкладки «Профіль» у стилі аватарів (PO 2026-11-21): шапка — ліс у світлі, що
 /// змінюється з рівнем (як рамки аватарів: береза → дуб → мох → камінь → бронза → золото);
 /// решта — пергаментні картки, медальйони-іконки, вітрина трофеїв.
 /// Лише вигляд — тексти й дані приходять із сервера.
 
-const heroCream = Color(0xFFF4F1E1);
+const heroCream = AppTheme.backgroundColor;
 const heroGold = Color(0xFFF9C66B);
-const _amber = Color(0xFFD97706);
-const _forest = Color(0xFF14532D);
+const _amber = AppTheme.accentOrange;
+const _forest = AppTheme.darkGreen;
 const _ink = Color(0xFF2B2416);
 
 /// Палітра шапки для рівня.

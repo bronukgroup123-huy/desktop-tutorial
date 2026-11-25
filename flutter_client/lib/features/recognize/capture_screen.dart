@@ -4,6 +4,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_client/core/image_decode.dart';
+
 /// Знімок гриба у 3 кроки на весь екран (рішення PO 2026-11-17): шапка → ніжка → зріз. Живий видошукач
 /// з контуром-підказкою для кожного кроку, мініатюри знятого внизу, спалах і галочка після кадру.
 /// Ніжку й зріз можна пропустити. Лише камера, без галереї (ADR-015 §18.6). Повертає кадри (JPEG).
@@ -185,7 +187,13 @@ class _CaptureScreenState extends State<CaptureScreen> with TickerProviderStateM
                             ? Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image.memory(_shots[i], fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => const SizedBox()),
+                                  Image(
+                                    // Мініатюра 58×58 — не розкодовувати весь кадр (PERF-001).
+                                    image: coverDecoded(MemoryImage(_shots[i]), const Size(58, 58), context),
+                                    fit: BoxFit.cover,
+                                    gaplessPlayback: true,
+                                    errorBuilder: (_, __, ___) => const SizedBox(),
+                                  ),
                                   const Align(
                                     alignment: Alignment.bottomRight,
                                     child: Padding(

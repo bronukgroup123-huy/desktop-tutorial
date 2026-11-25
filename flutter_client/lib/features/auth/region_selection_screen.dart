@@ -61,11 +61,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
             children: [
               Text(
                 me?.onboarding.nextStepLabel ?? 'Оберіть свою область',
-                style: GoogleFonts.merriweather(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.darkGreen,
-                ),
+                style: AppTheme.heading(24),
               ),
               const SizedBox(height: 8),
               Text(

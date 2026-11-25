@@ -16,6 +16,47 @@ env:
   DENO_FLAGS: --node-modules-dir=none
 
 jobs:
+  artifact-actions:
+    name: Artifact action round trip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create smoke artifact
+        run: |
+          mkdir -p artifact-source
+          printf '%s\n' 'mushroom-radar-artifact-roundtrip' > artifact-source/payload.txt
+
+      # CI-003: execute the Node 24 artifact majors before upgrading every workflow.
+      - name: Upload smoke artifact
+        id: smoke-upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-artifact-roundtrip
+          path: artifact-source/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Download smoke artifact
+        id: smoke-download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.smoke-upload.outputs.artifact-id }}
+          path: artifact-download/
+
+      - name: Wait for artifact API consistency
+        if: steps.smoke-download.outcome == 'failure'
+        run: sleep 5
+
+      - name: Retry smoke artifact download
+        if: steps.smoke-download.outcome == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.smoke-upload.outputs.artifact-id }}
+          path: artifact-download/
+
+      - name: Verify smoke artifact
+        run: cmp artifact-source/payload.txt artifact-download/payload.txt
+
   unit:
     name: Unit tests (Deno)
     runs-on: ubuntu-latest
@@ -108,3 +149,8 @@ jobs:
             echo "▶ $f"
             psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
           done
+
+      - name: Rating ledger concurrency
+        run: |
+          bash scripts/ci/check-rating-ledger-concurrency.sh \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres"

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -49,7 +48,7 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text('Аватар', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+        title: Text('Аватар', style: AppTheme.appBarTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -96,7 +95,7 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
                       UserAvatar(key: const ValueKey('avatar-preview'), avatar: Avatar(id: selectedId), size: 168),
                       const SizedBox(height: 8),
                       if (selected != null) ...[
-                        Text(selected.title, style: GoogleFonts.merriweather(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                        Text(selected.title, style: AppTheme.heading(18, weight: FontWeight.w700)),
                         Text(selected.role, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
                       ],
                       if (!c.canChange && c.reasonLabel != null)

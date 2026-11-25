@@ -163,11 +163,14 @@ class _RecognizeBannerState extends ConsumerState<RecognizeBanner> with SingleTi
           key: const ValueKey('ai-shoot'),
           onTap: ready ? _recognize : null,
           child: Ink(
-            height: 210,
             decoration: const BoxDecoration(
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xff2f4a3a), Color(0xff4a6b54), Color(0xff6b8570)]),
             ),
-            child: Stack(
+            // Звичайно 210 px; з великим шрифтом банер росте, а не обрізає кнопку (UI-001).
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 210),
+              child: Stack(
+              alignment: Alignment.center,
               children: [
                 Positioned.fill(
                   child: IgnorePointer(
@@ -177,7 +180,7 @@ class _RecognizeBannerState extends ConsumerState<RecognizeBanner> with SingleTi
                     ),
                   ),
                 ),
-                Center(child: center),
+                Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: center),
                 if (s.updateAvailable && !s.downloading)
                   Positioned(
                     left: 14,
@@ -204,6 +207,7 @@ class _RecognizeBannerState extends ConsumerState<RecognizeBanner> with SingleTi
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ),

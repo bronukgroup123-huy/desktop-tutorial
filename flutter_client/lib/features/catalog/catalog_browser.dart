@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
@@ -103,7 +102,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                 // ШІ-розпізнавання: банер-камера (завантаження моделі — прямо на ньому).
                 const RecognizeBanner(),
                 Text('Довідник грибів',
-                    style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkGreen)),
+                    style: AppTheme.heading(20)),
                 const SizedBox(height: 10),
                 // Фото всіх грибів на телефон — щоб у лісі без зв'язку відкривався будь-який вид.
                 const CatalogOfflineCard(),
@@ -260,7 +259,7 @@ class CatalogCard extends StatelessWidget {
                       child: Container(
                         key: ValueKey('season-now-${species.id}'),
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(color: const Color(0xff2e7d32).withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
                         child: const Text('Сезон', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                       ),
                     ),

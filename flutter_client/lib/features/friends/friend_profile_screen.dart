@@ -78,7 +78,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
         appBar: AppBar(
-          title: Text(card == null ? 'Профіль' : '@${card.handle}', style: GoogleFonts.merriweather(color: AppTheme.darkGreen)),
+          title: Text(card == null ? 'Профіль' : '@${card.handle}', style: AppTheme.appBarTitle),
           backgroundColor: Colors.transparent,
           elevation: 0,
           actions: [
