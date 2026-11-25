@@ -11,7 +11,8 @@ name: Forests data
 #    → файли публікуються в реліз «forests-data» (GitHub Releases, CDN).
 #  * Щомісяця: перебудова всіх областей (OSM постійно доповнюється). Застосунок
 #    перекачує файл лише тоді, коли змінилась його версія.
-#  * PR, що змінює генератор: пробна збірка всіх областей → Artifacts (без публікації).
+#  * PR, що змінює генератор: швидкі перевірки завжди; пробна збірка лише для
+#    довіреного PR з цього репозиторію → Artifacts (без публікації).
 #  * Тип лісу без породи в OSM — з карт релізу «forest-type-data» (Sentinel-2), якщо є.
 # Дані: © OpenStreetMap contributors (ODbL); вивантаження — Geofabrik GmbH;
 # тип за супутником — Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0).
@@ -39,8 +40,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
   PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
 
 jobs:
@@ -57,14 +56,27 @@ jobs:
           deno-version: v2.x
       - run: deno test --config deno.json -A lib.test.ts
       - run: deno check --config deno.json build_all.ts build_region.ts
+      - name: Prepare artifact action smoke test
+        run: |
+          mkdir -p ci-artifact
+          sha256sum build_all.ts build_region.ts lib.ts > ci-artifact/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forests-generator-check
+          path: scripts/forests/ci-artifact/
+          retention-days: 1
 
   build:
     name: Build forests (${{ github.event.inputs.region || 'all' }})
     needs: test
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
-      contents: write
+      contents: read
     env:
       REGION: ${{ github.event.inputs.region || 'all' }}
     steps:
@@ -74,6 +86,9 @@ jobs:
           deno-version: v2.x
       - name: Supabase public config
         uses: ./.github/actions/supabase-public-config
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         with:
           publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
@@ -161,9 +176,23 @@ jobs:
           path: dist/
           retention-days: 14
 
+  publish:
+    name: Publish forests data
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      REGION: ${{ github.event.inputs.region || 'all' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: forests-${{ env.REGION }}
+          path: dist/
+
       # Спершу дані, потім описи: застосунок читає опис і за ним — дані.
       - name: Publish to release «forests-data»
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

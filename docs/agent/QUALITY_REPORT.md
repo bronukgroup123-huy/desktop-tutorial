@@ -138,6 +138,25 @@ The guard rejects missing top-level permissions, unreviewed write scopes, deploy
 unmasked dynamic credentials and production secrets inherited by third-party action steps. This verifies
 repository configuration, not the unobservable repository-default permission setting or a live deployment.
 
+## CI-002 verification — 2026-11-25, Codex runtime, branch `codex/ci-002-data-workflows`
+
+| Check | Result |
+|---|---|
+| `node --test scripts/ci/check-workflow-permissions.test.mjs` | Pass, 10/10 positive and negative tests |
+| `node scripts/ci/check-workflow-permissions.mjs` | Pass: 17 explicit workflows, 4 reviewed top-level write scopes |
+| `actionlint` v1.7.12 | Pass, all repository workflows |
+| Forest generator tests and type checks | Pass, 11/11 tests; `build_all.ts` and `build_region.ts` checked |
+| Trails generator tests and type checks | Pass, 5/5 tests; `build_region.ts` and `regions_config.ts` checked |
+| Forest-type Python compile check | Pass, `s2_leaf_type.py` and `zonal.py` |
+| `git diff --check` | Pass |
+| Scheduled/manual data builds and release publication | Not run; this branch must not publish or mutate production data |
+
+The data workflows keep fast checks available to Dependabot and fork PRs, while secret-dependent and
+large-download jobs are limited to trusted same-repository PRs, schedules and manual runs. Release writes
+are separated from the forests and forest-type build jobs, and Supabase credentials are no longer inherited
+at workflow scope. Fast artifact smoke steps exercise artifact action upgrades without downloading the
+Ukraine OSM extract.
+
 ## Coverage assessment
 
 The repository has broad unit coverage for domain calculations, API handlers, Flutter repositories, routing, safety, map, forecast, catalog, recognition, profile, friends, and Guardian logic. Current gaps are more important than raw test counts:

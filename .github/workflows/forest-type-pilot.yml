@@ -12,7 +12,8 @@ name: Forest type (Sentinel-2)
 #  * Публікується лише карта, перевірена на лісах OSM, яких модель не бачила: точність
 #    ≥ 75% і досить перевірочних лісів (див. s2_leaf_type.py). Інакше область лишається з
 #    типом лише з OSM.
-#  * PR, що змінює скрипти: пробний прогін для Житомирщини → Artifacts (без публікації).
+#  * PR, що змінює скрипти: швидка перевірка завжди; пробний прогін для
+#    Житомирщини лише для довіреного PR з цього репозиторію → Artifacts.
 # Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors.
 on:
   workflow_dispatch:
@@ -46,11 +47,29 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
   PBF_URL: https://download.geofabrik.de/europe/ukraine-latest.osm.pbf
 
 jobs:
+  validate:
+    name: Python validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile scripts
+        run: python -m py_compile scripts/forest_type/s2_leaf_type.py scripts/forest_type/zonal.py
+      - name: Prepare artifact action smoke test
+        run: |
+          mkdir -p ci-artifact
+          sha256sum scripts/forest_type/s2_leaf_type.py scripts/forest_type/zonal.py > ci-artifact/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-forest-type-validation
+          path: ci-artifact/
+          retention-days: 1
+
   regions:
     name: Regions and bounds
     runs-on: ubuntu-latest
@@ -61,6 +80,9 @@ jobs:
       - name: Supabase public config
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.bbox == ''
         uses: ./.github/actions/supabase-public-config
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         with:
           publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
       - name: List regions
@@ -91,11 +113,15 @@ jobs:
 
   map:
     name: Map ${{ matrix.region.slug }}
-    needs: regions
+    needs: [validate, regions]
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
-      contents: write
+      contents: read
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -130,7 +156,10 @@ jobs:
         run: |
           mkdir -p osm
           if [ ! -s osm/ukraine-latest.osm.pbf ]; then
-            curl -fsSL --retry 5 --retry-delay 30 -o osm/ukraine-latest.osm.pbf "$PBF_URL"
+            curl -fsSL --retry 5 --retry-delay 30 -A "MushroomRadar-forest-type/1.0 (+https://github.com/${GITHUB_REPOSITORY})" \
+              -o osm/ukraine-latest.osm.pbf "$PBF_URL"
+            curl -fsSL --retry 5 -o osm/ukraine-latest.osm.pbf.md5 "$PBF_URL.md5"
+            (cd osm && sed 's#  .*#  ukraine-latest.osm.pbf#' ukraine-latest.osm.pbf.md5 | md5sum -c -)
           fi
           osmium extract -b "$BBOX" osm/ukraine-latest.osm.pbf -o osm/area.osm.pbf --overwrite
           osmium tags-filter osm/area.osm.pbf wr/landuse=forest wr/natural=wood wr/landcover=trees -o osm/forests.osm.pbf --overwrite
@@ -162,23 +191,43 @@ jobs:
           path: out/
           retention-days: 14
 
+  publish:
+    name: Publish forest type data
+    needs: map
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: forest-type-*
+          path: artifacts/
+
       - name: Publish to release «forest-type-data»
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp out/report.json "out/forest-type-$SLUG.report.json"
           gh release view forest-type-data --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create forest-type-data --repo "$GITHUB_REPOSITORY" --prerelease --latest=false \
               --title "Тип лісу за супутником (Sentinel-2)" \
               --notes "Карти ймовірності «хвойний ліс» (0–100 %, 255 — не ліс) для областей, 40 м. Генерує workflow «Forest type (Sentinel-2)»; використовує збірка «Forests data». Дані: Copernicus Sentinel-2 (модифіковані), ESA WorldCover 2021 (CC BY 4.0), © OpenStreetMap contributors (ODbL)."
-          # Звіт — завжди (видно, чому область без карти); карта — лише якщо пройшла перевірку.
-          gh release upload forest-type-data "out/forest-type-$SLUG.report.json" --clobber --repo "$GITHUB_REPOSITORY"
-          if [ "$(jq -r .publishable out/report.json)" = "true" ]; then
-            gh release upload forest-type-data "out/forest-type-$SLUG.tif" --clobber --repo "$GITHUB_REPOSITORY"
-            echo "Опубліковано карту: forest-type-$SLUG.tif" >> "$GITHUB_STEP_SUMMARY"
-          else
-            # Стару карту, що вже не проходить перевірку, прибираємо, щоб збірка лісів її не взяла.
-            gh release delete-asset forest-type-data "forest-type-$SLUG.tif" --yes --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
-            echo "Карту не опубліковано: $(jq -r .publish_reason out/report.json)" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          shopt -s nullglob
+          dirs=(artifacts/forest-type-*)
+          [ "${#dirs[@]}" -gt 0 ] || { echo "::error::Немає артефактів карт"; exit 1; }
+          for dir in "${dirs[@]}"; do
+            report="$dir/report.json"
+            [ -s "$report" ] || { echo "::error::Немає звіту в $dir"; exit 1; }
+            slug=$(jq -er .slug "$report")
+            cp "$report" "$dir/forest-type-$slug.report.json"
+            # Звіт — завжди (видно, чому область без карти); карта — лише після перевірки.
+            gh release upload forest-type-data "$dir/forest-type-$slug.report.json" --clobber --repo "$GITHUB_REPOSITORY"
+            if [ "$(jq -r .publishable "$report")" = "true" ]; then
+              gh release upload forest-type-data "$dir/forest-type-$slug.tif" --clobber --repo "$GITHUB_REPOSITORY"
+              echo "Опубліковано карту: forest-type-$slug.tif" >> "$GITHUB_STEP_SUMMARY"
+            else
+              # Стару карту, що вже не проходить перевірку, прибираємо, щоб збірка лісів її не взяла.
+              gh release delete-asset forest-type-data "forest-type-$slug.tif" --yes --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+              echo "Карту $slug не опубліковано: $(jq -r .publish_reason "$report")" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
