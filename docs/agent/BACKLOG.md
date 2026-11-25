@@ -70,8 +70,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   concurrently.
 - Evidence: the two-transaction regression added in commit `d3be70d` fails on the PROD-001 trigger even
   though both ledger rows commit; the last stale `UPDATE users` loses one point.
-- Status: in_review — PR #130. Migration `20261125191233` locks the user's row before recomputing the sum;
-  the same regression and the full fresh-database SQL/RLS suite pass after the fix.
+- Status: done — PR #130 merged 2026-11-25. Migration `20261125191233` locks the user's row before
+  recomputing the sum; merge tests, Security and Supabase deployment passed on `13aa529`.
 
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
@@ -85,8 +85,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   with curl exit 22; the latest failure is on `main` at `b710d10e` (2026-11-23).
 - Safety: investigate through workflow metadata and non-production/local tests first; do not probe or mutate
   production from an agent branch.
-- Status: in_review — PR #121, branch `codex/ops-001-wave-alert-workflow` (2026-11-24). Local regression
-  checks pass; live scheduled verification remains post-merge/owner-authorized.
+- Status: done — PR #121 merged 2026-11-25. Local regression checks pass; the next scheduled invocation
+  remains the live confirmation because agent branches do not call production.
 
 ### PROD-001 — rating sources, levels and public-pick limits (B3.7 + B3.2) (owner: Claude)
 - Goal: users.rating gets real sources so levels, public picks, avatars by level and wave alerts work.
@@ -134,7 +134,7 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   (`core/image_decode.dart`), thumbnail 0.22 MB. Checked and not a hotspot: animated stickers do not repaint
   the mini-map (Opacity layers, 0 map repaints / 60 frames — guard test); infinite animations stop on
   reduce-motion and inactive tabs (go_router TickerMode); history thumbnails are already 320 px.
-  Status: in_review — branch `claude/perf-001-static`.
+  Status: done — PR #129 merged 2026-11-25.
 - Remaining: frame timings on a real device (BLK-010).
 
 ## P1 — release
@@ -159,7 +159,17 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   also fails that step and separately fails `Forest type / OSM labels` with curl exit 22 after producing no
   artifact. Dependabot PRs do not receive repository secrets, so the Management API fallback cannot be a
   required PR check. The OSM download failure needs separate reproducible diagnostics before a code change.
-- Status: ready (Codex-aligned CI area; do not weaken scheduled/manual release checks).
+- Status: done — PR #126 merged 2026-11-25. Dependabot PRs now run generator validation and artifact smoke
+  checks while heavy secret-dependent jobs remain limited to schedules/manual dispatch.
+
+### CI-003 — validate artifact action majors before repository-wide upgrade (owner: Codex)
+- Goal: exercise both upload and download, including payload integrity, before Dependabot PRs #22/#23 replace
+  every artifact action reference with Node 24 majors.
+- Evidence: PR #22 is green but its `download-artifact@v8` steps exist only in publish jobs skipped on PRs;
+  PR #23 still points at a stale pre-CI-002 head with unrelated data-job failures.
+- Status: in_progress — branch `codex/ci-003-artifact-roundtrip`. The blocking `Tests` workflow uses
+  `upload-artifact@v7` and `download-artifact@v8` for a one-day smoke artifact and verifies the downloaded
+  bytes with `cmp`. After merge, refresh PRs #3/#22/#23 against current `main`.
 
 ### AND-001 — separate test APK from store release
 - Goal: store artifacts never signed with the public test key.

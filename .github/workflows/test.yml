@@ -16,6 +16,33 @@ env:
   DENO_FLAGS: --node-modules-dir=none
 
 jobs:
+  artifact-actions:
+    name: Artifact action round trip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create smoke artifact
+        run: |
+          mkdir -p artifact-source
+          printf '%s\n' 'mushroom-radar-artifact-roundtrip' > artifact-source/payload.txt
+
+      # CI-003: execute the Node 24 artifact majors before upgrading every workflow.
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-artifact-roundtrip
+          path: artifact-source/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Download smoke artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ci-artifact-roundtrip
+          path: artifact-download/
+
+      - name: Verify smoke artifact
+        run: cmp artifact-source/payload.txt artifact-download/payload.txt
+
   unit:
     name: Unit tests (Deno)
     runs-on: ubuntu-latest
