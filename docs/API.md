@@ -22,9 +22,13 @@ Edge Functions (`supabase/functions/*/index.ts`) та спільних моду�
 
 | Рівень | Значення | Де застосовується |
 |---|---|---|
-| Публічний | без заголовка | `POST /forecast`, `GET /regions`, `GET /catalog` |
+| Публічний | без заголовка | `GET /regions`, `GET /catalog`, `GET v1-regions/{slug}/geometry`, `GET v1-app-config`, `GET v1-air-alerts` |
 | Опційний JWT | `Authorization: Bearer $ACCESS_TOKEN` | `GET /picks` (для `scope=mine`) |
-| JWT обов'язковий | `Authorization: Bearer $ACCESS_TOKEN` | `POST /picks`, `GET /me`, `PATCH /me` |
+| JWT обов'язковий (гість теж) | `Authorization: Bearer $ACCESS_TOKEN` | усі інші `v1-*` (`v1-me`, `v1-picks`, `v1-analysis`, …), а також старі `POST /picks`, `GET/PATCH /me` |
+
+Повна класифікація — `supabase/functions/auth-matrix.json`; що гостю заборонено — [AUTH_FLOW.md](./AUTH_FLOW.md) §3.
+Контракт `v1-*` — [openapi/v1.yaml](../openapi/v1.yaml). Розділи нижче про `/picks` і `/me` описують старі
+ендпоінти: клієнт їх не викликає (фото — лише Signed Upload URL через `v1-picks`, ADR-002).
 
 Приклади нижче використовують плейсхолдер `$ACCESS_TOKEN` — **підставте свій
 access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
@@ -33,7 +37,6 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 ### Формат відповідей
 
 - Успіх із даними: `{ "data": ... }` (+ поля `total`/`limit`/`offset` для списків)
-- `POST /forecast` — **виняток**: повертає сирий `ForecastResult` без обгортки `{ data }`
 - `POST /picks` — `201` із `{ data: { id, verificationStatus } }`
 
 ### Формат помилок
@@ -419,7 +422,7 @@ curl "$SUPABASE_URL/functions/v1/regions"
 Помилки: `method_not_allowed` (**405**), `db_error` (**500**).
 
 > **Правило для клієнта:** показуй `name`, відправляй на сервер **`slug`**
-> (див. [AUTH_FLOW.md](./AUTH_FLOW.md#home-region)). Ніколи не хардкодь `id`.
+> (див. [AUTH_FLOW.md](./AUTH_FLOW.md#4-home-region)). Ніколи не хардкодь `id`.
 
 ---
 
@@ -605,8 +608,8 @@ curl -X PATCH "$SUPABASE_URL/functions/v1/me" \
 > навіть не парситься. `OPTIONS` → **204** до перевірки JWT.
 
 > Slug → id резолвиться через RPC `find_region_by_slug` (migration
-> `20260912000015`). Обмеження «1 зміна регіону / 30 днів» —
-> **TODO/V2**, див. [AUTH_FLOW.md](./AUTH_FLOW.md#home-region).
+> `20260912000015`). Правила зміни області (24 год на
+> виправлення, Pro — один раз, інакше підтримка) — у `v1-me`, див. [AUTH_FLOW.md](./AUTH_FLOW.md#4-home-region).
 
 ---
 
