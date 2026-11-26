@@ -570,6 +570,169 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /v1-quiz:
+    get:
+      operationId: getQuizOverview
+      summary: Тести знань — модулі й прогрес (B3.10, ADR-023)
+      description: >-
+        Сім модулів від «Як працює Грибний Радар» до «Отруйних двійників», відкриваються по черзі.
+        status — soon (готується) | locked (спершу попередній) | open | passed. Сертифікат знань — коли пройдено всі.
+      responses:
+        '200':
+          description: Модулі
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      modules:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            position: { type: integer }
+                            title: { type: string }
+                            summary: { type: string }
+                            points: { type: integer }
+                            status: { type: string, enum: [soon, locked, open, passed] }
+                            best_percent: { type: [integer, 'null'] }
+                            passed_at: { type: [string, 'null'], format: date-time }
+                            next_scored_at: { type: [string, 'null'], format: date-time, description: 'Спроба на бали — не раніше' }
+                            questions_per_attempt: { type: integer }
+                            pass_percent: { type: integer }
+                      passed_count: { type: integer }
+                      total: { type: integer }
+                      certified_at: { type: [string, 'null'], format: date-time }
+                      disclaimer_label: { type: string, example: 'Тест навчає, але не дає дозволу їсти знайдені гриби' }
+                      guest_label: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /v1-quiz/attempts:
+    post:
+      operationId: startQuizAttempt
+      summary: Почати спробу — 10 випадкових питань без правильних відповідей
+      description: >-
+        practice — тренування без балів (гостю — лише так). Відмови: 404 module_not_found, 409 module_soon /
+        module_locked / already_passed, 403 registration_required, 429 retry_later (через добу після невдачі, Retry-After).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [module_id]
+              properties:
+                module_id: { type: string, pattern: '^[a-z0-9_]{1,40}$' }
+                practice: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Спроба
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      attempt_id: { type: string, format: uuid }
+                      practice: { type: boolean }
+                      expires_at: { type: string, format: date-time }
+                      questions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            kind: { type: string, enum: [single, multi, order], description: 'одна / усі правильні / порядок' }
+                            prompt: { type: string }
+                            options:
+                              type: array
+                              items: { type: object, properties: { id: { type: string }, text: { type: string } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /v1-quiz/attempts/{id}/submit:
+    post:
+      operationId: submitQuizAttempt
+      summary: Здати спробу — оцінка, бали, сертифікат і розбір з поясненнями
+      description: >-
+        Зараховано — ≥ pass_percent і жодного хибного критичного питання. Бали — один раз за модуль.
+        Відмови: 404 attempt_not_found, 409 already_submitted, 410 attempt_expired.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: object
+                  description: '{ <question_id>: [<option_id>, …] } — для order у вибраному порядку'
+                  additionalProperties: { type: array, items: { type: string }, maxItems: 8 }
+      responses:
+        '200':
+          description: Результат
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      correct: { type: integer }
+                      total: { type: integer }
+                      percent: { type: integer }
+                      pass_percent: { type: integer }
+                      passed: { type: boolean }
+                      critical_failed: { type: boolean }
+                      points_awarded: { type: integer }
+                      certified_now: { type: boolean }
+                      result_label: { type: string }
+                      review:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            prompt: { type: string }
+                            options: { type: array, items: { type: object } }
+                            chosen: { type: array, items: { type: string } }
+                            correct: { type: array, items: { type: string } }
+                            is_correct: { type: boolean }
+                            critical: { type: boolean }
+                            explanation: { type: string }
+                            source: { type: string }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '410': { $ref: '#/components/responses/Error' }
+  /v1-quiz/questions/{id}/report:
+    post:
+      operationId: reportQuizQuestion
+      summary: «Помилка в питанні» — 3 скарги від різних людей ховають питання до перевірки
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment: { type: [string, 'null'], maxLength: 500 }
+      responses:
+        '200': { description: Прийнято }
+        '404': { $ref: '#/components/responses/Error' }
+
   /v1-analysis/feedback:
     get:
       operationId: getTripFeedbackPrompt
