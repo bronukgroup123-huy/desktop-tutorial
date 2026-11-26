@@ -243,6 +243,43 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 ### IOS-001 — create and validate the iOS target (owner: Codex; owner dependencies remain)
 - Status: blocked_macos_and_apple_configuration (source preparation possible: ios/ target, Info.plist texts)
 
+## Product plan — open items (source: docs/BACKEND_PLAN.md §0, verified against code 2026-11-26)
+
+Each item keeps its plan ID. Take only items of your zone; set the status here when you start (branch name)
+and when the PR is open/merged. Details, ADR links and acceptance criteria are in the plan rows.
+
+### B3.4 — edit / delete own pick (owner: Claude)
+- Goal: author changes visibility (with ADR-019 limits) and description; soft delete. Status: ready.
+### B3.11 — «Знайшли?» feedback after a trip (owner: Claude)
+- Goal: ADR-014 feedback loop; new rating source (ADR-012); data for B3.9 and golden dataset (B7.7). Status: ready.
+### B3.8 — community species confirmation, rewritten per ADR-019 §19.5 (owner: Claude)
+- Goal: a Forester's answer confirms a grey public pick, +2 to the author; rewrite the plan row first. Status: ready.
+### B3.12 — reports on picks (owner: Claude)
+- Goal: `pick_reports`, re-check, −50 on a confirmed report. Depends on: B3.8. Status: ready after B3.8.
+### B3.10 — knowledge tests → certificate (owner: Claude)
+- Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels. Status: ready.
+### B6.1 — export own data in v1 + Settings button (owner: Claude)
+- Goal: move the GET export of legacy `me` into `v1-me` (GDPR), add the button. Status: ready.
+### B2.4 — «poisonous never» in the forecast (owner: Claude)
+- Goal: verify that no poisonous species can reach forecast results; add an explicit filter or a regression test
+  over expert_rules. No explicit filter found in the engine on 2026-11-26. Status: ready.
+### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
+- Status: ready (gifts are announced in the profile as «скоро»).
+### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)
+- Status: ready (lower priority).
+### B8 — trips (owner: Claude)
+- Status: needs owner scope confirmation before work (largest block).
+### B3.0b — clean up unfinished photo uploads (owner: Codex)
+- Goal: scheduled removal of Storage objects without a pick older than 24 h (ADR-002); SQL/Deno test. Status: ready.
+### B0.8 — integration run of real v1 handlers against a migrated DB in CI (owner: Codex)
+- Goal: catch DB/handler mismatches like OPS-002 before merge (unit tests mock the limiter RPC). Status: ready.
+
+### Waiting for the owner (do not start)
+- B6.3 RevenueCat / Pro and everything Pro-gated (B1.8, B2.10, B2.11 Pro part, B4.6, Pro limits, Pro region change).
+- B1.4 phone sign-in, B1.5 Apple / IOS-001; B5.0 on-device model check and PERF-001 timings; B5.6 training
+  photos decision; B0.6 staging (then B7.1 pentest, B7.5 restore drill, B7.6 load test — Codex); B7.3 Sentry
+  account (then Codex); B2.15 calibration data; B7.7 after beta; WEB-001 (BLK-009).
+
 ## P2 — cleanup
 
 ### WEB-001 — remove link-based web-guardian pages (AUD-WEB-001) (owner: Claude)

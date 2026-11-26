@@ -8,7 +8,8 @@ docs/BACKEND_PLAN.md, and the current files in docs/agent/.
 - Preserve Anonymous Sign-In, signed photo uploads, local ONNX recognition,
   location privacy, and the ban on unofficial mine-risk geometry.
 - Work on a dedicated branch. Never push directly to main.
-- Complete one highest-priority unblocked backlog item per run.
+- Complete one highest-priority unblocked backlog item per run. Open product-plan tasks with their owner zone
+  (Claude / Codex / owner) are listed in docs/BACKEND_PLAN.md §0 and mirrored in docs/agent/BACKLOG.md.
 - Add a regression test for bug and security fixes.
 - Do not touch production data, deploy, merge, publish, buy services, or expose secrets.
 - Record exact commands and outcomes in docs/agent/PROGRESS.md and
