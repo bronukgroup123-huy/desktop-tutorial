@@ -351,3 +351,39 @@ Deno.test("v1-me GET: сертифікат знань → Грибознавец
   const { data } = await res.json();
   assertEquals([res.status, data.level.id, data.level.label, data.picks], [200, "expert", "Грибознавець", null]);
 });
+
+// ─── Експорт своїх даних (B6.1) ────────────────────────────────────────────
+
+Deno.test("v1-me GET ?export=1: усі дані з export_user_data, ім'я файлу за київською датою, окремий ліміт", async () => {
+  const exported = { format_version: 1, profile: { id: "u1" }, picks: [] };
+  const d = db({ "rpc.export_user_data": { data: exported, error: null } });
+  const late = new Date("2026-11-26T22:30:00Z"); // у Києві вже 27-ме
+  const res = await handle((x) => handleMe(x, { db: d, verify: verifyAs("u1"), now: () => late }))(
+    req("GET", `${URL}?export=1`),
+  );
+  assertEquals(res.status, 200);
+  const { data } = await res.json();
+  assertEquals(data.file_name, "hrybnyi-radar-dani-2026-11-27.json");
+  assertEquals(data.export, exported);
+  assertEquals(find(d, "rpc.export_user_data")?.args[0], { p_user_id: "u1" });
+  const limits = d.calls.filter((c) => c.key === "rpc.check_and_increment_ip_rate_limit")
+    .map((c) => (c.args[0] as { p_endpoint: string }).p_endpoint);
+  assertEquals(limits, ["v1-me", "v1-me-export"]);
+  // профіль окремо не будується — лише експорт
+  assertEquals(find(d, "users.select"), undefined);
+});
+
+Deno.test("v1-me GET ?export=1: гість теж отримує свої дані (точки, ділянки — ADR-001)", async () => {
+  const d = db({ "rpc.export_user_data": { data: { format_version: 1 }, error: null } });
+  const res = await run(d, req("GET", `${URL}?export=1`), true);
+  assertEquals(res.status, 200);
+});
+
+Deno.test("v1-me GET ?export=1: помилка БД → 500 без деталей; немає профілю → 404", async () => {
+  const broken = db({ "rpc.export_user_data": { data: null, error: { message: "boom secret detail" } } });
+  const res = await run(broken, req("GET", `${URL}?export=1`));
+  assertEquals(res.status, 500);
+  assert(!(await res.text()).includes("secret"));
+  const none = await run(db({ "rpc.export_user_data": { data: null, error: null } }), req("GET", `${URL}?export=1`));
+  assertEquals(none.status, 404);
+});

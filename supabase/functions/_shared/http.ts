@@ -121,6 +121,8 @@ export const V1_RATE_LIMITS: Record<string, number> = {
   "v1-forest-zones": 30,
   "v1-regions": 60,
   "v1-me": 60,
+  // експорт усіх своїх даних (B6.1) — важкий запит, людині вистачить кількох на хвилину
+  "v1-me-export": 3,
   // створення точок + карта (кожен рух карти — запит точок)
   "v1-picks": 60,
   "v1-analysis": 20,

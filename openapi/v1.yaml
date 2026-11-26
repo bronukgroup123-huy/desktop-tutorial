@@ -47,6 +47,16 @@ paths:
             { data: { trophies: [{ id, title, tier, tier_label, how_label, earned, earned_at, progress_label,
             progress, soon }], earned_count, total, new_labels } }. Гість — 403 registration_required.
           schema: { type: string, example: '1' }
+        - name: export
+          in: query
+          required: false
+          description: >-
+            Експорт усіх своїх даних (GDPR, B6.1): { data: { file_name, export } }, де export — JSON з
+            format_version, exported_at, profile, consents, region_changes, picks (і видалені; lat/lng — справжнє
+            місце, shown_lat/shown_lng — показане іншим), rating_events, trophies, analysis_areas (з history),
+            friends, guardian_links, hikes (з track), legacy_guardian_sessions, devices (лише платформа, без
+            токенів), telegram_linked_at, reports_sent. Доступно й гостю. Окремий ліміт — 3 на хвилину.
+          schema: { type: string, example: '1' }
       responses:
         '200':
           description: Профіль

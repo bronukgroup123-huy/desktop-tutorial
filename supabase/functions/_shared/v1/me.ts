@@ -6,6 +6,7 @@
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
 // GET    ?trophies=1 → { data: { trophies, earned_count, total, new_labels } } — трофеї-медальйони
 // GET    ?avatars=1 → { data: { current, can_change, reason_label, groups } } — вибір готового аватара
+// GET    ?export=1 → { data: { file_name, export } } — усі свої дані одним JSON (GDPR, B6.1); і гостю
 // PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
@@ -445,6 +446,28 @@ export async function checkHandle(ctx: MeContext, raw: string): Promise<{ handle
   return { handle: h, available: !taken, reason: taken ? `Нік @${h} уже зайнятий` : null };
 }
 
+// ─── Експорт своїх даних (B6.1, GDPR) ──────────────────────────────────────
+
+/** Ім'я файлу експорту: дата за Києвом, щоб збігалася з тим, що бачить людина. */
+export function exportFileName(now: Date): string {
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" }).format(now);
+  return `hrybnyi-radar-dani-${day}.json`;
+}
+
+/**
+ * Усі дані користувача (SQL `export_user_data`): профіль, згоди, точки, рейтинг, трофеї, ділянки, друзі,
+ * Наглядачі, походи з треком. Гостю теж — у нього є точки й ділянки (ADR-001). Окремий, тісніший ліміт:
+ * це найважчий запит профілю.
+ */
+async function exportMyData(db: MeDb, req: Request, user: AuthUser, now: Date): Promise<Record<string, unknown>> {
+  // deno-lint-ignore no-explicit-any
+  await enforceRateLimit(db as any, req, "v1-me-export");
+  const { data, error } = await db.rpc("export_user_data", { p_user_id: user.id });
+  if (error) dbFail("export_user_data", error);
+  if (!data) throw new HttpError(404, "user_not_found", "Профіль не знайдено");
+  return { file_name: exportFileName(now), export: data };
+}
+
 export async function handleMe(
   req: Request,
   deps: { db: MeDb; verify: TokenVerifier; now?: () => Date },
@@ -467,6 +490,7 @@ export async function handleMe(
     return ok({ deleted: true }, req);
   }
   const params = new URL(req.url).searchParams;
+  if (req.method === "GET" && params.has("export")) return ok(await exportMyData(deps.db, req, user, ctx.now), req);
   const check = params.get("check_handle");
   if (req.method === "GET" && check !== null) return ok(await checkHandle(ctx, check), req);
   if (req.method === "GET" && params.has("avatars")) {
