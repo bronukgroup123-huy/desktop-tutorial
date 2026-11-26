@@ -136,6 +136,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                 suffixIcon: _query.text.isEmpty
                     ? null
                     : IconButton(
+                        tooltip: 'Очистити пошук',
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () {
                           _query.clear();
@@ -322,13 +323,14 @@ class FriendActionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final key = ValueKey('friend-action-${button.id}');
     final child = Text(button.label);
+    // Без VisualDensity.compact: зона натискання — 48 px (вимога Android, UI-003).
     const pad = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
     return button.style == 'primary'
         ? FilledButton(
             key: key,
             onPressed: busy ? null : onTap,
             style: FilledButton.styleFrom(
-                backgroundColor: onDark ? AppTheme.accentOrange : AppTheme.darkGreen, foregroundColor: Colors.white, padding: pad, visualDensity: VisualDensity.compact),
+                backgroundColor: onDark ? AppTheme.accentOrange : AppTheme.darkGreen, foregroundColor: Colors.white, padding: pad),
             child: child,
           )
         : OutlinedButton(
@@ -338,7 +340,6 @@ class FriendActionChip extends StatelessWidget {
               foregroundColor: onDark ? AppTheme.backgroundColor : AppTheme.darkGreen,
               side: onDark ? BorderSide(color: AppTheme.backgroundColor.withValues(alpha: 0.6)) : null,
               padding: pad,
-              visualDensity: VisualDensity.compact,
             ),
             child: child,
           );

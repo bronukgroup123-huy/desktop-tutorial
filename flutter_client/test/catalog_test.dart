@@ -79,7 +79,8 @@ void main() {
     await tester.pump();
     expect(find.text('1 вид'), findsOneWidget);
     // над сіткою — картка «Фото без інтернету»: гриб може бути нижче краю тестового екрана
-    await tester.ensureVisible(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')), 120,
+        scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('catalog-card-flammulina_velutipes')));
     await tester.pumpAndSettle();

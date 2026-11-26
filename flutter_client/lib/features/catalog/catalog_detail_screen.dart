@@ -560,7 +560,11 @@ class _GalleryState extends State<_Gallery> {
               final e = Curves.easeOut.transform(d);
               return Opacity(opacity: 1 - 0.55 * e, child: Transform.scale(scale: 1 - 0.1 * e, child: child));
             },
-            child: GestureDetector(
+            // Екранна читалка: що це й що станеться (UI-003).
+            child: Semantics(
+              button: true,
+              label: 'Фото ${i + 1} з ${s.photos.length}: ${s.name}. Відкрити на весь екран',
+              child: GestureDetector(
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                 fullscreenDialog: true,
                 builder: (_) => _FullscreenPhotos(species: s, initial: i),
@@ -573,6 +577,7 @@ class _GalleryState extends State<_Gallery> {
                 // зверху — статус-бар і кнопка «назад», знизу — крапки гортання
                 inset: EdgeInsets.fromLTRB(12, MediaQuery.paddingOf(context).top + 10, 12, 26),
               ),
+            ),
             ),
           ),
         ),

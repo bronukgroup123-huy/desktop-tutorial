@@ -903,8 +903,7 @@ class _TwinFlip extends StatelessWidget {
                       onPressed: () => context.push('/catalog/${twin!.id}'),
                       style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: AppTheme.darkGreen,
-                          visualDensity: VisualDensity.compact),
+                          foregroundColor: AppTheme.darkGreen),
                       child: const Text('Відкрити'),
                     ),
             ),

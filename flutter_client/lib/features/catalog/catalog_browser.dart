@@ -117,6 +117,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
+                            tooltip: 'Очистити пошук',
                             icon: const Icon(Icons.close_rounded),
                             onPressed: () => setState(() {
                               _search.clear();
