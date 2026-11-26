@@ -147,7 +147,7 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Part 3 (UI-001c): friends, friend profile, safety guides, checklist, rescue card, SOS, name & handle,
   licenses. Found: friend profile trophies title and shelf at text ×2. Status: done — PR #137 (merged 2026-11-25).
 - Part 4 (UI-001d): hike — compass along the route, return by own track and direct, Safety tab with an active
-  hike (existing FakeHikeDevice). Found: hike card buttons at text ×2. Status: in_review — PR #139.
+  hike (existing FakeHikeDevice). Found: hike card buttons at text ×2. Status: done — PR #139.
 - Not covered by stress tests yet: map (MapLibre platform view), capture/recognition flow (camera) — need
   fakes the project does not have.
 
@@ -168,16 +168,16 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Goal: Flutter accessibility guidelines pass on the main screens.
 - Part 1 (labels + 48 px tap targets): `test/a11y/guidelines_test.dart` on 12 screens; gallery photo labels,
   «Очистити пошук» tooltips, compact buttons enlarged to 48 px. Exemption: forecast slot rename pencil
-  (long-press on the tile does the same). Status: in_review — PR #142.
+  (long-press on the tile does the same). Status: done — PR #142.
 - Part 2 (text contrast): owner decided 2026-11-26 — one consistent style for the whole app → UI-004.
 
 ### UI-004 — one design system for the whole app (owner: Claude; owner request 2026-11-26)
 - Part 1 (PR #144, on #142): bundled Inter/Merriweather (offline, real weights, no Google requests),
   `textMuted` #417351 and one orange #A84E08 (AA contrast), component themes; contrast test on 12 screens;
-  screenshot harness `tool/screens/gallery_test.dart`. Status: in_review.
+  screenshot harness `tool/screens/gallery_test.dart`. Status: done (#144).
 - Part 2 (PR #145, on #144): `core/ui.dart` AppCard / AppTile / SectionTitle on all tabs (profile parchment
   tiles retired; hero and oak trophy shelf kept), heading roles 24/20/17, text scale 11–20, card radius 16.
-  Status: in_review.
+  Status: done (#145).
 - Part 3 (PR #146, on #145, owner request): 14 brand SVG tile icons (`assets/icons/tile/`, style of the tab
   icons) for profile, settings and friend profile; profile hero background slightly transparent.
   Status: done — #144, #145, #146 merged 2026-11-26.
