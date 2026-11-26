@@ -1,4 +1,4 @@
-"""Іконки грибів для стікерів мінікарти (ADR-015 §15.9): 20 SVG із web-guardian/public/mushroomIcons.js
+"""Іконки грибів для стікерів мінікарти (ADR-015 §15.9): 20 SVG із data/catalog/mushroomIcons.js
 («DETAILED_SVGS», відповідають книжковим описам) → flutter_client/assets/stickers/<mushroom_type>.svg.
 
     python3 scripts/stickers/extract_svgs.py
@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "web-guardian/public/mushroomIcons.js"
+SRC = ROOT / "data/catalog/mushroomIcons.js"
 OUT = ROOT / "flutter_client/assets/stickers"
 # Ключі веб-іконок → mushroom_type рушія (міграція 20260912000007_forecast_fix_naming).
 ALIASES = {"russula_spp": "russula_vesca", "morchella_spp": "morchella_esculenta",

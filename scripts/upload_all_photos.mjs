@@ -7,7 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
 
-const JS_CATALOG = "web-guardian/public/mushroom_catalog.js";
+const JS_CATALOG = "data/catalog/mushroom_catalog.js";
 const JSON_CATALOG = "mushroom_catalog.json";
 const BUCKET = "mushroom-photos";
 

@@ -7,8 +7,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'web-guardian/public/mushroom_catalog.js'
-      - 'web-guardian/public/mushroom_descriptions.js'
+      - 'data/catalog/mushroom_catalog.js'
+      - 'data/catalog/mushroom_descriptions.js'
       - 'scripts/catalog_sync/build_app_catalog.py'
       - 'фото Топ-20 грибів (webp)/**'
       - 'фото популярні 55 грибів (webp)/**'

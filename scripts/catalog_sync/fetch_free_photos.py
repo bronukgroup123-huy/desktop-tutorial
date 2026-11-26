@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = "фото двійників (webp)"
 CATALOG = ROOT / "mushroom_catalog.json"
-CATALOG_JS = ROOT / "web-guardian/public/mushroom_catalog.js"
+CATALOG_JS = ROOT / "data/catalog/mushroom_catalog.js"
 PER_SPECIES = 3
 UA = "GrybnyiRadar-catalog/1.0 (https://github.com/bronukgroup123-huy/desktop-tutorial)"
 

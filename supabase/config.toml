@@ -26,8 +26,9 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "https://desktop-tutorial-eta-tan.vercel.app"
-additional_redirect_urls = ["http://localhost:3000", "ua.mushroomradar.app://login-callback/"]
+# Вебсайту немає (WEB-001): після входу — назад у застосунок (deep link)
+site_url = "ua.mushroomradar.app://login-callback/"
+additional_redirect_urls = ["ua.mushroomradar.app://login-callback/"]
 jwt_expiry = 3600
 enable_signup = true
 # ADR-001: гостьовий режим через Anonymous Sign-In (на продакшні увімкнено в Dashboard)

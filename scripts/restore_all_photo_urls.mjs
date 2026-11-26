@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-const JS_CATALOG = "web-guardian/public/mushroom_catalog.js";
+const JS_CATALOG = "data/catalog/mushroom_catalog.js";
 const SUPABASE_URL = "https://wrukmuxdbkbmkygfasai.supabase.co";
 const BUCKET = "mushroom-photos";
 

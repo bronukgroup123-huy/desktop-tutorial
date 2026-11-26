@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const CANDIDATE_PATHS = [
-  "web-guardian/public/mushroom_catalog.json",
+  "data/catalog/mushroom_catalog.json",
   "mushroom_catalog.json",
 ];
 

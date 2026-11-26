@@ -6,7 +6,7 @@ import 'package:flutter/services.dart' show rootBundle;
 /// Де лежать фото довідника (реліз «catalog-photos», .github/workflows/catalog.yml).
 const kCatalogPhotosBase = 'https://github.com/bronukgroup123-huy/desktop-tutorial/releases/download/catalog-photos';
 
-/// Вид у довіднику (як у веб-довіднику: web-guardian/public/landing.html).
+/// Вид у довіднику (дані — data/catalog/, scripts/catalog_sync/build_app_catalog.py).
 class CatalogSpecies {
   const CatalogSpecies({
     required this.id,

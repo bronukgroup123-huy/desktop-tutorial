@@ -1,4 +1,4 @@
-"""Розбір книжкових описів грибів (web-guardian/public/mushroom_descriptions.js):
+"""Розбір книжкових описів грибів (data/catalog/mushroom_descriptions.js):
 сезон («📅 Коли збирати?»), пік («наймасовіше…»), дерева («🌲 Де росте?»).
 
 Місяці беруться В ПОРЯДКУ ЗАПИСУ, сезон може переходити через Новий рік:
@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DESC_FILE = ROOT / "web-guardian/public/mushroom_descriptions.js"
+DESC_FILE = ROOT / "data/catalog/mushroom_descriptions.js"
 
 MONTHS = {
     "січ": 1, "лют": 2, "берез": 3, "квіт": 4, "трав": 5, "черв": 6,

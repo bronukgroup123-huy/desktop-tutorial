@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const JS_CATALOG = "web-guardian/public/mushroom_catalog.js";
+const JS_CATALOG = "data/catalog/mushroom_catalog.js";
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wrukmuxdbkbmkygfasai.supabase.co";
 const BUCKET = process.env.SUPABASE_BUCKET || "mushroom-photos";
 

@@ -1,37 +1,22 @@
 // ============================================================================
-// Edge Functions — CORS headers (audit G7-hardening)
+// Edge Functions — CORS
 // ============================================================================
-// Whitelist origins (frontend + preview + dev)
-const ALLOWED_ORIGINS = [
-  "https://desktop-tutorial-eta-tan.vercel.app",
-  "https://desktop-tutorial-m072sxnc6-bronykhub.vercel.app",
-  "http://localhost:3000",
-];
-
-// Preview URLs Vercel — патерн
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/desktop-tutorial-[a-z0-9]+-bronykhub\.vercel\.app$/,
-];
+// Клієнт — лише мобільний застосунок (Flutter): він не надсилає Origin і CORS не потребує.
+// Вебклієнта немає (web-guardian і Vercel прибрано, WEB-001), тож жодному сайту браузер не дозволить
+// читати відповіді: заголовок Access-Control-Allow-Origin віддається лише origin зі списку нижче.
+// З'явиться вебверсія — додайте її адресу сюди.
+const ALLOWED_ORIGINS: string[] = [];
 
 function isOriginAllowed(origin: string): boolean {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  return ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin));
+  return origin !== "" && ALLOWED_ORIGINS.includes(origin);
 }
 
 export function buildCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
-
-  // Серверні запити (cron, webhooks) — без Origin → віддаємо default
-  const allowOrigin = isOriginAllowed(origin)
-    ? origin
-    : "https://desktop-tutorial-eta-tan.vercel.app";
-
   return {
-    "Access-Control-Allow-Origin": allowOrigin,
+    ...(isOriginAllowed(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
     "Vary": "Origin",
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-guardian-token",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, GET, PUT, PATCH, DELETE, OPTIONS",
   };
 }
@@ -40,7 +25,6 @@ export function buildCorsHeaders(req: Request): Record<string, string> {
 // НЕ використовувати у новому коді
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-guardian-token",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, PUT, PATCH, DELETE, OPTIONS",
 };

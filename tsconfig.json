@@ -17,5 +17,5 @@
     }
   },
   "include": ["scripts/**/*.ts"],
-  "exclude": ["node_modules", "web-guardian", "supabase"]
+  "exclude": ["node_modules", "supabase"]
 }
