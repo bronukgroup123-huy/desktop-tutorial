@@ -8,6 +8,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/guardian.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/features/feedback/trip_feedback_sheet.dart';
 import 'package:flutter_client/features/safety/guardian/guardian_session.dart';
 import 'package:flutter_client/features/safety/guardian/guardian_start_sheet.dart';
 import 'package:flutter_client/features/safety/hike/compass_screen.dart';
@@ -163,12 +164,8 @@ class _HikeCardState extends ConsumerState<HikeCard> {
         ],
       ),
     );
-    if (yes != true) return;
-    // Поверталися за допомогою «Додому» — позначка для трофея «Своїм слідом».
-    final usedHomeNav = ref.read(hikeProvider).returnMode != null;
-    await ref.read(hikeProvider.notifier).finish();
-    // Наглядач більше не бачить ні місця, ні треку (без мережі — повідомимо пізніше).
-    await ref.read(guardianSessionProvider.notifier).finish(usedHomeNav: usedHomeNav);
+    if (yes != true || !mounted) return;
+    await finishHike(ref, Navigator.of(context));
   }
 
   @override
