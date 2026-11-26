@@ -8,6 +8,9 @@
 //   → 201 { data: { id, visibility, status_label, marker_color } }   (повтор → 200)
 // GET  v1-picks/map?bbox=&mine=   — точки для карти (B3.3, `picks-map.ts`)
 // GET  v1-picks/{id}              — картка точки (B3.3, `picks-map.ts`)
+// PATCH v1-picks/{id}  { visibility?, description? } — змінити свою точку (B3.4)
+//   → 200 { data: { id, visibility, status_label, marker_color, description } }
+// DELETE v1-picks/{id}            — видалити свою точку (soft delete, B3.4) → 200 { data: { deleted: true } }
 // GET  v1-picks/species           — список видів для вибору назви (`picks-map.ts`)
 //
 // Потік клієнта: (1) upload-url → (2) PUT файлу за upload_url → (3) створення точки.
@@ -377,6 +380,8 @@ const LIMIT_STATUS: Record<string, number> = {
   weekly_limit_reached: 429,
   daily_limit_reached: 429, // старі БД до міграції 20261125100000
   validation_error: 422,
+  species_required: 422,
+  pick_not_found: 404,
 };
 
 /** Відмова БД-функції лімітів → помилка API з її кодом і текстом. */
@@ -579,6 +584,80 @@ export type PicksRoute =
   | { kind: "species" }
   | { kind: "card"; id: string };
 
+// ─── Зміна й видалення своєї точки (B3.4) ──────────────────────────────────
+
+interface UpdatePickInput {
+  visibility: Visibility | null;
+  /** undefined — опис не змінюється; null — прибрати. */
+  description: string | null | undefined;
+}
+
+export function validateUpdateBody(body: unknown): UpdatePickInput {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) throw validationError("Очікується JSON-об'єкт");
+  const obj = body as Record<string, unknown>;
+  const unknownKeys = Object.keys(obj).filter((k) => k !== "visibility" && k !== "description");
+  if (unknownKeys.length) {
+    throw validationError(`Змінити можна лише видимість і опис (фото й вид не змінюються): ${unknownKeys.join(", ")}`);
+  }
+  let visibility: Visibility | null = null;
+  if (obj.visibility !== undefined) {
+    if (obj.visibility !== "private" && obj.visibility !== "public") throw validationError("visibility — private або public");
+    visibility = obj.visibility;
+  }
+  let description: string | null | undefined;
+  if ("description" in obj) {
+    const d = cleanDescription(obj.description);
+    if (!d.ok) {
+      throw validationError(d.reason === "too_long" ? `Опис — до ${DESCRIPTION_MAX_LENGTH} символів` : "description — текст або null");
+    }
+    description = d.text;
+  }
+  if (visibility === null && description === undefined) throw validationError("Нічого змінювати: передайте visibility або description");
+  return { visibility, description };
+}
+
+async function updatePick(req: Request, pickId: string, user: AuthUser, deps: PicksDeps): Promise<Response> {
+  const input = validateUpdateBody(await readJson(req));
+  // Гість (ADR-001) не робить точку публічною.
+  if (input.visibility === "public") assertRegistered(user);
+
+  // Для публікації потрібне зсунуте місце: його рахує сервер із точних координат (ADR-018 §18.5).
+  let display: { lat: number; lng: number } | null = null;
+  if (input.visibility === "public") {
+    const regionId = requireHomeRegion(await loadHomeRegionId(deps.db, user.id));
+    const { data, error } = await deps.db.rpc("get_pick_card", { p_user_id: user.id, p_region_id: regionId, p_pick_id: pickId });
+    if (error) dbFail("get_pick_card", error);
+    const card = data as { is_mine?: boolean; lat?: number; lng?: number } | null;
+    if (!card || card.is_mine !== true || typeof card.lat !== "number" || typeof card.lng !== "number") {
+      throw new HttpError(404, "pick_not_found", "Точку не знайдено");
+    }
+    display = await fuzzPoint(pickId, card.lat, card.lng, deps.fuzzSecret);
+  }
+
+  const { data, error } = await deps.db.rpc("update_pick", {
+    p_user_id: user.id,
+    p_pick_id: pickId,
+    p_visibility: input.visibility,
+    p_set_description: input.description !== undefined,
+    p_description: input.description ?? null,
+    p_display_lat: display?.lat ?? null,
+    p_display_lng: display?.lng ?? null,
+  });
+  if (error) dbFail("update_pick", error);
+  const res = data as { ok?: boolean; code?: string; message?: string; pick?: PickRow & { description?: string | null } } | null;
+  if (!res) dbFail("update_pick", "empty result");
+  if (res.ok !== true || !res.pick) throw limitError(res.code, res.message);
+  return ok({ ...pickResponse(res.pick), description: res.pick.description ?? null }, req);
+}
+
+async function deletePick(req: Request, pickId: string, user: AuthUser, deps: PicksDeps): Promise<Response> {
+  const { data, error } = await deps.db.rpc("delete_pick", { p_user_id: user.id, p_pick_id: pickId });
+  if (error) dbFail("delete_pick", error);
+  // Чужа, вже видалена чи неіснуюча точка — однаково 404 (не розкриваємо чужі точки).
+  if (data !== true) throw new HttpError(404, "pick_not_found", "Точку не знайдено");
+  return ok({ deleted: true }, req);
+}
+
 export function parsePicksRoute(url: URL): PicksRoute {
   const m = url.pathname.match(/\/v1-picks(\/[^/]*)?\/?$/);
   const tail = m ? (m[1] ?? "").replace(/^\//, "") : null;
@@ -593,8 +672,8 @@ export function parsePicksRoute(url: URL): PicksRoute {
 export async function handlePicks(req: Request, deps: PicksDeps): Promise<Response> {
   const url = new URL(req.url);
   const route = parsePicksRoute(url);
-  const reads = route.kind === "map" || route.kind === "card" || route.kind === "species";
-  assertMethod(req, reads ? ["GET"] : ["POST"]);
+  const reads = route.kind === "map" || route.kind === "species";
+  assertMethod(req, route.kind === "card" ? ["GET", "PATCH", "DELETE"] : reads ? ["GET"] : ["POST"]);
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-picks");
   const user = await requireUser(req, deps.verify);
@@ -610,6 +689,8 @@ export async function handlePicks(req: Request, deps: PicksDeps): Promise<Respon
     case "species":
       return await handlePickSpecies(req, deps);
     case "card":
+      if (req.method === "PATCH") return await updatePick(req, route.id, user, deps);
+      if (req.method === "DELETE") return await deletePick(req, route.id, user, deps);
       return await handlePickCard(req, route.id, user, deps);
   }
 }
