@@ -7,8 +7,9 @@
 [openapi/v1.yaml](../openapi/v1.yaml) і [API.md](./API.md).
 
 > **Звірено з міграціями 2026-11-25 (DOC-001).** Огляд нижче — повний і актуальний. Детальні розділи про
-> колонки писалися поетапно (2026-09…11) і описують не всі нові таблиці; якщо розділ розходиться з міграцією,
-> правда — у міграції.
+> колонки старих таблиць писалися поетапно (2026-09…11); 21 таблицю, додану пізніше, описано в кінці файла
+> ([«Таблиці 2026-11»](#таблиці-2026-11-згенеровано-з-міграцій)) — розділ згенеровано з БД. Якщо опис розходиться
+> з міграцією, правда — у міграції.
 
 ---
 
@@ -427,3 +428,309 @@ service_role клієнт, який обходить RLS).
 Лічильник аналізів: `user_id`, `area_id` → `analysis_areas(id)` CASCADE, `day` (київська дата),
 `count`; PK (`user_id`, `area_id`, `day`). Клієнтським ролям недоступна. `consume_analysis`
 збільшує лічильник одним оператором — паралельні запити ліміт не перевищать.
+
+---
+
+## Таблиці 2026-11 (згенеровано з міграцій)
+
+Згенеровано 2026-11-26 зі свіжої БД (`scripts/dev/local-db/run.sh --no-tests`, 65 міграцій) скриптом
+`scripts/dev/local-db/describe_tables.py`. Щоб оновити: підняти БД тим самим скриптом і перегенерувати розділ.
+Що означають поля й правила доступу — у міграції таблиці та відповідному ADR.
+
+### Користувачі й згоди
+
+#### `user_consents`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | uuid | так | `gen_random_uuid()` |
+| `user_id` | uuid | так |  |
+| `doc` | text | так |  |
+| `version` | text | так |  |
+| `accepted_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`; `UNIQUE (user_id, doc, version)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+#### `user_trophies`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `user_id` | uuid | так |  |
+| `trophy_id` | text | так |  |
+| `earned_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (user_id, trophy_id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `rating_events`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так |  |
+| `user_id` | uuid | так |  |
+| `delta` | integer | так |  |
+| `reason` | text | так |  |
+| `pick_id` | uuid |  |  |
+| `created_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (pick_id) REFERENCES mushroom_picks(id) ON DELETE SET NULL`; `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+### Аналіз ділянки
+
+#### `analysis_forest_edits`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `area_id` | uuid | так |  |
+| `user_id` | uuid | так |  |
+| `day` | date | так |  |
+| `count` | integer | так | `0` |
+
+Ключі: `FOREIGN KEY (area_id) REFERENCES analysis_areas(id) ON DELETE CASCADE`; `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (area_id, day)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `analysis_history`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `area_id` | uuid | так |  |
+| `user_id` | uuid | так |  |
+| `day` | date | так |  |
+| `species` | text[] | так | `'{}'::text[]` |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (area_id) REFERENCES analysis_areas(id) ON DELETE CASCADE`; `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (area_id, day)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `gdd_state`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `region_id` | integer | так |  |
+| `date` | date | так |  |
+| `cumulative_gdd` | numeric(10,2) | так | `0` |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE`; `PRIMARY KEY (region_id, date)`.
+RLS: увімкнено; політики: SELECT public.
+
+#### `weather_cache`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `cell_key` | text | так |  |
+| `payload` | jsonb | так |  |
+| `fetched_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `PRIMARY KEY (cell_key)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+### Сповіщення
+
+#### `push_devices`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `token` | text | так |  |
+| `user_id` | uuid | так |  |
+| `platform` | text | так |  |
+| `wave_alerts` | boolean | так | `true` |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (token)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `wave_alerts`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `area_id` | uuid | так |  |
+| `species` | text | так |  |
+| `wave_start` | date | так |  |
+| `sent_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (area_id) REFERENCES analysis_areas(id) ON DELETE CASCADE`; `PRIMARY KEY (area_id, species, wave_start)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `air_alerts_cache`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | smallint | так | `1` |
+| `regions` | jsonb | так | `'[]'::jsonb` |
+| `fetched_at` | timestamp with time zone |  |  |
+| `last_modified` | text |  |  |
+| `refreshing_until` | timestamp with time zone |  |  |
+| `backoff_until` | timestamp with time zone |  |  |
+
+Ключі: `PRIMARY KEY (id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+### Друзі
+
+#### `friendships`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `user_a` | uuid | так |  |
+| `user_b` | uuid | так |  |
+| `status` | text | так |  |
+| `requested_by` | uuid | так |  |
+| `blocked_by` | uuid |  |  |
+| `created_at` | timestamp with time zone | так | `now()` |
+| `responded_at` | timestamp with time zone |  |  |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_a) REFERENCES auth.users(id) ON DELETE CASCADE`; `FOREIGN KEY (user_b) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (user_a, user_b)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+#### `friend_request_log`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так | `nextval('friend_request_log_id_seq'::…` |
+| `user_id` | uuid | так |  |
+| `created_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `user_reports`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так | `nextval('user_reports_id_seq'::regclass)` |
+| `reporter_id` | uuid | так |  |
+| `target_id` | uuid | так |  |
+| `reason` | text | так |  |
+| `comment` | text |  |  |
+| `created_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (reporter_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `FOREIGN KEY (target_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+### Наглядач (ADR-022)
+
+#### `guardian_links`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `owner_id` | uuid | так |  |
+| `guardian_id` | uuid | так |  |
+| `status` | text | так |  |
+| `created_at` | timestamp with time zone | так | `now()` |
+| `responded_at` | timestamp with time zone |  |  |
+
+Ключі: `FOREIGN KEY (guardian_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (owner_id, guardian_id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `hikes`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | uuid | так | `gen_random_uuid()` |
+| `owner_id` | uuid | так |  |
+| `client_id` | text |  |  |
+| `status` | text | так | `'active'::text` |
+| `route` | jsonb | так |  |
+| `started_at` | timestamp with time zone | так | `now()` |
+| `expected_return` | timestamp with time zone | так |  |
+| `last_lat` | double precision |  |  |
+| `last_lng` | double precision |  |  |
+| `last_accuracy` | real |  |  |
+| `last_at` | timestamp with time zone |  |  |
+| `last_signal_at` | timestamp with time zone |  |  |
+| `battery` | smallint |  |  |
+| `gps_issue_at` | timestamp with time zone |  |  |
+| `check_sent_at` | timestamp with time zone |  |  |
+| `alert_sent_at` | timestamp with time zone |  |  |
+| `sos_at` | timestamp with time zone |  |  |
+| `closed_at` | timestamp with time zone |  |  |
+| `closed_reason` | text |  |  |
+| `updated_at` | timestamp with time zone | так | `now()` |
+| `checklist_done` | boolean | так | `false` |
+| `used_home_nav` | boolean | так | `false` |
+| `walked_m` | integer |  |  |
+| `points_count` | integer |  |  |
+
+Ключі: `FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+#### `hike_guardians`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `hike_id` | uuid | так |  |
+| `guardian_id` | uuid | так |  |
+
+Ключі: `FOREIGN KEY (guardian_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `FOREIGN KEY (hike_id) REFERENCES hikes(id) ON DELETE CASCADE`; `PRIMARY KEY (hike_id, guardian_id)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+#### `hike_points`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так | `nextval('hike_points_id_seq'::regclass)` |
+| `hike_id` | uuid | так |  |
+| `lat` | double precision | так |  |
+| `lng` | double precision | так |  |
+| `accuracy` | real |  |  |
+| `low_accuracy` | boolean | так | `false` |
+| `recorded_at` | timestamp with time zone | так |  |
+
+Ключі: `FOREIGN KEY (hike_id) REFERENCES hikes(id) ON DELETE CASCADE`; `PRIMARY KEY (id)`; `UNIQUE (hike_id, recorded_at)`.
+RLS: увімкнено; політики: SELECT authenticated.
+
+#### `guardian_telegram`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `user_id` | uuid | так |  |
+| `chat_id` | bigint | так |  |
+| `linked_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (user_id)`; `UNIQUE (chat_id)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+#### `telegram_link_codes`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `code_hash` | text | так |  |
+| `user_id` | uuid | так |  |
+| `expires_at` | timestamp with time zone | так |  |
+
+Ключі: `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`; `PRIMARY KEY (code_hash)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
+
+### Ліміти запитів
+
+#### `ip_rate_limit`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так | `nextval('ip_rate_limit_id_seq'::regcl…` |
+| `ip` | text | так |  |
+| `endpoint` | text | так |  |
+| `window_start` | timestamp with time zone | так |  |
+| `count` | integer | так | `1` |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `PRIMARY KEY (id)`; `UNIQUE (ip, endpoint, window_start)`.
+RLS: увімкнено; політики: ALL public.
+
+#### `notification_rate_limit`
+
+| Колонка | Тип | Обов'язкова | За замовчуванням |
+|---|---|---|---|
+| `id` | bigint | так | `nextval('notification_rate_limit_id_s…` |
+| `user_id` | uuid | так |  |
+| `channel` | text | так |  |
+| `window_start` | timestamp with time zone | так |  |
+| `count` | integer | так | `1` |
+| `updated_at` | timestamp with time zone | так | `now()` |
+
+Ключі: `PRIMARY KEY (id)`; `UNIQUE (user_id, channel, window_start)`.
+RLS: увімкнено; політик немає — доступ лише service_role / SECURITY DEFINER-функцій.
