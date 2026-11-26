@@ -565,6 +565,83 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /v1-analysis/feedback:
+    get:
+      operationId: getTripFeedbackPrompt
+      summary: «Знайшли?» — чи питати після походу (B3.11, ADR-014)
+      description: >-
+        Після «Я вдома» застосунок передає середину треку й день. Сервер шукає зв'язок: прогноз ділянки, отриманий
+        на цей день (похід у межах 5 км від ділянки), або завершений похід із Наглядачем за 12 год (трек у межах 5 км).
+        Немає зв'язку або вже відповіли — ask = false. Місце не зберігається.
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: day, in: query, required: false, description: 'Київська дата походу; за замовчуванням сьогодні', schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Чи питати й готові тексти
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [ask]
+                    properties:
+                      ask: { type: boolean }
+                      title: { type: string, example: 'Знайшли гриби?' }
+                      subtitle: { type: string, example: 'Біля ділянки «Біля Броників»' }
+                      explain_label: { type: string, description: 'ADR-014 §14.1: навіщо чесна відповідь' }
+                      answers:
+                        type: array
+                        items: { type: object, properties: { id: { type: string, enum: [found, not_found] }, label: { type: string } } }
+                      skip_label: { type: string, example: 'Не зараз' }
+                      points_label: { type: [string, 'null'] }
+                      accuracy_label: { type: [string, 'null'], example: 'Прогноз для вас збувся 3 з 4 разів' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: submitTripFeedback
+      summary: Відповідь «Знайшли? Так / Ні»
+      description: >-
+        Сервер сам знаходить зв'язок походу (як у GET). +2 бали — лише акаунту, один відгук із балами на добу,
+        нараховуються через 24 год, якщо довіра (users.feedback_trust) не нижче 0,5. «Не знайшов» там, де людина того ж
+        дня поставила свою точку з фото, знижує довіру. У калібрування йде лише «знайшов» (ADR-019 §19.9).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng, answer]
+              properties:
+                lat: { type: number, minimum: -90, maximum: 90 }
+                lng: { type: number, minimum: -180, maximum: 180 }
+                day: { type: string, format: date, description: 'Сьогодні або вчора (Київ)' }
+                answer: { type: string, enum: [found, not_found] }
+      responses:
+        '200':
+          description: Прийнято
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message_label: { type: string, example: 'Дякуємо! Записали: знайшли' }
+                      points: { type: string, enum: [pending, none] }
+                      points_label: { type: [string, 'null'], example: '+2 бали — через добу, після перевірки' }
+                      accuracy_label: { type: [string, 'null'] }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
   /v1-analysis/push:
     put:
       operationId: registerPushDevice

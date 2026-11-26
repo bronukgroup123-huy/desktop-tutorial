@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_client/data/providers.dart';
+import 'package:flutter_client/data/repositories/analysis_repository.dart';
 import 'package:flutter_client/features/map/basemap_style.dart';
 import 'package:flutter_client/features/safety/hike/compass_screen.dart';
 import 'package:flutter_client/features/safety/hike/hike_card.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'data/fake_adapter.dart';
 import 'safety_test.dart' show FakeDevice, frames;
 import 'support/memory_store.dart';
 
@@ -210,8 +212,9 @@ void main() {
     late FakeHikeDevice device;
     late FakeDevice phone;
 
-    Widget app(Widget home) => ProviderScope(
+    Widget app(Widget home, {AnalysisRepository? analysis}) => ProviderScope(
           overrides: [
+            if (analysis != null) analysisRepositoryProvider.overrideWithValue(analysis),
             hikeDeviceProvider.overrideWithValue(device),
             safetyDeviceProvider.overrideWithValue(phone),
             localStoreProvider.overrideWithValue(MemoryStore()),
@@ -228,7 +231,15 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.75;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(app(const HikeCard()));
+      // «Я вдома» → сервер каже, що похід біля ділянки прогнозу → «Знайшли?» (B3.11)
+      final feedbackQueries = <Map<String, dynamic>>[];
+      final (api, _) = makeClient((r) {
+        feedbackQueries.add({'path': r.path, ...r.queryParameters});
+        return const FakeResponse(200, {
+          'data': {'ask': true, 'title': 'Знайшли гриби?', 'answers': [{'id': 'found', 'label': 'Так, знайшли'}]},
+        });
+      });
+      await tester.pumpWidget(app(const HikeCard(), analysis: AnalysisRepository(api)));
       await tester.pump();
       expect(find.textContaining('Без маршруту похід не почати'), findsOneWidget);
       expect(find.byKey(const ValueKey('hike-start')), findsNothing);
@@ -269,6 +280,13 @@ void main() {
       await frames(tester);
       expect(container.read(hikeProvider).hasRoute, isFalse);
       expect(find.textContaining('Без маршруту похід не почати'), findsOneWidget);
+      // Завершення запису закінчується поза тестовим годинником (підписка на GPS) — даємо йому справжню мить.
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await frames(tester);
+      // Після «Я вдома» — «Знайшли?»: на сервер пішли середина треку й день (місце сервер лише перевіряє).
+      expect(find.byKey(const ValueKey('trip-feedback-sheet')), findsOneWidget);
+      expect(feedbackQueries.single['path'], '/v1-analysis/feedback');
+      expect(feedbackQueries.single.keys, containsAll(['lat', 'lng', 'day']));
     });
 
     testWidgets('«Новий маршрут»: компасом навпростець до вибраної точки маршруту', (tester) async {

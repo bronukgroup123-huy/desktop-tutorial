@@ -13,7 +13,7 @@
 
 ---
 
-## Огляд таблиць (42)
+## Огляд таблиць (44)
 
 | Категорія | Таблиці |
 |---|---|
@@ -21,6 +21,7 @@
 | Довідники | `regions`, `mushroom_catalog`, `expert_rules`, `feature_flags` |
 | Геодані | `forest_zones`, `forest_polygons` |
 | Тук-туки | `mushroom_picks`, `calibration_log` |
+| «Знайшли?» (ADR-014, B3.11) | `forecast_views` (прогнози, які людина отримала: пише `save_analysis_result`), `trip_feedback` (відгуки після походу; місце не зберігається); `users.feedback_trust` |
 | Аналіз ділянки | `analysis_areas`, `analysis_usage`, `analysis_forest_edits`, `analysis_history`, `gdd_state`, `weather_cache` |
 | Сповіщення | `push_devices`, `wave_alerts`, `air_alerts_cache` |
 | Друзі | `friendships`, `friend_request_log`, `user_reports` |

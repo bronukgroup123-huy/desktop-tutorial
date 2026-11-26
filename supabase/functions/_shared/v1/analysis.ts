@@ -13,6 +13,7 @@
 //            horizon_days, best_day?, locked_days, locked_label? } }
 //   Один аналіз рахує ВСІ дні горизонту (безкоштовно 3, Pro 7, від сьогодні); top1/weather
 //   верхнього рівня — для `date` (за замовчуванням сьогодні). Перемикання днів — без запитів.
+// GET / POST v1-analysis/feedback — «Знайшли?» після походу (B3.11, trip-feedback.ts)
 // DELETE v1-analysis/areas/{id}  → 200 { data: { deleted: true } }
 // PUT    v1-analysis/areas/{id}  { label: «Біля Броників» | null }  → 200 { data: { id, label, title } }
 // PUT    v1-analysis/areas/{id}/forest  { override: { types, extra } | null, forest?, date? }
@@ -57,6 +58,7 @@ import {
   weatherVerdict,
 } from "./forecast-labels.ts";
 import { weatherInsight } from "./weather-insight.ts";
+import { handleTripFeedback, isFeedbackPath } from "./trip-feedback.ts";
 import { dayHazards, dayParts, rainSpans } from "./weather-hours.ts";
 import { IDENTIFY } from "./identify-data.ts";
 import { type Terrain, terrainLabel } from "../forecast/terrain.ts";
@@ -1579,6 +1581,9 @@ export async function handleAnalysis(req: Request, deps: AnalysisDeps): Promise<
   await enforceRateLimit(deps.db as any, req, "v1-analysis");
   const user = await requireUser(req, deps.verify);
   const now = deps.now ? deps.now() : new Date();
+
+  // «Знайшли?» після походу (B3.11) — GET / POST v1-analysis/feedback
+  if (isFeedbackPath(new URL(req.url))) return await handleTripFeedback(req, user, deps.db, now);
 
   if (req.method === "PUT") {
     const url = new URL(req.url);
