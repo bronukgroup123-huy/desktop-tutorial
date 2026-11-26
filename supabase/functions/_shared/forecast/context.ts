@@ -61,30 +61,42 @@ async function findForestZone(
   };
 }
 
+/** Радіус «поруч із ділянкою» для знахідок спільноти: ділянка до 10×10 км + запас. */
+export const CROWD_RADIUS_M = 10_000;
+
+/**
+ * Знахідки спільноти поруч із точкою прогнозу за 7 днів: підтверджені — за видом, негативні звіти — разом
+ * (SQL crowd_counts). Збій — без поправок: прогноз рахується з погоди й лісу, як і без знахідок.
+ */
 async function fetchCrowd(
   db: ForecastDbClient,
   input: ForecastInput
 ): Promise<CrowdData> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const { count: picksCount } = await db
-    .from("mushroom_picks")
-    .select("*", { count: "exact", head: true })
-    .eq("verification_status", "verified")
-    .eq("is_negative", false)
-    .gte("created_at", since);
-
-  const { count: negativesCount } = await db
-    .from("mushroom_picks")
-    .select("*", { count: "exact", head: true })
-    .eq("is_negative", true)
-    .gte("created_at", since);
-
-  return {
-    verifiedPicks7d: picksCount ?? 0,
-    negativeReports7d: negativesCount ?? 0,
-    indicatorSpecies: [],  // §12.5: Rule 5 anti-double-counting
-  };
+  const empty: CrowdData = { verifiedPicks7d: 0, negativeReports7d: 0, indicatorSpecies: [], verifiedBySpecies: {} };
+  try {
+    const { data, error } = await db.rpc("crowd_counts", {
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_radius_m: CROWD_RADIUS_M,
+      p_since: since,
+    });
+    if (error || !data || typeof data !== "object") return empty;
+    const r = data as { verified?: Record<string, unknown>; negatives?: unknown };
+    const bySpecies: Record<string, number> = {};
+    for (const [k, v] of Object.entries(r.verified ?? {})) {
+      const n = Number(v);
+      if (Number.isFinite(n) && n > 0) bySpecies[k] = n;
+    }
+    return {
+      verifiedPicks7d: Object.values(bySpecies).reduce((a, b) => a + b, 0),
+      negativeReports7d: Number(r.negatives) || 0,
+      indicatorSpecies: [],  // §12.5: Rule 5 anti-double-counting
+      verifiedBySpecies: bySpecies,
+    };
+  } catch {
+    return empty;
+  }
 }
 
 /**

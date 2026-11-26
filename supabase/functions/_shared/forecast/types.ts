@@ -130,9 +130,12 @@ export interface WeatherData {
 // ============================================================================
 
 export interface CrowdData {
+  /** Усі підтверджені знахідки поруч за 7 днів (сума за видами). */
   verifiedPicks7d: number;
   negativeReports7d: number;
   indicatorSpecies: string[];
+  /** Підтверджені знахідки поруч за 7 днів — за видом (crowd_counts). Немає — враховується лише verifiedPicks7d. */
+  verifiedBySpecies?: Record<string, number>;
 }
 
 // ============================================================================

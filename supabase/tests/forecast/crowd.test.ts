@@ -33,16 +33,20 @@ Deno.test('applyCrowdAdjust: no_data не змінюється при negatives'
   assertEquals(r.probability, 'no_data');
 });
 
-// ─── picks=0 → пониження ─────────────────────────────────────
-Deno.test('applyCrowdAdjust: picks=0 → level понижується', () => {
+// ─── picks=0 → БЕЗ змін: «немає знахідок» — не доказ (раніше було −1 по всій країні) ───
+Deno.test('applyCrowdAdjust: picks=0 → рівень не знижується', () => {
   const ctx = makeCtx({ verifiedPicks7d: 0 });
-  assertEquals(applyCrowdAdjust(makeScored('medium'), ctx).probability, 'low');
-  assertEquals(applyCrowdAdjust(makeScored('high'), ctx).probability, 'medium');
+  assertEquals(applyCrowdAdjust(makeScored('medium'), ctx).probability, 'medium');
+  assertEquals(applyCrowdAdjust(makeScored('high'), ctx).probability, 'high');
+  assertEquals(applyCrowdAdjust(makeScored('low'), ctx).probability, 'low');
 });
 
-Deno.test('applyCrowdAdjust: picks=0, low → low (clamp на мін)', () => {
-  const ctx = makeCtx({ verifiedPicks7d: 0 });
-  assertEquals(applyCrowdAdjust(makeScored('low'), ctx).probability, 'low');
+// ─── за видом: знахідки іншого виду поруч не піднімають цей ───
+Deno.test('applyCrowdAdjust: 5 підтверджених лисичок поруч не піднімають білий; 3 білих — піднімають', () => {
+  const ctx = makeCtx({ verifiedPicks7d: 5, verifiedBySpecies: { cantharellus_cibarius: 5 } });
+  assertEquals(applyCrowdAdjust(makeScored('medium'), ctx).probability, 'medium');
+  const own = makeCtx({ verifiedPicks7d: 3, verifiedBySpecies: { boletus_edulis: 3 } });
+  assertEquals(applyCrowdAdjust(makeScored('medium'), own).probability, 'high');
 });
 
 // ─── picks≥3 → підвищення ────────────────────────────────────
@@ -80,14 +84,13 @@ Deno.test('applyCrowdAdjust: peak + picks=3 → peak (clamp на max)', () => {
   assertEquals(applyCrowdAdjust(makeScored('peak'), ctx).probability, 'peak');
 });
 
-// ─── matched містить причину Краудсорсингу ───────────────────
-Deno.test('applyCrowdAdjust: matched містить "Краудсорсинг"', () => {
+// ─── matched містить зрозумілу причину ───────────────────────
+Deno.test('applyCrowdAdjust: matched пояснює знахідки поруч', () => {
   const s = makeScored('medium');
   s.matched = ['wave "autumn" allowed'];
 
   const up = applyCrowdAdjust(s, makeCtx({ verifiedPicks7d: 3 }));
-  assert(up.matched.some(x => x.includes('Краудсорсинг')));
-  assert(up.matched.some(x => x.includes('3 підтверджених знахідок')));
+  assert(up.matched.some(x => x.includes('Поруч за тиждень підтвердили знахідки цього виду: 3')));
   assert(up.matched.includes('wave "autumn" allowed')); // існуючі причини збережені
 
   const down = applyCrowdAdjust(s, makeCtx({ verifiedPicks7d: 0, negativeReports7d: 1 }));
