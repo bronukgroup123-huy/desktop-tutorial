@@ -112,6 +112,37 @@ BEGIN
   END IF;
 END $$;
 
+-- доповнення (міграція 20261126170000): відгуки «Знайшли?» і підтвердження точок знахідкою
+DO $$
+DECLARE
+  u1 CONSTANT UUID := 'e1000000-0000-4000-8000-0000000061e1';
+  u2 CONSTANT UUID := 'e2000000-0000-4000-8000-0000000061e2';
+  j JSONB;
+BEGIN
+  INSERT INTO public.trip_feedback (user_id, trip_day, source, answer, predicted_level, points)
+  VALUES (u1, current_date, 'hike', 'found', NULL, 'none');
+  -- u1 підтвердив чужу точку u2 своєю (видаленою — не важливо) точкою; u2 — автор
+  INSERT INTO public.pick_confirmations (pick_id, confirmer_id, author_id, reply_pick_id, counted, reason)
+  VALUES ('e1000000-0000-4000-8000-0000000061a3', u1, u2, 'e1000000-0000-4000-8000-0000000061a1', true, NULL);
+
+  j := public.export_user_data(u1);
+  IF jsonb_array_length(j->'trip_feedback') <> 1 OR j->'trip_feedback'->0->>'answer' <> 'found'
+     OR (j->'feedback_trust')::numeric <> 1 THEN
+    RAISE EXCEPTION 'Test 11 failed: trip_feedback %', j->'trip_feedback';
+  END IF;
+  IF jsonb_array_length(j->'pick_confirmations') <> 1 OR (j->'pick_confirmations'->0->>'counted')::boolean IS NOT TRUE
+     OR j->'pick_confirmations'->0 ? 'pick_id' THEN
+    RAISE EXCEPTION 'Test 12 failed: pick_confirmations %', j->'pick_confirmations';
+  END IF;
+  IF j->'my_picks_confirmed' <> '[]'::jsonb THEN RAISE EXCEPTION 'Test 13 failed: %', j->'my_picks_confirmed'; END IF;
+
+  -- автор бачить лише факт і дату підтвердження своєї точки — без того, хто підтвердив
+  j := public.export_user_data(u2);
+  IF jsonb_array_length(j->'my_picks_confirmed') <> 1 OR j::TEXT LIKE '%' || u1::TEXT || '%' THEN
+    RAISE EXCEPTION 'Test 14 failed: %', j->'my_picks_confirmed';
+  END IF;
+END $$;
+
 -- клієнт напряму викликати не може (ні гість, ні акаунт)
 RESET ROLE;
 SET LOCAL ROLE authenticated;
