@@ -61,14 +61,14 @@ class GuardianCard extends ConsumerWidget {
                 children: [
                   Icon(Icons.shield_moon_rounded, color: _violet),
                   SizedBox(width: 8),
-                  Text('Наглядач', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: AppTheme.darkGreen)),
+                  Text('Наглядач', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen)),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
                 'Друг, що бачить ваш похід, поки він триває, і отримує тривоги: SOS або якщо ви не відповіли на «Все добре?» '
                 'у час повернення. Після «Я вдома» — нічого не бачить.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
               ),
               if (overview.hasError && data == null)
                 Padding(
@@ -214,7 +214,7 @@ class _GuardianRow extends ConsumerWidget {
                   Text('@${person.handle}', style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
                   if (person.label != null)
                     Text(person.label!,
-                        style: TextStyle(fontSize: 12.5, color: person.accepted ? _violet : AppTheme.accentOrange, fontWeight: FontWeight.w600)),
+                        style: TextStyle(fontSize: 13, color: person.accepted ? _violet : AppTheme.accentOrange, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -303,7 +303,7 @@ class WatchedHikeTile extends StatelessWidget {
                     if (hike.detailLabel != null) Text(hike.detailLabel!, style: const TextStyle(color: AppTheme.darkGreen, fontSize: 13)),
                     Text(
                       [hike.lastSignalLabel, if (hike.batteryLabel != null) hike.batteryLabel!].join(' · '),
-                      style: TextStyle(color: hike.noSignal ? _alarmRed : AppTheme.textMuted, fontSize: 12.5),
+                      style: TextStyle(color: hike.noSignal ? _alarmRed : AppTheme.textMuted, fontSize: 13),
                     ),
                   ],
                 ),
@@ -403,7 +403,7 @@ class _RescueBox extends StatelessWidget {
             const SizedBox(height: 6),
             SelectableText(detail.rescueCoords!,
                 key: const ValueKey('watched-coords'),
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.5, fontFeatures: [FontFeature.tabularFigures()])),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 0.5, fontFeatures: [FontFeature.tabularFigures()])),
             if (detail.rescueAt != null) Text(detail.rescueAt!, style: const TextStyle(color: AppTheme.textMuted)),
             const SizedBox(height: 10),
             Wrap(

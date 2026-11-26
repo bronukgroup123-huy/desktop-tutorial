@@ -328,7 +328,7 @@ class _StickerBoardState extends State<StickerBoard> with TickerProviderStateMix
             child: Text(
               'Торік ${h.dateLabel} · ${h.name}',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xff5d4037)),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xff5d4037)),
             ),
           ),
         ),

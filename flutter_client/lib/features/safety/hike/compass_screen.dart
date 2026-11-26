@@ -158,7 +158,7 @@ class ReturnScreen extends ConsumerWidget {
               child: Text(
                 'Обережно: до найближчої стежки — ${warnings[hike.homeWarning] ?? 'через перешкоду'}. Інших доріг поруч немає.',
                 key: const ValueKey('home-warning'),
-                style: const TextStyle(fontSize: 12.5, color: AppTheme.warning),
+                style: const TextStyle(fontSize: 13, color: AppTheme.warning),
               ),
             ),
           if (mode == ReturnMode.direct && hike.route.length > 1) ...[
@@ -183,7 +183,7 @@ class ReturnScreen extends ConsumerWidget {
               child: Text(
                 'Навпростець — по прямій: дивіться під ноги, обходьте воду й болота. Надійніше — своїм слідом.',
                 key: ValueKey('direct-warning'),
-                style: TextStyle(fontSize: 12.5, color: AppTheme.warning),
+                style: TextStyle(fontSize: 13, color: AppTheme.warning),
               ),
             ),
           const SizedBox(height: 12),
@@ -315,7 +315,7 @@ class _NavigationPanelState extends ConsumerState<NavigationPanel> {
               'Пропущено точок: ${hike.rejected} — можливі збої GPS. Стрілка може відхилятися, звіряйтеся з місцевістю.',
               key: const ValueKey('return-gps-warning'),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.warning, fontSize: 12.5),
+              style: const TextStyle(color: AppTheme.warning, fontSize: 13),
             ),
           ),
       ],
@@ -352,8 +352,8 @@ class _InstructionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: color)),
-                Text(sub, key: const ValueKey('nav-to-turn'), style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: color)),
+                Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+                Text(sub, key: const ValueKey('nav-to-turn'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color)),
                 if (!off && g.next != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -592,7 +592,7 @@ class _DialPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: t,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: d == 0 ? AppTheme.danger : AppTheme.darkGreen),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: d == 0 ? AppTheme.danger : AppTheme.darkGreen),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

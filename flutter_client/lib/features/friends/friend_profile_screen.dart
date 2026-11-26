@@ -9,6 +9,7 @@ import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
+import 'package:flutter_client/core/ui.dart';
 
 /// Публічний профіль грибника (ADR-021 §21.2; PO 2026-11-21): лише блок аватара (аватар,
 /// ім'я, @нік, рівень, дії), трофеї на дубовій поличці й подарунки. Ніколи — балів, прогресу,
@@ -155,7 +156,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
                         Flexible(
                           child: Text(
                             p == null || p.trophies.isEmpty ? 'Трофеї' : 'Трофеї · ${p.trophies.length}',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)]),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: heroCream, shadows: [Shadow(color: Color(0xAA2B180A), blurRadius: 4)]),
                           ),
                         ),
                       ],
@@ -175,7 +176,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ParchmentTile(
+              AppTile(
                 key: const ValueKey('friend-gifts'),
                 icon: Icons.card_giftcard_rounded,
                 title: 'Подарунки',

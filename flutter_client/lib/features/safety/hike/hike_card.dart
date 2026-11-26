@@ -186,7 +186,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(hike.active ? 'Похід триває' : 'Похід',
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: AppTheme.darkGreen)),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen)),
           ),
           if (!hike.active && hike.hasRoute)
             IconButton(
@@ -294,7 +294,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text('Можливі збої GPS: пропущено точок — ${hike.rejected}',
-                key: const ValueKey('hike-gps'), style: const TextStyle(color: AppTheme.warning, fontSize: 12.5)),
+                key: const ValueKey('hike-gps'), style: const TextStyle(color: AppTheme.warning, fontSize: 13)),
           ),
         if (session.active) _GuardianStatus(view: session.view, onAction: _guardianAction),
         const SizedBox(height: 10),
@@ -306,7 +306,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
       children.add(Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Text('Повідомимо Наглядача, що ви вдома, щойно з\'явиться інтернет',
-            key: const ValueKey('hike-pending-finish'), style: TextStyle(color: dim, fontSize: 12.5)),
+            key: const ValueKey('hike-pending-finish'), style: TextStyle(color: dim, fontSize: 13)),
       ));
     }
 

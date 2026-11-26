@@ -95,7 +95,7 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
                       UserAvatar(key: const ValueKey('avatar-preview'), avatar: Avatar(id: selectedId), size: 168),
                       const SizedBox(height: 8),
                       if (selected != null) ...[
-                        Text(selected.title, style: AppTheme.heading(18, weight: FontWeight.w700)),
+                        Text(selected.title, style: AppTheme.blockTitle),
                         Text(selected.role, style: TextStyle(color: AppTheme.textMuted)),
                       ],
                       if (!c.canChange && c.reasonLabel != null)

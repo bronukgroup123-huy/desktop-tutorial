@@ -65,7 +65,7 @@ class _ForecastContent extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTheme.heading(20),
+          style: AppTheme.blockTitle,
         ),
         if (f.regionName != null)
           Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.textMuted)),

@@ -207,7 +207,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
               Expanded(
                 child: Text(
                   'Ваші місця в ділянці',
-                  style: AppTheme.heading(15),
+                  style: AppTheme.sectionTitle,
                 ),
               ),
               // День, який зараз на мінікарті (видно під час «хвилі по днях»).
@@ -243,7 +243,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
                       color: AppTheme.textMuted,
                     ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted))),
+                    Expanded(child: Text(label, style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
                   ],
                 ),
               ),
@@ -511,7 +511,7 @@ class _OtherSpeciesBlockState extends State<OtherSpeciesBlock> {
           Container(
             key: const ValueKey('other-species-list'),
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -623,7 +623,7 @@ class _ForestCard extends StatelessWidget {
                         child: Text(
                           result.terrainLabel!,
                           key: const ValueKey('terrain-label'),
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
+                          style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                         ),
                       ),
                     ],
@@ -742,7 +742,7 @@ class _DayParts extends StatelessWidget {
                         const SizedBox(height: 2),
                         Icon(_sceneIcon(p.scene), size: 18, color: past ? color : AppTheme.accentOrange),
                         const SizedBox(height: 2),
-                        Text(p.tempLabel, style: TextStyle(fontSize: 11.5, color: color)),
+                        Text(p.tempLabel, style: TextStyle(fontSize: 12, color: color)),
                       ],
                     ),
                   ),
@@ -863,7 +863,7 @@ class _WeatherCardState extends State<_WeatherCard> {
                     Expanded(
                       child: Text(rainAhead,
                           key: const ValueKey('weather-rain-ahead'),
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
+                          style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
                     ),
                   ],
                 ),
@@ -880,7 +880,7 @@ class _WeatherCardState extends State<_WeatherCard> {
                     Expanded(
                       child: Text(h,
                           key: const ValueKey('weather-hazard'),
-                          style: const TextStyle(fontSize: 12.5, color: AppTheme.warning, fontWeight: FontWeight.w600)),
+                          style: const TextStyle(fontSize: 13, color: AppTheme.warning, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -917,7 +917,7 @@ class _WeatherCardState extends State<_WeatherCard> {
                       child: Text(
                         weather.rangeLabel!,
                         key: const ValueKey('weather-range'),
-                        style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
+                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                       ),
                     ),
                   ],

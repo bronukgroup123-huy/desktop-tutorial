@@ -46,7 +46,7 @@ class CatalogForecastLink extends ConsumerWidget {
     if (hits.isEmpty) return const SizedBox.shrink();
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
       child: InkWell(
         key: const ValueKey('catalog-forecast-link'),
         borderRadius: BorderRadius.circular(14),

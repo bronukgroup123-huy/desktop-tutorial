@@ -276,7 +276,7 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.name, style: AppTheme.heading(20)),
+                  Text(s.name, style: AppTheme.blockTitle),
                   if (s.latin.isNotEmpty) Text(s.latin, style: TextStyle(fontStyle: FontStyle.italic, color: dim)),
                 ],
               ),
@@ -413,7 +413,7 @@ class _SeasonStripState extends State<_SeasonStrip> with SingleTickerProviderSta
                                   child: Text(
                                     _monthsShort[m - 1],
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: Color.lerp(
                                         AppTheme.darkGreen.withValues(alpha: on ? 1 : 0.4),

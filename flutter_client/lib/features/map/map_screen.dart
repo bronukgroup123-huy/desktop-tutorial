@@ -203,7 +203,7 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
                 const SizedBox(height: 16),
                 Text(
                   'Офлайн карта',
-                  style: AppTheme.heading(24),
+                  style: AppTheme.screenTitle,
                 ),
                 const SizedBox(height: 10),
                 Text(

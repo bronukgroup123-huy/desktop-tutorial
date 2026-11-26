@@ -186,7 +186,7 @@ class _ThinkingViewState extends ConsumerState<ThinkingView> with SingleTickerPr
             children: [
               const Mascot(size: 48),
               const SizedBox(width: 8),
-              Text('ШІ розглядає гриб…', style: AppTheme.heading(16)),
+              Flexible(child: Text('ШІ розглядає гриб…', style: AppTheme.sectionTitle)),
             ],
           ),
           const SizedBox(height: 6),
@@ -280,7 +280,7 @@ class RecognitionResultView extends ConsumerWidget {
             ClipRRect(borderRadius: BorderRadius.circular(12), child: Image(image: photo, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 64, height: 64))),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('Схожі гриби', style: AppTheme.heading(18)),
+              child: Text('Схожі гриби', style: AppTheme.sectionTitle),
             ),
           ],
         ),
@@ -326,7 +326,7 @@ class _CandidateCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         border: Border(left: BorderSide(color: color, width: 4)),
       ),
       child: Column(
@@ -425,7 +425,7 @@ class _NotMushroom extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Хм… Це не схоже на гриб', style: AppTheme.heading(18)),
+          Text('Хм… Це не схоже на гриб', style: AppTheme.blockTitle),
           const SizedBox(height: 6),
           Text('Спробуйте ще раз — ближче до шапки, щоб гриб займав більшу частину кадру.',
               textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textMuted)),

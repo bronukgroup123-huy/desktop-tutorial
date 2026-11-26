@@ -93,7 +93,7 @@ class TrophiesSection extends ConsumerWidget {
             if (data != null)
               Text('${data.earnedCount} з ${data.total}',
                   key: const ValueKey('profile-trophies-count'),
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: onDark ? const Color(0xFFF9C66B) : AppTheme.textMuted)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: onDark ? const Color(0xFFF9C66B) : AppTheme.textMuted)),
           ],
         ),
         const SizedBox(height: 10),
@@ -102,7 +102,7 @@ class TrophiesSection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
               async.isLoading ? 'Завантажуємо трофеї…' : 'Трофеї покажемо, щойно з\'явиться інтернет',
-              style: TextStyle(fontSize: 12.5, color: ink.withValues(alpha: 0.6)),
+              style: TextStyle(fontSize: 13, color: ink.withValues(alpha: 0.6)),
             ),
           )
         else
@@ -168,7 +168,7 @@ class TrophyShelfRow extends StatelessWidget {
                     )),
                 if (!t.earned && t.progressLabel != null)
                   Text(t.progressLabel!,
-                      style: TextStyle(fontSize: 10.5, color: onDark ? const Color(0xFFFFD98A) : AppTheme.warning, fontWeight: FontWeight.w700, shadows: onDark ? _woodShadow : null)),
+                      style: TextStyle(fontSize: 11, color: onDark ? const Color(0xFFFFD98A) : AppTheme.warning, fontWeight: FontWeight.w700, shadows: onDark ? _woodShadow : null)),
               ],
             ),
           ),

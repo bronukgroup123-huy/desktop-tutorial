@@ -253,7 +253,7 @@ class _MyCoordinatesCardState extends ConsumerState<MyCoordinatesCard> {
               key: const ValueKey('coords-accuracy'),
               style: TextStyle(
                 color: fix.lowAccuracy ? (widget.dark ? const Color(0xffffe082) : AppTheme.warning) : dim,
-                fontSize: 12.5,
+                fontSize: 13,
                 fontWeight: fix.lowAccuracy ? FontWeight.w700 : FontWeight.w400,
               ),
             ),

@@ -330,7 +330,7 @@ class _TwinCompare extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(d.feature,
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
                     const SizedBox(height: 2),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +366,7 @@ class _DiffCell extends StatelessWidget {
       children: [
         Icon(good ? Icons.check_rounded : Icons.close_rounded, size: 16, color: color),
         const SizedBox(width: 3),
-        Expanded(child: Text(clean, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen))),
+        Expanded(child: Text(clean, style: TextStyle(fontSize: 13, color: AppTheme.darkGreen))),
       ],
     );
   }

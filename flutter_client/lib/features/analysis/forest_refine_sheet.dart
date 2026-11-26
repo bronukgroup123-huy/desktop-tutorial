@@ -80,7 +80,7 @@ class _ForestRefineSheetState extends State<ForestRefineSheet> {
         children: [
           Text(
             'Уточнити ліс ділянки',
-            style: AppTheme.heading(20),
+            style: AppTheme.blockTitle,
           ),
           const SizedBox(height: 6),
           Text(

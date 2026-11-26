@@ -7,10 +7,10 @@ import 'package:flutter_client/core/toast.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
-import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/profile_setup_screen.dart';
 import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailGraphProvider;
+import 'package:flutter_client/core/ui.dart';
 
 /// «Налаштування» з профілю (PO 2026-11-21): дані без інтернету, область, акаунт (ім'я й нік,
 /// аватар, вийти, видалити). У гостя — лише дані без інтернету й область.
@@ -32,18 +32,18 @@ class ProfileSettingsScreen extends ConsumerWidget {
         key: const ValueKey('settings-list'),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          const ProfileSectionTitle('Дані без інтернету'),
+          const SectionTitle('Дані без інтернету'),
           const _OfflineGroup(),
-          const ProfileSectionTitle('Область'),
-          ParchmentTile(
+          const SectionTitle('Область'),
+          AppTile(
             key: const ValueKey('profile-region'),
             icon: Icons.place_rounded,
             title: me?.homeRegion?.name ?? 'Область не вибрано',
             subtitle: me?.regionChange.reasonLabel ?? '',
           ),
           if (!guest) ...[
-            const ProfileSectionTitle('Акаунт'),
-            ParchmentTile(
+            const SectionTitle('Акаунт'),
+            AppTile(
               key: const ValueKey('settings-identity'),
               icon: Icons.badge_rounded,
               title: 'Ім\'я й нік',
@@ -51,7 +51,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditIdentityScreen())),
             ),
             const SizedBox(height: 8),
-            ParchmentTile(
+            AppTile(
               key: const ValueKey('settings-avatar'),
               icon: Icons.face_retouching_natural_rounded,
               title: 'Аватар',
@@ -59,7 +59,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
             ),
             const SizedBox(height: 8),
-            ParchmentTile(
+            AppTile(
               key: const ValueKey('profile-sign-out'),
               icon: Icons.logout_rounded,
               title: 'Вийти',
@@ -69,7 +69,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 8),
-            ParchmentTile(
+            AppTile(
               key: const ValueKey('profile-delete'),
               icon: Icons.delete_forever_rounded,
               title: 'Видалити акаунт',
@@ -141,7 +141,7 @@ class _OfflineGroupState extends ConsumerState<_OfflineGroup> {
     final summary = '$ready з 4 на телефоні${bytes > 0 ? ' · ${_OfflineData.mb(bytes)}' : ''}';
     return Column(
       children: [
-        ParchmentTile(
+        AppTile(
           key: const ValueKey('profile-offline'),
           icon: ready == 4 ? Icons.offline_pin_rounded : Icons.cloud_download_rounded,
           title: 'Офлайн дані',
@@ -268,9 +268,8 @@ class _DataRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: ParchmentCard(
+        child: AppCard(
           padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-          radius: 14,
           child: Row(
               children: [
                 Icon(icon, color: AppTheme.darkGreen),
@@ -283,7 +282,7 @@ class _DataRow extends StatelessWidget {
                       Row(children: [
                         Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? AppTheme.success : AppTheme.warning),
                         const SizedBox(width: 4),
-                        Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted))),
+                        Flexible(child: Text(status, style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
                       ]),
                     ],
                   ),

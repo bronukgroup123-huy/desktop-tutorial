@@ -102,7 +102,7 @@ class _CatalogBrowserState extends ConsumerState<CatalogBrowser> {
                 // ШІ-розпізнавання: банер-камера (завантаження моделі — прямо на ньому).
                 const RecognizeBanner(),
                 Text('Довідник грибів',
-                    style: AppTheme.heading(20)),
+                    style: AppTheme.blockTitle),
                 const SizedBox(height: 10),
                 // Фото всіх грибів на телефон — щоб у лісі без зв'язку відкривався будь-який вид.
                 const CatalogOfflineCard(),
@@ -261,7 +261,7 @@ class CatalogCard extends StatelessWidget {
                         key: ValueKey('season-now-${species.id}'),
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(20)),
-                        child: const Text('Сезон', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                        child: const Text('Сезон', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
                       ),
                     ),
                 ],
