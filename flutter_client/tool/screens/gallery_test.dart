@@ -11,11 +11,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/avatars.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
+import 'package:flutter_client/features/analysis/analysis_result_view.dart';
 import 'package:flutter_client/features/auth/auth_screen.dart';
 import 'package:flutter_client/features/catalog/catalog_browser.dart';
 import 'package:flutter_client/features/catalog/catalog_detail_screen.dart';
@@ -43,6 +45,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../test/a11y/more_stress_test.dart' show friendsRepo;
+import '../../test/analysis_days_test.dart' show daysJson;
 import '../../test/catalog_test.dart' show catalog;
 import '../../test/data/fake_adapter.dart';
 import '../../test/forecast_test.dart' show areaJson, overview;
@@ -190,11 +193,14 @@ void main() {
             recognizerProvider.overrideWith((ref) async => null),
           ],
     ),
+    ('18_analysis', () => Scaffold(body: AnalysisResultView(result: AnalysisResult.fromJson(daysJson()), miniMapBuilder: (_) => const SizedBox(height: 40))), () => []),
   ];
+  // Довгі екрани — висока «сторінка», щоб побачити все.
+  const tall = {'04_species', '18_analysis'};
 
   for (final (name, screen, overrides) in screens) {
     testWidgets(name, (tester) async {
-      tester.view.physicalSize = const Size(412, 1500) * 2;
+      tester.view.physicalSize = Size(412, tall.contains(name) ? 4200 : 1500) * 2;
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(ProviderScope(
