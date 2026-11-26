@@ -432,3 +432,21 @@ See docs/agent/BLOCKERS.md.
   «Відкрити», wave-alert close, candidate «Відкрити в довіднику»). One documented exemption.
 - Checks: `flutter analyze` → no issues; `flutter test` → 404 passed (catalog test now scrolls to the card).
 - Owner decision needed: text contrast below WCAG AA on muted text (UI-003 part 2).
+
+## 2026-11-26 — UI-004: one design system (Claude, owner request)
+- Owner: contrast, style, fonts — one consistent product across all tabs.
+- Audit: 17 screens screenshotted with real fonts; fonts were fetched from Google at runtime (offline
+  first launch fell back to Roboto, faux bold), 19 alpha levels of muted text (contrast 2.3–3.9),
+  26 font sizes, two card styles.
+- PR #144 (part 1): bundled fonts (scripts/fonts/build.py, OFL), AA colors, component themes, contrast test.
+- PR #145 (part 2): shared AppCard/AppTile/SectionTitle on all tabs, heading roles, text scale, radii.
+- Checks: `flutter analyze` → no issues; `flutter test` → 406 passed (both PRs); before/after screenshots.
+- Merge order: #142 → #144 → #145.
+- PR #146 (part 3, owner request): brand tile icons in profile/settings, lighter profile hero.
+
+## 2026-11-26 08:40 UTC — scheduled run: state only (Claude)
+- Open agent PRs: #144, #145, #146 — checks green (#146 run includes the code of #144 and #145).
+- No new task: the UI-004 residual touches the same files as the three open PRs (would only conflict);
+  other items wait for the owner (WEB-001 / BLK-009, PERF-001 device timings / BLK-010).
+- Fixed agent state: the previous state commit (branch claude/agent-state-ui001d, never merged) had picked up
+  generated screenshots under flutter_client/tool/screens/out/; this PR carries only docs/agent changes.

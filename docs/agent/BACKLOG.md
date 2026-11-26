@@ -154,9 +154,20 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Part 1 (labels + 48 px tap targets): `test/a11y/guidelines_test.dart` on 12 screens; gallery photo labels,
   «Очистити пошук» tooltips, compact buttons enlarged to 48 px. Exemption: forecast slot rename pencil
   (long-press on the tile does the same). Status: in_review — PR #142.
-- Part 2 (text contrast, WCAG AA 4.5:1): muted text measured 2.3–4.0 (empty forecast slots 2.3, «До 200
-  друзів» 3.3, auth subtitle 3.9, SOS hint / catalog count 4.0). Fix = darker muted text, a visual change →
-  Status: blocked_owner_decision.
+- Part 2 (text contrast): owner decided 2026-11-26 — one consistent style for the whole app → UI-004.
+
+### UI-004 — one design system for the whole app (owner: Claude; owner request 2026-11-26)
+- Part 1 (PR #144, on #142): bundled Inter/Merriweather (offline, real weights, no Google requests),
+  `textMuted` #417351 and one orange #A84E08 (AA contrast), component themes; contrast test on 12 screens;
+  screenshot harness `tool/screens/gallery_test.dart`. Status: in_review.
+- Part 2 (PR #145, on #144): `core/ui.dart` AppCard / AppTile / SectionTitle on all tabs (profile parchment
+  tiles retired; hero and oak trophy shelf kept), heading roles 24/20/17, text scale 11–20, card radius 16.
+  Status: in_review.
+- Part 3 (PR #146, on #145, owner request): 14 brand SVG tile icons (`assets/icons/tile/`, style of the tab
+  icons) for profile, settings and friend profile; profile hero background slightly transparent.
+  Status: in_review. Merge order #144 → #145 → #146.
+- Next: remaining one-off card styles inside catalog article / forecast result (status chips, info cards)
+  can move to the same components when touched.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
