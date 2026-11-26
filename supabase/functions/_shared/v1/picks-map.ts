@@ -167,6 +167,20 @@ interface CardRow extends MapRow {
   description: string | null;
   photo_path: string | null;
   taken_at: string | null;
+  twin_alert?: boolean | null;
+  confirmations?: number | null;
+  last_confirmed_at?: string | null;
+  confirmed_by_me?: boolean | null;
+}
+
+/** «Підтвердили N грибників, останнє — <дата>» (ADR-019 §19.5 п.5); без підтверджень — null. */
+export function confirmedLabel(count: number, lastIso: string | null | undefined): string | null {
+  if (!count || count <= 0) return null;
+  const m10 = count % 10, m100 = count % 100;
+  const word = m10 === 1 && m100 !== 11 ? "грибник" : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? "грибники" : "грибників";
+  const verb = m10 === 1 && m100 !== 11 ? "Підтвердив" : "Підтвердили";
+  const last = dateLabel(lastIso);
+  return `${verb} ${count} ${word}${last ? `, останнє — ${last}` : ""}`;
 }
 
 export async function handlePickCard(
@@ -201,6 +215,12 @@ export async function handlePickCard(
   return ok({
     ...shapeMapPoint(row),
     description: row.description ?? null,
+    // Підтвердження відповіддю знахідкою (B3.8); двійник — попередження лишається і на зеленій точці.
+    confirmed_label: confirmedLabel(Number(row.confirmations ?? 0), row.last_confirmed_at),
+    confirmed_by_me: row.confirmed_by_me === true,
+    twin_warning_label: row.twin_alert === true && row.pick_type === "public"
+      ? "Схожий на отруйного двійника — перевірте кожен гриб самі"
+      : null,
     date_label: dateLabel(row.taken_at),
     // Точний час зйомки — лише автору.
     captured_at: mine ? row.taken_at : null,
