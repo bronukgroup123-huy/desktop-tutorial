@@ -26,7 +26,7 @@ import '../safety_test.dart' show FakeDevice;
 import 'layout_stress_test.dart' show stressCases;
 
 Future<void> pumpStress(WidgetTester tester, Widget screen, ({String name, Size size, double text}) c,
-    {List<Override> overrides = const []}) async {
+    {List<Override> overrides = const [], ThemeData? theme}) async {
   tester.view.physicalSize = c.size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
@@ -35,6 +35,7 @@ Future<void> pumpStress(WidgetTester tester, Widget screen, ({String name, Size 
     key: UniqueKey(),
     overrides: overrides,
     child: MaterialApp(
+      theme: theme,
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(c.text)),
         child: child!,

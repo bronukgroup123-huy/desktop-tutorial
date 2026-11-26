@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_client/core/app_theme.dart';
@@ -103,7 +102,7 @@ class AuthScreen extends StatelessWidget {
     return Center(
       child: Text(
         'Грибний Радар',
-        style: GoogleFonts.merriweather(
+        style: TextStyle(fontFamily: AppTheme.serif, 
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppTheme.darkGreen,
@@ -118,9 +117,9 @@ class AuthScreen extends StatelessWidget {
     return Center(
       child: Text(
         'Ваш особистий цифровий помічник',
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontSize: 16,
-          color: AppTheme.darkGreen.withValues(alpha: 0.7),
+          color: AppTheme.textMuted,
           height: 1.5,
         ),
         textAlign: TextAlign.center,
@@ -163,7 +162,7 @@ class AuthScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        textStyle: GoogleFonts.inter(
+        textStyle: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
@@ -176,7 +175,7 @@ class AuthScreen extends StatelessWidget {
       onPressed: () => _continueAsGuest(context),
       child: Text(
         'Продовжити без реєстрації',
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
           color: AppTheme.darkGreen,
@@ -190,16 +189,16 @@ class AuthScreen extends StatelessWidget {
     return Center(
       child: Text.rich(
         TextSpan(
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 12,
-            color: AppTheme.darkGreen.withValues(alpha: 0.5),
+            color: AppTheme.textMuted,
             height: 1.5,
           ),
           children: [
             const TextSpan(text: 'Продовжуючи, ви погоджуєтеся з '),
             TextSpan(
               text: 'Умовами використання',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppTheme.darkGreen,
                 decoration: TextDecoration.underline,
@@ -209,7 +208,7 @@ class AuthScreen extends StatelessWidget {
             const TextSpan(text: ' та '),
             TextSpan(
               text: 'Політикою конфіденційності',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppTheme.darkGreen,
                 decoration: TextDecoration.underline,

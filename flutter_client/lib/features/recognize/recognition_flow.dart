@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
@@ -191,7 +190,7 @@ class _ThinkingViewState extends ConsumerState<ThinkingView> with SingleTickerPr
             ],
           ),
           const SizedBox(height: 6),
-          Text('Фото не залишають телефон', style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+          Text('Фото не залишають телефон', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
         ],
       ),
     );
@@ -298,7 +297,7 @@ class RecognitionResultView extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text('ШІ-підказка, не діагноз. Перевірте в довіднику. Якщо сумніваєтеся — не їжте.',
-                    style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
               ),
             ],
           ),
@@ -358,7 +357,7 @@ class _CandidateCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(l.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.darkGreen)),
-                    Text(l.latin, style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.65))),
+                    Text(l.latin, style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: AppTheme.textMuted)),
                     const SizedBox(height: 4),
                     if (badge != null)
                       EdibilityBadge(label: badge.label, color: Color(badge.color))
@@ -391,7 +390,7 @@ class _CandidateCard extends StatelessWidget {
           else
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('Цього виду поки немає в довіднику з фото.', style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+              child: Text('Цього виду поки немає в довіднику з фото.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             ),
         ],
       ),
@@ -429,7 +428,7 @@ class _NotMushroom extends StatelessWidget {
           Text('Хм… Це не схоже на гриб', style: AppTheme.heading(18)),
           const SizedBox(height: 6),
           Text('Спробуйте ще раз — ближче до шапки, щоб гриб займав більшу частину кадру.',
-              textAlign: TextAlign.center, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+              textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 16),
           FilledButton.icon(
             key: const ValueKey('result-retake'),
@@ -455,7 +454,7 @@ class HistoryResultScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.darkGreen,
-          title: Text(historyDate(entry.at), style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 17)),
+          title: Text(historyDate(entry.at), style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontSize: 17)),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),

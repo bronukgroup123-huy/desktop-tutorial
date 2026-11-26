@@ -250,7 +250,7 @@ class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
   Widget build(BuildContext context) {
     final s = ref.watch(catalogOfflineProvider);
     final ctrl = ref.read(catalogOfflineProvider.notifier);
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.7);
+    final muted = AppTheme.textMuted;
     if (!s.checked) return const SizedBox.shrink();
 
     if (s.complete && !s.downloading) {

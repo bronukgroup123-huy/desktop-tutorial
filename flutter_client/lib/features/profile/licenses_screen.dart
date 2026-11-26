@@ -24,6 +24,11 @@ const kDataSources = <({String title, String text})>[
         'Гліфи — openmaptiles/fonts.',
   ),
   (
+    title: 'Шрифти застосунку',
+    text: 'Inter — © 2020 The Inter Project Authors; Merriweather — © 2020 The Merriweather Project Authors. '
+        'SIL Open Font License 1.1 (openfontlicense.org).',
+  ),
+  (
     title: 'Погода й висота місцевості',
     text: 'Open-Meteo.com — дані за ліцензією CC BY 4.0 (creativecommons.org/licenses/by/4.0/).',
   ),
@@ -49,7 +54,7 @@ class LicensesScreen extends ConsumerWidget {
     final redSources = <String, String?>{
       for (final s in catalog?.species ?? const []) if (s.redBookSource case final r?) r.text: r.url,
     };
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.7);
+    final dim = AppTheme.textMuted;
     Widget header(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(0, 18, 0, 6),
           child: Text(t, style: AppTheme.heading(16)),

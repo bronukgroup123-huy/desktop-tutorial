@@ -55,10 +55,10 @@ class OblastMap extends ConsumerWidget {
               const SizedBox(width: 4),
               Expanded(
                 child: Text('Поширений: $known з ${oblasts.length} областей',
-                    style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
               ),
               const SizedBox(width: 6),
-              Text('Межі: Natural Earth', style: TextStyle(fontSize: 9, color: AppTheme.darkGreen.withValues(alpha: 0.45))),
+              Text('Межі: Natural Earth', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
             ],
           ),
         ],

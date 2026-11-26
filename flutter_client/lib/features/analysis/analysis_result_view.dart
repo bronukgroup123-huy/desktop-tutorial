@@ -196,7 +196,7 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
   Widget build(BuildContext context) {
     final day = _day;
     final r = day == null ? widget.result : widget.result.forDay(day);
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     return ListView(
       controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -240,10 +240,10 @@ class _AnalysisResultViewState extends State<AnalysisResultView> {
                     Icon(
                       label == r.finds?.verificationLabel ? Icons.verified_outlined : Icons.history_rounded,
                       size: 16,
-                      color: AppTheme.darkGreen.withValues(alpha: 0.7),
+                      color: AppTheme.textMuted,
                     ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.8)))),
+                    Expanded(child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted))),
                   ],
                 ),
               ),
@@ -387,7 +387,7 @@ class AnalysisDayStrip extends StatelessWidget {
                       children: [
                         Icon(weatherIcon(d.weather?.icon), size: 16, color: AppTheme.accentOrange),
                         if (d.approximate)
-                          Text(' ≈', style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                          Text(' ≈', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                       ],
                     ),
                   ],
@@ -403,8 +403,8 @@ class AnalysisDayStrip extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_outline_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.45)),
-                    Text('Pro', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.45))),
+                    Icon(Icons.lock_outline_rounded, size: 18, color: AppTheme.textMuted),
+                    Text('Pro', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   ],
                 ),
               ),
@@ -450,7 +450,7 @@ class _DayTile extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: AppTheme.darkGreen.withValues(alpha: locked ? 0.45 : 1),
+                      color: locked ? AppTheme.textMuted : AppTheme.darkGreen,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -496,7 +496,7 @@ class _OtherSpeciesBlockState extends State<OtherSpeciesBlock> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -541,7 +541,7 @@ class _OtherRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
@@ -617,13 +617,13 @@ class _ForestCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.terrain_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                      Icon(Icons.terrain_rounded, size: 16, color: AppTheme.textMuted),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           result.terrainLabel!,
                           key: const ValueKey('terrain-label'),
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
                         ),
                       ),
                     ],
@@ -654,7 +654,7 @@ class _ForestCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Text(t.areaLabel, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                      Text(t.areaLabel, style: TextStyle(color: AppTheme.textMuted)),
                     ],
                   ),
                 ),
@@ -723,7 +723,7 @@ class _DayParts extends StatelessWidget {
               child: Builder(builder: (context) {
                 final current = nowHour != null && nowHour! >= p.fromHour && nowHour! < p.toHour;
                 final past = nowHour != null && nowHour! >= p.toHour;
-                final color = AppTheme.darkGreen.withValues(alpha: past ? 0.4 : 1);
+                final color = past ? AppTheme.textMuted : AppTheme.darkGreen;
                 return Tooltip(
                   message: '${p.label}: ${p.sceneLabel}',
                   child: Container(
@@ -808,7 +808,7 @@ class _WeatherCardState extends State<_WeatherCard> {
         if (subtitle != null)
           Text(subtitle,
               key: const ValueKey('weather-now'),
-              style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
       ],
     );
     return Card(
@@ -858,12 +858,12 @@ class _WeatherCardState extends State<_WeatherCard> {
                 padding: const EdgeInsets.only(top: 6, left: 4),
                 child: Row(
                   children: [
-                    Icon(Icons.water_drop_outlined, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                    Icon(Icons.water_drop_outlined, size: 16, color: AppTheme.textMuted),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(rainAhead,
                           key: const ValueKey('weather-rain-ahead'),
-                          style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
                     ),
                   ],
                 ),
@@ -911,13 +911,13 @@ class _WeatherCardState extends State<_WeatherCard> {
                 padding: const EdgeInsets.only(top: 8, left: 4),
                 child: Row(
                   children: [
-                    Icon(Icons.stacked_line_chart_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+                    Icon(Icons.stacked_line_chart_rounded, size: 16, color: AppTheme.textMuted),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         weather.rangeLabel!,
                         key: const ValueKey('weather-range'),
-                        style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+                        style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
                       ),
                     ),
                   ],
@@ -934,7 +934,7 @@ class _WeatherCardState extends State<_WeatherCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Коли їхати',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.85))),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
                       if (weather.sunLabel != null) _WeatherDetail(icon: Icons.wb_twilight_rounded, text: weather.sunLabel!),
                       if (weather.takeLabel != null) _WeatherDetail(icon: Icons.backpack_outlined, text: weather.takeLabel!),
                     ],
@@ -988,10 +988,10 @@ class _WeatherDetail extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 15, color: AppTheme.darkGreen.withValues(alpha: 0.5)),
+            Icon(icon, size: 15, color: AppTheme.textMuted),
             const SizedBox(width: 6),
             Expanded(
-                child: Text(text, style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.7)))),
+                child: Text(text, style: TextStyle(fontSize: 13, color: AppTheme.textMuted))),
           ],
         ),
       );

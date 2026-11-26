@@ -182,7 +182,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     final picks = ref.watch(meProvider.select((m) => m.valueOrNull?.picks));
     final visibility = _effectiveVisibility(picks);
     return Scaffold(
@@ -332,7 +332,7 @@ class _PermissionHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warning ? AppTheme.warning : AppTheme.darkGreen.withValues(alpha: 0.75);
+    final color = warning ? AppTheme.warning : AppTheme.textMuted;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(

@@ -23,7 +23,7 @@ class ProfileSetupScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Ім\'я бачать друзі й ваш Наглядач. Нік — щоб вас знайти й додати в друзі.',
-                style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+                style: TextStyle(color: AppTheme.textMuted),
               ),
               const SizedBox(height: 24),
               const IdentityForm(submitLabel: 'Готово'),

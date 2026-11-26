@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 
@@ -156,7 +155,7 @@ class _OfflineMapPromptState extends ConsumerState<_OfflineMapPrompt> {
     final remote = ref.watch(remoteBasemapProvider(_slug));
     final meta = remote.valueOrNull;
     final progress = _progress;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.65);
+    final muted = AppTheme.textMuted;
 
     final Widget action;
     if (progress != null) {
@@ -979,7 +978,7 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: GoogleFonts.merriweather(fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                  style: TextStyle(fontFamily: AppTheme.serif, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                 ),
                 if (loading) ...[
                   const SizedBox(width: 10),
@@ -1123,7 +1122,7 @@ class _AnalysisPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = overview.valueOrNull;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.65);
+    final muted = AppTheme.textMuted;
     return Material(
       color: AppTheme.backgroundColor,
       elevation: 6,
@@ -1141,7 +1140,7 @@ class _AnalysisPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Аналіз ділянки',
-                    style: GoogleFonts.merriweather(fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                    style: TextStyle(fontFamily: AppTheme.serif, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                   ),
                 ),
                 IconButton(
@@ -1284,7 +1283,7 @@ class _ForestCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
                   ),
                 ),
-                Icon(Icons.close_rounded, size: 16, color: AppTheme.darkGreen.withValues(alpha: 0.5)),
+                Icon(Icons.close_rounded, size: 16, color: AppTheme.textMuted),
               ],
             ),
             for (final d in details)
@@ -1292,7 +1291,7 @@ class _ForestCard extends StatelessWidget {
                 d,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
           ],
         ),
@@ -1334,7 +1333,7 @@ class _RoutePanel extends StatelessWidget {
                 route.isEmpty
                     ? 'Торкніться карти там, де лишаєте машину або входите в ліс, — це старт.'
                     : 'Точок: ${route.length}. Додайте ще місця дотиком або натисніть «Готово».',
-                style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75)),
+                style: TextStyle(color: AppTheme.textMuted),
               ),
               const SizedBox(height: 8),
               SegmentedButton<bool>(
@@ -1351,7 +1350,7 @@ class _RoutePanel extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   auto ? 'Між точками — дорогами й стежками, в обхід води й боліт' : 'Між точками — прямі лінії, як ви поставили',
-                  style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.65)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                 ),
               ),
               const SizedBox(height: 4),

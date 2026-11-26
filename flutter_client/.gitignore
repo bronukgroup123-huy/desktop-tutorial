@@ -16,3 +16,4 @@ android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 android/**/GeneratedPluginRegistrant.*
 *.iml
 .idea/
+tool/screens/out/

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 
 class MainNavigationScreen extends ConsumerWidget {
@@ -109,10 +108,10 @@ class _TabButton extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 tab.label,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: isActive ? AppTheme.orange : AppTheme.darkGreen.withValues(alpha: 0.6),
+                  color: isActive ? AppTheme.orange : AppTheme.textMuted,
                 ),
               ),
             ],

@@ -97,7 +97,7 @@ class _IdentifyViewState extends State<IdentifyView> with TickerProviderStateMix
                               ),
                             ),
                             const SizedBox(width: 3),
-                            Text(c.label, style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                            Text(c.label, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                           ],
                         ),
                     ],
@@ -220,7 +220,7 @@ class _FeatureRow extends StatelessWidget {
                       if (badge != null) ...[const SizedBox(width: 6), badge!],
                     ],
                   ),
-                  Text(text, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.85), height: 1.25)),
+                  Text(text, style: TextStyle(color: AppTheme.textMuted, height: 1.25)),
                   if (extra != null) ...[const SizedBox(height: 4), extra!],
                 ],
               ),
@@ -330,7 +330,7 @@ class _TwinCompare extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(d.feature,
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.55))),
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
                     const SizedBox(height: 2),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +366,7 @@ class _DiffCell extends StatelessWidget {
       children: [
         Icon(good ? Icons.check_rounded : Icons.close_rounded, size: 16, color: color),
         const SizedBox(width: 3),
-        Expanded(child: Text(clean, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.9)))),
+        Expanded(child: Text(clean, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen))),
       ],
     );
   }

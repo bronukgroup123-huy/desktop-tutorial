@@ -36,7 +36,7 @@ class GuardianCard extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text('Наглядач — друг, що бачить ваш похід і отримує тривоги. Доступно після входу через Google.',
-                  style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+                  style: TextStyle(color: AppTheme.textMuted)),
             ),
           ],
         ),
@@ -68,13 +68,13 @@ class GuardianCard extends ConsumerWidget {
               Text(
                 'Друг, що бачить ваш похід, поки він триває, і отримує тривоги: SOS або якщо ви не відповіли на «Все добре?» '
                 'у час повернення. Після «Я вдома» — нічого не бачить.',
-                style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75), fontSize: 13.5),
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
               ),
               if (overview.hasError && data == null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text('Немає зв\'язку — Наглядачів покажемо, щойно з\'явиться інтернет',
-                      style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6), fontSize: 13)),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
                 ),
               if (data != null) ...[
                 for (final g in data.guardians) _GuardianRow(person: g),
@@ -108,7 +108,7 @@ class GuardianCard extends ConsumerWidget {
                 if (data.limitLabel != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(data.limitLabel!, style: TextStyle(color: Colors.black.withValues(alpha: 0.45), fontSize: 12)),
+                    child: Text(data.limitLabel!, style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   ),
               ],
             ],
@@ -139,7 +139,7 @@ class GuardianCard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             const Text('Наглядача обирають серед друзів. Друг підтвердить у своєму застосунку.',
-                style: TextStyle(color: Colors.black54)),
+                style: TextStyle(color: AppTheme.textMuted)),
             const SizedBox(height: 8),
             if (candidates.isEmpty)
               ListTile(
@@ -303,7 +303,7 @@ class WatchedHikeTile extends StatelessWidget {
                     if (hike.detailLabel != null) Text(hike.detailLabel!, style: const TextStyle(color: AppTheme.darkGreen, fontSize: 13)),
                     Text(
                       [hike.lastSignalLabel, if (hike.batteryLabel != null) hike.batteryLabel!].join(' · '),
-                      style: TextStyle(color: hike.noSignal ? _alarmRed : Colors.black54, fontSize: 12.5),
+                      style: TextStyle(color: hike.noSignal ? _alarmRed : AppTheme.textMuted, fontSize: 12.5),
                     ),
                   ],
                 ),
@@ -357,7 +357,7 @@ class WatchedHikeScreen extends ConsumerWidget {
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: h.alarm ? _alarmRed : _violet)),
                   if (h.detailLabel != null) Text(h.detailLabel!, style: const TextStyle(fontSize: 15)),
                   const SizedBox(height: 8),
-                  Text(h.lastSignalLabel, style: TextStyle(color: h.noSignal ? _alarmRed : Colors.black87)),
+                  Text(h.lastSignalLabel, style: TextStyle(color: h.noSignal ? _alarmRed : AppTheme.darkGreen)),
                   if (h.batteryLabel != null) Text(h.batteryLabel!),
                   if (h.gpsIssueLabel != null)
                     Text(h.gpsIssueLabel!, key: const ValueKey('watched-gps'), style: const TextStyle(color: AppTheme.warning)),
@@ -404,7 +404,7 @@ class _RescueBox extends StatelessWidget {
             SelectableText(detail.rescueCoords!,
                 key: const ValueKey('watched-coords'),
                 style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.5, fontFeatures: [FontFeature.tabularFigures()])),
-            if (detail.rescueAt != null) Text(detail.rescueAt!, style: const TextStyle(color: Colors.black54)),
+            if (detail.rescueAt != null) Text(detail.rescueAt!, style: const TextStyle(color: AppTheme.textMuted)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,

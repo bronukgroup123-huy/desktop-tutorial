@@ -1,7 +1,8 @@
-// UI-003: правила доступності Flutter на основних екранах — у кожного елемента, який можна натиснути,
-// є підпис для екранної читалки (TalkBack), і зона натискання не менша за 48×48 (вимога Android).
-// Контраст тексту тут не перевіряється: це зміна вигляду, рішення власника (docs/agent/BACKLOG.md, UI-003).
+// UI-003 / UI-004: правила доступності Flutter на основних екранах — у кожного елемента, який можна
+// натиснути, є підпис для екранної читалки (TalkBack), зона натискання не менша за 48×48 (вимога Android),
+// і текст має контраст WCAG AA (≥ 4,5, великий — ≥ 3) із тлом, на якому стоїть.
 import 'package:flutter/material.dart';
+import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/avatars.dart';
 import 'package:flutter_client/data/models/me.dart';
 import 'package:flutter_client/data/models/trophies.dart';
@@ -95,11 +96,12 @@ void main() {
   ];
 
   for (final (name, screen, overrides) in screens) {
-    testWidgets('$name: підписи й зони натискання ≥ 48 px', (tester) async {
+    testWidgets('$name: підписи, зони натискання ≥ 48 px, контраст тексту', (tester) async {
       final semantics = tester.ensureSemantics();
-      await pumpStress(tester, screen, phone, overrides: overrides());
+      await pumpStress(tester, screen, phone, overrides: overrides(), theme: AppTheme.lightTheme);
       expect(await violations(tester, labeledTapTargetGuideline), isEmpty, reason: 'без підпису');
       expect(await violations(tester, androidTapTargetGuideline), isEmpty, reason: 'менше 48×48');
+      expect(await violations(tester, textContrastGuideline), isEmpty, reason: 'контраст тексту');
       semantics.dispose();
     });
   }

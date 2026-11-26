@@ -81,7 +81,7 @@ class _SheetState extends ConsumerState<_Sheet> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text('У цей час спитаємо «Все добре?». Не відповісте 15 хв — сповістимо Наглядача.',
-                  style: TextStyle(fontSize: 12.5, color: Colors.black.withValues(alpha: 0.6))),
+                  style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
             ),
             const SizedBox(height: 14),
             Text(max > 1 ? 'Наглядачі (до $max)' : 'Наглядач', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -102,7 +102,7 @@ class _SheetState extends ConsumerState<_Sheet> {
                 title: Text('@${g.handle}'),
               ),
             if (widget.data.limitLabel != null)
-              Text(widget.data.limitLabel!, style: TextStyle(fontSize: 12, color: Colors.black.withValues(alpha: 0.45))),
+              Text(widget.data.limitLabel!, style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,

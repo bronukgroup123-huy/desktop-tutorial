@@ -165,7 +165,7 @@ class CatalogArticle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (species.description.trim().isEmpty) {
-      return Text('Опису ще немає.', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6)));
+      return Text('Опису ще немає.', style: TextStyle(color: AppTheme.textMuted));
     }
     final a = buildArticle(species);
     var mapShown = false;
@@ -706,7 +706,7 @@ class _Twins extends ConsumerWidget {
       if (head[0].isNotEmpty) {
         children.add(Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text(head[0], style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.55))),
+          child: Text(head[0], style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
         ));
       }
       children.add(Padding(
@@ -734,7 +734,7 @@ class _Twins extends ConsumerWidget {
             children: [
               Text(r[0],
                   style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.darkGreen.withValues(alpha: 0.65))),
+                      fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
               const SizedBox(height: 3),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,7 +1054,7 @@ class _Confusions extends ConsumerWidget {
                         Text.rich(TextSpan(children: [
                           TextSpan(
                               text: '${g.code} ',
-                              style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.5))),
+                              style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                           TextSpan(
                               text: g.name,
                               style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
@@ -1482,7 +1482,7 @@ class _Taxonomy extends StatelessWidget {
                 child: Text.rich(TextSpan(children: [
                   TextSpan(
                       text: '${m.group(1)}: ',
-                      style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   TextSpan(
                       text: m.group(2),
                       style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppTheme.darkGreen)),

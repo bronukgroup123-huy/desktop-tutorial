@@ -70,7 +70,7 @@ class _ForestRefineSheetState extends State<ForestRefineSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     final species = widget.options.species;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -104,7 +104,7 @@ class _ForestRefineSheetState extends State<ForestRefineSheet> {
                 Expanded(
                   child: Text(
                     widget.result.refineNoteLabel ?? 'Уточнення діє лише для вашої ділянки.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.8)),
+                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                   ),
                 ),
               ],
