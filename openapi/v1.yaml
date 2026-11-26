@@ -257,6 +257,11 @@ paths:
           показується зі стабільним зсувом 300–500 м; точні координати бачить лише автор.
         * Ідемпотентність: повтор з тим самим `client_id` → `200` з тією самою точкою.
         * У `description` телефони, e-mail, посилання і @нікнейми замінюються на «…».
+        * `reply_to` (B3.8, ADR-019 §19.5) — відповідь знахідкою на чужу публічну точку: лише `public`, той самий
+          вид. До створення — `404 pick_not_found`, `422 own_pick` / `species_mismatch`, `409 already_confirmed` /
+          `attempts_exhausted` (не більше 2 спроб на точку). Після створення в `confirmation` — чи зараховано:
+          ≤ 200 м від справжнього місця, фото з перевіреним місцем, взаємні підтвердження двох людей — до 3 за
+          30 днів. Не зараховано — точка лишається звичайною публічною точкою автора відповіді.
       requestBody:
         required: true
         content:
@@ -1383,6 +1388,10 @@ components:
           type: [string, 'null']
           maxLength: 500
           description: Необов'язковий опис; контакти й посилання замінюються на «…»
+        reply_to:
+          type: [string, 'null']
+          format: uuid
+          description: Відповідь знахідкою на чужу публічну точку (B3.8) — лише з `visibility = public`
         ai_check:
           oneOf:
             - $ref: '#/components/schemas/PickAiCheck'
@@ -1405,7 +1414,17 @@ components:
       type: object
       required: [data]
       properties:
-        data: { $ref: '#/components/schemas/PickCreated' }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PickCreated'
+            - type: object
+              properties:
+                confirmation:
+                  type: object
+                  description: Лише для відповіді знахідкою (`reply_to`)
+                  properties:
+                    counted: { type: boolean }
+                    label: { type: string, example: 'Дякуємо! Ви підтвердили точку своєю знахідкою' }
 
     MapPick:
       type: object
@@ -1439,6 +1458,14 @@ components:
               type: [string, 'null']
               format: uri
               description: Тимчасове посилання на фото (10 хвилин)
+            confirmed_label:
+              type: [string, 'null']
+              example: 'Підтвердили 2 грибники, останнє — 20 листопада 2026 р.'
+              description: Відповіді знахідкою (B3.8, ADR-019 §19.5); без підтверджень — null
+            confirmed_by_me: { type: boolean, description: Ви вже підтвердили цю точку }
+            twin_warning_label:
+              type: [string, 'null']
+              description: Публічна точка з twin_alert — попередження лишається й після підтвердження
             disclaimer_label:
               type: [string, 'null']
               example: Фото користувача — не порада їсти гриб

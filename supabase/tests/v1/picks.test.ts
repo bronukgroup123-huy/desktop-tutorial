@@ -802,3 +802,68 @@ Deno.test("pickPresentation: підписи й кольори для всіх с
   assertEquals(pickPresentation("public", "rejected").status_label, "Відхилено");
   assertEquals(pickPresentation("public", "???").status_label, "Перевіряється");
 });
+
+// ─── B3.8: відповідь знахідкою на чужу публічну точку (ADR-019 §19.5) ──────
+
+const TARGET = "33333333-3333-4333-8333-333333333333";
+const replyBody = (o: Record<string, unknown> = {}) =>
+  body({ visibility: "public", species_id: "boletus_edulis", reply_to: TARGET, ...o });
+
+Deno.test("v1-picks POST reply_to: перевірка до створення, підтвердження — після; відповідь сервера словами", async () => {
+  const d = db({
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.confirm_pick": { data: { ok: true, counted: true, reason: null, confirmations: 1, verified: true }, error: null },
+  });
+  const { res, json } = await run(d, req("POST", CREATE, replyBody()));
+  assertEquals(res.status, 201);
+  assertEquals(json.data.confirmation, { counted: true, label: "Дякуємо! Ви підтвердили точку своєю знахідкою" });
+  assertEquals(find(d, "rpc.can_confirm_pick")?.args[0], { p_user_id: USER, p_target_id: TARGET, p_species_id: "boletus_edulis" });
+  assertEquals(find(d, "rpc.confirm_pick")?.args[0], { p_user_id: USER, p_target_id: TARGET, p_reply_pick_id: PICK_ID });
+  const order = d.calls.map((c) => c.key);
+  assert(order.indexOf("rpc.can_confirm_pick") < order.indexOf("rpc.create_pick"));
+  assert(order.indexOf("rpc.create_pick") < order.indexOf("rpc.confirm_pick"));
+});
+
+Deno.test("v1-picks POST reply_to: не зараховано — точка створена, причина без відстаней і координат", async () => {
+  const d = db({
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.confirm_pick": { data: { ok: true, counted: false, reason: "too_far", confirmations: 0, verified: false }, error: null },
+  });
+  const { res, json } = await run(d, req("POST", CREATE, replyBody()));
+  assertEquals(res.status, 201);
+  assertEquals(json.data.confirmation.counted, false);
+  assert(String(json.data.confirmation.label).includes("200 м"));
+  assert(!JSON.stringify(json).includes(String(KYIV.lat)));
+});
+
+Deno.test("v1-picks POST reply_to: відмова до створення — свою / інший вид / вичерпано; файл і ліміт не чіпаємо", async () => {
+  for (const [code, status] of [["own_pick", 422], ["species_mismatch", 422], ["attempts_exhausted", 409], ["pick_not_found", 404]] as const) {
+    const d = db({ "rpc.can_confirm_pick": { data: { allowed: false, code, message: "текст сервера" }, error: null } });
+    const { res, json, calls } = await run(d, req("POST", CREATE, replyBody()));
+    assertEquals(res.status, status, code);
+    assertEquals(json.error, code);
+    assertEquals(json.message, "текст сервера");
+    assertEquals(find(d, "rpc.create_pick"), undefined);
+    assertEquals(calls.filter((c) => c.op === "upload").length, 0);
+  }
+});
+
+Deno.test("v1-picks POST reply_to: лише публічна відповідь, id — UUID; гість — 403", async () => {
+  const priv = await run(db(), req("POST", CREATE, replyBody({ visibility: "private" })));
+  assertEquals(priv.res.status, 422);
+  const bad = await run(db(), req("POST", CREATE, replyBody({ reply_to: "not-a-uuid" })));
+  assertEquals(bad.res.status, 422);
+  const guest = await run(db(), req("POST", CREATE, replyBody()), { isAnonymous: true });
+  assertEquals(guest.res.status, 403);
+});
+
+Deno.test("v1-picks POST reply_to: збій зарахування не губить створену точку", async () => {
+  const d = db({
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.confirm_pick": { data: null, error: { message: "boom" } },
+  });
+  const { res, json } = await run(d, req("POST", CREATE, replyBody()));
+  assertEquals(res.status, 201);
+  assertEquals(json.data.id, PICK_ID);
+  assertEquals(json.data.confirmation.counted, false);
+});

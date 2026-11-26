@@ -234,6 +234,8 @@ export interface CreatePickInput {
   speciesId: string | null;
   description: string | null;
   aiCheck: AiCheck | null;
+  /** Відповідь знахідкою на чужу публічну точку (B3.8, ADR-019 §19.5) — id цієї точки. */
+  replyTo?: string | null;
 }
 
 /** Підказка ШІ з телефону: лише відомі поля, рівні — словами (жодних відсотків). */
@@ -313,7 +315,19 @@ export function validateCreateBody(body: unknown, now: Date): CreatePickInput {
     );
   }
 
+  let replyTo: string | null = null;
+  if (obj.reply_to !== undefined && obj.reply_to !== null) {
+    if (typeof obj.reply_to !== "string" || !UUID_RE.test(obj.reply_to)) {
+      throw validationError("reply_to — id точки, яку підтверджуєте своєю знахідкою");
+    }
+    if (obj.visibility !== "public") {
+      throw validationError("Відповідь знахідкою — лише публічна точка");
+    }
+    replyTo = obj.reply_to.toLowerCase();
+  }
+
   return {
+    replyTo,
     clientId,
     path: (obj.path as string).toLowerCase(),
     pathUserId: pathMatch[1].toLowerCase(),
@@ -484,6 +498,10 @@ async function createPick(
   // 6. Вид: «Не знаю» — лише приватна точка; id має бути в довіднику.
   await assertSpecies(deps.db, input);
 
+  // 6б. Відповідь знахідкою (B3.8): чи можна підтверджувати цю точку — до створення (без відстані:
+  //     її сервер перевіряє вже після, щоб не підказувати справжнє місце).
+  if (input.replyTo) await assertCanConfirm(deps.db, user.id, input.replyTo, input.speciesId);
+
   // 7. Опис уже очищено від контактів під час валідації (`_shared/picks/text.ts`).
 
   // 8. Ліміти (ADR-010/011/013) — рання відмова, до роботи з файлом.
@@ -571,8 +589,71 @@ async function createPick(
     }`,
   );
 
-  // 12. Підписи й кольори — із сервера.
-  return ok(pickResponse(result.pick), req, 201);
+  // 12. Відповідь знахідкою: зарахувати підтвердження (відстань, EXIF, взаємний ліміт) і бали.
+  const confirmation = input.replyTo ? await confirmByReply(deps.db, user.id, input.replyTo, id) : undefined;
+
+  // 13. Підписи й кольори — із сервера.
+  return ok({ ...pickResponse(result.pick), ...(confirmation ? { confirmation } : {}) }, req, 201);
+}
+
+// ─── Підтвердження відповіддю знахідкою (B3.8, ADR-019 §19.5) ──────────────
+
+const CONFIRM_STATUS: Record<string, number> = {
+  pick_not_found: 404,
+  own_pick: 422,
+  species_mismatch: 422,
+  already_confirmed: 409,
+  attempts_exhausted: 409,
+};
+
+/** Чому відповідь не зарахована — словами для людини (без відстаней і координат). */
+export const CONFIRM_REASON_LABEL: Record<string, string> = {
+  too_far: "Знахідка далі ніж 200 м від точки — збережено як вашу публічну точку, але точку не підтверджено",
+  exif_unverified: "Не вдалося перевірити місце фото — точку збережено, але не підтверджено",
+  pair_limit: "Ви вже кілька разів підтверджували точки цього грибника — цю знахідку збережено без підтвердження",
+};
+
+async function assertCanConfirm(db: PicksDb, userId: string, targetId: string, speciesId: string | null): Promise<void> {
+  const { data, error } = await db.rpc("can_confirm_pick", {
+    p_user_id: userId,
+    p_target_id: targetId,
+    p_species_id: speciesId,
+  });
+  if (error) dbFail("can_confirm_pick", error);
+  const r = (data ?? {}) as { allowed?: boolean; code?: string; message?: string };
+  if (r.allowed === true) return;
+  const code = r.code ?? "validation_error";
+  throw new HttpError(CONFIRM_STATUS[code] ?? 422, code, r.message ?? "Цю точку зараз не можна підтвердити");
+}
+
+async function confirmByReply(
+  db: PicksDb,
+  userId: string,
+  targetId: string,
+  replyId: string,
+): Promise<Record<string, unknown>> {
+  // Точку-відповідь уже створено — збій тут не скасовує її, лише лишає без підтвердження.
+  try {
+    const { data, error } = await db.rpc("confirm_pick", {
+      p_user_id: userId,
+      p_target_id: targetId,
+      p_reply_pick_id: replyId,
+    });
+    if (error) throw error;
+    const r = (data ?? {}) as { ok?: boolean; counted?: boolean; reason?: string | null; message?: string };
+    if (r.ok !== true) {
+      return { counted: false, label: r.message ?? "Точку збережено, але не підтверджено" };
+    }
+    return {
+      counted: r.counted === true,
+      label: r.counted === true
+        ? "Дякуємо! Ви підтвердили точку своєю знахідкою"
+        : CONFIRM_REASON_LABEL[r.reason ?? ""] ?? "Точку збережено, але не підтверджено",
+    };
+  } catch (err) {
+    console.error("[v1-picks] confirm_pick failed:", err);
+    return { counted: false, label: "Точку збережено, але підтвердження не вдалося — спробуйте пізніше" };
+  }
 }
 
 // ─── Маршрутизація ─────────────────────────────────────────────────────────
