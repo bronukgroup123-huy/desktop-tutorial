@@ -86,6 +86,21 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   BLK-009), SQL regression «every public table has relrowsecurity».
 - Status: ready (Codex zone; not taken by Claude).
 
+### OPS-002 — production outage: every v1 request answered 503 rate_limit_unavailable (fixed)
+- Cause: `ip_rate_limit.endpoint` CHECK allowed only ('forecast','picks','regions','catalog'); every v1-*
+  endpoint failed the limiter insert. Fail-open hid it until SEC-003 made the limiter fail closed
+  (2026-11-22) — from then on nearly every app request got 503 («Сервіс тимчасово недоступний»).
+  Reported by the owner from the app on 2026-11-26.
+- Fix: PR #148 (merged 2026-11-26, deployed run 109; remote migration history shows 20261126100000):
+  format check instead of a list, SQL regression (fails without the migration), Deno test that every
+  rate-limited endpoint name passes the CHECK.
+- Audit after the fix: every other list CHECK on tables written by v1 code matches the values the code
+  writes (user_reports.reason, user_consents.doc, analysis_areas.size_km, hikes.status/closed_reason,
+  region_change_log.source, push_devices.platform, rating_events.reason, friendships/guardian_links status).
+  Mismatching lists remain only on retired Guardian v0 tables (BLK-009).
+- Lesson for CI (Codex zone, suggestion): a staging/local integration run of the real v1 handlers against
+  a migrated DB would have caught this; unit tests mocked the limiter RPC.
+
 ### QA-002 — all deployed Deno entrypoints in blocking type check
 - Status: done — PR #111 (merged 2026-11-22; full `deno check` is blocking).
 

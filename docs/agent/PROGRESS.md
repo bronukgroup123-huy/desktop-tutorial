@@ -450,3 +450,12 @@ See docs/agent/BLOCKERS.md.
   other items wait for the owner (WEB-001 / BLK-009, PERF-001 device timings / BLK-010).
 - Fixed agent state: the previous state commit (branch claude/agent-state-ui001d, never merged) had picked up
   generated screenshots under flutter_client/tool/screens/out/; this PR carries only docs/agent changes.
+
+## 2026-11-26 10:10 UTC — OPS-002 outage fix (Claude, owner report)
+- Owner: app shows «Сервіс тимчасово недоступний» with working internet.
+- Root cause reproduced on a fresh local DB: ip_rate_limit endpoint CHECK rejected all v1-* names; with
+  SEC-003 fail-closed every request got 503.
+- PR #148 merged and deployed (Deploy to Supabase run 109 green; remote history has 20261126100000).
+  Live check from the agent is impossible (Supabase host blocked by the session network); owner asked to
+  press «Повторити» in the app.
+- Follow-up audit of all list CHECK constraints vs values written by v1 code: no other mismatch.
