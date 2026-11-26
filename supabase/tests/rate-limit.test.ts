@@ -1,9 +1,10 @@
 import {
   checkAndIncrementIpRateLimit,
+  IP_RATE_LIMITS,
   RateLimitUnavailableError,
   rateLimitUnavailableResponse,
 } from "../functions/_shared/rate-limit.ts";
-import { enforceRateLimit, HttpError } from "../functions/_shared/http.ts";
+import { enforceRateLimit, HttpError, V1_RATE_LIMITS } from "../functions/_shared/http.ts";
 
 function assertEquals(actual: unknown, expected: unknown): void {
   if (!Object.is(actual, expected)) {
@@ -144,4 +145,12 @@ Deno.test("rate limit: unavailable response is retryable 503", async () => {
   assertEquals(response.status, 503);
   assertEquals(response.headers.get("Retry-After"), "5");
   assertEquals((await response.json()).error, "rate_limit_unavailable");
+});
+
+Deno.test("назва кожного ендпоінта з лімітом проходить CHECK таблиці ip_rate_limit (інакше 503 на кожен запит)", () => {
+  // Той самий шаблон, що в міграції 20261126100000_ip_rate_limit_v1_endpoints.sql.
+  const allowed = /^[a-z0-9][a-z0-9-]{0,63}$/;
+  for (const endpoint of [...Object.keys(V1_RATE_LIMITS), ...Object.keys(IP_RATE_LIMITS)]) {
+    if (!allowed.test(endpoint)) throw new Error(`ендпоінт «${endpoint}» не пройде CHECK ip_rate_limit`);
+  }
 });
