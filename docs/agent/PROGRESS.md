@@ -488,3 +488,19 @@ See docs/agent/BLOCKERS.md.
 - No new task: B3.8b (app) changes the pick card that #153 / #156 change and needs #157 — starting it now would
   only create conflicts. Other ready Claude items are lower priority (B2.5 / B3.5, B9.4–B9.6) or wait for the
   owner (B8 scope, B3.10 / BLK-013). Next run: B3.8b once #153, #156 and #157 are merged.
+
+## 2026-11-26 evening — owner session (Claude)
+- Merged and deployed (Deploy to Supabase runs 113–118 green): #151 B2.4, #154 B6.1, #155 B3.11, #156 Google Maps,
+  #157 B3.8a, #158 state, #159 WEB-001, #160 old web API removal (deploy log: «Deleted catalog / me / picks»).
+- Owner decisions: no data-download button (security) → SQL export on request; remove everything not used by the
+  Flutter app (Vercel, web-guardian, legacy/, HTML, old API); B3.8b with a mock-location check.
+- Conflicts resolved on #151 (BACKEND_PLAN rows) and #157 (picks-map tests); fresh merges to drop the old Vercel status.
+- #163 B3.8b: «Я теж знайшов тут» (server shows the button only when allowed) + `location_mocked`; checks: Deno 554,
+  Flutter 424, all SQL tests; CI green.
+
+## 2026-11-26 20:35 UTC — scheduled run: B6.1 follow-up (Claude)
+- Branch claude/b6-1b-export-feedback — PR #164: export_user_data + trip_feedback, feedback_trust,
+  pick_confirmations, my_picks_confirmed (no foreign coordinates, no confirmer identity).
+- Checks: `scripts/dev/local-db/run.sh` → all 23 SQL test files passed (export_user_data.sql +4 checks).
+- Open agent PRs: #163 (green), #164, this state PR. Next: B3.12 after #163 (moderation policy — owner).
+

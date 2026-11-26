@@ -39,7 +39,9 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 ## BLK-009 — product/legal decisions before publication (owner)
 - Open-Meteo commercial key, privacy policy and terms, Apple sign-in (BACKEND_PLAN §5.1).
 - Retention of legacy Guardian v0 data tables after SEC-005 retires the endpoints.
-- Whether anything outside this repository still hosts web-guardian (WEB-001).
+- WEB-001 resolved 2026-11-26: owner removed Vercel; web-guardian deleted. Remaining owner action: Supabase Auth
+  Site URL → `ua.mushroomradar.app://login-callback/` (dashboard; config.toml is not pushed).
+- Privacy policy needs a public URL for Google Play (no web host now; GitHub Pages is a free option).
 
 ## BLK-010 — device-level verification (owner)
 - Status: blocked. FPS, memory, battery, background location, push delivery and OAuth on real Android
