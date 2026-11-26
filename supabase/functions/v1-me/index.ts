@@ -4,8 +4,7 @@
 // PATCH /functions/v1/v1-me   { name?, home_region_slug?, accept_terms_version? }
 //
 // Профіль + is_guest + onboarding.next_step + region_change.allowed (ADR-001, ADR-016).
-// GET ?export=1 — усі свої дані (GDPR, B6.1); DELETE — видалити акаунт (B6.2).
-// Старий `me` (лише GET-експорт) застосунок не викликає.
+// Старий `me` (GDPR-експорт / видалення) лишається без змін до B6.1–B6.2.
 // ============================================================================
 
 import { handle, serviceClient, supabaseTokenVerifier } from "../_shared/http.ts";

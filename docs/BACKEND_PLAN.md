@@ -276,7 +276,7 @@
 
 | ID | Задача | Деталі | DoD |
 |---|---|---|---|
-| ✅ B6.1 | `GET v1-me?export=1` — **виконано 2026-11-26**: SQL `export_user_data` (міграція `20261126130000`), кнопка «Завантажити мої дані» в «Налаштуваннях» | JSON усіх даних користувача (профіль, точки, ділянки, друзі, Наглядачі, походи з треком); без токенів push | GDPR-експорт за ≤ 30 с; SQL-тест `export_user_data.sql` |
+| ✅ B6.1 | Копія своїх даних — **виконано 2026-11-26 на запит через підтримку** (рішення PO: кнопки в застосунку немає — безпека). SQL `export_user_data` (міграція `20261126130000`), лише service_role | JSON усіх даних користувача (профіль, точки, ділянки, друзі, Наглядачі, походи); без токенів push. Свої точки — «Відкрити в Google Картах» у картці точки | SQL-тест `export_user_data.sql` |
 | ✅ B6.2 | `DELETE v1-me` | Ghost User: public verified точки переписуються на системного `ghost`, решта видаляється; `auth.users` видаляється | SQL-тест: після видалення немає PII |
 | B6.3 🟡 | Підписки через RevenueCat (**ADR-005**) | Склад Pro — матриця **ADR-010** (без AI-переваг, ADR-008); ключі `features[]` — ADR-010 §10.3. Майстер отримує Pro через `entitlements.source='rating'`, знижка Лісовика 20% — промо-офер RevenueCat. `app_user_id` = Supabase UUID. Edge Function `v1-revenuecat-webhook`: секрет у Vault, перевірка заголовка `Authorization`, ідемпотентність за `event.id` (`billing_events`), оновлення `entitlements` (plan: `pro_season`/`pro_year`, `valid_until`, `source=revenuecat`). `GET /me` → `is_pro`, `features[]`, `ads_enabled` | Тестові події RevenueCat (INITIAL_PURCHASE, RENEWAL, EXPIRATION, CANCELLATION) коректно змінюють доступ; повтор події не дублює запис; клієнт перевіряє тільки `features[]` |
 | B6.5 ⚪ | Щоденник | `GET v1-diary` — походи (сесії) + точки по днях | |

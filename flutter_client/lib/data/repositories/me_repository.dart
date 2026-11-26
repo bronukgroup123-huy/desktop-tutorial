@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
@@ -85,16 +83,6 @@ class MeRepository {
   Future<({bool available, String? reason})> checkHandle(String handle) async {
     final data = await _api.get('/v1-me', query: {'check_handle': handle}) as Map<String, dynamic>;
     return (available: data['available'] == true, reason: data['reason'] as String?);
-  }
-
-  /// Усі свої дані з сервера одним JSON-файлом (GDPR, B6.1): ім'я файлу й вміст з відступами,
-  /// щоб людина могла відкрити й прочитати.
-  Future<({String fileName, String content})> exportData() async {
-    final data = await _api.get('/v1-me', query: {'export': '1'}) as Map<String, dynamic>;
-    return (
-      fileName: data['file_name'] as String? ?? 'hrybnyi-radar-dani.json',
-      content: const JsonEncoder.withIndent('  ').convert(data['export']),
-    );
   }
 
   /// Видалити акаунт назавжди (вимога Google Play).

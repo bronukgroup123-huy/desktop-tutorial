@@ -1,14 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
-import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
@@ -17,8 +12,8 @@ import 'package:flutter_client/features/recognize/ai_model.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart' show trailGraphProvider;
 import 'package:flutter_client/core/ui.dart';
 
-/// «Налаштування» з профілю (PO 2026-11-21): дані без інтернету, область, мої дані (експорт), акаунт
-/// (ім'я й нік, аватар, вийти, видалити). У гостя — дані без інтернету, область і експорт.
+/// «Налаштування» з профілю (PO 2026-11-21): дані без інтернету, область, акаунт (ім'я й нік,
+/// аватар, вийти, видалити). У гостя — лише дані без інтернету й область.
 class ProfileSettingsScreen extends ConsumerWidget {
   const ProfileSettingsScreen({super.key});
 
@@ -46,8 +41,6 @@ class ProfileSettingsScreen extends ConsumerWidget {
             title: me?.homeRegion?.name ?? 'Область не вибрано',
             subtitle: me?.regionChange.reasonLabel ?? '',
           ),
-          const SectionTitle('Мої дані'),
-          const _ExportTile(),
           if (!guest) ...[
             const SectionTitle('Акаунт'),
             AppTile(
@@ -91,56 +84,6 @@ class ProfileSettingsScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Як віддати файл експорту людині: зберегти в тимчасову папку й відкрити «Поділитися» (Файли, Диск,
-/// пошта). Провайдер — щоб тести не відкривали системне вікно.
-final exportSharerProvider = Provider<Future<void> Function(String fileName, String content)>((ref) => (name, content) async {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$name');
-      await file.writeAsString(content, flush: true);
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: 'application/json')],
-        subject: 'Мої дані з Грибного Радара',
-      ));
-    });
-
-/// «Завантажити мої дані» (GDPR, B6.1): усе, що сервер зберігає про людину, — одним файлом.
-class _ExportTile extends ConsumerStatefulWidget {
-  const _ExportTile();
-
-  @override
-  ConsumerState<_ExportTile> createState() => _ExportTileState();
-}
-
-class _ExportTileState extends ConsumerState<_ExportTile> {
-  bool _busy = false;
-
-  Future<void> _export() async {
-    setState(() => _busy = true);
-    try {
-      final file = await ref.read(meRepositoryProvider).exportData();
-      await ref.read(exportSharerProvider)(file.fileName, file.content);
-    } on ApiException catch (e) {
-      if (mounted) showToast(context, e.userMessage, isError: true);
-    } catch (_) {
-      if (mounted) showToast(context, 'Не вдалося підготувати файл. Спробуйте ще раз.', isError: true);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AppTile(
-        key: const ValueKey('settings-export'),
-        leading: const BrandIcon('export'),
-        title: 'Завантажити мої дані',
-        subtitle: _busy ? 'Готуємо файл…' : 'Профіль, точки, ділянки, походи — одним файлом',
-        trailing: _busy
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4))
-            : null,
-        onTap: _busy ? null : _export,
-      );
 }
 
 Future<bool> _confirmDelete(BuildContext context, WidgetRef ref) async {
