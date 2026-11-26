@@ -779,7 +779,6 @@ class _WaveAlertsCard extends StatelessWidget {
               TextButton(key: const ValueKey('wave-alerts-enable'), onPressed: onEnable, child: const Text('Увімкнути')),
               IconButton(
                 tooltip: 'Не зараз',
-                visualDensity: VisualDensity.compact,
                 onPressed: onClose,
                 icon: Icon(Icons.close_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
               ),

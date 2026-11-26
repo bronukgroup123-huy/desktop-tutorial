@@ -266,7 +266,7 @@ class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
             TextButton(
               key: const ValueKey('offline-ok'),
               onPressed: _acknowledge,
-              style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.darkGreen),
               child: const Text('Ок', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
@@ -336,7 +336,7 @@ class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
               child: FilledButton.icon(
                 key: const ValueKey('offline-download'),
                 onPressed: ctrl.start,
-                style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen),
                 icon: const Icon(Icons.download_rounded, size: 18),
                 label: Text(s.saved == 0 && s.error == null ? 'Завантажити' : 'Продовжити'),
               ),

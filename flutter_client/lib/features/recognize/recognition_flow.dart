@@ -383,7 +383,7 @@ class _CandidateCard extends StatelessWidget {
                 FilledButton(
                   key: ValueKey('candidate-open-${s.id}'),
                   onPressed: () => context.push('/catalog/${s.id}'),
-                  style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, visualDensity: VisualDensity.compact),
+                  style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen),
                   child: const Text('Відкрити в довіднику'),
                 ),
               ],
