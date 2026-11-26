@@ -131,8 +131,10 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   card, pick form. Status: done — PR #127 (merged 2026-11-25).
 - Part 3 (UI-001c): friends, friend profile, safety guides, checklist, rescue card, SOS, name & handle,
   licenses. Found: friend profile trophies title and shelf at text ×2. Status: done — PR #137 (merged 2026-11-25).
-- Not covered by stress tests yet: map (MapLibre platform view), capture/recognition flow (camera), compass
-  and return (sensors) — need device fakes beyond the current ones.
+- Part 4 (UI-001d): hike — compass along the route, return by own track and direct, Safety tab with an active
+  hike (existing FakeHikeDevice). Found: hike card buttons at text ×2. Status: in_review — PR #139.
+- Not covered by stress tests yet: map (MapLibre platform view), capture/recognition flow (camera) — need
+  fakes the project does not have.
 
 ### UI-002 — design tokens and shared components (owner: Claude)
 - Goal: one source for colors, radii, typography and card styles (profile_hero.dart already defines the
