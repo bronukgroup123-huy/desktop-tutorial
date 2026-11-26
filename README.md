@@ -28,7 +28,6 @@ supabase/tests/        deno-тести + golden dataset (regression)
 data/catalog/          вихідні дані довідника (види, книжкові описи, іконки)
 flutter_client/        Flutter-клієнт
 openapi/               OpenAPI 3.1 для v1-* (генерація Dart-клієнта)
-legacy/                старий стек до Supabase — не використовується
 docs/                  документація
 ```
 
