@@ -11,6 +11,7 @@
     "v1-guardian-tick": "service_role",
     "v1-me": "user_jwt",
     "v1-picks": "user_jwt",
+    "v1-quiz": "user_jwt",
     "v1-regions": "public",
     "v1-telegram-webhook": "webhook_secret",
     "v1-wave-alerts": "service_role"
