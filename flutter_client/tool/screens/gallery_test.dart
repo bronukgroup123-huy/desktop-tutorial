@@ -14,6 +14,7 @@ import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/avatars.dart';
 import 'package:flutter_client/data/models/me.dart';
+import 'package:flutter_client/data/models/quiz.dart';
 import 'package:flutter_client/data/models/trophies.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/me_repository.dart';
@@ -25,6 +26,8 @@ import 'package:flutter_client/features/catalog/catalog_photo.dart';
 import 'package:flutter_client/features/forecast/forecast_screen.dart';
 import 'package:flutter_client/features/friends/friend_profile_screen.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
+import 'package:flutter_client/features/learn/learn_screen.dart';
+import 'package:flutter_client/features/learn/quiz_screen.dart';
 import 'package:flutter_client/features/picks/new_pick_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/licenses_screen.dart';
@@ -194,9 +197,12 @@ void main() {
           ],
     ),
     ('18_analysis', () => Scaffold(body: AnalysisResultView(result: AnalysisResult.fromJson(daysJson()), miniMapBuilder: (_) => const SizedBox(height: 40))), () => []),
+    ('19_learn', () => const LearnScreen(), () => [quizOverviewProvider.overrideWith((ref) async => QuizOverview.fromJson(_quizOverview))]),
+    ('20_quiz', () => QuizScreen(module: QuizModule.fromJson(_quizOverview['modules'][0]), attempt: QuizAttempt.fromJson(_quizAttempt())), () => []),
+    ('21_quiz_result', () => Scaffold(body: QuizResultView(result: QuizResult.fromJson(_quizResult()))), () => []),
   ];
   // Довгі екрани — висока «сторінка», щоб побачити все.
-  const tall = {'04_species', '18_analysis'};
+  const tall = {'04_species', '18_analysis', '21_quiz_result'};
 
   for (final (name, screen, overrides) in screens) {
     testWidgets(name, (tester) async {
@@ -214,4 +220,50 @@ void main() {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('out/$tag/$name.png'));
     });
   }
+}
+
+// ─── Навчання (B3.10c): справжні питання модуля 1 з data/quiz/app.json ───────
+final Map<String, dynamic> _quizOverview = {
+  'modules': [
+    for (final (i, m) in [
+      ('app', 'Як працює Грибний Радар', 'Звідки прогноз і чому чесні відповіді роблять його точнішим саме для вас', 10, 'open'),
+      ('forest', 'Ліс і гриб', 'Грибниця, союз грибів із деревами', 10, 'locked'),
+      ('weather', 'Погода, сезони, хвилі', 'Дощ і тепло із запізненням', 15, 'soon'),
+      ('ethics', 'Етика й закон', 'Червона книга, заповідники', 15, 'soon'),
+      ('safety', 'Безпека в лісі', 'Заблукав, сідає телефон, темніє', 20, 'soon'),
+      ('myths', 'Міфи, які вбивають', 'Народні «перевірки»', 25, 'soon'),
+      ('twins', 'Отруйні двійники', 'Коли однієї ознаки замало', 25, 'soon'),
+    ].indexed)
+      {'id': m.$1, 'position': i + 1, 'title': m.$2, 'summary': m.$3, 'points': m.$4, 'status': m.$5, 'questions_per_attempt': 10, 'pass_percent': 80},
+  ],
+  'passed_count': 0,
+  'total': 7,
+  'disclaimer_label': 'Тест навчає, але не дає дозволу їсти знайдені гриби',
+};
+
+List<Map<String, dynamic>> _appQuestions() =>
+    ((jsonDecode(File('../data/quiz/app.json').readAsStringSync()) as Map)['questions'] as List).cast<Map<String, dynamic>>();
+
+Map<String, dynamic> _quizAttempt() => {
+      'attempt_id': '11111111-2222-4333-8444-555555555555',
+      'practice': false,
+      'questions': [for (final q in _appQuestions().take(10)) {'id': q['id'], 'kind': q['kind'], 'prompt': q['prompt'], 'options': q['options']}],
+    };
+
+Map<String, dynamic> _quizResult() {
+  final qs = _appQuestions().take(4).toList();
+  return {
+    'correct': 3, 'total': 4, 'percent': 75, 'pass_percent': 80, 'passed': false, 'critical_failed': false,
+    'points_awarded': 0, 'certified_now': false, 'practice': false,
+    'result_label': 'Не зараховано: 3 з 4 (75 %), потрібно 80 %. Наступна спроба на бали — через добу',
+    'review': [
+      for (final (i, q) in qs.indexed)
+        {
+          ...q,
+          'chosen': i == 0 ? ['a'] : q['correct'],
+          'is_correct': i != 0,
+          'critical': false,
+        },
+    ],
+  };
 }

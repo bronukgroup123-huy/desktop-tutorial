@@ -20,6 +20,7 @@ import 'models/guardian.dart';
 import 'models/me.dart';
 import 'models/pick.dart';
 import 'models/region.dart';
+import 'models/quiz.dart';
 import 'models/trophies.dart';
 import 'repositories/analysis_repository.dart';
 import 'repositories/auth_repository.dart';
@@ -32,6 +33,7 @@ import 'repositories/guardian_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
 import 'repositories/me_repository.dart';
 import 'repositories/picks_repository.dart';
+import 'repositories/quiz_repository.dart';
 import 'repositories/regions_repository.dart';
 
 // ─── Інфраструктура ─────────────────────────────────────────────────────────
@@ -143,6 +145,10 @@ final guardianProvider = FutureProvider.autoDispose<GuardianOverview?>((ref) asy
   if (me == null || me.isGuest || me.handle == null) return null;
   return ref.watch(guardianRepositoryProvider).overview();
 });
+
+/// Тести знань (ADR-023).
+final quizRepositoryProvider = Provider((ref) => QuizRepository(ref.watch(apiClientProvider)));
+final quizOverviewProvider = FutureProvider.autoDispose<QuizOverview>((ref) => ref.watch(quizRepositoryProvider).overview());
 
 final analysisRepositoryProvider = Provider(
   (ref) => AnalysisRepository(ref.watch(apiClientProvider), ref.watch(localStoreProvider)),

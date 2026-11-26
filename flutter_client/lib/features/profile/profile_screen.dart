@@ -11,6 +11,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_hero.dart';
+import 'package:flutter_client/features/learn/learn_screen.dart';
 import 'package:flutter_client/features/profile/settings_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -58,6 +59,14 @@ class ProfileScreen extends ConsumerWidget {
             const _FriendsTile(),
           ],
           const SectionTitle('Ще'),
+          AppTile(
+            key: const ValueKey('profile-learn'),
+            leading: const BrandIcon('learn'),
+            title: 'Навчання',
+            subtitle: 'Тести знань: бали, рівень «Грибознавець», сертифікат',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LearnScreen())),
+          ),
+          const SizedBox(height: 8),
           AppTile(
             key: const ValueKey('profile-settings'),
             leading: const BrandIcon('settings'),
