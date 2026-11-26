@@ -40,8 +40,8 @@ class WeatherInsightView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
-    final title = TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.85));
+    final muted = AppTheme.textMuted;
+    final title = TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textMuted);
     return Column(
       key: const ValueKey('weather-insight'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +196,7 @@ class _LegendItem extends StatelessWidget {
         children: [
           swatch,
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+          Text(text, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
         ],
       );
 }
@@ -211,7 +211,7 @@ class _Gauge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final g = gauge;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.55);
+    final muted = AppTheme.textMuted;
     final current = g.index != null && g.index! >= 0 && g.index! < g.steps.length ? g.steps[g.index!] : null;
     return Padding(
       key: ValueKey('gauge-${g.key}'),
@@ -439,7 +439,7 @@ class _StripPainter extends CustomPainter {
       _text(canvas, d.label, Offset(cx, labelY),
           size: 9.5, weight: strong ? FontWeight.w800 : FontWeight.w400,
           color: AppTheme.darkGreen.withValues(alpha: d.forecast || d.today ? 1 : 0.6));
-      _text(canvas, d.dateLabel, Offset(cx, labelY + 12), size: 8.5, color: AppTheme.darkGreen.withValues(alpha: 0.5));
+      _text(canvas, d.dateLabel, Offset(cx, labelY + 12), size: 8.5, color: AppTheme.textMuted);
     }
   }
 

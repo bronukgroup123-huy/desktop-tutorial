@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -66,14 +65,14 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
               const SizedBox(height: 8),
               Text(
                 'Карта, ліси та прогноз доступні в межах вашої області.',
-                style: GoogleFonts.inter(color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                style: TextStyle(color: AppTheme.textMuted),
               ),
               if (lockedSlug != null && me != null) ...[
                 const SizedBox(height: 8),
                 // Чому область не можна змінити — текст із сервера (ADR-016).
                 Text(
                   me.regionChange.reasonLabel,
-                  style: GoogleFonts.inter(fontSize: 13, color: AppTheme.accentOrange),
+                  style: TextStyle(fontSize: 13, color: AppTheme.accentOrange),
                 ),
               ],
               const SizedBox(height: 16),

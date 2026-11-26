@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/auth_errors.dart';
@@ -122,7 +121,7 @@ class _Header extends ConsumerWidget {
             Text(
               me.name ?? '',
               textAlign: TextAlign.center,
-              style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+              style: TextStyle(fontFamily: AppTheme.serif, fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
             ),
             if (me.handle != null)
               Text('@${me.handle}', key: const ValueKey('profile-handle'), textAlign: TextAlign.center, style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 13)),
@@ -276,7 +275,7 @@ class _GuestCard extends ConsumerWidget {
           // Перший «Мандрівник» — яким буде аватар після входу.
           const Center(child: UserAvatar(avatar: Avatar(), size: 160)),
           const SizedBox(height: 8),
-          Text('Створіть профіль', textAlign: TextAlign.center, style: GoogleFonts.merriweather(fontSize: 21, fontWeight: FontWeight.bold, color: heroCream)),
+          Text('Створіть профіль', textAlign: TextAlign.center, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 21, fontWeight: FontWeight.bold, color: heroCream)),
           const SizedBox(height: 10),
           for (final t in const [
             'Ім\'я, нік і свій грибний аватар — 40 героїв за рівнями',

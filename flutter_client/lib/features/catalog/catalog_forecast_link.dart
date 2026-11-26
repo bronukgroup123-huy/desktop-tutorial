@@ -84,7 +84,7 @@ class CatalogForecastLink extends ConsumerWidget {
                               ),
                             ),
                             if (h.waveLabel != null)
-                              Text(h.waveLabel!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                              Text(h.waveLabel!, style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                           ],
                         ),
                       ),

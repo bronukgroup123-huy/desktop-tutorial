@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/models/catalog.dart';
@@ -117,7 +116,7 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = species;
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
+    final dim = AppTheme.textMuted;
     return CustomScrollView(
       key: ValueKey('catalog-detail-${s.id}'),
       slivers: [
@@ -150,7 +149,7 @@ class _Detail extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 64, right: 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 17)),
+                      child: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontSize: 17)),
                     ),
                   ),
                 ),
@@ -255,7 +254,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = species;
     final badge = edibilityBadge(s);
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.65);
+    final dim = AppTheme.textMuted;
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -451,11 +450,11 @@ class _SeasonStripState extends State<_SeasonStrip> with SingleTickerProviderSta
             children: [
               Container(width: 10, height: 10, decoration: BoxDecoration(color: AppTheme.darkGreen, borderRadius: BorderRadius.circular(3))),
               const SizedBox(width: 4),
-              Text('пік', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+              Text('пік', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
               const SizedBox(width: 10),
               Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xff8fbf8f), borderRadius: BorderRadius.circular(3))),
               const SizedBox(width: 4),
-              Text('трапляється', style: TextStyle(fontSize: 11, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+              Text('трапляється', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
             ],
           ),
         ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -35,7 +34,7 @@ class ForecastScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Прогноз', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
+        title: Text('Прогноз', style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -349,7 +348,7 @@ class _AreaPageState extends ConsumerState<_AreaPage> {
   @override
   Widget build(BuildContext context) {
     final o = widget.overview;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     final offline = o.offlineSince != null;
     final result = _area.lastResult;
     _maybeAutoRefresh(result, offline);
@@ -615,7 +614,7 @@ class _SlotTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locked = slot.state == AnalysisSlotState.locked;
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.45);
+    final dim = AppTheme.textMuted;
     final Widget body = switch (slot.state) {
       AnalysisSlotState.area => Stack(
           children: [
@@ -637,7 +636,7 @@ class _SlotTile extends StatelessWidget {
                     ),
                   ),
                   if (slot.subtitle != null)
-                    Text(slot.subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                    Text(slot.subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 ],
               ),
             ),
@@ -652,7 +651,7 @@ class _SlotTile extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                 iconSize: 16,
                 onPressed: onRename,
-                icon: Icon(Icons.edit_outlined, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                icon: Icon(Icons.edit_outlined, color: AppTheme.textMuted),
               ),
             ),
           ],
@@ -780,7 +779,7 @@ class _WaveAlertsCard extends StatelessWidget {
               IconButton(
                 tooltip: 'Не зараз',
                 onPressed: onClose,
-                icon: Icon(Icons.close_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                icon: Icon(Icons.close_rounded, size: 18, color: AppTheme.textMuted),
               ),
             ],
           ),

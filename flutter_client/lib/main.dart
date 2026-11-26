@@ -119,6 +119,9 @@ Future<void> main() async {
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks(
         ['Noto Sans (підписи карти)'], await rootBundle.loadString('assets/map/glyphs/noto_sans_regular/LICENSE.txt'));
+    // Шрифти інтерфейсу, вбудовані в застосунок (UI-004).
+    yield LicenseEntryWithLineBreaks(['Inter'], await rootBundle.loadString('assets/fonts/OFL-Inter.txt'));
+    yield LicenseEntryWithLineBreaks(['Merriweather'], await rootBundle.loadString('assets/fonts/OFL-Merriweather.txt'));
   });
 
   if (!SupabaseConfig.isConfigured) {

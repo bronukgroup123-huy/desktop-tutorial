@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_client/core/app_theme.dart';
 
 /// Оформлення вкладки «Профіль» у стилі аватарів (PO 2026-11-21): шапка — ліс у світлі, що
@@ -11,7 +10,7 @@ import 'package:flutter_client/core/app_theme.dart';
 
 const heroCream = AppTheme.backgroundColor;
 const heroGold = Color(0xFFF9C66B);
-const _amber = AppTheme.accentOrange;
+const _amber = AppTheme.accentOnDark;
 const _forest = AppTheme.darkGreen;
 const _ink = Color(0xFF2B2416);
 
@@ -254,7 +253,7 @@ class LevelBadge extends StatelessWidget {
         children: [
           Icon(Icons.eco_rounded, size: 15, color: p.badgeText),
           const SizedBox(width: 5),
-          Text(label, style: GoogleFonts.merriweather(fontSize: 13, fontWeight: FontWeight.w700, color: p.badgeText)),
+          Text(label, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 13, fontWeight: FontWeight.w700, color: p.badgeText)),
         ],
       ),
     );
@@ -283,7 +282,7 @@ class HeroStat extends StatelessWidget {
           children: [
             Icon(icon, size: 15, color: accent),
             const SizedBox(width: 5),
-            Text(value, style: GoogleFonts.merriweather(fontSize: 14, fontWeight: FontWeight.w800, color: heroCream)),
+            Text(value, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 14, fontWeight: FontWeight.w800, color: heroCream)),
             const SizedBox(width: 4),
             Text(label, style: TextStyle(fontSize: 12, color: heroCream.withValues(alpha: 0.75))),
           ],
@@ -407,7 +406,7 @@ class ParchmentTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.merriweather(fontSize: 14.5, fontWeight: FontWeight.w700, color: color)),
+                Text(title, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 14.5, fontWeight: FontWeight.w700, color: color)),
                 if (subtitle != null && subtitle!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
@@ -531,7 +530,7 @@ class ProfileSectionTitle extends StatelessWidget {
             const Icon(Icons.eco_rounded, size: 18, color: _amber),
             const SizedBox(width: 6),
             // довгий заголовок / великий шрифт — переноситься, риска лишається праворуч (UI-001)
-            Flexible(flex: 4, child: Text(title, style: GoogleFonts.merriweather(fontSize: 16, fontWeight: FontWeight.bold, color: _forest))),
+            Flexible(flex: 4, child: Text(title, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 16, fontWeight: FontWeight.bold, color: _forest))),
             const SizedBox(width: 10),
             Expanded(
               flex: 1,

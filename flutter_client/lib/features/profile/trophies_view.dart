@@ -93,7 +93,7 @@ class TrophiesSection extends ConsumerWidget {
             if (data != null)
               Text('${data.earnedCount} з ${data.total}',
                   key: const ValueKey('profile-trophies-count'),
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: onDark ? const Color(0xFFF9C66B) : AppTheme.darkGreen.withValues(alpha: 0.7))),
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: onDark ? const Color(0xFFF9C66B) : AppTheme.textMuted)),
           ],
         ),
         const SizedBox(height: 10),
@@ -219,7 +219,7 @@ Future<void> showTrophySheet(BuildContext context, Trophy t) => showModalBottomS
               if (t.earned && t.earnedAt != null)
                 Text('Отримано ${_date(t.earnedAt!)}', style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.w700))
               else if (t.soon)
-                Text('Скоро — з\'явиться разом із новою функцією', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6)))
+                Text('Скоро — з\'явиться разом із новою функцією', style: TextStyle(color: AppTheme.textMuted))
               else if (t.progressLabel != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
@@ -233,7 +233,7 @@ Future<void> showTrophySheet(BuildContext context, Trophy t) => showModalBottomS
                 const SizedBox(height: 6),
                 Text(t.progressLabel!, key: const ValueKey('trophy-progress'), style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.warning)),
               ] else
-                Text('Ще не отримано', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                Text('Ще не отримано', style: TextStyle(color: AppTheme.textMuted)),
             ],
           ),
         ),

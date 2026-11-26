@@ -49,7 +49,7 @@ class SafetyScreen extends ConsumerWidget {
           Text(
             'Утримайте 3 секунди: увімкнеться сирена, з\'являться ваші координати й дзвінок 112.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+            style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 18),
           const WeatherHazardsCard(),
@@ -280,11 +280,11 @@ class _ActionTile extends StatelessWidget {
                     children: [
                       Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen, fontSize: 15)),
                       if (subtitle != null)
-                        Text(subtitle!, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                        Text(subtitle!, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
                     ],
                   ),
                 ),
-                Icon(trailing, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+                Icon(trailing, color: AppTheme.textMuted),
               ],
             ),
           ),

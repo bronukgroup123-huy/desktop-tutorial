@@ -176,7 +176,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
     final hike = ref.watch(hikeProvider);
     final ctrl = ref.read(hikeProvider.notifier);
     final session = ref.watch(guardianSessionProvider);
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.75);
+    final dim = AppTheme.textMuted;
     final sunset = hike.sunset;
     final now = HikeController.now();
     final children = <Widget>[

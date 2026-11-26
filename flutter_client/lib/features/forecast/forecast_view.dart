@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
@@ -69,7 +68,7 @@ class _ForecastContent extends StatelessWidget {
           style: AppTheme.heading(20),
         ),
         if (f.regionName != null)
-          Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+          Text('${f.regionName} · ${f.date}', style: TextStyle(color: AppTheme.textMuted)),
         if (offlineSince != null) ...[
           const SizedBox(height: 12),
           ForecastInfoCard(
@@ -100,7 +99,7 @@ class _ForecastContent extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           'Прогноз — це ймовірність, а не гарантія. Збирайте лише гриби, які точно знаєте.',
-          style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.55)),
+          style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
         ),
       ],
     );
@@ -146,7 +145,7 @@ class _WeatherCard extends StatelessWidget {
                     Text(weather.rainLabel),
                     Text(weather.rainRecentLabel),
                     Text('${weather.humidityLabel} · ${weather.pressureLabel}',
-                        style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                   ],
                 ),
               ),
@@ -200,7 +199,7 @@ class _ForecastSpeciesCardState extends State<ForecastSpeciesCard> {
                 Expanded(
                   child: Text(
                     species.nameUa,
-                    style: GoogleFonts.merriweather(fontSize: primary ? 18 : 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
+                    style: TextStyle(fontFamily: AppTheme.serif, fontSize: primary ? 18 : 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                   ),
                 ),
                 Container(
@@ -320,7 +319,7 @@ class _SectionTitle extends StatelessWidget {
         padding: const EdgeInsets.only(top: 12, bottom: 2),
         child: Text(
           text,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: AppTheme.darkGreen.withValues(alpha: 0.6)),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: AppTheme.textMuted),
         ),
       );
 }
@@ -337,7 +336,7 @@ class WaveStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = wave.days!, day = wave.day!.clamp(1, wave.days!);
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     final cells = <Color>[];
     for (var g = 0; g < wave.segments.length; g++) {
       for (var k = 0; k < wave.segments[g].days; k++) {
@@ -355,7 +354,7 @@ class WaveStrip extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.waves_rounded, size: 18, color: AppTheme.darkGreen.withValues(alpha: 0.8)),
+              Icon(Icons.waves_rounded, size: 18, color: AppTheme.textMuted),
               const SizedBox(width: 8),
               Expanded(child: Text(wave.label ?? '', style: const TextStyle(color: AppTheme.darkGreen))),
             ],
@@ -459,7 +458,7 @@ class _Line extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: color ?? AppTheme.darkGreen.withValues(alpha: 0.8)),
+            Icon(icon, size: 18, color: color ?? AppTheme.textMuted),
             const SizedBox(width: 8),
             Expanded(
               child: Text(text, style: const TextStyle(color: AppTheme.darkGreen)),

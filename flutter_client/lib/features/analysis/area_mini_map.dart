@@ -213,7 +213,7 @@ class _AreaMiniMapState extends ConsumerState<AreaMiniMap> {
               child: Text(
                 'Мінікарта з лісами з\'явиться після завантаження офлайн карти на вкладці «Карта».',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7)),
+                style: TextStyle(color: AppTheme.textMuted),
               ),
             );
       return StickerBoard(

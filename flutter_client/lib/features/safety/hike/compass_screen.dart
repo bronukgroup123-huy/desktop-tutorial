@@ -141,7 +141,7 @@ class ReturnScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(hike.homeReason!,
-                  key: const ValueKey('home-reason'), style: TextStyle(fontSize: 13, color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+                  key: const ValueKey('home-reason'), style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
             ),
           if (mode == ReturnMode.auto && hike.home == null && hike.homeReason == null)
             const Padding(
@@ -296,7 +296,7 @@ class _NavigationPanelState extends ConsumerState<NavigationPanel> {
               key: const ValueKey('return-distance'),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppTheme.darkGreen)),
-          Text(target.label, textAlign: TextAlign.center, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+          Text(target.label, textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textMuted)),
           if (heading == null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -398,7 +398,7 @@ class CompassScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text('Тримайте телефон рівно, подалі від металу й машини',
-                      style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                      style: TextStyle(color: AppTheme.textMuted)),
                 ],
               ),
             )
@@ -409,7 +409,7 @@ class CompassScreen extends ConsumerWidget {
                   Text('${cardinal(heading)} · ${heading.round()}°',
                       key: const ValueKey('compass-heading'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
                 const NavigationPanel(),
                 if (hike.returnMode == null) ...[
                   const SizedBox(height: 18),

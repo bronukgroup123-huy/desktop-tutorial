@@ -268,7 +268,7 @@ class _FriendTileState extends ConsumerState<FriendTile> {
                         children: [
                           Text('@${c.handle}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen, fontSize: 15)),
                           if (subtitle.isNotEmpty)
-                            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.black.withValues(alpha: 0.6), fontSize: 13)),
+                            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
                           if (c.relationLabel != null && c.relation != 'friends')
                             Text(c.relationLabel!, style: const TextStyle(color: AppTheme.accentOrange, fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
@@ -486,6 +486,6 @@ class _Note extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Text(text, style: TextStyle(color: Colors.black.withValues(alpha: small ? 0.45 : 0.65), fontSize: small ? 12 : 14)),
+        child: Text(text, style: TextStyle(color: AppTheme.textMuted, fontSize: small ? 12 : 14)),
       );
 }

@@ -96,7 +96,7 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
                       const SizedBox(height: 8),
                       if (selected != null) ...[
                         Text(selected.title, style: AppTheme.heading(18, weight: FontWeight.w700)),
-                        Text(selected.role, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                        Text(selected.role, style: TextStyle(color: AppTheme.textMuted)),
                       ],
                       if (!c.canChange && c.reasonLabel != null)
                         Padding(
@@ -182,7 +182,7 @@ class _GroupHeader extends StatelessWidget {
                 children: [
                   Text(group.label, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen)),
                   if (group.lockLabel != null)
-                    Text(group.lockLabel!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    Text(group.lockLabel!, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 ],
               ),
             ),

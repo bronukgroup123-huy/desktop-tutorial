@@ -68,7 +68,7 @@ class _PickCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pick = card.pick;
-    final muted = AppTheme.darkGreen.withValues(alpha: 0.6);
+    final muted = AppTheme.textMuted;
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

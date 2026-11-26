@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/data/api/api_exception.dart';
@@ -118,7 +117,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
                       Text(
                         card.name != null && card.name!.isNotEmpty ? card.name! : '@${card.handle}',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.merriweather(fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+                        style: TextStyle(fontFamily: AppTheme.serif, fontSize: 20, fontWeight: FontWeight.bold, color: heroCream, shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
                       ),
                       if (card.name != null && card.name!.isNotEmpty)
                         Text('@${card.handle}', style: TextStyle(color: heroCream.withValues(alpha: 0.75), fontSize: 13)),

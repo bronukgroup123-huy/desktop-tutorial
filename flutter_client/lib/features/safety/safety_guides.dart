@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
@@ -24,9 +23,9 @@ class SafetyGuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dim = AppTheme.darkGreen.withValues(alpha: 0.75);
+    final dim = AppTheme.textMuted;
     return Scaffold(
-      appBar: AppBar(title: Text(guide.title, style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 18))),
+      appBar: AppBar(title: Text(guide.title, style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontSize: 18))),
       body: ListView(
         key: ValueKey('guide-${guide.id}'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -78,6 +77,8 @@ class SafetyNoticeBanner extends StatelessWidget {
       'info' => const Color(0xff1e6091),
       _ => kSosRed,
     };
+    // Текст на підфарбованому тлі банера — темніший відтінок, щоб контраст лишався ≥ 4,5 (UI-004).
+    final ink = color == kSosRed ? AppTheme.errorRed : color;
     return Container(
       key: ValueKey('notice-${notice.id}'),
       margin: const EdgeInsets.only(bottom: 10),
@@ -94,17 +95,17 @@ class SafetyNoticeBanner extends StatelessWidget {
             children: [
               Icon(Icons.warning_amber_rounded, color: color, size: 20),
               const SizedBox(width: 6),
-              Expanded(child: Text(notice.title, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 15))),
+              Expanded(child: Text(notice.title, style: TextStyle(color: ink, fontWeight: FontWeight.w800, fontSize: 15))),
             ],
           ),
           const SizedBox(height: 4),
-          Text(notice.body, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.9), fontSize: 13.5, height: 1.3)),
+          Text(notice.body, style: TextStyle(color: AppTheme.darkGreen, fontSize: 13.5, height: 1.3)),
           if (notice.linkUrl != null)
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: () => launchUrl(Uri.parse(notice.linkUrl!), mode: LaunchMode.externalApplication),
-                style: TextButton.styleFrom(foregroundColor: color, padding: EdgeInsets.zero),
+                style: TextButton.styleFrom(foregroundColor: ink, padding: EdgeInsets.zero),
                 icon: const Icon(Icons.open_in_new_rounded, size: 16),
                 label: Text(notice.linkLabel ?? notice.linkUrl!),
               ),
@@ -196,10 +197,10 @@ class _AirStatusRow extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: muted ? AppTheme.darkGreen.withValues(alpha: 0.5) : AppTheme.success),
+            Icon(icon, size: 18, color: muted ? AppTheme.textMuted : AppTheme.success),
             const SizedBox(width: 6),
             Expanded(
-              child: Text(text, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: muted ? 0.6 : 0.75))),
+              child: Text(text, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
             ),
           ],
         ),
@@ -388,14 +389,14 @@ class ChecklistScreen extends ConsumerWidget {
     final readiness = ref.watch(offlineReadinessProvider);
     final items = content?.checklist ?? const <({String id, String label})>[];
     return Scaffold(
-      appBar: AppBar(title: Text('Перед походом', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 18))),
+      appBar: AppBar(title: Text('Перед походом', style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontSize: 18))),
       body: ListView(
         key: const ValueKey('checklist'),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
           Text('${done.where((d) => items.any((i) => i.id == d)).length} з ${items.length}',
               key: const ValueKey('checklist-progress'),
-              style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+              style: TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 6),
           for (final i in items)
             Card(
@@ -538,12 +539,12 @@ class _RescueCardScreenState extends ConsumerState<RescueCardScreen> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         );
     return Scaffold(
-      appBar: AppBar(title: Text('Картка для рятувальників', style: GoogleFonts.merriweather(color: AppTheme.darkGreen, fontSize: 18))),
+      appBar: AppBar(title: Text('Картка для рятувальників', style: TextStyle(fontFamily: AppTheme.serif, color: AppTheme.darkGreen, fontSize: 18))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
           Text('Необов\'язково. Зберігається лише на цьому телефоні й показується на екрані SOS — щоб рятувальники й лікарі знали головне.',
-              style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.75))),
+              style: TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 12),
           TextField(key: const ValueKey('rc-name'), controller: _name, decoration: deco('Ім\'я')),
           const SizedBox(height: 10),

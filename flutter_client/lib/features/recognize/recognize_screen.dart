@@ -76,7 +76,7 @@ class RecognitionHistorySheet extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Зберігається лише на цьому телефоні.', style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.6))),
+              child: Text('Зберігається лише на цьому телефоні.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             ),
             if (history.isEmpty)
               const Padding(
@@ -125,7 +125,7 @@ class _HistoryTile extends StatelessWidget {
           title: Text(r.notMushroom ? 'Не схоже на гриб' : (top?.label.name ?? '—'), style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
           subtitle: Text(
             [historyDate(entry.at), if (top != null && !r.notMushroom) top.likelihood.label, if (r.dangerous != null) '⚠ серед схожих отруйний'].join(' · '),
-            style: TextStyle(fontSize: 12, color: r.dangerous != null ? AppTheme.danger : AppTheme.darkGreen.withValues(alpha: 0.65)),
+            style: TextStyle(fontSize: 12, color: r.dangerous != null ? AppTheme.danger : AppTheme.textMuted),
           ),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HistoryResultScreen(entry: entry, thumb: thumb))),
         );

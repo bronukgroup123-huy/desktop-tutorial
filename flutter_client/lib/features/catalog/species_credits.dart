@@ -14,7 +14,7 @@ class SpeciesCredits extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppTheme.darkGreen.withValues(alpha: 0.6);
+    final c = color ?? AppTheme.textMuted;
     final small = TextStyle(fontSize: 11, color: c, height: 1.35);
     return Column(
       key: const ValueKey('catalog-photo-credit'),

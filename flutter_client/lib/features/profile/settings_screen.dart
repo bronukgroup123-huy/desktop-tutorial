@@ -283,7 +283,7 @@ class _DataRow extends StatelessWidget {
                       Row(children: [
                         Icon(ready ? Icons.check_circle_rounded : Icons.cloud_download_outlined, size: 14, color: ready ? AppTheme.success : AppTheme.warning),
                         const SizedBox(width: 4),
-                        Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.darkGreen.withValues(alpha: 0.75)))),
+                        Flexible(child: Text(status, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted))),
                       ]),
                     ],
                   ),

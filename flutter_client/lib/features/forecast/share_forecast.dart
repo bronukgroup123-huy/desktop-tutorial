@@ -123,7 +123,7 @@ class ShareForecastCard extends StatelessWidget {
               Flexible(
                 child: Text(areaTitle,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: AppTheme.darkGreen.withValues(alpha: 0.7))),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
               ),
             ],
           ),
@@ -168,7 +168,7 @@ class ShareForecastCard extends StatelessWidget {
                 style: const TextStyle(color: AppTheme.darkGreen)),
           if (top?.wave?.label != null) ...[
             const SizedBox(height: 4),
-            Text(top!.wave!.label!, style: TextStyle(color: AppTheme.darkGreen.withValues(alpha: 0.8))),
+            Text(top!.wave!.label!, style: TextStyle(color: AppTheme.textMuted)),
           ],
           if (result.bestDay != null) ...[
             const SizedBox(height: 6),
