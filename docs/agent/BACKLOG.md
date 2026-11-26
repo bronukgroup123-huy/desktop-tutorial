@@ -249,20 +249,26 @@ Each item keeps its plan ID. Take only items of your zone; set the status here w
 and when the PR is open/merged. Details, ADR links and acceptance criteria are in the plan rows.
 
 ### B3.4 — edit / delete own pick (owner: Claude)
-- Goal: author changes visibility (with ADR-019 limits) and description; soft delete. Status: ready.
+- Goal: author changes visibility (with ADR-019 limits) and description; soft delete.
+  Status: in review — #152 (server) → #153 (card actions) → #156 («Відкрити в Google Картах», owner request).
 ### B3.11 — «Знайшли?» feedback after a trip (owner: Claude)
-- Goal: ADR-014 feedback loop; new rating source (ADR-012); data for B3.9 and golden dataset (B7.7). Status: ready.
-### B3.8 — community species confirmation, rewritten per ADR-019 §19.5 (owner: Claude)
-- Goal: a Forester's answer confirms a grey public pick, +2 to the author; rewrite the plan row first. Status: ready.
+- Goal: ADR-014 feedback loop; new rating source (ADR-012); data for B3.9 and golden dataset (B7.7).
+  Status: in review — #155 (asked after «Я вдома»; place is checked, not stored).
+### B3.8 — confirmation of a public pick by a reply find, per ADR-019 §19.5 (owner: Claude)
+- B3.8a server: in review — #157 (stacked on #155; distance checked only after the reply exists, ≤ 2 attempts).
+- B3.8b app: «Я теж знайшов тут» in a foreign public pick card → reply creation flow; «Підтвердили N».
+  Status: ready after #157.
 ### B3.12 — reports on picks (owner: Claude)
 - Goal: `pick_reports`, re-check, −50 on a confirmed report. Depends on: B3.8. Status: ready after B3.8.
 ### B3.10 — knowledge tests → certificate (owner: Claude)
-- Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels. Status: ready.
-### B6.1 — export own data in v1 + Settings button (owner: Claude)
-- Goal: move the GET export of legacy `me` into `v1-me` (GDPR), add the button. Status: ready.
+- Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels.
+  Status: blocked_owner — owner (2026-11-26): discuss and design in detail before any work (BLK-013).
+### B6.1 — copy of own data (owner: Claude)
+- Owner decision 2026-11-26: no «download my data» button (bulk export of exact places is a risk with a stolen
+  phone/session). SQL `export_user_data` for support requests only. Status: in review — #154.
+  Follow-up after #154 + #155 merge: add `trip_feedback` (and `pick_confirmations` after #157) to the export.
 ### B2.4 — «poisonous never» in the forecast (owner: Claude)
-- Goal: verify that no poisonous species can reach forecast results; add an explicit filter or a regression test
-  over expert_rules. No explicit filter found in the engine on 2026-11-26. Status: ready.
+- Goal: no poisonous species can reach forecast results. Status: in review — #151 (explicit filter + tests).
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
 - Status: ready (gifts are announced in the profile as «скоро»).
 ### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)

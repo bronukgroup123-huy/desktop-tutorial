@@ -30,12 +30,35 @@ export async function findRulesByType(
 ): Promise<SpeciesRule | null> {
   const { data, error } = await db
     .from("expert_rules")
-    .select("*")
+    .select("*, mushroom_catalog(edibility)")
     .eq("mushroom_type", mushroomType)
     .maybeSingle();
 
   if (error || !data) return null;
-  return rowToRule(data);
+  return forecastableRows([data as Record<string, unknown>]).length ? rowToRule(data as Record<string, unknown>) : null;
+}
+
+/**
+ * Які види прогноз може показати (BACKEND_PLAN B2.4 «Отруйні — ніколи»): лише їстівні й умовно їстівні
+ * за довідником. Вид без запису в довіднику чи з невідомою їстівністю теж не показується.
+ */
+export const FORECASTABLE_EDIBILITY: readonly string[] = ["edible", "conditionally_edible"];
+
+/** Їстівність виду з вкладеного `mushroom_catalog(edibility)` (PostgREST віддає об'єкт або масив). */
+export function ruleEdibility(row: Record<string, unknown>): string | null {
+  const c = row.mushroom_catalog;
+  const one = Array.isArray(c) ? c[0] : c;
+  const e = one && typeof one === "object" ? (one as { edibility?: unknown }).edibility : null;
+  return typeof e === "string" ? e : null;
+}
+
+/** Рядки правил, які можна прогнозувати; решту відкидає з попередженням у лозі. */
+export function forecastableRows<T extends Record<string, unknown>>(rows: T[]): T[] {
+  return rows.filter((row) => {
+    const ok = FORECASTABLE_EDIBILITY.includes(ruleEdibility(row) ?? "");
+    if (!ok) console.warn(`[forecast] правило ${String(row.mushroom_type)} пропущено: вид не їстівний або без довідника`);
+    return ok;
+  });
 }
 
 export async function findAllRules(
@@ -44,7 +67,7 @@ export async function findAllRules(
 ): Promise<SpeciesRule[]> {
   let query = db
     .from("expert_rules")
-    .select("*")
+    .select("*, mushroom_catalog(edibility)")
     .order("legacy_id", { ascending: true });
 
   if (mvpOnly) {
@@ -53,7 +76,7 @@ export async function findAllRules(
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return data.map(rowToRule);
+  return forecastableRows(data as Record<string, unknown>[]).map(rowToRule);
 }
 
 // ============================================================================

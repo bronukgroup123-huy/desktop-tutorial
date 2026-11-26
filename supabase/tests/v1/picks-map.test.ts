@@ -320,8 +320,8 @@ Deno.test("card: дії автора (B3.4) — вирішує сервер; ч�
     (await run(db({ "rpc.get_pick_card": { data: { ...row, description: null, photo_path: null, taken_at: null }, error: null } }), req("GET", CARD)))
       .json.data.actions;
   // приватна «Не знаю» — публікувати не можна
-  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["edit_description", "delete"]);
-  assertEquals(await actionsOf(own({ pick_type: "private" })), ["make_public", "edit_description", "delete"]);
-  assertEquals(await actionsOf(own()), ["make_private", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["open_in_maps", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private" })), ["open_in_maps", "make_public", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own()), ["open_in_maps", "make_private", "edit_description", "delete"]);
   assertEquals(await actionsOf(foreign()), []);
 });
