@@ -1367,8 +1367,10 @@ components:
               example: Фото користувача — не порада їсти гриб
             actions:
               type: array
-              description: Дозволені дії; клієнт показує лише їх (скарги — B3.12, зміна й видалення — B3.4)
-              items: { type: string }
+              description: |
+                Дозволені дії; клієнт показує лише їх. Своя точка (B3.4): `make_public` (приватна з видом),
+                `make_private` (публічна), `edit_description`, `delete`. Чужа — поки порожньо (скарги — B3.12).
+              items: { type: string, enum: [make_public, make_private, edit_description, delete] }
 
     AnalysisUsage:
       type: object

@@ -28,6 +28,20 @@ class PicksRepository {
       PickCard.fromJson(await _api.get('/v1-picks/$id') as Map<String, dynamic>);
 
   /// Довідник видів для вибору назви.
+  /// Змінити свою точку (B3.4): видимість і/або опис. [clearDescription] прибирає опис.
+  /// Ліміти, правила видимості й зсув місця вирішує сервер; відмову повертає як [ApiException].
+  Future<void> updatePick(String id, {String? visibility, String? description, bool clearDescription = false}) async {
+    await _api.patch('/v1-picks/$id', body: {
+      if (visibility != null) 'visibility': visibility,
+      if (clearDescription) 'description': null else if (description != null) 'description': description,
+    });
+  }
+
+  /// Видалити свою точку (B3.4, soft delete на сервері).
+  Future<void> deletePick(String id) async {
+    await _api.delete('/v1-picks/$id');
+  }
+
   Future<SpeciesList> fetchSpecies() async =>
       SpeciesList.fromJson(await _api.get('/v1-picks/species') as Map<String, dynamic>);
 
