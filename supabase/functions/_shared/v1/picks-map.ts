@@ -193,6 +193,28 @@ export function ownPickActions(row: { pick_type: string; species_id: string | nu
   return ["open_in_maps", ...visibility, "edit_description", "delete"];
 }
 
+/**
+ * Дії з чужою точкою: `reply_found` — відповісти своєю знахідкою (ADR-019 §19.5). Кнопку бачить лише той,
+ * хто справді може: акаунт (не гість), публічні точки дозволено (рівень «Лісовик»+, тижневий ліміт),
+ * точку ще не підтвердив і має спроби. Збій перевірки — кнопки просто немає.
+ */
+async function foreignPickActions(deps: PicksDeps, user: AuthUser, row: CardRow): Promise<string[]> {
+  if (user.isAnonymous || row.pick_type !== "public" || row.confirmed_by_me === true) return [];
+  try {
+    const [confirm, create] = await Promise.all([
+      deps.db.rpc("can_confirm_pick", { p_user_id: user.id, p_target_id: row.id, p_species_id: row.species_id }),
+      deps.db.rpc("can_create_pick", { p_user_id: user.id, p_visibility: "public" }),
+    ]);
+    const canConfirm = !confirm.error && (confirm.data as { allowed?: boolean } | null)?.allowed === true;
+    const limit = Array.isArray(create.data) ? create.data[0] : create.data;
+    const canCreate = !create.error && (limit as { allowed?: boolean } | null)?.allowed === true;
+    return canConfirm && canCreate ? ["reply_found"] : [];
+  } catch (err) {
+    console.warn("[v1-picks] reply_found check failed:", err);
+    return [];
+  }
+}
+
 export async function handlePickCard(
   req: Request,
   pickId: string,
@@ -236,7 +258,8 @@ export async function handlePickCard(
     captured_at: mine ? row.taken_at : null,
     photo_url: photoUrl,
     disclaimer_label: row.pick_type === "public" ? PHOTO_DISCLAIMER : null,
-    // Що автор може зробити зі своєю точкою (B3.4); «Поскаржитися» на чужу — B3.12.
-    actions: mine ? ownPickActions(row) : [],
+    // Що можна зробити: автор — зі своєю точкою (B3.4); інший — «Я теж знайшов тут» (B3.8b), якщо сервер
+    // дозволяє (рівень, тижневий ліміт, спроби); «Поскаржитися» на чужу — B3.12.
+    actions: mine ? ownPickActions(row) : await foreignPickActions(deps, user, row),
   }, req);
 }

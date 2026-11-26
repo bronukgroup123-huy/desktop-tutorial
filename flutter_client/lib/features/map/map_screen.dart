@@ -3,7 +3,6 @@ import 'dart:math' show Point;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -450,21 +449,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   }
 
   /// Місцезнаходження телефона. `null` — недоступне (пояснення вже показано).
-  Future<LatLng?> _currentPosition() async {
+  Future<LatLng?> _currentPosition() async => (await _currentFix())?.point;
+
+  /// Місце телефона разом з ознакою підміни (для тук-тука). `null` — недоступне (пояснення вже показано).
+  Future<PickFix?> _currentFix() async {
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        if (mounted) showToast(context, 'Дозвольте доступ до геолокації в налаштуваннях', isError: true);
-        return null;
-      }
-      // Обмеження часу: у приміщенні GPS може шукати супутники дуже довго.
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(timeLimit: Duration(seconds: 20)),
-      );
-      return LatLng(pos.latitude, pos.longitude);
+      return await currentPickFix();
+    } on PickLocationException catch (e) {
+      if (mounted) showToast(context, e.message, isError: true);
+      return null;
     } catch (_) {
       if (mounted) showToast(context, 'Не вдалося визначити місцезнаходження', isError: true);
       return null;
@@ -492,8 +485,9 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     if (_startingPick) return;
     setState(() => _startingPick = true);
     try {
-      final here = await _currentPosition();
-      if (here == null || !mounted) return;
+      final fix = await _currentFix();
+      if (fix == null || !mounted) return;
+      final here = fix.point;
       if (!isInsideRegion(here, _g.polygons)) {
         showToast(context, 'Тук-тук можна створити лише у своїй області (${_g.name})', isError: true);
         return;
@@ -502,7 +496,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
       if (photo == null || !mounted) return;
       await Navigator.of(context).push<bool>(
         MaterialPageRoute(
-          builder: (_) => NewPickScreen(photo: photo, point: here, capturedAt: DateTime.now()),
+          builder: (_) => NewPickScreen(photo: photo, point: here, locationMocked: fix.mocked, capturedAt: DateTime.now()),
         ),
       );
       if (mounted) ref.invalidate(picksMapProvider);

@@ -325,3 +325,39 @@ Deno.test("card: дії автора (B3.4) — вирішує сервер; ч�
   assertEquals(await actionsOf(own()), ["open_in_maps", "make_private", "edit_description", "delete"]);
   assertEquals(await actionsOf(foreign()), []);
 });
+
+// ─── B3.8b: «Я теж знайшов тут» — кнопку бачить лише той, хто справді може ─────
+
+Deno.test("card: чужа публічна — reply_found лише коли сервер дозволяє підтвердити і створити публічну", async () => {
+  const cardRow = { ...foreign(), description: null, photo_path: null, taken_at: null };
+  const actionsWith = async (extra: Results, isAnonymous = false, row: Record<string, unknown> = cardRow) =>
+    (await run(db({ "rpc.get_pick_card": { data: row, error: null }, ...extra }), req("GET", CARD), storage(), isAnonymous))
+      .json.data.actions;
+  const ALLOW = {
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.can_create_pick": { data: [{ allowed: true, code: null, message: null }], error: null },
+  };
+  assertEquals(await actionsWith(ALLOW), ["reply_found"]);
+  // рівень нижче «Лісовика» / тижневий ліміт
+  assertEquals(await actionsWith({ ...ALLOW, "rpc.can_create_pick": { data: [{ allowed: false, code: "level_required" }], error: null } }), []);
+  // спроби вичерпано / уже підтвердив / інший вид
+  assertEquals(await actionsWith({ ...ALLOW, "rpc.can_confirm_pick": { data: { allowed: false, code: "attempts_exhausted" }, error: null } }), []);
+  assertEquals(await actionsWith(ALLOW, false, { ...cardRow, confirmed_by_me: true }), []);
+  // гість — ніколи; збій перевірки — кнопки немає
+  assertEquals(await actionsWith(ALLOW, true), []);
+  assertEquals(await actionsWith({ ...ALLOW, "rpc.can_confirm_pick": { data: null, error: { message: "boom" } } }), []);
+});
+
+Deno.test("card: reply_found перевіряється з видом точки й для публічних — без зайвих запитів для своїх", async () => {
+  const d = db({
+    "rpc.get_pick_card": { data: { ...foreign(), description: null, photo_path: null, taken_at: null }, error: null },
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.can_create_pick": { data: [{ allowed: true }], error: null },
+  });
+  await run(d, req("GET", CARD));
+  assertEquals(d.calls.find((c) => c.key === "rpc.can_confirm_pick")?.args[0], { p_user_id: USER, p_target_id: PICK, p_species_id: "boletus_edulis" });
+  assertEquals(d.calls.find((c) => c.key === "rpc.can_create_pick")?.args[0], { p_user_id: USER, p_visibility: "public" });
+  const mine = db({ "rpc.get_pick_card": { data: { ...own(), description: null, photo_path: null, taken_at: null }, error: null } });
+  await run(mine, req("GET", CARD));
+  assertEquals(mine.calls.find((c) => c.key === "rpc.can_confirm_pick"), undefined);
+});

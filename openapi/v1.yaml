@@ -1392,6 +1392,11 @@ components:
           type: [string, 'null']
           format: uuid
           description: Відповідь знахідкою на чужу публічну точку (B3.8) — лише з `visibility = public`
+        location_mocked:
+          type: [boolean, 'null']
+          description: >-
+            Телефон повідомив, що місце підмінене програмою (Android mock location). Відповідь знахідкою зараховується
+            лише з `false`; `true` або без поля — точку створено, але підтвердження немає (B3.8b).
         ai_check:
           oneOf:
             - $ref: '#/components/schemas/PickAiCheck'
@@ -1409,22 +1414,18 @@ components:
           description: '«Приватна точка» · «Перевіряється» · «Підтверджено» · «Відхилено»'
           example: Перевіряється
         marker_color: { type: string, pattern: '^#[0-9a-f]{6}$', example: '#9e9e9e' }
+        confirmation:
+          type: object
+          description: Лише для відповіді знахідкою (`reply_to`, B3.8) — чи зараховано і чому, словами
+          properties:
+            counted: { type: boolean }
+            label: { type: string, example: 'Дякуємо! Ви підтвердили точку своєю знахідкою' }
 
     PickCreatedResponse:
       type: object
       required: [data]
       properties:
-        data:
-          allOf:
-            - $ref: '#/components/schemas/PickCreated'
-            - type: object
-              properties:
-                confirmation:
-                  type: object
-                  description: Лише для відповіді знахідкою (`reply_to`)
-                  properties:
-                    counted: { type: boolean }
-                    label: { type: string, example: 'Дякуємо! Ви підтвердили точку своєю знахідкою' }
+        data: { $ref: '#/components/schemas/PickCreated' }
 
     MapPick:
       type: object
@@ -1474,8 +1475,9 @@ components:
               description: |
                 Дозволені дії; клієнт показує лише їх. Своя точка (B3.4): `open_in_maps` (відкрити точне місце в
                 Google Картах — замість файлу-експорту), `make_public` (приватна з видом),
-                `make_private` (публічна), `edit_description`, `delete`. Чужа — поки порожньо (скарги — B3.12).
-              items: { type: string, enum: [open_in_maps, make_public, make_private, edit_description, delete] }
+                `make_private` (публічна), `edit_description`, `delete`. Чужа публічна — `reply_found` («Я теж знайшов тут»,
+                B3.8b), лише якщо сервер дозволяє: акаунт, публічні дозволені (рівень, ліміт), ще не підтверджено, є спроби.
+              items: { type: string, enum: [reply_found, open_in_maps, make_public, make_private, edit_description, delete] }
 
     AnalysisUsage:
       type: object

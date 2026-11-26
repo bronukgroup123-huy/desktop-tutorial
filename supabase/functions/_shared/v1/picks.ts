@@ -236,6 +236,8 @@ export interface CreatePickInput {
   aiCheck: AiCheck | null;
   /** Відповідь знахідкою на чужу публічну точку (B3.8, ADR-019 §19.5) — id цієї точки. */
   replyTo?: string | null;
+  /** Телефон повідомив, що місце підмінене програмою (Android: mock location) — B3.8b. */
+  locationMocked?: boolean | null;
 }
 
 /** Підказка ШІ з телефону: лише відомі поля, рівні — словами (жодних відсотків). */
@@ -326,8 +328,13 @@ export function validateCreateBody(body: unknown, now: Date): CreatePickInput {
     replyTo = obj.reply_to.toLowerCase();
   }
 
+  if (obj.location_mocked !== undefined && obj.location_mocked !== null && typeof obj.location_mocked !== "boolean") {
+    throw validationError("location_mocked — true або false");
+  }
+
   return {
     replyTo,
+    locationMocked: typeof obj.location_mocked === "boolean" ? obj.location_mocked : null,
     clientId,
     path: (obj.path as string).toLowerCase(),
     pathUserId: pathMatch[1].toLowerCase(),
@@ -539,6 +546,8 @@ async function createPick(
   const aiCheck = {
     ...(input.aiCheck ?? {}),
     exif: { has_exif: photo.exif.hasExif, verified: photo.exif.verified, reason: photo.exif.reason ?? null },
+    // Що телефон сказав про джерело місця (null — старий застосунок, не повідомив).
+    location: { mocked: input.locationMocked ?? null },
   };
   let inserted: { data: unknown; error: unknown };
   try {
@@ -611,6 +620,8 @@ export const CONFIRM_REASON_LABEL: Record<string, string> = {
   too_far: "Знахідка далі ніж 200 м від точки — збережено як вашу публічну точку, але точку не підтверджено",
   exif_unverified: "Не вдалося перевірити місце фото — точку збережено, але не підтверджено",
   pair_limit: "Ви вже кілька разів підтверджували точки цього грибника — цю знахідку збережено без підтвердження",
+  mock_location: "Телефон повідомив, що місце підмінене програмою — знахідку збережено, але точку не підтверджено",
+  location_unknown: "Оновіть застосунок, щоб підтверджувати точки — знахідку збережено без підтвердження",
 };
 
 async function assertCanConfirm(db: PicksDb, userId: string, targetId: string, speciesId: string | null): Promise<void> {

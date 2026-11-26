@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -27,6 +28,54 @@ Future<XFile?> takePickPhoto() => ImagePicker().pickImage(
       imageQuality: 85,
     );
 
+/// Місце для тук-тука: координати й чи телефон повідомив про підміну місця програмою (Android mock location).
+typedef PickFix = ({LatLng point, bool mocked});
+
+/// Не вдалося визначити місце — [message] показати людині.
+class PickLocationException implements Exception {
+  const PickLocationException(this.message);
+  final String message;
+}
+
+/// Місце телефона для нового тук-тука (з дозволом на геолокацію і обмеженням часу).
+Future<PickFix> currentPickFix() async {
+  var permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+  if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    throw const PickLocationException('Дозвольте доступ до геолокації в налаштуваннях');
+  }
+  try {
+    // Обмеження часу: у приміщенні GPS може шукати супутники дуже довго.
+    final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(timeLimit: Duration(seconds: 20)));
+    return (point: LatLng(pos.latitude, pos.longitude), mocked: pos.isMocked);
+  } catch (_) {
+    throw const PickLocationException('Не вдалося визначити місцезнаходження');
+  }
+}
+
+/// Чужа публічна точка, на яку відповідаємо своєю знахідкою (B3.8b, ADR-019 §19.5).
+typedef ReplyTarget = ({String pickId, PickSpecies species});
+
+/// «Я теж знайшов тут»: місце → камера → форма відповіді. `true` — знахідку збережено.
+/// Провайдер — щоб тести не відкривали камеру й GPS.
+final replyFindStarterProvider = Provider<Future<bool> Function(BuildContext context, ReplyTarget target)>(
+  (ref) => (context, target) async {
+    final PickFix fix;
+    try {
+      fix = await currentPickFix();
+    } on PickLocationException catch (e) {
+      if (context.mounted) showToast(context, e.message, isError: true);
+      return false;
+    }
+    final photo = await takePickPhoto();
+    if (photo == null || !context.mounted) return false;
+    final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => NewPickScreen(photo: photo, point: fix.point, locationMocked: fix.mocked, capturedAt: DateTime.now(), replyTo: target),
+    ));
+    return saved == true;
+  },
+);
+
 /// Новий тук-тук: фото → вид зі списку → опис → видимість → збереження.
 ///
 /// Місце й час зафіксовано в момент зйомки ([point], [capturedAt]). Усі правила
@@ -39,12 +88,20 @@ class NewPickScreen extends ConsumerStatefulWidget {
     required this.point,
     required this.capturedAt,
     this.initialVisibility = PickVisibility.private,
+    this.locationMocked,
+    this.replyTo,
   });
 
   final XFile photo;
   final LatLng point;
   final DateTime capturedAt;
   final PickVisibility initialVisibility;
+
+  /// Телефон сказав, що місце підмінене програмою; `null` — невідомо (сервер таку відповідь не зарахує).
+  final bool? locationMocked;
+
+  /// Відповідь знахідкою на чужу точку: вид — як у неї, точка — лише публічна.
+  final ReplyTarget? replyTo;
 
   @override
   ConsumerState<NewPickScreen> createState() => _NewPickScreenState();
@@ -57,8 +114,8 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
 
   late XFile _photo = widget.photo;
   late DateTime _capturedAt = widget.capturedAt;
-  late PickVisibility _visibility = widget.initialVisibility;
-  SpeciesChoice? _species;
+  late PickVisibility _visibility = widget.replyTo != null ? PickVisibility.public : widget.initialVisibility;
+  late SpeciesChoice? _species = widget.replyTo == null ? null : SpeciesChoice.known(widget.replyTo!.species);
   bool _saving = false;
 
   /// Помилка фото (розмір, формат, пошкоджений файл) — зберегти не можна, доки не перезняти.
@@ -71,8 +128,11 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
   }
 
   /// Публічні сервер зараз не дозволяє — точка лише приватна, хоч би що було вибрано раніше.
-  PickVisibility _effectiveVisibility(PickPermissions? picks) =>
-      picks != null && !picks.publicAllowed && _visibility == PickVisibility.public ? PickVisibility.private : _visibility;
+  PickVisibility _effectiveVisibility(PickPermissions? picks) => widget.replyTo != null
+      ? PickVisibility.public // відповідь знахідкою — лише публічна; дозволи перевірить сервер
+      : picks != null && !picks.publicAllowed && _visibility == PickVisibility.public
+          ? PickVisibility.private
+          : _visibility;
 
   Future<void> _checkPhoto(XFile photo) async {
     final check = await validatePickPhoto(photo);
@@ -128,6 +188,8 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               speciesId: species.species?.id,
               description: _description.text,
               aiCheck: aiCheck,
+              replyTo: widget.replyTo?.pickId,
+              locationMocked: widget.locationMocked,
             ),
             PickPhoto(
               openRead: _photo.openRead,
@@ -142,7 +204,12 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
       }
       ref.invalidate(picksMapProvider);
       ref.invalidate(meProvider); // бали й дозволи на точки змінилися (PROD-001)
-      showToast(context, 'Тук-тук збережено: ${created.statusLabel}');
+      showToast(
+        context,
+        widget.replyTo != null && created.confirmationLabel != null
+            ? created.confirmationLabel!
+            : 'Тук-тук збережено: ${created.statusLabel}',
+      );
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) showToast(context, e.userMessage, isError: true);
@@ -187,7 +254,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
     final visibility = _effectiveVisibility(picks);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Новий тук-тук'),
+        title: Text(widget.replyTo != null ? 'Я теж знайшов тут' : 'Новий тук-тук'),
         backgroundColor: AppTheme.backgroundColor,
         foregroundColor: AppTheme.darkGreen,
       ),
@@ -245,8 +312,9 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
                 subtitle: _species?.species?.latinLabel == null
                     ? null
                     : Text(_species!.species!.latinLabel!, style: const TextStyle(fontStyle: FontStyle.italic)),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: _saving ? null : _pickSpecies,
+                trailing: widget.replyTo != null ? const Icon(Icons.lock_outline_rounded) : const Icon(Icons.chevron_right_rounded),
+                // відповідь знахідкою — той самий вид, що в точці
+                onTap: _saving || widget.replyTo != null ? null : _pickSpecies,
               ),
             ),
             const SizedBox(height: 20),
@@ -267,6 +335,14 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            if (widget.replyTo != null)
+              const _PermissionHint(
+                key: ValueKey('pick-reply-rules'),
+                icon: Icons.verified_outlined,
+                text: 'Знахідку збережемо як вашу публічну точку. Точку підтвердимо, якщо ви поруч зі справжнім '
+                    'місцем (до 200 м), вид той самий, а місце телефона не підмінене програмою.',
+              )
+            else ...[
             Text('Хто бачить точку', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             SegmentedButton<PickVisibility>(
@@ -299,6 +375,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
               _PermissionHint(key: const ValueKey('pick-public-hint'), icon: Icons.public_off_rounded, text: picks.publicHint!),
             if (visibility == PickVisibility.private && picks != null && !picks.privateAllowed && picks.privateHint != null)
               _PermissionHint(key: const ValueKey('pick-private-hint'), icon: Icons.info_outline_rounded, text: picks.privateHint!, warning: true),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _saving || _photoError != null ? null : _save,
@@ -313,7 +390,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.check_rounded),
-              label: Text(_saving ? 'Зберігаємо…' : 'Зберегти тук-тук'),
+              label: Text(_saving ? 'Зберігаємо…' : widget.replyTo != null ? 'Підтвердити знахідкою' : 'Зберегти тук-тук'),
             ),
           ],
         ),
