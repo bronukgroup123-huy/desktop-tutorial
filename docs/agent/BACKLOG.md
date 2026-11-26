@@ -180,9 +180,12 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   Status: in_review.
 - Part 3 (PR #146, on #145, owner request): 14 brand SVG tile icons (`assets/icons/tile/`, style of the tab
   icons) for profile, settings and friend profile; profile hero background slightly transparent.
-  Status: in_review. Merge order #144 → #145 → #146.
-- Next: remaining one-off card styles inside catalog article / forecast result (status chips, info cards)
-  can move to the same components when touched.
+  Status: done — #144, #145, #146 merged 2026-11-26.
+- Residual check (2026-11-26, full-height screenshots of the species article and the analysis result):
+  no remaining style mismatch — cards, section titles, muted text and pill tags are consistent; small
+  radii (4–8) are progress bars, calendar cells and tables inside cards. UI-004: done (#144–#146).
+- Screenshot harness `tool/screens/gallery_test.dart` now also shoots the analysis result and full-height
+  long screens.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
