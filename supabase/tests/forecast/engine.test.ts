@@ -152,6 +152,8 @@ function ruleToRow(rule: SpeciesRule): Record<string, unknown> {
   for (const [k, v] of Object.entries(rule)) {
     row[k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)] = v;
   }
+  // Як у БД: правило з вкладеною їстівністю з довідника (select "*, mushroom_catalog(edibility)").
+  row.mushroom_catalog = { edibility: "edible" };
   return row;
 }
 

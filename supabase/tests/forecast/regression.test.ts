@@ -125,7 +125,9 @@ function makeDbMock(rules: Record<string, unknown>[], homeRegionId: number | nul
         order() { return chain; },
         then(resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) {
           if (table === 'expert_rules') {
-            return Promise.resolve({ data: rules, error: null }).then(resolve, reject);
+            // Як у БД: правило з вкладеною їстівністю з довідника.
+            const rows = rules.map((r) => ({ mushroom_catalog: { edibility: "edible" }, ...r }));
+            return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
           }
           if (table === 'feature_flags') {
             return Promise.resolve({ data: [], error: null }).then(resolve, reject);
