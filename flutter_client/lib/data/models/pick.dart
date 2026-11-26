@@ -85,6 +85,9 @@ class PickCard {
     required this.photoUrl,
     required this.disclaimerLabel,
     required this.actions,
+    this.confirmedLabel,
+    this.confirmedByMe = false,
+    this.twinWarningLabel,
   });
 
   factory PickCard.fromJson(Map<String, dynamic> json) => PickCard(
@@ -94,7 +97,19 @@ class PickCard {
         photoUrl: opt<String>(json, 'photo_url'),
         disclaimerLabel: opt<String>(json, 'disclaimer_label'),
         actions: stringList(json, 'actions'),
+        confirmedLabel: opt<String>(json, 'confirmed_label'),
+        confirmedByMe: json['confirmed_by_me'] == true,
+        twinWarningLabel: opt<String>(json, 'twin_warning_label'),
       );
+
+  /// «Підтвердили 2 грибники, останнє — 20 листопада» (B3.8); без підтверджень — `null`.
+  final String? confirmedLabel;
+
+  /// Ви вже підтвердили цю точку своєю знахідкою.
+  final bool confirmedByMe;
+
+  /// Попередження про отруйного двійника — лишається й на підтвердженій точці.
+  final String? twinWarningLabel;
 
   final MapPick pick;
   final String? description;
@@ -178,7 +193,15 @@ class NewPick {
     required this.speciesId,
     this.description,
     this.aiCheck,
+    this.replyTo,
+    this.locationMocked,
   });
+
+  /// Відповідь знахідкою на чужу публічну точку (B3.8b) — її id.
+  final String? replyTo;
+
+  /// Телефон повідомив, що місце підмінене програмою (Android mock location); `null` — невідомо.
+  final bool? locationMocked;
 
   /// Підказка розпізнавання на телефоні (ADR-018, ai_check): до трьох видів рівнями, без
   /// відсотків. Підтверджує вид для видових трофеїв (ADR-021 §21.10). Немає моделі — `null`.
@@ -202,14 +225,25 @@ class CreatedPick {
     required this.visibility,
     required this.statusLabel,
     required this.markerColor,
+    this.confirmationLabel,
+    this.confirmationCounted = false,
   });
 
-  factory CreatedPick.fromJson(Map<String, dynamic> json) => CreatedPick(
-        id: req<String>(json, 'id'),
-        visibility: PickVisibility.parse(req<String>(json, 'visibility')),
-        statusLabel: req<String>(json, 'status_label'),
-        markerColor: parseHexColor(req<String>(json, 'marker_color')),
-      );
+  factory CreatedPick.fromJson(Map<String, dynamic> json) {
+    final c = json['confirmation'];
+    return CreatedPick(
+      id: req<String>(json, 'id'),
+      visibility: PickVisibility.parse(req<String>(json, 'visibility')),
+      statusLabel: req<String>(json, 'status_label'),
+      markerColor: parseHexColor(req<String>(json, 'marker_color')),
+      confirmationLabel: c is Map<String, dynamic> ? c['label'] as String? : null,
+      confirmationCounted: c is Map<String, dynamic> && c['counted'] == true,
+    );
+  }
+
+  /// Відповідь знахідкою: що сталося з підтвердженням — словами з сервера (B3.8).
+  final String? confirmationLabel;
+  final bool confirmationCounted;
 
   final String id;
   final PickVisibility visibility;

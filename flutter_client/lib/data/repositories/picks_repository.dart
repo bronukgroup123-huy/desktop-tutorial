@@ -78,6 +78,8 @@ class PicksRepository {
       'species_id': pick.speciesId,
       if (description != null && description.isNotEmpty) 'description': description,
       if (pick.aiCheck != null) 'ai_check': pick.aiCheck,
+      if (pick.replyTo != null) 'reply_to': pick.replyTo,
+      if (pick.locationMocked != null) 'location_mocked': pick.locationMocked,
     });
     return CreatedPick.fromJson(created as Map<String, dynamic>);
   }

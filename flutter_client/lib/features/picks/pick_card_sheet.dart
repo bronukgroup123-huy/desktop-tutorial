@@ -8,6 +8,7 @@ import 'package:flutter_client/data/api/api_exception.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/forecast/forecast_view.dart';
+import 'package:flutter_client/features/picks/new_pick_screen.dart' show replyFindStarterProvider;
 
 /// Картка тук-тука (тап по точці на карті): фото, назва, опис, дата, статус.
 /// Усі підписи — із сервера; для чужих точок місце показано приблизно.
@@ -123,6 +124,24 @@ class _PickCardContent extends StatelessWidget {
         if (card.description != null && card.description!.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(card.description!),
+        ],
+        // Підтвердження відповідями знахідкою (B3.8) і двійник — підписи з сервера.
+        if (card.confirmedLabel != null) ...[
+          const SizedBox(height: 12),
+          ForecastInfoCard(
+            key: const ValueKey('pick-confirmed'),
+            icon: Icons.verified_rounded,
+            text: card.confirmedByMe ? '${card.confirmedLabel!}. Серед них — ви' : card.confirmedLabel!,
+          ),
+        ],
+        if (card.twinWarningLabel != null) ...[
+          const SizedBox(height: 8),
+          ForecastInfoCard(
+            key: const ValueKey('pick-twin-warning'),
+            icon: Icons.dangerous_outlined,
+            text: card.twinWarningLabel!,
+            color: AppTheme.danger,
+          ),
         ],
         const SizedBox(height: 16),
         ForecastInfoCard(
@@ -248,6 +267,18 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
     );
   }
 
+  Future<void> _replyFound() async {
+    final pick = widget.card.pick;
+    final saved = await ref.read(replyFindStarterProvider)(
+      context,
+      (pickId: pick.id, species: PickSpecies(id: pick.speciesId!, nameLabel: pick.nameLabel, latinLabel: null)),
+    );
+    if (!saved || !mounted) return;
+    ref.invalidate(pickCardProvider(pick.id));
+    ref.invalidate(picksMapProvider);
+    ref.invalidate(meProvider);
+  }
+
   Future<void> _openInMaps() async {
     final p = widget.card.pick.point;
     var opened = false;
@@ -262,6 +293,14 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
     final repo = ref.read(picksRepositoryProvider);
     final actions = widget.card.actions;
     final buttons = <Widget>[
+      // Чужа публічна точка: відповісти своєю знахідкою (B3.8b). Кнопку показує сервер лише тим, хто може.
+      if (actions.contains('reply_found') && widget.card.pick.speciesId != null)
+        FilledButton.icon(
+          key: const ValueKey('pick-reply-found'),
+          onPressed: _busy ? null : _replyFound,
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: const Text('Я теж знайшов тут'),
+        ),
       // Своє місце — у звичній карті: прокласти маршрут, зберегти в Google (замість файлу-експорту, B6.1).
       if (actions.contains('open_in_maps'))
         OutlinedButton.icon(

@@ -2,6 +2,7 @@
 -- B3.8a: підтвердження публічної точки відповіддю знахідкою (міграція 20261126150000; ADR-019 §19.5)
 --   * свою точку — ні; інший вид — ні; далі 200 м — не зараховано (відповідь лишається звичайною точкою);
 --   * без перевіреного EXIF — не зараховано; не більше 2 спроб на чужу точку;
+--   * місце підмінене програмою (mock location) або телефон не повідомив — не зараховано (B3.8b);
 --   * 1 зарахована відповідь → «Підтверджена»; з twin_alert — лише після 2;
 --   * бали: +3 тому, хто підтвердив, +2 автору; взаємні підтвердження двох людей — до 3 за 30 днів;
 --   * картка показує кількість; функції й таблиця — лише service_role.
@@ -56,7 +57,7 @@ BEGIN
   INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
   VALUES (reply, helper, extensions.ST_SetSRID(extensions.ST_MakePoint(lo, la + 0.003), 4326)::extensions.geography,
           extensions.ST_SetSRID(extensions.ST_MakePoint(lo, la + 0.004), 4326)::extensions.geography, sp, sp, 'public', 'pending',
-          '{"exif":{"verified":true}}');
+          '{"exif":{"verified":true},"location":{"mocked":false}}');
   r := public.confirm_pick(helper, target, reply);
   IF (r->>'counted')::boolean OR r->>'reason' <> 'too_far' OR (r->>'confirmations')::int <> 0 THEN RAISE EXCEPTION 'Test 5 failed: %', r; END IF;
   IF (SELECT reply_to FROM public.mushroom_picks WHERE id = reply) <> target THEN RAISE EXCEPTION 'Test 5b failed: reply_to'; END IF;
@@ -78,7 +79,7 @@ BEGIN
   INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
   VALUES (reply, third, extensions.ST_SetSRID(extensions.ST_MakePoint(lo, la + 0.001), 4326)::extensions.geography,
           extensions.ST_SetSRID(extensions.ST_MakePoint(lo, la + 0.002), 4326)::extensions.geography, sp, sp, 'public', 'pending',
-          '{"exif":{"verified":true}}');
+          '{"exif":{"verified":true},"location":{"mocked":false}}');
   r := public.confirm_pick(third, target, reply);
   IF (r->>'counted')::boolean IS NOT TRUE OR (r->>'verified')::boolean IS NOT TRUE OR (r->>'confirmations')::int <> 1 THEN
     RAISE EXCEPTION 'Test 8 failed: %', r;
@@ -101,7 +102,7 @@ BEGIN
   INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
   VALUES (reply, third, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.05, la + 0.001), 4326)::extensions.geography,
           extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.05, la + 0.002), 4326)::extensions.geography, sp, sp, 'public', 'pending',
-          '{"exif":{"verified":true}}');
+          '{"exif":{"verified":true},"location":{"mocked":false}}');
   r := public.confirm_pick(third, twin, reply);
   IF (r->>'counted')::boolean IS NOT TRUE OR (r->>'verified')::boolean THEN RAISE EXCEPTION 'Test 11 failed: %', r; END IF;
   IF (SELECT verification_status FROM public.mushroom_picks WHERE id = twin) <> 'pending' THEN
@@ -133,7 +134,7 @@ BEGIN
     INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
     VALUES (reply, third, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.1 * i, la + 0.001), 4326)::extensions.geography,
             extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.1 * i, la + 0.002), 4326)::extensions.geography, sp, sp, 'public', 'pending',
-            '{"exif":{"verified":true}}');
+            '{"exif":{"verified":true},"location":{"mocked":false}}');
     r := public.confirm_pick(third, t, reply);
     IF i = 1 AND (r->>'counted')::boolean IS NOT TRUE THEN RAISE EXCEPTION 'Test 12 failed: %', r; END IF;
     IF i = 2 AND ((r->>'counted')::boolean OR r->>'reason' <> 'pair_limit') THEN RAISE EXCEPTION 'Test 12b failed: %', r; END IF;
@@ -141,6 +142,47 @@ BEGIN
   -- бали тому, хто підтвердив: до 3 на добу (зараховано 3 → 9 балів, не більше)
   IF (SELECT rating FROM public.users WHERE id = third) <> 9 THEN
     RAISE EXCEPTION 'Test 13 failed: rating %', (SELECT rating FROM public.users WHERE id = third);
+  END IF;
+END $$;
+
+-- B3.8b: підмінене місце (Android mock location) і старий застосунок без ознаки — не зараховуються
+DO $$
+DECLARE
+  author CONSTANT UUID := 'c0000001-0000-4000-8000-0000000081c1';
+  helper CONSTANT UUID := 'c0000002-0000-4000-8000-0000000081c2';
+  sp TEXT := 'boletus_edulis';
+  la DOUBLE PRECISION;
+  lo DOUBLE PRECISION;
+  t UUID := gen_random_uuid();
+  t2 UUID := gen_random_uuid();
+  reply UUID;
+  r JSONB;
+BEGIN
+  SELECT extensions.ST_Y(geom::extensions.geometry), extensions.ST_X(geom::extensions.geometry) INTO la, lo
+  FROM public.mushroom_picks WHERE user_id = author AND NOT twin_alert LIMIT 1;
+  INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status)
+  VALUES (t, author, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.5, la), 4326)::extensions.geography,
+          extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.505, la), 4326)::extensions.geography, sp, sp, 'public', 'pending'),
+         (t2, author, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.6, la), 4326)::extensions.geography,
+          extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.605, la), 4326)::extensions.geography, sp, sp, 'public', 'pending');
+
+  reply := gen_random_uuid();
+  INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
+  VALUES (reply, helper, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.5, la + 0.001), 4326)::extensions.geography,
+          extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.5, la + 0.002), 4326)::extensions.geography, sp, sp, 'public', 'pending',
+          '{"exif":{"verified":true},"location":{"mocked":true}}');
+  r := public.confirm_pick(helper, t, reply);
+  IF (r->>'counted')::boolean OR r->>'reason' <> 'mock_location' THEN RAISE EXCEPTION 'Test 15 failed: %', r; END IF;
+
+  reply := gen_random_uuid();
+  INSERT INTO public.mushroom_picks (id, user_id, geom, display_geom, mushroom_type, species_id, pick_type, verification_status, ai_check)
+  VALUES (reply, helper, extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.6, la + 0.001), 4326)::extensions.geography,
+          extensions.ST_SetSRID(extensions.ST_MakePoint(lo + 0.6, la + 0.002), 4326)::extensions.geography, sp, sp, 'public', 'pending',
+          '{"exif":{"verified":true}}');
+  r := public.confirm_pick(helper, t2, reply);
+  IF (r->>'counted')::boolean OR r->>'reason' <> 'location_unknown' THEN RAISE EXCEPTION 'Test 16 failed: %', r; END IF;
+  IF (SELECT verification_status FROM public.mushroom_picks WHERE id IN (t, t2) AND verification_status <> 'pending' LIMIT 1) IS NOT NULL THEN
+    RAISE EXCEPTION 'Test 16b failed: pick verified without real location';
   END IF;
 END $$;
 

@@ -602,7 +602,7 @@ Deno.test("create: EXIF з іншим місцем — точка створює
 Deno.test("create: фото без EXIF → ai_check.exif.has_exif = false", async () => {
   const d = db();
   await run(d, req("POST", CREATE, body()));
-  assertEquals(createArgs(d).p_ai_check, { exif: { has_exif: false, verified: false, reason: null } });
+  assertEquals(createArgs(d).p_ai_check, { exif: { has_exif: false, verified: false, reason: null }, location: { mocked: null } });
 });
 
 Deno.test("create: формат визначається за вмістом файлу, а не за назвою", async () => {
@@ -700,6 +700,7 @@ Deno.test("create: підказка ШІ зберігається лише з в
     match: true,
     twin_alert: true,
     exif: { has_exif: false, verified: false, reason: null },
+    location: { mocked: null },
   });
   // жодних числових ймовірностей
   assertEquals(/0\.93|0\.87|probability|confidence/.test(JSON.stringify(p)), false);
@@ -866,4 +867,26 @@ Deno.test("v1-picks POST reply_to: збій зарахування не губи
   assertEquals(res.status, 201);
   assertEquals(json.data.id, PICK_ID);
   assertEquals(json.data.confirmation.counted, false);
+});
+
+Deno.test("v1-picks POST location_mocked (B3.8b): зберігається з точкою; не true/false — 422", async () => {
+  for (const [value, stored] of [[false, false], [true, true], [undefined, null]] as const) {
+    const d = db();
+    const { res } = await run(d, req("POST", CREATE, body(value === undefined ? {} : { location_mocked: value })));
+    assertEquals(res.status, 201, String(value));
+    assertEquals((createArgs(d).p_ai_check as { location: unknown }).location, { mocked: stored });
+  }
+  const bad = await run(db(), req("POST", CREATE, body({ location_mocked: "yes" })));
+  assertEquals(bad.res.status, 422);
+});
+
+Deno.test("v1-picks POST reply_to: підмінене місце — точку створено, підтвердження немає, пояснення словами", async () => {
+  const d = db({
+    "rpc.can_confirm_pick": { data: { allowed: true }, error: null },
+    "rpc.confirm_pick": { data: { ok: true, counted: false, reason: "mock_location" }, error: null },
+  });
+  const { res, json } = await run(d, req("POST", CREATE, replyBody({ location_mocked: true })));
+  assertEquals(res.status, 201);
+  assertEquals(json.data.confirmation.counted, false);
+  assert(String(json.data.confirmation.label).includes("підмінене"));
 });
