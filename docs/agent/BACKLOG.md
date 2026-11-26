@@ -249,26 +249,22 @@ Each item keeps its plan ID. Take only items of your zone; set the status here w
 and when the PR is open/merged. Details, ADR links and acceptance criteria are in the plan rows.
 
 ### B3.4 — edit / delete own pick (owner: Claude)
-- Goal: author changes visibility (with ADR-019 limits) and description; soft delete.
-  Status: in review — #152 (server) → #153 (card actions) → #156 («Відкрити в Google Картах», owner request).
+- Done — #152, #153, #156 merged and deployed 2026-11-26 (incl. «Відкрити в Google Картах»).
 ### B3.11 — «Знайшли?» feedback after a trip (owner: Claude)
-- Goal: ADR-014 feedback loop; new rating source (ADR-012); data for B3.9 and golden dataset (B7.7).
-  Status: in review — #155 (asked after «Я вдома»; place is checked, not stored).
+- Done — #155 merged and deployed 2026-11-26.
 ### B3.8 — confirmation of a public pick by a reply find, per ADR-019 §19.5 (owner: Claude)
-- B3.8a server: in review — #157 (stacked on #155; distance checked only after the reply exists, ≤ 2 attempts).
-- B3.8b app: «Я теж знайшов тут» in a foreign public pick card → reply creation flow; «Підтвердили N».
-  Status: ready after #157.
+- B3.8a server — #157 merged and deployed 2026-11-26.
+- B3.8b app («Я теж знайшов тут») + mock-location check (owner request) — in review, #163.
 ### B3.12 — reports on picks (owner: Claude)
-- Goal: `pick_reports`, re-check, −50 on a confirmed report. Depends on: B3.8. Status: ready after B3.8.
+- Goal: `pick_reports`, re-check, −50 on a confirmed report. Status: ready after #163 (needs owner policy on who
+  reviews reports — moderation is not defined yet; record in BLOCKERS before work if still open).
 ### B3.10 — knowledge tests → certificate (owner: Claude)
 - Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels.
   Status: blocked_owner — owner (2026-11-26): discuss and design in detail before any work (BLK-013).
 ### B6.1 — copy of own data (owner: Claude)
-- Owner decision 2026-11-26: no «download my data» button (bulk export of exact places is a risk with a stolen
-  phone/session). SQL `export_user_data` for support requests only. Status: in review — #154.
-  Follow-up after #154 + #155 merge: add `trip_feedback` (and `pick_confirmations` after #157) to the export.
+- Done — #154 (owner: no app button; SQL for support requests). Follow-up with B3.11/B3.8 data — in review, #164.
 ### B2.4 — «poisonous never» in the forecast (owner: Claude)
-- Goal: no poisonous species can reach forecast results. Status: in review — #151 (explicit filter + tests).
+- Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
 - Status: ready (gifts are announced in the profile as «скоро»).
 ### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)
@@ -288,9 +284,9 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 
 ## P2 — cleanup
 
-### WEB-001 — remove link-based web-guardian pages (AUD-WEB-001) (owner: Claude)
-- Status: blocked_owner_confirmation (confirm whether anything external still hosts web-guardian → BLK-009).
-
+### WEB-001 — remove Vercel, web-guardian and all HTML (owner: Claude)
+- Done — #159 (web client, Vercel, legacy/, HTML) and #160 (old web API catalog/me/picks, deleted from Supabase by
+  deploy) merged and deployed 2026-11-26. Owner disconnected Vercel. Catalog source data moved to data/catalog/.
 ### DOC-001 — reconcile docs/tasks/NEXT_TASK.md and BACKEND_PLAN statuses with code (owner: Claude)
 - Status: done — PR #134 merged 2026-11-25; state reconciliation merged in PR #135. AUTH_FLOW rewritten
   from code (guest, auth matrix, onboarding steps, region
