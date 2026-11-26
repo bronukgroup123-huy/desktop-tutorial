@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/features/feedback/trip_feedback_sheet.dart';
 import 'package:flutter_client/features/safety/hike/hike_controller.dart';
 import 'package:flutter_client/features/safety/hike/hike_device.dart';
 import 'package:flutter_client/features/safety/hike/hike_geo.dart';
@@ -192,8 +194,10 @@ class ReturnScreen extends ConsumerWidget {
           FilledButton.icon(
             key: const ValueKey('return-home'),
             onPressed: () {
-              ctrl.finish();
-              Navigator.of(context).pop();
+              // Те саме, що «Я вдома» в картці походу: і Наглядачу, і «Знайшли?» (аркуш — після закриття екрана).
+              final nav = Navigator.of(context);
+              unawaited(finishHike(ref, nav));
+              nav.pop();
             },
             style: FilledButton.styleFrom(backgroundColor: AppTheme.darkGreen, padding: const EdgeInsets.symmetric(vertical: 14)),
             icon: const Icon(Icons.home_rounded),
