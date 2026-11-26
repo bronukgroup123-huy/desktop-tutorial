@@ -481,3 +481,10 @@ See docs/agent/BLOCKERS.md.
 - Checks: `deno test` → 609 passed; `deno check` → 0; `scripts/dev/local-db/run.sh` → all 20 SQL tests passed;
   Flutter/OpenAPI contract → 18 valid.
 - Next: B3.8b (app) after #157.
+
+## 2026-11-26 16:35 UTC — scheduled run: state only (Claude)
+- Open agent PRs: #151–#158, all checks green (#156 and #157 runs finished green after the previous entry).
+  Nothing merged since 12:35 UTC.
+- No new task: B3.8b (app) changes the pick card that #153 / #156 change and needs #157 — starting it now would
+  only create conflicts. Other ready Claude items are lower priority (B2.5 / B3.5, B9.4–B9.6) or wait for the
+  owner (B8 scope, B3.10 / BLK-013). Next run: B3.8b once #153, #156 and #157 are merged.
