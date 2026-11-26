@@ -6,7 +6,7 @@ Edge Functions (`supabase/functions/*/index.ts`) та спільних моду�
 
 - **Base URL:** `https://<PROJECT_REF>.supabase.co/functions/v1`
 - **Формат:** JSON (`Content-Type: application/json`)
-- **CORS:** усі ендпоінти відповідають на `OPTIONS` → `204`
+- **CORS:** `OPTIONS` → `204`; вебклієнта немає, тож сайтам доступ не дозволено (WEB-001)
 - **Схема БД:** [DB_SCHEMA.md](./DB_SCHEMA.md)
 - **Авторизація:** [AUTH_FLOW.md](./AUTH_FLOW.md)
 
@@ -22,13 +22,12 @@ Edge Functions (`supabase/functions/*/index.ts`) та спільних моду�
 
 | Рівень | Значення | Де застосовується |
 |---|---|---|
-| Публічний | без заголовка | `GET /regions`, `GET /catalog`, `GET v1-regions/{slug}/geometry`, `GET v1-app-config`, `GET v1-air-alerts` |
-| Опційний JWT | `Authorization: Bearer $ACCESS_TOKEN` | `GET /picks` (для `scope=mine`) |
-| JWT обов'язковий (гість теж) | `Authorization: Bearer $ACCESS_TOKEN` | усі інші `v1-*` (`v1-me`, `v1-picks`, `v1-analysis`, …), а також старі `POST /picks`, `GET/PATCH /me` |
+| Публічний | без заголовка | `GET /regions`, `GET v1-regions/{slug}/geometry`, `GET v1-app-config`, `GET v1-air-alerts` |
+| JWT обов'язковий (гість теж) | `Authorization: Bearer $ACCESS_TOKEN` | усі інші `v1-*` (`v1-me`, `v1-picks`, `v1-analysis`, …) |
 
 Повна класифікація — `supabase/functions/auth-matrix.json`; що гостю заборонено — [AUTH_FLOW.md](./AUTH_FLOW.md) §3.
-Контракт `v1-*` — [openapi/v1.yaml](../openapi/v1.yaml). Розділи нижче про `/picks` і `/me` описують старі
-ендпоінти: клієнт їх не викликає (фото — лише Signed Upload URL через `v1-picks`, ADR-002).
+Контракт `v1-*` — [openapi/v1.yaml](../openapi/v1.yaml). Старий API вебверсії (`/picks`, `/me`, `/catalog`) прибрано
+2026-11-26 (WEB-001); фото — лише Signed Upload URL через `v1-picks` (ADR-002).
 
 Приклади нижче використовують плейсхолдер `$ACCESS_TOKEN` — **підставте свій
 access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
@@ -37,7 +36,7 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 ### Формат відповідей
 
 - Успіх із даними: `{ "data": ... }` (+ поля `total`/`limit`/`offset` для списків)
-- `POST /picks` — `201` із `{ data: { id, verificationStatus } }`
+- Створення — `201` (наприклад, `POST v1-picks`)
 
 ### Формат помилок
 
@@ -63,27 +62,21 @@ access_token** з Supabase Auth (див. [AUTH_FLOW.md](./AUTH_FLOW.md)).
 | 403 | RegionGuard: точка поза домашньою области | `outside_home_region` |
 | 404 | Ресурс не знайдено | `region_not_found`, `me_not_found` |
 | 405 | Неправильний HTTP-метод | `method_not_allowed` |
-| 422 | Schema-помилка тіла `POST /picks` (Zod: тип/ліміт/відсутнє обов'язкове поле) | `invalid_input` (з `message` формату `"<field>: <reason>"`) |
+| 422 | Тіло запиту не проходить перевірку | `validation_error` (з `message`) |
 | 500 | Внутрішня помилка | `internal_error`, `storage_error`, `db_error` |
 
-> Деякі ендпоінти повертають `{ "error": ... }` **без** `message` —
-> це відповідає контракту (`message` опційне). Крім того, `POST /picks`
-> для невалідного JSON повертає **422** `{ "error": "validation_error",
-> "message": "invalid_json" }` (`Errors.validation`, `_shared/guardian/errors.ts`),
-> а не 400 `invalid_json` — код `validation_error` є guardian-контуровим
-> псевдонімом для Zod-помилок.
+> Деякі ендпоінти повертають `{ "error": ... }` **без** `message` — це відповідає контракту (`message` опційне).
 
 ### Rate limiting
 
-Реалізовано за IP (`_shared/rate-limit.ts`, міграція `..._ip_rate_limit`): `forecast`, `picks`,
-`regions`, `catalog` і всі `v1-*`. Перевищення → `429 rate_limited` + `Retry-After`.
+Реалізовано за IP (`_shared/rate-limit.ts`, міграція `..._ip_rate_limit`): `regions` і всі `v1-*`. Перевищення → `429 rate_limited` + `Retry-After`.
 
 ---
 
 ## 0. Клієнтський API v1 (Flutter) — ВИКОРИСТОВУВАТИ ЦЕЙ
 
 Повна специфіка — **[openapi/v1.yaml](../openapi/v1.yaml)** (OpenAPI 3.1, з неї генерується
-Dart-клієнт). Розділи 1–8 нижче описують legacy-ендпоінти веб-прототипу.
+Dart-клієнт). Розділ 1 нижче — `GET /regions` (список областей для онбордингу).
 
 | Ендпоінт | Auth | Що робить |
 |---|---|---|
@@ -110,8 +103,6 @@ Dart-клієнт). Розділи 1–8 нижче описують legacy-ен
   `terms_version_outdated` (409), `bbox_too_large` (400), `rate_limited` (429 + `Retry-After`).
 - Усі v1-* мають rate limit за IP.
 - Наглядач — лише `v1-guardian` (ADR-022); для гостя → `403 registration_required`.
-- Legacy `/me` (не плутати з `v1-me`): лише `GET` — експорт власних даних (GDPR). `DELETE` та
-  інші методи → `405 method_not_allowed`. Видалення акаунта — B6.2.
 
 ### Тук-тук: `v1-picks` (B3.0 + B3.1, ADR-002, ADR-018)
 
@@ -221,170 +212,12 @@ Pro ще не продається (B6.3), тож 10×10 зараз недост
 
 ---
 
-## 1. POST /forecast — прибрано (SEC-005, 2026-11-22)
-
-Застаріла функція `forecast` видалена з проєкту: клієнти користуються `v1-forecast` (розділ 0).
-
----
-
-## 2. POST /picks
-
-> **Legacy (веб-прототип).** Flutter використовує `v1-picks` (розділ 0): Signed Upload URL
-> без base64, видимість `private` / `public`. Цей ендпоінт створює **лише приватні** точки.
-
-Створити знахідку («тук-тук»): валідація → завантаження фото в Storage
-(bucket `mushroom-photos`) → вставка в `mushroom_picks` → **201**.
-
-`verificationStatus`: `pending` — EXIF збігається з координатами й часом; `conditional` —
-EXIF немає або він не збігається. EXIF не робить точку `verified` (ADR-018).
-
-**Auth:** JWT обов'язковий (`requireMushroomPicker`).
-
-### Request
-
-| Поле | Тип | Обов'язкове | Опис |
-|---|---|---|---|
-| `lat` | number | так | `[-90, 90]` |
-| `lng` | number | так | `[-180, 180]` |
-| `photoBase64` | string | так | Base64 БЕЗ data-url префікса; 100..8 000 000 символів; JPEG/PNG/WebP (перевірка magic bytes); декодований розмір ≤ 5 MiB |
-| `mushroomType` | string | так | Канонічний id каталогу (наприклад `boletus_edulis`), 1..64 символи |
-| `isIndicator` | boolean | ні (def `false`) | Індикаторний вид |
-| `isNegativeReport` | boolean | ні (def `false`) | Негативний звіт («нічого немає») |
-| `gpsAccuracy` | number ≥ 0 | ні | Точність GPS (метри) |
-| `forestType` | string ≤ 64 | ні | Тип лісу |
-
-```bash
-curl -X POST "$SUPABASE_URL/functions/v1/picks" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "lat": 50.45,
-    "lng": 30.52,
-    "gpsAccuracy": 12.5,
-    "photoBase64": "/9j/4AAQSkZJRgABAQ...",
-    "mushroomType": "boletus_edulis",
-    "forestType": "pine",
-    "isIndicator": false,
-    "isNegativeReport": false
-  }'
-```
-
-### Response 201
-
-```json
-{
-  "data": {
-    "id": "3f8a1c2e-1111-4222-8333-abcdef012345",
-    "verificationStatus": "pending"
-  }
-}
-```
-
-Фото зберігається приватним (`photo_url` = шлях у bucket, не публічний URL).
-Публічні URL't отримуються лише через `GET /picks` (signed URLs, TTL 600 с).
-
-### Помилки
-
-Невалідний JSON у тілі → **422** `{ "error": "validation_error",
-"message": "invalid_json" }` (guardian-хелпер `Errors.validation`,
-`_shared/guardian/errors.ts`).
-Схема-помилки Zod (тип/ліміти/відсутні обов'язкові поля) → **422**
-`invalid_input` (з `message` формату `"<field>: <reason>"`).
-
-```json
-{ "error": "invalid_input", "message": "photoBase64: String must contain at least 100 character(s)" }
-```
-```json
-{ "error": "photo_too_large", "message": "max 5 MiB" }
-```
-```json
-{ "error": "invalid_photo_format", "message": "photo must be JPEG, PNG or WebP" }
-```
-```json
-{ "error": "storage_error" }
-```
-
-Помилки фото / формату → **400** (`photo_too_large`, `invalid_photo_format`,
-невдалий base64-декод); схема → **422** (`invalid_input`);
-`storage_error`/`db_error` → **500**. При провалі вставки фото видаляється (rollback).
-
----
-
-## 3. GET /picks
-
-Стрічка трофеїв з пагінацією та скоупами видимості.
-
-**Приватність (ADR-018 §18.5).** `scope=mine` читає власні точки клієнтом користувача (RLS) і
-віддає **точні** координати. `scope=public` / `scope=region` віддають лише публічні точки
-(крім відхилених і видалених), і `lat` / `lng` у них — **зсунуте місце** (300–500 м від
-справжнього, зсув стабільний). Точні координати чужих точок не віддаються ніколи.
-`scope=friends` скасовано (ADR-018) → `400 invalid_scope`.
-
-**Auth:** опційний JWT. Для `scope=mine` — обов'язковий (інакше `401`).
-
-### Query
-
-| Параметр | Значення | За замовчуванням | Опис |
-|---|---|---|---|
-| `scope` | `mine` \| `public` \| `region` | `public` | `mine` — свої (точні координати); `public` — усі публічні; `region` — публічні точки авторів з області `region_slug` |
-| `period` | `24h` \| `3d` \| `week` \| `all` | `week` | Фільтр за `created_at` |
-| `limit` | int 1..50 | 20 | Розмір сторінки |
-| `offset` | int ≥ 0 | 0 | Зсув |
-| `mushroom_type` | `^[a-z][a-z0-9_]{0,63}$` | — | Фільтр за видом |
-| `region_slug` | `^[a-z0-9][a-z0-9-]{0,63}$` | — | Обов'язковий для `scope=region` |
-
-```bash
-curl "$SUPABASE_URL/functions/v1/picks?scope=public&period=week&limit=20&offset=0" \
-  -H "Authorization: Bearer $ACCESS_TOKEN"
-```
-
-### Response 200
-
-```json
-{
-  "data": [
-    {
-      "id": "3f8a1c2e-1111-4222-8333-abcdef012345",
-      "user_id": "auth0uid-0001-4c1a-9b2e-0f1e2d3c4b5a",
-      "user_name": "Грибник",
-      "region_name": "Київська",
-      "mushroom_type": "boletus_edulis",
-      "name_ua": "Білий гриб",
-      "photo_url": "https://<PROJECT_REF>.supabase.co/storage/v1/object/sign/mushroom-photos/<user_id>/<pick_id>.jpg?token=...",
-      "lat": 50.45,
-      "lng": 30.52,
-      "forest_type": "pine",
-      "verification_status": "pending",
-      "weight": 1.0,
-      "is_indicator": false,
-      "is_negative": false,
-      "created_at": "2026-10-12T08:41:00.000Z"
-    }
-  ],
-  "total": 1,
-  "limit": 20,
-  "offset": 0
-}
-```
-
-`photo_url` — signed URL з TTL 600 с; після закінчення робіть повторний
-`GET /picks`. Якщо підпис не вдався — `photo_url: null`.
-
-### Помилки
-
-`invalid_scope`, `invalid_period`, `invalid_pagination`, `limit_out_of_range`,
-`invalid_offset`, `invalid_mushroom_type`, `invalid_region_slug`,
-`missing_region_slug` → **400**; `unauthorized` (mine без JWT) → **401**;
-`region_not_found` → **404**; `db_error` → **500**.
-
----
-
-## 4. GET /regions
+## 1. GET /regions (список областей)
 
 Публічний довідник 27 регіонів України (24 області + АР Крим + Київ +
 Севастополь) для випадаючого списку Home Region.
 Без геометрії (`polygon` не віддається). Оновлення регіону профілю —
-див. [PATCH /me](#7-patch-me).
+`PATCH v1-me { home_region_slug }`.
 
 **Auth:** публічний.
 
@@ -423,209 +256,6 @@ curl "$SUPABASE_URL/functions/v1/regions"
 
 > **Правило для клієнта:** показуй `name`, відправляй на сервер **`slug`**
 > (див. [AUTH_FLOW.md](./AUTH_FLOW.md#4-home-region)). Ніколи не хардкодь `id`.
-
----
-
-## 5. GET /catalog
-
-Довідник 326 видів грибів (`mushroom_catalog`) з фільтрами та пагінацією.
-
-**Auth:** публічний.
-
-### Query
-
-| Параметр | Значення | За замовчуванням | Опис |
-|---|---|---|---|
-| `forest` | `pine,oak` (через кому) | — | Перетин з `attrs.tree` |
-| `season` | `spring` \| `summer` \| `autumn` \| `winter` | — | `attrs.season` містить значення |
-| `edible` | `true` \| `false` | — | `true` = edible + conditionally_edible |
-| `search` | string ≤ 100 | — | ILIKE по `name_ua` / `name_lat` |
-| `limit` | int 1..100 | 50 | Розмір сторінки |
-| `offset` | int ≥ 0 | 0 | Зсув |
-
-```bash
-curl "$SUPABASE_URL/functions/v1/catalog?forest=pine,spruce&season=autumn&edible=true&search=білий&limit=50&offset=0"
-```
-
-### Response 200
-
-```json
-{
-  "data": [
-    {
-      "id": "boletus_edulis",
-      "nameUa": "Білий гриб",
-      "nameLat": "Boletus edulis",
-      "edibility": "edible",
-      "edibilityLabel": "Їстівний",
-      "redListed": false,
-      "rarity": "",
-      "hasPhoto": true,
-      "top20": true,
-      "popular": false,
-      "aiRecognition": true,
-      "features": "",
-      "months": [6, 7, 8, 9, 10, 11],
-      "attrs": {
-        "color": [],
-        "stem": [],
-        "tree": ["pine", "spruce", "oak", "birch", "deciduous", "coniferous"],
-        "season": ["summer", "autumn"]
-      },
-      "photos": [{ "url": "<приватний шлях у bucket>" }],
-      "license": { "code": "cc-by", "author": "…" },
-      "redBookSource": { "url": "https://redbook-ua.org/item/…" },
-      "peakMonths": [9, 10],
-      "zones": ["kyivska", "lvivska", "vinnytska"]
-    }
-  ],
-  "total": 1,
-  "limit": 50,
-  "offset": 0
-}
-```
-
-Поля заповнені частково (nullish): `license?: Record<string,unknown>` і
-`redBookSource?: Record<string,unknown>` — відсутні (ключ не віддається),
-якщо в БД `NULL`. Значення у прикладі вище — **наприклад**, точний shape
-кожного об'єкта верифікується окремо з живої БД.
-`features` — **рядок** (не boolean): вільний текст-опис, може бути порожнім.
-
-> ⚠️ `photos[].url` — **не публічний URL**. Значення з БД — приватний шлях
-> у bucket `mushroom-photos` (відносний шлях файлу). Клієнт **не** може
-> завантажити фото за ним напряму: потрібен signed URL через Storage API
-> (або окремий механізм, як у `GET /picks`).
-
-Сортування: `name_ua` ASC (стабільний довідник).
-Помилки: `invalid_season`, `invalid_edible`, `search_too_long`,
-`invalid_pagination`, `limit_out_of_range`, `invalid_offset` → **400**;
-`method_not_allowed` → **405**; `db_error` / `internal_error` → **500**.
-
----
-
-## 6. GET /me
-
-Профіль поточного користувача (онбординг-стан). service_role читає `users`
-з явним `.eq('id', userId)`.
-
-**Auth:** JWT обов'язковий.
-
-```bash
-curl "$SUPABASE_URL/functions/v1/me" \
-  -H "Authorization: Bearer $ACCESS_TOKEN"
-```
-
-### Response 200
-
-```json
-{
-  "data": {
-    "id": "auth0uid-0001-4c1a-9b2e-0f1e2d3c4b5a",
-    "name": "Грибник",
-    "rating": 0,
-    "total_verified_picks": 0,
-    "home_region": {
-      "id": 1,
-      "slug": "kyivska",
-      "name": "Київська"
-    },
-    "created_at": "2026-10-12T08:00:00.000Z"
-  }
-}
-```
-
-`home_region: null` — онбординг не завершено (обирай область через `PATCH /me`).
-
-### Помилки
-
-`me_not_found` → **404** (користувач є в Auth, але немає рядка в `users` —
-дивись [AUTH_FLOW.md](./AUTH_FLOW.md)); `unauthorized` → **401**;
-`method_not_allowed` → **405**; `db_error` → **500**.
-
----
-
-## 7. PATCH /me
-
-Онбординг та профіль: часткове оновлення `name` та/або `home_region_slug`.
-Потрібне хоча б одне поле; невідомі поля ігноруються. Відповідь — той самий
-формат, що `GET /me`.
-
-**Auth:** JWT обов'язковий.
-
-### Request
-
-| Поле | Тип | Валідація |
-|---|---|---|
-| `name` | string | 1..50 символів після trim |
-| `home_region_slug` | string | `^[a-z0-9][a-z0-9_-]{1,31}$` (2..32, lowercase) |
-
-```bash
-curl -X PATCH "$SUPABASE_URL/functions/v1/me" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Грибник",
-    "home_region_slug": "kyivska"
-  }'
-```
-
-### Response 200
-
-```json
-{
-  "data": {
-    "id": "auth0uid-0001-4c1a-9b2e-0f1e2d3c4b5a",
-    "name": "Грибник",
-    "rating": 0,
-    "total_verified_picks": 0,
-    "home_region": {
-      "id": 1,
-      "slug": "kyivska",
-      "name": "Київська"
-    },
-    "created_at": "2026-10-12T08:00:00.000Z"
-  }
-}
-```
-
-### Помилки
-
-```json
-{ "error": "invalid_region_slug" }
-```
-```json
-{ "error": "region_not_found" }
-```
-
-`invalid_json`, `invalid_body` (порожнє тіло / не об'єкт), `invalid_name`,
-`invalid_region_slug` → **400**; `region_not_found` (slug не існує) → **404**;
-`me_not_found` → **404**; `unauthorized` → **401**; `db_error` → **500**.
-
-> **405 vs 401 (порядок перевірок):** авторизація виконується **до**
-> диспетчеризації HTTP-методу. Тому `DELETE /me` (будь-який непідтримуваний
-> метод) з валідним JWT → **405** `method_not_allowed`, але **без** JWT
-> (або з простроченим токеном) → **401** `unauthorized`, і тіло запиту
-> навіть не парситься. `OPTIONS` → **204** до перевірки JWT.
-
-> Slug → id резолвиться через RPC `find_region_by_slug` (migration
-> `20260912000015`). Правила зміни області (24 год на
-> виправлення, Pro — один раз, інакше підтримка) — у `v1-me`, див. [AUTH_FLOW.md](./AUTH_FLOW.md#4-home-region).
-
----
-
-## 8. forecast-weather — прибрано (SEC-005, 2026-11-22)
-
-Публічний погодний проксі без авторизації й ліміту видалено; погода — у відповіді `v1-forecast`.
-
----
-
-## Guardian endpoints — прибрано (ADR-022, SEC-005)
-
-Наглядач — лише в застосунку серед друзів: `v1-guardian`, `v1-guardian-tick` (лише service_role) і
-`v1-telegram-webhook` (секрет вебхука), розділ 0. Посилання Наглядача (ADR-022 §22.8) і застарілий
-Guardian v0 (`guardian-session-*`, `guardian-ping`, `guardian-sos*`, `guardian-tick`, `guardian-notify`,
-`guardian-retry`, `guardian-demo-create`, …) видалено з репозиторію й проєкту (`deploy.yml`). Таблиці v0
-поки лишаються в БД — рішення про зберігання даних за власником.
 
 ---
 

@@ -36,7 +36,7 @@ supabase/
   functions/      Edge Functions (Deno)
     _shared/      спільні модулі: http-шар v1, forecast engine, picks, auth, errors
     v1-*/         клієнтський API v1 (Flutter) — див. docs/API.md, розділ 0
-    picks/ regions/ catalog/ me/   застарілий API (поступово замінюється v1)
+    regions/      список областей для онбордингу (старий API вебверсії прибрано, WEB-001)
   tests/
     forecast/     unit + endpoint тести (deno test)
     fixtures/     golden-dataset.json + rules-subset.json (regression)

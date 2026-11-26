@@ -51,12 +51,6 @@ enabled = false
 # SEC-004: platform JWT verification is enabled by default. Only functions that
 # are intentionally public, mix public reads with handler-level auth, or verify
 # a third-party webhook secret may bypass the gateway JWT check.
-[functions.catalog]
-verify_jwt = false
-
-[functions.picks]
-verify_jwt = false
-
 [functions.regions]
 verify_jwt = false
 
