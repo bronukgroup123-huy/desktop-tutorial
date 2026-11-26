@@ -6,7 +6,9 @@
       → docs/quiz/app.md                                        (усі питання з відповідями й джерелами)
 
 Перевіряє зміст: id, типи, правильні відповіді — серед варіантів, у «order» — усі варіанти,
-у кожного питання є пояснення й джерело. У модулях myths/twins правильна відповідь не може бути
+у кожного питання є пояснення й джерело. Відповіді не підказують самі себе: варіант — до 40 символів,
+правильна відповідь не найдовша (single), правильні не довші за всі хибні (multi), а в питаннях
+«правда чи міф» трапляються обидві відповіді. У модулях myths/twins правильна відповідь не може бути
 «можна їсти» (ADR-023 §23.2) — такі питання скрипт не пропустить.
 """
 import json
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ID_RE = re.compile(r"^[a-z0-9_]{1,60}$")
 KINDS = {"single", "multi", "order"}
 DANGEROUS = {"myths", "twins"}
+MAX_OPTION_LEN = 40
 EAT_OK = re.compile(r"(можна|варто|безпечно)\s+(їсти|куштувати|збирати\s+й\s+їсти)", re.I)
 
 
@@ -50,11 +53,26 @@ def validate(data: dict) -> None:
         for field in ("prompt", "explanation", "source"):
             if not str(q.get(field, "")).strip():
                 fail(f"{qid}: порожнє «{field}»")
+        texts = {o["id"]: o["text"].strip() for o in q["options"]}
+        for t in texts.values():
+            if not t or len(t) > MAX_OPTION_LEN:
+                fail(f"{qid}: варіант — 1–{MAX_OPTION_LEN} символів, коротко й просто: «{t}»")
+        wrong = [len(t) for o, t in texts.items() if o not in correct]
+        if q["kind"] == "single" and len(opts) > 2 and len(texts[correct[0]]) > max(wrong):
+            fail(f"{qid}: правильна відповідь найдовша — це підказка; вирівняйте варіанти")
+        if q["kind"] == "multi" and wrong and min(len(texts[c]) for c in correct) > max(wrong):
+            fail(f"{qid}: усі правильні довші за хибні — це підказка; вирівняйте варіанти")
         if module in DANGEROUS:
             for c in correct:
                 text = next(o["text"] for o in q["options"] if o["id"] == c)
                 if EAT_OK.search(text):
                     fail(f"{qid}: у модулі «{module}» правильна відповідь не може дозволяти їсти: «{text}»")
+    # «правда чи міф»: якщо таких питань кілька, відповідь не має бути завжди однаковою
+    tf = [q for q in data["questions"] if len(q["options"]) == 2 and q["kind"] == "single"]
+    if len(tf) >= 3:
+        answers = {next(o["text"] for o in q["options"] if o["id"] == q["correct"][0]) for q in tf}
+        if len(answers) < 2:
+            fail(f"питання з двома варіантами завжди мають відповідь «{answers.pop()}» — це підказка")
 
 
 def sql_str(s: str) -> str:

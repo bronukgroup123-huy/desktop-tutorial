@@ -32,3 +32,15 @@ BEGIN
   END LOOP;
   RAISE NOTICE 'OK зміст тестів знань цілісний';
 END $$;
+
+-- Модуль 1, версія 2: питання першої версії зняті з публікації, лишились тільки нові
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.quiz_questions WHERE id = 'app_honest_found' AND published) THEN
+    RAISE EXCEPTION 'FAIL питання першої версії модуля 1 досі опубліковане';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.quiz_questions WHERE id = 'app_press_confirm' AND published) THEN
+    RAISE EXCEPTION 'FAIL нове питання модуля 1 не опубліковане';
+  END IF;
+  RAISE NOTICE 'OK модуль 1 оновлено до версії 2';
+END $$;
