@@ -6,7 +6,7 @@
 
 Що робить скрипт:
   1. Завантажує BioCLIP 2 (open_clip, hf-hub).
-  2. Класи — усі 326 видів каталогу (web-guardian/public/mushroom_catalog.js) + «не гриб».
+  2. Класи — усі 326 видів каталогу (data/catalog/mushroom_catalog.js) + «не гриб».
      Відбиток виду — середнє текстових векторів кількох підказок: таксономія з базою
      baza200_json_*.json (царство → вид), «a photo of <латина>», опис-підказка з бази (ai_prompts.en).
   3. Експортує кодувальник зображень у ONNX і квантує ваги до int8 (≈ 300 МБ).
@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG_JS = ROOT / "web-guardian/public/mushroom_catalog.js"
+CATALOG_JS = ROOT / "data/catalog/mushroom_catalog.js"
 BAZA = next(ROOT.glob("baza200_json_*.json"))
 BENCH = ROOT / "docs/AI_BENCHMARK.md"
 MODEL_ID = "hf-hub:imageomics/bioclip-2"

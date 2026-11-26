@@ -1,7 +1,7 @@
 # Звірка з книгами — правила рушія і довідник
 
 Згенеровано `scripts/catalog_sync/sync.py` (міграція `20261114100000_rules_from_books.sql`).
-Джерело — книжкові описи (`опис.txt` → `web-guardian/public/mushroom_descriptions.js`).
+Джерело — книжкові описи (`опис.txt` → `data/catalog/mushroom_descriptions.js`).
 
 | Вид | Що змінено | Де росте (книга) | Коли збирати (книга) |
 |---|---|---|---|

@@ -78,7 +78,6 @@
 | B7.3 | Sentry + алерти в Telegram | акаунт Sentry → далі Codex |
 | B2.15 | Калібрування рушія за звітом сезонів | інструмент готовий; потрібні дані/рішення |
 | B7.7 | Golden dataset 100+ записів | після бети (потребує B3.11) |
-| WEB-001 | Прибрати сторінки web-guardian | чи хоститься ще десь (BLK-009) |
 
 ### Відкладено / не потрібно зараз
 - **B5.1** `v1-catalog/sync` — довідник зараз вбудований у застосунок (assets + фото з релізу), оновлюється разом із
@@ -287,7 +286,7 @@
 | B7.1 🔴 | Strix (AI-пентест) на staging: IDOR, JWT, RLS-обходи; виправлення | Звіт + закриті critical/high |
 | ✅ B7.2 | Rate limit на auth (≤ 5 спроб входу/хв), OTP, усі `v1-*` | Тести 429 |
 | B7.3 🟡 | Sentry для Edge Functions + алерти в Telegram (сплеск 401/500) | Тестова помилка доходить до Telegram |
-| B7.4 🟡 | Периметр (**ADR-004**) | Supabase — вбудований захист + наш rate limit на всіх `v1-*` + CAPTCHA для анонімного входу/OTP. Безкоштовний Cloudflare — тільки перед Vercel (PWA Наглядача): WAF managed rules, bot fight mode. CSP і HSTS у `vercel.json` / `next.config.mjs` | PWA за Cloudflare; CSP без `unsafe-inline` для скриптів; кожен `v1-*` має тест на 429 |
+| ⚪ B7.4 | Периметр (**ADR-004**) — **Cloudflare/CSP більше не потрібні**: вебклієнта (PWA на Vercel) немає з 2026-11-26 (WEB-001); лишається вбудований захист Supabase + наш rate limit | Supabase — вбудований захист + наш rate limit на всіх `v1-*` + CAPTCHA для анонімного входу/OTP. Безкоштовний Cloudflare — тільки перед Vercel (PWA Наглядача): WAF managed rules, bot fight mode. CSP і HSTS у `vercel.json` / `next.config.mjs` | PWA за Cloudflare; CSP без `unsafe-inline` для скриптів; кожен `v1-*` має тест на 429 |
 | B7.5 🟡 | Бекапи: PITR / щоденний dump, перевірене відновлення на staging | Відновлення пройшло |
 | B7.6 🟡 | Навантажувальний тест `v1-forecast`, `v1-forest-zones` (k6), 200 RPS | p95 < 1 с |
 | B7.7 🟡 | Golden dataset: план збору 100+ записів після бети (петля «Знайшли? Так/Ні» — `POST v1-trips/{id}/outcome` → `calibration_log`) | Ендпоінт працює, дані йдуть у калібрування |

@@ -1,13 +1,13 @@
 // ============================================================================
 // scripts/match_real_urls.mjs
 // Знаходить реальні шляхи файлів у бакеті mushroom-catalog-photos
-// і оновлює photo_url + всі елементи масиву photos у web-guardian/public/mushroom_catalog.js.
+// і оновлює photo_url + всі елементи масиву photos у data/catalog/mushroom_catalog.js.
 // Потрібні змінні оточення: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 
-const JS_CATALOG = "web-guardian/public/mushroom_catalog.js";
+const JS_CATALOG = "data/catalog/mushroom_catalog.js";
 const JSON_CATALOG = "mushroom_catalog.json";
 const BUCKET = "mushroom-catalog-photos";
 const SUPABASE_URL = process.env.SUPABASE_URL;

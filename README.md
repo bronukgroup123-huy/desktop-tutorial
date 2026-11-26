@@ -25,7 +25,7 @@ deno test supabase/tests/forecast/ --allow-net
 supabase/migrations/   SQL-міграції (48 файлів — джерело істини схеми БД)
 supabase/functions/    Edge Functions: forecast, picks, regions, catalog, me + guardian-*
 supabase/tests/        deno-тести + golden dataset (regression)
-web-guardian/          Next.js клієнт (web)
+data/catalog/          вихідні дані довідника (види, книжкові описи, іконки)
 flutter_client/        Flutter-клієнт
 openapi/               OpenAPI 3.1 для v1-* (генерація Dart-клієнта)
 legacy/                старий стек до Supabase — не використовується

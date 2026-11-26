@@ -24,7 +24,7 @@ import books  # noqa: E402
 ROOT = books.ROOT
 SEED = ROOT / "supabase/migrations/20260912000002_forecast_seed.sql"
 CATALOG = ROOT / "mushroom_catalog.json"
-CATALOG_JS = ROOT / "web-guardian/public/mushroom_catalog.js"
+CATALOG_JS = ROOT / "data/catalog/mushroom_catalog.js"
 MIGRATION = ROOT / "supabase/migrations/20261114100000_rules_from_books.sql"
 REPORT = ROOT / "docs/CATALOG_SYNC.md"
 CATALOG_TRAILING_NL = CATALOG.read_bytes().endswith(b"\n")
@@ -183,7 +183,7 @@ def main(write: bool) -> None:
     # ── Звіт ──
     md = ["# Звірка з книгами — правила рушія і довідник", "",
           "Згенеровано `scripts/catalog_sync/sync.py` (міграція `20261114100000_rules_from_books.sql`).",
-          "Джерело — книжкові описи (`опис.txt` → `web-guardian/public/mushroom_descriptions.js`).", "",
+          "Джерело — книжкові описи (`опис.txt` → `data/catalog/mushroom_descriptions.js`).", "",
           "| Вид | Що змінено | Де росте (книга) | Коли збирати (книга) |", "|---|---|---|---|"]
     for name, mt, changes, why, season_text in report:
         md.append(f"| {name} | {'<br>'.join(changes) if changes else 'без змін'} | {why} | {season_text or '—'} |")

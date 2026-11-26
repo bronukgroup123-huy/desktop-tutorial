@@ -1,8 +1,8 @@
 """Довідник для застосунку (рішення PO 2026-11-15).
 
-Джерела — ті самі, що й у вебверсії (web-guardian/public/landing.html):
-  * web-guardian/public/mushroom_catalog.js     — види, атрибути, фото;
-  * web-guardian/public/mushroom_descriptions.js — книжкові описи.
+Джерела (data/catalog/, колишня вебверсія — прибрана разом із Vercel, WEB-001):
+  * data/catalog/mushroom_catalog.js     — види, атрибути, фото;
+  * data/catalog/mushroom_descriptions.js — книжкові описи.
 
 Результат:
   * flutter_client/assets/catalog/catalog.json.gz — види з фото (як показує веб-довідник):
@@ -29,8 +29,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG_JS = ROOT / "web-guardian/public/mushroom_catalog.js"
-DESC_JS = ROOT / "web-guardian/public/mushroom_descriptions.js"
+CATALOG_JS = ROOT / "data/catalog/mushroom_catalog.js"
+DESC_JS = ROOT / "data/catalog/mushroom_descriptions.js"
 OUT = ROOT / "flutter_client/assets/catalog/catalog.json.gz"
 
 FULL_PX = 1080

@@ -1,5 +1,5 @@
 # ============================================================================
-# Docker Compose — Mushroom Radar (web + api + db)
+# Docker Compose — Mushroom Radar (api + db; вебклієнт прибрано, WEB-001)
 # ============================================================================
 
 services:
@@ -34,7 +34,6 @@ services:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-      GUARDIAN_BASE_URL: ${GUARDIAN_BASE_URL:-http://web:3000}
     depends_on:
       db:
         condition: service_healthy
@@ -48,25 +47,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  # Next.js Web (Frontend)
-  web:
-    build:
-      context: ./web-guardian
-      dockerfile: ../web/Dockerfile
-    container_name: mushroom-radar-web
-    environment:
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      NEXT_PUBLIC_API_URL: http://api:8000
-    depends_on:
-      api:
-        condition: service_healthy
-    ports:
-      - "3000:3000"
-    networks:
-      - mushroom-network
-    restart: unless-stopped
 
 networks:
   mushroom-network:

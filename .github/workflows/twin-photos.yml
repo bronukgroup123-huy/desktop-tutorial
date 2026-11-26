@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A "фото двійників (webp)" mushroom_catalog.json web-guardian/public/mushroom_catalog.js \
+          git add -A "фото двійників (webp)" mushroom_catalog.json data/catalog/mushroom_catalog.js \
             flutter_client/assets/catalog/catalog.json.gz
           if git diff --cached --quiet; then echo "Нічого нового"; exit 0; fi
           git commit -m "Фото двійників без ліцензійних обмежень (CC0 / суспільне надбання)"

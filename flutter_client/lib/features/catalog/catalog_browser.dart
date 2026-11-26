@@ -9,7 +9,7 @@ import 'package:flutter_client/features/catalog/catalog_offline.dart';
 import 'package:flutter_client/features/recognize/recognize_banner.dart';
 import 'package:flutter_client/features/catalog/catalog_photo.dart';
 
-/// Категорії довідника — як чіпи у веб-довіднику (landing.html).
+/// Категорії довідника (чіпи над списком).
 enum CatalogCategory {
   all('Усі'),
   top20('Топ-20'),

@@ -7,14 +7,13 @@
 |---|---|
 | `db/migrations/` | Схема v1.1 для «голого» PostgreSQL (паралельна до Supabase) |
 | `api/` | Dockerfile для Python API (FastAPI) — коду API в репозиторії немає |
-| `web/` | Dockerfile веб-клієнта |
 | `init-scripts/` | Ініціалізація PostgreSQL для Docker |
-| `compose.yaml` | Docker Compose: db + api + web |
+| `compose.yaml` | Docker Compose: db + api |
 
 **Джерело істини зараз:**
 - схема БД — `supabase/migrations/`;
 - бекенд — `supabase/functions/` (Edge Functions);
-- веб-клієнт Наглядача — `web-guardian/`;
+- веб-клієнт Наглядача (`web-guardian/`, Vercel) прибрано 2026-11-26 (WEB-001);
 - мобільний клієнт — `flutter_client/`.
 
 Рішення про перенесення — `docs/BACKEND_PLAN.md`, задача B0.3 (підтверджено PO 2026-11-09).

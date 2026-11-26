@@ -34,7 +34,7 @@ PHOTO_FOLDERS = [
 ]
 
 CATALOG_JSON = os.path.join(ROOT, "mushroom_catalog.json")
-CATALOG_JS   = os.path.join(ROOT, "web-guardian", "public", "mushroom_catalog.js")
+CATALOG_JS   = os.path.join(ROOT, "data", "catalog", "mushroom_catalog.js")
 
 
 def log(msg):

@@ -65,7 +65,7 @@ Deno.test('regions endpoint: OPTIONS → 204', async () => {
     new Request('http://localhost/regions', { method: 'OPTIONS' }),
   );
   assertEquals(res.status, 204);
-  assertEquals(res.headers.get('Access-Control-Allow-Origin'), 'https://desktop-tutorial-eta-tan.vercel.app') // CORS allowlist (audit G7): без Origin → default;
+  assertEquals(res.headers.get('Access-Control-Allow-Origin'), null) // вебклієнта немає (WEB-001): CORS-доступу жодному сайту;
 });
 
 Deno.test('regions endpoint: DB error → 500 db_error', async () => {

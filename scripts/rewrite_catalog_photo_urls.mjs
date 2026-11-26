@@ -3,14 +3,14 @@
 // Додає префікс Supabase Storage public bucket. У Manifest-спосіб:
 // читає relativ-шляхи з mushroom_catalog.json (там є контекст виду),
 // обчислює CDN URL (з урахуванням photo_overrides для 6 проблемних видів)
-// і записує назад у web-guardian/public/mushroom_catalog.js.
+// і записує назад у data/catalog/mushroom_catalog.js.
 // ============================================================================
 import fs from "node:fs";
 import path from "node:path";
 import { overrideBase } from "./photo_overrides.mjs";
 
 const CATALOG_JSON = "mushroom_catalog.json";
-const JS_CATALOG = "web-guardian/public/mushroom_catalog.js";
+const JS_CATALOG = "data/catalog/mushroom_catalog.js";
 const BUCKET = "mushroom-catalog-photos";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wrukmuxdbkbmkygfasai.supabase.co";

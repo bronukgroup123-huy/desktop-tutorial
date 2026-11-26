@@ -41,7 +41,7 @@ supabase/
     forecast/     unit + endpoint тести (deno test)
     fixtures/     golden-dataset.json + rules-subset.json (regression)
     *.sql         SQL-тести (RLS, безпека)
-web-guardian/     Next.js клієнт (web) для Наглядача
+data/catalog/     вихідні дані довідника (mushroom_catalog.js, mushroom_descriptions.js, mushroomIcons.js)
 docs/             ця документація
 ```
 
