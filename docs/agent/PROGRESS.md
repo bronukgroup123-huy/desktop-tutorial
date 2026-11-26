@@ -459,3 +459,25 @@ See docs/agent/BLOCKERS.md.
   Live check from the agent is impossible (Supabase host blocked by the session network); owner asked to
   press «Повторити» in the app.
 - Follow-up audit of all list CHECK constraints vs values written by v1 code: no other mismatch.
+
+## 2026-11-26 — owner session: B2.4, B3.4, B6.1, B3.11 (Claude)
+- #151 B2.4: forecast rules filtered by catalog edibility (edible / conditionally edible) + tests.
+- #152 B3.4a server (PATCH / DELETE v1-picks/{id}, public weekly limit by `published_at`) → #153 B3.4b card
+  actions → #156 «Відкрити в Google Картах» (owner chose this instead of a data download button).
+- #154 B6.1: owner decision — no export button (security); SQL `export_user_data` for support requests only.
+- #155 B3.11: «Знайшли?» after «Я вдома»; server finds the link to a viewed area forecast or a guardian hike;
+  place not stored; +2 after 24 h (cron), 1/day, trust score.
+- Also fixed: «Я вдома» on the return screen did not finish the hike for the Guardian (now shared `finishHike`).
+- Checks per PR (local): Deno 593–609 passed, deno check 0, Flutter 409–413 passed, all SQL tests on a fresh DB.
+  CI green on #151–#155 at 12:35 UTC; #156 running.
+- Owner: B3.10 needs a design session first (BLK-013).
+
+## 2026-11-26 12:35 UTC — scheduled run: B3.8a (Claude)
+- Branch / SHA: claude/b3-8a-confirm-by-find (stacked on #155) — PR #157.
+- Done: confirmation of a public pick by a reply find (ADR-019 §19.5): `reply_to` on create, `can_confirm_pick`
+  before / `confirm_pick` after creation (≤ 200 m from the exact place, EXIF verified, pair limit 3 / 30 days,
+  ≤ 2 attempts per pick so the fuzzed place cannot be probed), verified after 1 (twin_alert: 2), +3 / +2 points,
+  card «Підтвердили N грибників».
+- Checks: `deno test` → 609 passed; `deno check` → 0; `scripts/dev/local-db/run.sh` → all 20 SQL tests passed;
+  Flutter/OpenAPI contract → 18 valid.
+- Next: B3.8b (app) after #157.

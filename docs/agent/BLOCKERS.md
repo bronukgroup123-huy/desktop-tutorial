@@ -58,3 +58,7 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
   cycle should stop too, disable the scheduled task «Mushroom Radar — autonomous cycle» (or say so in a PR);
   the agent will then only work after owner messages.
 
+## BLK-013 — B3.10 knowledge tests need a design session (owner)
+- Owner (2026-11-26): B3.10 must be discussed and worked out in detail before implementation.
+- Needed from the owner: modules and question sources, pass rules, retakes, what the certificate unlocks.
+- The agent does not start B3.10 until then.
