@@ -37,7 +37,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
           const SectionTitle('Область'),
           AppTile(
             key: const ValueKey('profile-region'),
-            icon: Icons.place_rounded,
+            leading: const BrandIcon('region'),
             title: me?.homeRegion?.name ?? 'Область не вибрано',
             subtitle: me?.regionChange.reasonLabel ?? '',
           ),
@@ -45,7 +45,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
             const SectionTitle('Акаунт'),
             AppTile(
               key: const ValueKey('settings-identity'),
-              icon: Icons.badge_rounded,
+              leading: const BrandIcon('id_card'),
               title: 'Ім\'я й нік',
               subtitle: [me.name ?? '', if (me.handle != null) '@${me.handle}'].where((x) => x.isNotEmpty).join(' · '),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditIdentityScreen())),
@@ -53,7 +53,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             AppTile(
               key: const ValueKey('settings-avatar'),
-              icon: Icons.face_retouching_natural_rounded,
+              leading: const BrandIcon('avatar'),
               title: 'Аватар',
               subtitle: 'Готові аватари за рівнями',
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AvatarPickerScreen())),
@@ -61,7 +61,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             AppTile(
               key: const ValueKey('profile-sign-out'),
-              icon: Icons.logout_rounded,
+              leading: const BrandIcon('logout'),
               title: 'Вийти',
               onTap: () {
                 Navigator.of(context).pop();
@@ -71,7 +71,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             AppTile(
               key: const ValueKey('profile-delete'),
-              icon: Icons.delete_forever_rounded,
+              leading: const BrandIcon('delete'),
               title: 'Видалити акаунт',
               subtitle: 'Назавжди: профіль, точки, ділянки, рейтинг',
               danger: true,
@@ -143,7 +143,7 @@ class _OfflineGroupState extends ConsumerState<_OfflineGroup> {
       children: [
         AppTile(
           key: const ValueKey('profile-offline'),
-          icon: ready == 4 ? Icons.offline_pin_rounded : Icons.cloud_download_rounded,
+          leading: BrandIcon(ready == 4 ? 'offline_ready' : 'offline'),
           title: 'Офлайн дані',
           subtitle: summary,
           trailing: AnimatedRotation(
@@ -200,7 +200,7 @@ class _OfflineData extends ConsumerWidget {
       children: [
         _DataRow(
           key: const ValueKey('data-map'),
-          icon: Icons.map_rounded,
+          brand: 'map',
           title: 'Офлайн карта області',
           status: map == null ? 'Не завантажено' : mb(map.meta.bytes),
           ready: map != null,
@@ -214,7 +214,7 @@ class _OfflineData extends ConsumerWidget {
         ),
         _DataRow(
           key: const ValueKey('data-trails'),
-          icon: Icons.alt_route_rounded,
+          brand: 'route',
           title: 'Стежки для «Додому»',
           status: trails == null ? 'Завантажуються разом з картою' : mb(trails),
           ready: trails != null,
@@ -229,7 +229,7 @@ class _OfflineData extends ConsumerWidget {
         ),
         _DataRow(
           key: const ValueKey('data-photos'),
-          icon: Icons.photo_library_rounded,
+          brand: 'photos',
           title: 'Фото довідника',
           status: photos.complete ? mb(photos.savedBytes) : (photos.saved > 0 ? '${photos.saved} з ${photos.total} · ${mb(photos.savedBytes)}' : 'Не завантажено'),
           ready: photos.complete,
@@ -238,7 +238,7 @@ class _OfflineData extends ConsumerWidget {
         ),
         _DataRow(
           key: const ValueKey('data-ai'),
-          icon: Icons.psychology_rounded,
+          brand: 'ai',
           title: 'ШІ-розпізнавання',
           status: ai.installed == null ? 'Не завантажено' : mb(ai.installed!.totalBytes),
           ready: ai.ready,
@@ -256,9 +256,10 @@ final _trailsMetaProvider = FutureProvider.autoDispose.family<int?, String>(
 );
 
 class _DataRow extends StatelessWidget {
-  const _DataRow({super.key, required this.icon, required this.title, required this.status, required this.ready, required this.onGet, this.onDelete});
+  const _DataRow({super.key, required this.brand, required this.title, required this.status, required this.ready, required this.onGet, this.onDelete});
 
-  final IconData icon;
+  /// Фірмова іконка (assets/icons/tile/).
+  final String brand;
   final String title;
   final String status;
   final bool ready;
@@ -272,7 +273,7 @@ class _DataRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
           child: Row(
               children: [
-                Icon(icon, color: AppTheme.darkGreen),
+                BrandIcon(brand, size: 36),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

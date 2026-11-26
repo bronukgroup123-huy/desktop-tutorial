@@ -60,7 +60,7 @@ class ProfileScreen extends ConsumerWidget {
           const SectionTitle('Ще'),
           AppTile(
             key: const ValueKey('profile-settings'),
-            icon: Icons.settings_rounded,
+            leading: const BrandIcon('settings'),
             title: 'Налаштування',
             subtitle: guest ? 'Дані без інтернету, область' : 'Дані без інтернету, область, акаунт',
             onTap: () => _openSettings(context),
@@ -176,7 +176,7 @@ class _GiftsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppTile(
         key: const ValueKey('profile-gifts'),
-        icon: Icons.card_giftcard_rounded,
+        leading: const BrandIcon('gift'),
         title: 'Подарунки',
         subtitle: 'Тут будуть подарунки від друзів',
         trailing: Container(
@@ -206,7 +206,7 @@ class _FriendsTile extends ConsumerWidget {
           ].join(' · ');
     return AppTile(
       key: const ValueKey('profile-friends'),
-      icon: Icons.group_rounded,
+      leading: const BrandIcon('friends'),
       title: 'Друзі',
       subtitle: subtitle,
       badge: f?.incoming.length,

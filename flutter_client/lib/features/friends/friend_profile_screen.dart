@@ -178,7 +178,7 @@ class _FriendProfileScreenState extends ConsumerState<FriendProfileScreen> {
               const SizedBox(height: 12),
               AppTile(
                 key: const ValueKey('friend-gifts'),
-                icon: Icons.card_giftcard_rounded,
+                leading: const BrandIcon('gift'),
                 title: 'Подарунки',
                 subtitle: 'Подарунки від друзів — скоро',
               ),
