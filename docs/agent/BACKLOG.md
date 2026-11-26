@@ -149,6 +149,15 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   naming numbers without a design decision would be churn) and a shared card decoration (only 4–7 identical
   uses). Revisit if the owner defines component roles.
 
+### UI-003 — screen-reader labels, tap targets, text contrast (owner: Claude)
+- Goal: Flutter accessibility guidelines pass on the main screens.
+- Part 1 (labels + 48 px tap targets): `test/a11y/guidelines_test.dart` on 12 screens; gallery photo labels,
+  «Очистити пошук» tooltips, compact buttons enlarged to 48 px. Exemption: forecast slot rename pencil
+  (long-press on the tile does the same). Status: in_review — PR #142.
+- Part 2 (text contrast, WCAG AA 4.5:1): muted text measured 2.3–4.0 (empty forecast slots 2.3, «До 200
+  друзів» 3.3, auth subtitle 3.9, SOS hint / catalog count 4.0). Fix = darker muted text, a visual change →
+  Status: blocked_owner_decision.
+
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
   hotspots. Device measurements need the owner (BLK-010).

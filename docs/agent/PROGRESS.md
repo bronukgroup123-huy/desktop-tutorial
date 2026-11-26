@@ -424,3 +424,11 @@ See docs/agent/BLOCKERS.md.
 - Checks: `scripts/dev/local-db/run.sh --no-tests` → 65 migrations; generator output reproducible.
 - Note: this entry extends the open state PR #140 instead of opening another one (avoids PROGRESS conflicts).
 - Next: waiting for owner direction (WEB-001 / BLK-009, PERF-001 device timings / BLK-010, UI-002 radius roles).
+
+## 2026-11-26 — UI-003 part 1: labels and tap targets (Claude)
+- Branch: claude/ui-003-a11y-labels (from main) → PR #142
+- Done: guidelines test (labeled tap targets, 48 px Android targets) on 12 screens; fixed gallery photo
+  labels, search clear tooltips, 40 px buttons (friends actions, SOS refresh, offline download/ok, twin
+  «Відкрити», wave-alert close, candidate «Відкрити в довіднику»). One documented exemption.
+- Checks: `flutter analyze` → no issues; `flutter test` → 404 passed (catalog test now scrolls to the card).
+- Owner decision needed: text contrast below WCAG AA on muted text (UI-003 part 2).
