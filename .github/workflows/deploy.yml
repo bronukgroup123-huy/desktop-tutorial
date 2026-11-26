@@ -117,7 +117,8 @@ jobs:
           PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           # Видалені з продакшну: посилання Наглядача (ADR-022 §22.8), а також застарілий
-          # Guardian v0 з його cron-обробниками, демо й погодний проксі (SEC-005).
+          # Guardian v0 з його cron-обробниками, демо й погодний проксі (SEC-005), а також старий API
+          # вебверсії catalog / me / picks (застосунок працює з v1-*, WEB-001).
           for fn in guardian-session-get guardian-session-track guardian-session-gpx \
                     guardian-register-guardian-device guardian-rescue-get guardian-rescue-request \
                     guardian-webhook-sms test-telegram guardian-notify-test \
@@ -125,7 +126,8 @@ jobs:
                     guardian-exiting guardian-extend guardian-owner-gpx guardian-ping \
                     guardian-recover guardian-register-device guardian-revoke \
                     guardian-session-create guardian-sos guardian-sos-cancel \
-                    guardian-tick guardian-notify guardian-retry forecast-weather forecast; do
+                    guardian-tick guardian-notify guardian-retry forecast-weather forecast \
+                    catalog me picks; do
             supabase functions delete "$fn" --project-ref "$PROJECT_ID" >/dev/null 2>&1 \
               && echo "✗ Deleted $fn" || echo "· $fn already absent"
           done

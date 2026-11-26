@@ -23,7 +23,7 @@ deno test supabase/tests/forecast/ --allow-net
 
 ```
 supabase/migrations/   SQL-міграції (48 файлів — джерело істини схеми БД)
-supabase/functions/    Edge Functions: forecast, picks, regions, catalog, me + guardian-*
+supabase/functions/    Edge Functions: v1-* (API застосунку) + regions
 supabase/tests/        deno-тести + golden dataset (regression)
 data/catalog/          вихідні дані довідника (види, книжкові описи, іконки)
 flutter_client/        Flutter-клієнт

@@ -1,8 +1,5 @@
 {
   "functions": {
-    "catalog": "public",
-    "me": "user_jwt",
-    "picks": "mixed_handler_auth",
     "regions": "public",
     "v1-air-alerts": "public",
     "v1-analysis": "user_jwt",

@@ -93,8 +93,7 @@ jobs:
         run: |
           deno check $DENO_FLAGS \
             supabase/functions/_shared/http.ts \
-            supabase/functions/v1-*/index.ts \
-            supabase/functions/me/index.ts
+            supabase/functions/v1-*/index.ts
 
       # Блокує: юніт-тести (без живого Supabase).
       - name: Unit tests

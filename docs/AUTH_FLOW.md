@@ -40,13 +40,12 @@ Authorization: Bearer <access_token>
 
 | Клас | Функції | Без токена |
 |---|---|---|
-| `public` | `regions`, `v1-regions` (геометрія області), `catalog`, `v1-app-config`, `v1-air-alerts` | працюють (з rate limit) |
-| `user_jwt` | `v1-me`, `v1-picks`, `v1-analysis`, `v1-forecast`, `v1-forest-zones`, `v1-friends`, `v1-guardian`, `me` | `401` |
-| `mixed_handler_auth` | `picks` (стара стрічка) | частина — публічна, частина — `401` |
+| `public` | `regions`, `v1-regions` (геометрія області), `v1-app-config`, `v1-air-alerts` | працюють (з rate limit) |
+| `user_jwt` | `v1-me`, `v1-picks`, `v1-analysis`, `v1-forecast`, `v1-forest-zones`, `v1-friends`, `v1-guardian` | `401` |
 | `service_role` | `v1-guardian-tick`, `v1-wave-alerts` | лише розклад / сервер |
 | `webhook_secret` | `v1-telegram-webhook` | лише Telegram із секретом |
 
-Клієнт використовує `v1-*`, а також `GET /regions` (список областей). Старі `me` і `picks` клієнт не викликає.
+Клієнт використовує `v1-*`, а також `GET /regions` (список областей). Старий API вебверсії (`me`, `picks`, `catalog`) прибрано (WEB-001).
 
 ---
 
