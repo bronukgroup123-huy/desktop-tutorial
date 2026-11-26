@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -149,6 +150,17 @@ class _PickCardContent extends StatelessWidget {
 
 /// Дії автора над своєю точкою (B3.4). Які кнопки показати — вирішує сервер (`actions`);
 /// ліміти й правила видимості перевіряє він же, клієнт лише показує його відповідь.
+/// Посилання, що відкриває місце в Google Картах (застосунок, якщо встановлений, інакше браузер).
+Uri googleMapsUri(double lat, double lng) => Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': '${lat.toStringAsFixed(6)},${lng.toStringAsFixed(6)}',
+    });
+
+/// Як відкрити зовнішнє посилання (провайдер — щоб тести не відкривали браузер).
+final externalLauncherProvider = Provider<Future<bool> Function(Uri uri)>(
+  (ref) => (uri) => launchUrl(uri, mode: LaunchMode.externalApplication),
+);
+
 class _OwnPickActions extends ConsumerStatefulWidget {
   const _OwnPickActions({required this.card});
 
@@ -236,11 +248,28 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
     );
   }
 
+  Future<void> _openInMaps() async {
+    final p = widget.card.pick.point;
+    var opened = false;
+    try {
+      opened = await ref.read(externalLauncherProvider)(googleMapsUri(p.latitude, p.longitude));
+    } catch (_) {}
+    if (!opened && mounted) showToast(context, 'Не вдалося відкрити карти на цьому телефоні', isError: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = ref.read(picksRepositoryProvider);
     final actions = widget.card.actions;
     final buttons = <Widget>[
+      // Своє місце — у звичній карті: прокласти маршрут, зберегти в Google (замість файлу-експорту, B6.1).
+      if (actions.contains('open_in_maps'))
+        OutlinedButton.icon(
+          key: const ValueKey('pick-open-in-maps'),
+          onPressed: _busy ? null : _openInMaps,
+          icon: const Icon(Icons.map_outlined),
+          label: const Text('Відкрити в Google Картах'),
+        ),
       if (actions.contains('make_public'))
         FilledButton.icon(
           key: const ValueKey('pick-make-public'),

@@ -194,6 +194,9 @@ Deno.test("card: чужа публічна — фото, назва, опис, �
     id: PICK, lat: SHOWN.lat, lng: SHOWN.lng, is_exact: false, is_mine: false, visibility: "public",
     species_id: "boletus_edulis", name_label: "Білий гриб", status_label: "Перевіряється", marker_color: "#9e9e9e",
     description: "Під сосною",
+    confirmed_label: null,
+    confirmed_by_me: false,
+    twin_warning_label: null,
     date_label: "10 листопада 2026 р.",
     captured_at: null,
     photo_url: `https://proj.supabase.co/signed/picks/${PICK}.jpg?token=t`,
@@ -289,13 +292,36 @@ Deno.test("dateLabel: дата українською за київським ч
   assert(dateLabel("2026-06-15T12:00:00Z")!.includes("червня"));
 });
 
+Deno.test("confirmedLabel: відмінки й дата; без підтверджень — null", async () => {
+  const { confirmedLabel } = await import("../../functions/_shared/v1/picks-map.ts");
+  assertEquals(confirmedLabel(0, null), null);
+  assertEquals(confirmedLabel(1, "2026-11-20T10:00:00Z"), "Підтвердив 1 грибник, останнє — 20 листопада 2026 р.");
+  assertEquals(confirmedLabel(3, null), "Підтвердили 3 грибники");
+  assertEquals(confirmedLabel(11, null), "Підтвердили 11 грибників");
+  assertEquals(confirmedLabel(22, null), "Підтвердили 22 грибники");
+});
+
+Deno.test("card: підтверджена відповідями — «Підтвердили N», двійник — попередження лишається", async () => {
+  const d = db({
+    "rpc.get_pick_card": {
+      data: { ...foreign(), description: null, photo_path: null, taken_at: null, twin_alert: true, confirmations: 2,
+        last_confirmed_at: "2026-11-20T10:00:00Z", confirmed_by_me: true },
+      error: null,
+    },
+  });
+  const { json } = await run(d, req("GET", CARD));
+  assertEquals(json.data.confirmed_label, "Підтвердили 2 грибники, останнє — 20 листопада 2026 р.");
+  assertEquals(json.data.confirmed_by_me, true);
+  assertEquals(json.data.twin_warning_label, "Схожий на отруйного двійника — перевірте кожен гриб самі");
+});
+
 Deno.test("card: дії автора (B3.4) — вирішує сервер; чужа точка без дій", async () => {
   const actionsOf = async (row: Record<string, unknown>) =>
     (await run(db({ "rpc.get_pick_card": { data: { ...row, description: null, photo_path: null, taken_at: null }, error: null } }), req("GET", CARD)))
       .json.data.actions;
   // приватна «Не знаю» — публікувати не можна
-  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["edit_description", "delete"]);
-  assertEquals(await actionsOf(own({ pick_type: "private" })), ["make_public", "edit_description", "delete"]);
-  assertEquals(await actionsOf(own()), ["make_private", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["open_in_maps", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private" })), ["open_in_maps", "make_public", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own()), ["open_in_maps", "make_private", "edit_description", "delete"]);
   assertEquals(await actionsOf(foreign()), []);
 });

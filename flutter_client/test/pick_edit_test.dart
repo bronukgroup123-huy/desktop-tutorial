@@ -1,4 +1,4 @@
-// B3.4: картка своєї точки — дії з сервера (опублікувати / сховати / змінити опис / видалити).
+// B3.4: картка своєї точки — дії з сервера (Google Карти / опублікувати / сховати / змінити опис / видалити).
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -39,6 +39,8 @@ void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
   late List<RequestOptions> sent;
+  final launched = <Uri>[];
+  var launchResult = true;
 
   Widget app(Map<String, dynamic> cardJson, {FakeResponse Function(RequestOptions r)? onWrite}) {
     final (api, adapter) = makeClient((r) {
@@ -55,6 +57,10 @@ void main() {
       overrides: [
         picksRepositoryProvider.overrideWithValue(PicksRepository(api, uploads: Dio())),
         meProvider.overrideWith(() => FakeMe(Me.fromJson(registered()))),
+        externalLauncherProvider.overrideWithValue((uri) async {
+          launched.add(uri);
+          return launchResult;
+        }),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -84,6 +90,26 @@ void main() {
     expect(find.text('Білий гриб'), findsOneWidget);
     expect(find.byKey(const ValueKey('pick-delete')), findsNothing);
     expect(find.byKey(const ValueKey('pick-make-public')), findsNothing);
+    expect(find.byKey(const ValueKey('pick-open-in-maps')), findsNothing);
+  });
+
+  testWidgets('своя точка: «Відкрити в Google Картах» — точне місце, без запитів на сервер', (tester) async {
+    await tester.pumpWidget(app(card(actions: ['open_in_maps', 'make_public', 'edit_description', 'delete'])));
+    await open(tester);
+    await tester.tap(find.byKey(const ValueKey('pick-open-in-maps')));
+    await tester.pumpAndSettle();
+    expect(launched.single.toString(), 'https://www.google.com/maps/search/?api=1&query=50.450000%2C30.520000');
+    expect(writes(), isEmpty);
+  });
+
+  testWidgets('карти не відкрились — підказка', (tester) async {
+    launchResult = false;
+    await tester.pumpWidget(app(card(actions: ['open_in_maps', 'delete'])));
+    await open(tester);
+    await tester.tap(find.byKey(const ValueKey('pick-open-in-maps')));
+    await tester.pump();
+    expect(find.text('Не вдалося відкрити карти на цьому телефоні'), findsOneWidget);
+    launchResult = true;
   });
 
   testWidgets('своя приватна: «Зробити публічною» — підтвердження і PATCH visibility=public', (tester) async {

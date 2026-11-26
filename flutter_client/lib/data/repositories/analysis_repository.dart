@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../local/local_store.dart';
 import '../models/analysis.dart';
+import '../models/trip_feedback.dart';
 
 /// Машинний прогноз — аналіз ділянки (`/v1-analysis`, ADR-015).
 ///
@@ -107,4 +108,16 @@ class AnalysisRepository {
   Future<void> deleteArea(String areaId) async {
     await _api.delete('/v1-analysis/areas/$areaId');
   }
+
+  /// «Знайшли?»: чи питати після походу [trip] — вирішує сервер (B3.11).
+  Future<TripFeedbackPrompt> feedbackPrompt(TripSummary trip) async => TripFeedbackPrompt.fromJson(
+        await _api.get('/v1-analysis/feedback', query: {'lat': '${trip.lat}', 'lng': '${trip.lng}', 'day': trip.day})
+            as Map<String, dynamic>,
+      );
+
+  /// Відповідь «Знайшли? Так / Ні» ([answer]: `found` | `not_found`).
+  Future<TripFeedbackResult> sendFeedback(TripSummary trip, String answer) async => TripFeedbackResult.fromJson(
+        await _api.post('/v1-analysis/feedback', body: {'lat': trip.lat, 'lng': trip.lng, 'day': trip.day, 'answer': answer})
+            as Map<String, dynamic>,
+      );
 }
