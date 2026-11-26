@@ -4,7 +4,8 @@
 --   * спроба — без правильних відповідей; оцінка single / multi / order; поріг 80 %;
 --   * бали — один раз (+ журнал рейтингу); повтор на бали після невдачі — через 24 год;
 --   * критичне питання з помилкою — модуль не зараховано; здати двічі чи після строку — ні;
---   * 3 скарги — питання сховане; сертифікат — лише коли пройдено всі модулі; клієнту — без доступу.
+--   * 3 скарги — питання сховане; сертифікат — лише коли пройдено всі модулі; клієнту — без доступу;
+--   * спроба бере питання порівну з кожної теми; якщо тема мала — решту добирають інші (20261128090000).
 -- Самодостатній тест: усе в транзакції, наприкінці ROLLBACK.
 -- ============================================================================
 
@@ -20,7 +21,7 @@ SET LOCAL ROLE service_role;
 
 -- тест механізму не залежить від справжнього змісту модулів (усе — в транзакції з ROLLBACK)
 DELETE FROM public.quiz_questions;
-UPDATE public.quiz_modules SET published = false;
+UPDATE public.quiz_modules SET published = false, questions_per_attempt = 10;
 
 -- тестовий зміст: 12 питань модуля app (single / multi / order) і 10 у forest (одне критичне)
 DO $$
@@ -167,6 +168,44 @@ BEGIN
   IF public.quiz_overview(u4)->>'certified_at' IS NULL THEN RAISE EXCEPTION 'Test 14c failed'; END IF;
 END $$;
 
+-- Теми: спроба бере порівну з кожної теми, мала тема — скільки є, решту добирають інші
+DO $$
+DECLARE
+  u4 UUID := 'd4000000-0000-4000-8000-0000000091d4';
+  r JSONB; i INT; n_a INT; n_b INT; n_c INT;
+BEGIN
+  UPDATE public.quiz_questions SET published = false WHERE module_id = 'app';
+  FOR i IN 1..12 LOOP
+    INSERT INTO public.quiz_questions (id, module_id, topic, kind, prompt, options, correct, explanation, source)
+    VALUES ('t_topic_' || i, 'app', CASE WHEN i <= 5 THEN 'ta' WHEN i <= 11 THEN 'tb' ELSE 'tc' END, 'single',
+      'Тема ' || i, '[{"id":"a","text":"А"},{"id":"b","text":"Б"}]', '["a"]', 'Пояснення', 'тест');
+  END LOOP;
+  UPDATE public.quiz_modules SET questions_per_attempt = 7, published = true WHERE id = 'app';
+  -- 7 питань на 3 теми, але в «tc» лише одне: tc = 1, а ta і tb добирають по 3
+  FOR i IN 1..20 LOOP
+    r := public.quiz_start(u4, false, 'app', true);
+    IF r->>'ok' <> 'true' THEN RAISE EXCEPTION 'Test topics failed: %', r; END IF;
+    SELECT count(*) FILTER (WHERE q.topic = 'ta'), count(*) FILTER (WHERE q.topic = 'tb'), count(*) FILTER (WHERE q.topic = 'tc')
+      INTO n_a, n_b, n_c
+    FROM jsonb_array_elements(r->'questions') x JOIN public.quiz_questions q ON q.id = x->>'id';
+    IF jsonb_array_length(r->'questions') <> 7 OR n_c <> 1 OR n_a <> 3 OR n_b <> 3 THEN
+      RAISE EXCEPTION 'Test topics failed: ta=% tb=% tc=% (очікувалось 3, 3, 1)', n_a, n_b, n_c;
+    END IF;
+  END LOOP;
+  -- 9 на 3 теми, де в кожній вистачає: по 3
+  UPDATE public.quiz_questions SET topic = 'tc' WHERE id IN ('t_topic_9', 't_topic_10', 't_topic_11');
+  UPDATE public.quiz_modules SET questions_per_attempt = 9 WHERE id = 'app';
+  FOR i IN 1..20 LOOP
+    r := public.quiz_start(u4, false, 'app', true);
+    SELECT count(*) FILTER (WHERE q.topic = 'ta'), count(*) FILTER (WHERE q.topic = 'tb'), count(*) FILTER (WHERE q.topic = 'tc')
+      INTO n_a, n_b, n_c
+    FROM jsonb_array_elements(r->'questions') x JOIN public.quiz_questions q ON q.id = x->>'id';
+    IF n_a <> 3 OR n_b <> 3 OR n_c <> 3 THEN
+      RAISE EXCEPTION 'Test topics failed: ta=% tb=% tc=% (очікувалось по 3)', n_a, n_b, n_c;
+    END IF;
+  END LOOP;
+  RAISE NOTICE 'OK теми: спроба порівну з кожної теми';
+END $$;
 RESET ROLE;
 SET LOCAL ROLE authenticated;
 DO $$
@@ -182,6 +221,7 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $$;
+
 RESET ROLE;
 
 ROLLBACK;
