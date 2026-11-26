@@ -1445,9 +1445,10 @@ components:
             actions:
               type: array
               description: |
-                Дозволені дії; клієнт показує лише їх. Своя точка (B3.4): `make_public` (приватна з видом),
+                Дозволені дії; клієнт показує лише їх. Своя точка (B3.4): `open_in_maps` (відкрити точне місце в
+                Google Картах — замість файлу-експорту), `make_public` (приватна з видом),
                 `make_private` (публічна), `edit_description`, `delete`. Чужа — поки порожньо (скарги — B3.12).
-              items: { type: string, enum: [make_public, make_private, edit_description, delete] }
+              items: { type: string, enum: [open_in_maps, make_public, make_private, edit_description, delete] }
 
     AnalysisUsage:
       type: object

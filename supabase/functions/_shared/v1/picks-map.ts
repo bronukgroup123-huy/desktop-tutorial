@@ -175,7 +175,8 @@ interface CardRow extends MapRow {
  */
 export function ownPickActions(row: { pick_type: string; species_id: string | null }): string[] {
   const visibility = row.pick_type === "public" ? ["make_private"] : row.species_id ? ["make_public"] : [];
-  return [...visibility, "edit_description", "delete"];
+  // «Відкрити в Google Картах» — своє місце в звичній карті (маршрут, збереження); замість файлу-експорту (B6.1)
+  return ["open_in_maps", ...visibility, "edit_description", "delete"];
 }
 
 export async function handlePickCard(
