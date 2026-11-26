@@ -403,6 +403,83 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+    patch:
+      operationId: updatePick
+      summary: Змінити свою точку — видимість і опис (B3.4)
+      description: |
+        Лише автор. Фото й вид після створення не змінюються. `private → public`: потрібен вид
+        (не «Не знаю»), рівень «Лісовик»+ і тижневий ліміт публічних (рахується за датою
+        публікації); зсунуте місце рахує сервер. `public → private`: до 5 приватних одночасно.
+        `description: null` прибирає опис; контакти в описі вирізаються. Гість не публікує.
+        Чужа, видалена чи неіснуюча точка — `404 pick_not_found`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                visibility: { type: string, enum: [private, public] }
+                description: { type: [string, 'null'], maxLength: 500 }
+      responses:
+        '200':
+          description: Змінена точка
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [id, visibility, status_label, marker_color, description]
+                    properties:
+                      id: { type: string, format: uuid }
+                      visibility: { type: string, enum: [private, public] }
+                      status_label: { type: string }
+                      marker_color: { type: string }
+                      description: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deletePick
+      summary: Видалити свою точку (soft delete, B3.4)
+      description: |
+        Лише автор. Точка зникає з карти й стрічок; у ліміти видалені точки й далі рахуються
+        (створив → видалив → створив ліміт не обходить). Чужа, вже видалена чи неіснуюча —
+        `404 pick_not_found`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Видалено
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [deleted]
+                    properties:
+                      deleted: { type: boolean, const: true }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 
   /v1-analysis:
     get:
