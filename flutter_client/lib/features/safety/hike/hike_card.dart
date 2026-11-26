@@ -115,6 +115,42 @@ class _HikeCardState extends ConsumerState<HikeCard> {
     }
   }
 
+  /// «Додому», компас і «Я вдома» в один рядок; з великим шрифтом «Я вдома» — окремим рядком, щоб
+  /// підпис «Додому» не обрізався (UI-001d).
+  List<Widget> _hikeButtons(BuildContext context, HikeState hike, HikeController ctrl) {
+    final home = FilledButton.icon(
+      key: const ValueKey('hike-return'),
+      onPressed: () {
+        if (hike.returnMode == null) ctrl.goHome();
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReturnScreen()));
+      },
+      style: FilledButton.styleFrom(backgroundColor: AppTheme.accentOrange, padding: const EdgeInsets.symmetric(vertical: 12)),
+      icon: const Icon(Icons.home_rounded),
+      label: const Text('Додому'),
+    );
+    final compass = IconButton.outlined(
+      key: const ValueKey('hike-compass'),
+      tooltip: 'Компас за маршрутом',
+      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompassScreen())),
+      icon: const Icon(Icons.explore_rounded),
+    );
+    final finish = OutlinedButton(
+      key: const ValueKey('hike-finish'),
+      onPressed: _finish,
+      child: const Text('Я вдома'),
+    );
+    if (MediaQuery.textScalerOf(context).scale(10) <= 12) {
+      return [
+        Row(children: [Expanded(child: home), const SizedBox(width: 8), compass, const SizedBox(width: 8), finish]),
+      ];
+    }
+    return [
+      Row(children: [Expanded(child: home), const SizedBox(width: 8), compass]),
+      const SizedBox(height: 8),
+      SizedBox(width: double.infinity, child: finish),
+    ];
+  }
+
   Future<void> _finish() async {
     final yes = await showDialog<bool>(
       context: context,
@@ -262,35 +298,7 @@ class _HikeCardState extends ConsumerState<HikeCard> {
           ),
         if (session.active) _GuardianStatus(view: session.view, onAction: _guardianAction),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                key: const ValueKey('hike-return'),
-                onPressed: () {
-                  if (hike.returnMode == null) ctrl.goHome();
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReturnScreen()));
-                },
-                style: FilledButton.styleFrom(backgroundColor: AppTheme.accentOrange, padding: const EdgeInsets.symmetric(vertical: 12)),
-                icon: const Icon(Icons.home_rounded),
-                label: const Text('Додому'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              key: const ValueKey('hike-compass'),
-              tooltip: 'Компас за маршрутом',
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompassScreen())),
-              icon: const Icon(Icons.explore_rounded),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              key: const ValueKey('hike-finish'),
-              onPressed: _finish,
-              child: const Text('Я вдома'),
-            ),
-          ],
-        ),
+        ..._hikeButtons(context, hike, ctrl),
       ]);
     }
 
