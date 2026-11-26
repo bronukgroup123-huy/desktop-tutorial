@@ -404,3 +404,23 @@ See docs/agent/BLOCKERS.md.
   `flutter test` → 380 passed.
 - Next: no ready Claude item; candidates need owner input (WEB-001 / BLK-009, PERF-001 device timings /
   BLK-010) or new fakes (map, camera, compass stress tests).
+
+## 2026-11-26 00:55 UTC — scheduled run: UI-001d hike stress test (Claude)
+- Open agent PRs: none (#137, #138 merged; Codex merged #136).
+- Branch: claude/ui-001d-stress-hike (from main) → PR #139
+- Done: `test/a11y/hike_stress_test.dart` — 4 hike states × 3 stress cases with the existing FakeHikeDevice
+  (the test disposes its container so hike timers do not outlive it). Fixed the hike card: «Я вдома» moves to
+  its own full-width row above text ×1.2, so «Додому» is no longer clipped (5.7 px); normal size unchanged.
+- Checks: new test before the fix → 1 failure; after → 12/12; `flutter analyze` → no issues;
+  `flutter test` → 392 passed.
+- Next: remaining uncovered screens need new fakes (map, camera); otherwise waiting for owner direction
+  (WEB-001 / BLK-009, PERF-001 device timings / BLK-010, radius roles for UI-002).
+
+## 2026-11-26 04:55 UTC — scheduled run: DOC-001b (Claude)
+- Open agent PRs: #139 (UI-001d) — all checks green; #140 (state) — docs only. Nothing red.
+- Branch: claude/doc-001b-db-schema (from main) → PR #141 (docs + local dev script)
+- Done: DB_SCHEMA «Таблиці 2026-11» — columns, keys, RLS and policies of the 21 tables added since September,
+  generated from a fresh local DB; generator `scripts/dev/local-db/describe_tables.py`.
+- Checks: `scripts/dev/local-db/run.sh --no-tests` → 65 migrations; generator output reproducible.
+- Note: this entry extends the open state PR #140 instead of opening another one (avoids PROGRESS conflicts).
+- Next: waiting for owner direction (WEB-001 / BLK-009, PERF-001 device timings / BLK-010, UI-002 radius roles).
