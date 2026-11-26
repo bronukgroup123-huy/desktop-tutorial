@@ -10,6 +10,7 @@ import 'package:flutter_client/features/safety/safety_content.dart';
 import 'package:flutter_client/features/safety/safety_device.dart';
 import 'package:flutter_client/features/safety/safety_guides.dart';
 import 'package:flutter_client/features/safety/sos_screen.dart';
+import 'package:flutter_client/core/ui.dart';
 
 /// Вкладка «Безпека» (ADR-022 §22.3): повітряна тривога й банер ДСНС, SOS (утримати 3 с),
 /// небезпечна погода, похід (маршрут → трек → повернення), компас, мої координати, світловий
@@ -25,10 +26,7 @@ class SafetyScreen extends ConsumerWidget {
     final done = ref.watch(checklistProvider).valueOrNull ?? const <String>{};
     final checklist = content?.checklist ?? const <({String id, String label})>[];
     final rescue = ref.watch(rescueCardProvider).valueOrNull;
-    Widget header(String t) => Padding(
-          padding: const EdgeInsets.only(top: 18, bottom: 8),
-          child: Text(t, style: AppTheme.heading(17)),
-        );
+    Widget header(String t) => SectionTitle(t, padding: const EdgeInsets.only(top: 18, bottom: 8));
     void open(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     return Scaffold(
       appBar: AppBar(
@@ -57,7 +55,7 @@ class SafetyScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           const GuardianCard(),
           const SizedBox(height: 12),
-          _ActionTile(
+          AppTile(
             key: const ValueKey('open-compass'),
             icon: Icons.explore_rounded,
             title: 'Компас',
@@ -67,7 +65,7 @@ class SafetyScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           const MyCoordinatesCard(autoLocate: false),
           const SizedBox(height: 8),
-          _ActionTile(
+          AppTile(
             key: const ValueKey('open-light-signal'),
             icon: Icons.flashlight_on_rounded,
             title: 'Світловий сигнал SOS',
@@ -78,7 +76,7 @@ class SafetyScreen extends ConsumerWidget {
           for (final g in content?.guides ?? const <SafetyGuide>[])
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _ActionTile(
+              child: AppTile(
                 key: ValueKey('open-guide-${g.id}'),
                 icon: switch (g.id) {
                   'lost' => Icons.wrong_location_rounded,
@@ -93,7 +91,7 @@ class SafetyScreen extends ConsumerWidget {
           header('Небезпечні гриби'),
           const DangerousMushrooms(),
           header('Перед походом'),
-          _ActionTile(
+          AppTile(
             key: const ValueKey('open-checklist'),
             icon: Icons.checklist_rounded,
             title: 'Чек-лист',
@@ -103,7 +101,7 @@ class SafetyScreen extends ConsumerWidget {
             onTap: () => open(const ChecklistScreen()),
           ),
           const SizedBox(height: 8),
-          _ActionTile(
+          AppTile(
             key: const ValueKey('open-rescue-card'),
             icon: Icons.medical_information_rounded,
             title: 'Картка для рятувальників',
@@ -217,25 +215,25 @@ class EmergencyNumbers extends ConsumerWidget {
           for (final n in kEmergencyNumbers)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _ActionTile(
+              child: AppTile(
                 key: ValueKey('call-${n.number}'),
                 leading: Container(
                   width: 52,
                   height: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: n.number == '112' ? AppTheme.danger : AppTheme.darkGreen.withValues(alpha: 0.1),
+                    color: n.number == '112' ? AppTheme.danger : AppTheme.tint,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(n.number,
                       style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           color: n.number == '112' ? Colors.white : AppTheme.darkGreen)),
                 ),
                 title: n.title,
                 subtitle: n.note.isEmpty ? null : n.note,
-                trailing: Icons.call_rounded,
+                trailing: const Icon(Icons.call_rounded, color: AppTheme.darkGreen),
                 onTap: () => ref.read(safetyDeviceProvider).dial(n.number),
               ),
             ),
@@ -243,51 +241,3 @@ class EmergencyNumbers extends ConsumerWidget {
       );
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    super.key,
-    this.icon,
-    this.leading,
-    required this.title,
-    this.subtitle,
-    this.trailing = Icons.chevron_right_rounded,
-    required this.onTap,
-  });
-
-  final IconData? icon;
-  final Widget? leading;
-  final String title;
-  final String? subtitle;
-  final IconData trailing;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-            child: Row(
-              children: [
-                leading ?? Icon(icon, color: AppTheme.darkGreen, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen, fontSize: 15)),
-                      if (subtitle != null)
-                        Text(subtitle!, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
-                    ],
-                  ),
-                ),
-                Icon(trailing, color: AppTheme.textMuted),
-              ],
-            ),
-          ),
-        ),
-      );
-}

@@ -549,7 +549,7 @@ class _Message extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: AppTheme.heading(20),
+                style: AppTheme.blockTitle,
               ),
               const SizedBox(height: 8),
               Text(text, textAlign: TextAlign.center),
@@ -766,7 +766,7 @@ class _WaveAlertsCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
           child: Row(
             children: [
               const Icon(Icons.notifications_active_outlined, color: AppTheme.darkGreen, size: 20),

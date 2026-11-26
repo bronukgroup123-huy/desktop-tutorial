@@ -14,6 +14,7 @@ import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/profile/settings_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
+import 'package:flutter_client/core/ui.dart';
 
 /// Вкладка «Профіль» (ADR-021 §21.2.1; вигляд — PO 2026-11-21): шапка в стилі аватарів
 /// (аватар, ім'я, @нік, рівень, прогрес), вітрина трофеїв, подарунки, друзі й кнопка
@@ -53,11 +54,11 @@ class ProfileScreen extends ConsumerWidget {
             const _TrophiesCard(),
             const SizedBox(height: 12),
             const _GiftsCard(),
-            const ProfileSectionTitle('Друзі'),
+            const SectionTitle('Друзі'),
             const _FriendsTile(),
           ],
-          const ProfileSectionTitle('Ще'),
-          ParchmentTile(
+          const SectionTitle('Ще'),
+          AppTile(
             key: const ValueKey('profile-settings'),
             icon: Icons.settings_rounded,
             title: 'Налаштування',
@@ -173,7 +174,7 @@ class _GiftsCard extends StatelessWidget {
   const _GiftsCard();
 
   @override
-  Widget build(BuildContext context) => ParchmentTile(
+  Widget build(BuildContext context) => AppTile(
         key: const ValueKey('profile-gifts'),
         icon: Icons.card_giftcard_rounded,
         title: 'Подарунки',
@@ -185,7 +186,7 @@ class _GiftsCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppTheme.darkGreen.withValues(alpha: 0.2)),
           ),
-          child: const Text('скоро', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+          child: const Text('скоро', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
         ),
       );
 }
@@ -203,7 +204,7 @@ class _FriendsTile extends ConsumerWidget {
             if (f.incoming.isNotEmpty) 'Нових запитів: ${f.incoming.length}',
             f.friends.isEmpty ? 'Знайдіть друзів за @ніком' : 'Друзів: ${f.friends.length}',
           ].join(' · ');
-    return ParchmentTile(
+    return AppTile(
       key: const ValueKey('profile-friends'),
       icon: Icons.group_rounded,
       title: 'Друзі',
@@ -275,7 +276,7 @@ class _GuestCard extends ConsumerWidget {
           // Перший «Мандрівник» — яким буде аватар після входу.
           const Center(child: UserAvatar(avatar: Avatar(), size: 160)),
           const SizedBox(height: 8),
-          Text('Створіть профіль', textAlign: TextAlign.center, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 21, fontWeight: FontWeight.bold, color: heroCream)),
+          Text('Створіть профіль', textAlign: TextAlign.center, style: TextStyle(fontFamily: AppTheme.serif, fontSize: 20, fontWeight: FontWeight.bold, color: heroCream)),
           const SizedBox(height: 10),
           for (final t in const [
             'Ім\'я, нік і свій грибний аватар — 40 героїв за рівнями',

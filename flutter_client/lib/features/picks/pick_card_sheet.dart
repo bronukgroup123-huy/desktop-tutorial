@@ -98,7 +98,7 @@ class _PickCardContent extends StatelessWidget {
             Expanded(
               child: Text(
                 pick.nameLabel,
-                style: AppTheme.heading(20),
+                style: AppTheme.blockTitle,
               ),
             ),
             Container(

@@ -34,14 +34,14 @@ class SafetyGuideScreen extends StatelessWidget {
           for (final s in guide.sections) ...[
             if (s.title != null) ...[
               const SizedBox(height: 18),
-              Text(s.title!, style: AppTheme.heading(16)),
+              Text(s.title!, style: AppTheme.sectionTitle),
             ],
             const SizedBox(height: 8),
             for (final (i, item) in s.items.indexed)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -99,7 +99,7 @@ class SafetyNoticeBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(notice.body, style: TextStyle(color: AppTheme.darkGreen, fontSize: 13.5, height: 1.3)),
+          Text(notice.body, style: TextStyle(color: AppTheme.darkGreen, fontSize: 14, height: 1.3)),
           if (notice.linkUrl != null)
             Align(
               alignment: Alignment.centerLeft,
@@ -165,7 +165,7 @@ class AirAlertBanner extends ConsumerWidget {
             children: [
               const Icon(Icons.campaign_rounded, color: Colors.white),
               const SizedBox(width: 8),
-              Expanded(child: Text(alert.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15))),
+              Expanded(child: Text(alert.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15))),
             ],
           ),
           if (state.offline)
@@ -200,7 +200,7 @@ class _AirStatusRow extends StatelessWidget {
             Icon(icon, size: 18, color: muted ? AppTheme.textMuted : AppTheme.success),
             const SizedBox(width: 6),
             Expanded(
-              child: Text(text, style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
+              child: Text(text, style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
             ),
           ],
         ),
@@ -253,7 +253,7 @@ class WeatherHazardsCard extends ConsumerWidget {
                     color: AppTheme.warning,
                   ),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(h, style: const TextStyle(fontSize: 13.5, color: AppTheme.darkGreen, height: 1.3))),
+                  Expanded(child: Text(h, style: const TextStyle(fontSize: 14, color: AppTheme.darkGreen, height: 1.3))),
                 ],
               ),
             ),
@@ -288,7 +288,7 @@ class DangerousMushrooms extends ConsumerWidget {
           final deadlyOne = s.edibility == 'deadly_poisonous';
           return Material(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: ValueKey('danger-${s.id}'),
@@ -315,7 +315,7 @@ class DangerousMushrooms extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
                       child: Text(deadlyOne ? 'Смертельно отруйний' : 'Отруйний',
-                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: deadlyOne ? kSosRed : AppTheme.warning)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: deadlyOne ? kSosRed : AppTheme.warning)),
                     ),
                   ],
                 ),
@@ -415,7 +415,7 @@ class ChecklistScreen extends ConsumerWidget {
             ),
           const SizedBox(height: 14),
           Text('Готові до лісу без інтернету?',
-              style: AppTheme.heading(16)),
+              style: AppTheme.sectionTitle),
           const SizedBox(height: 6),
           for (final r in readiness)
             ListTile(

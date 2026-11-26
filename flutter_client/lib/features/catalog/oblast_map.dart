@@ -41,7 +41,7 @@ class OblastMap extends ConsumerWidget {
       key: const ValueKey('oblast-map'),
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
       child: Column(
         children: [
           AspectRatio(
@@ -58,7 +58,7 @@ class OblastMap extends ConsumerWidget {
                     style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
               ),
               const SizedBox(width: 6),
-              Text('Межі: Natural Earth', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
+              Text('Межі: Natural Earth', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
             ],
           ),
         ],

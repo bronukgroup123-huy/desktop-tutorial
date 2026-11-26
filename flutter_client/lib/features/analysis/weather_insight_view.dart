@@ -260,7 +260,7 @@ class _Gauge extends StatelessWidget {
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: 11,
                         color: i == g.index ? color : muted,
                         fontWeight: i == g.index ? FontWeight.w700 : FontWeight.w400,
                       ),
@@ -312,7 +312,7 @@ class _Gauge extends StatelessWidget {
                   if (g.markLabel != null && g.mark != null)
                     Padding(
                       padding: EdgeInsets.only(left: math.max(0, w * g.mark!.clamp(0, 1) - 4), top: 2),
-                      child: Text(g.markLabel!, style: TextStyle(fontSize: 10.5, color: muted)),
+                      child: Text(g.markLabel!, style: TextStyle(fontSize: 11, color: muted)),
                     ),
                 ],
               );
@@ -320,7 +320,7 @@ class _Gauge extends StatelessWidget {
           if (g.hint != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text(g.hint!, style: TextStyle(fontSize: 11.5, color: muted, fontStyle: FontStyle.italic)),
+              child: Text(g.hint!, style: TextStyle(fontSize: 12, color: muted, fontStyle: FontStyle.italic)),
             ),
         ],
       ),

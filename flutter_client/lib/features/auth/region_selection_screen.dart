@@ -60,7 +60,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
             children: [
               Text(
                 me?.onboarding.nextStepLabel ?? 'Оберіть свою область',
-                style: AppTheme.heading(24),
+                style: AppTheme.screenTitle,
               ),
               const SizedBox(height: 8),
               Text(

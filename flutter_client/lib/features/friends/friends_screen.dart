@@ -14,6 +14,7 @@ import 'package:flutter_client/data/models/friends.dart';
 import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/friends/friend_profile_screen.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
+import 'package:flutter_client/core/ui.dart';
 
 /// «Друзі» (ADR-021 §21.1): пошук за @ніком, мої друзі, запити (вхідні й надіслані), заблоковані.
 /// Що можна зробити з людиною і як це назвати — каже сервер (`actions`).
@@ -242,7 +243,7 @@ class _FriendTileState extends ConsumerState<FriendTile> {
       child: Material(
         key: ValueKey('friend-${c.id}'),
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: c.relation == 'blocked'
@@ -471,10 +472,7 @@ class _Header extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.darkGreen, fontSize: 15)),
-      );
+  Widget build(BuildContext context) => SectionTitle(text, padding: const EdgeInsets.fromLTRB(4, 18, 4, 8));
 }
 
 class _Note extends StatelessWidget {

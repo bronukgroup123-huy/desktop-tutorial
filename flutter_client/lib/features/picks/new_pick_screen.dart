@@ -237,7 +237,7 @@ class _NewPickScreenState extends ConsumerState<NewPickScreen> {
             const SizedBox(height: 8),
             Material(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               child: ListTile(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 leading: const Icon(Icons.eco_outlined, color: AppTheme.darkGreen),
@@ -340,7 +340,7 @@ class _PermissionHint extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
-          Expanded(child: Text(text, style: TextStyle(fontSize: 12.5, color: color, fontWeight: warning ? FontWeight.w600 : FontWeight.w400))),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: color, fontWeight: warning ? FontWeight.w600 : FontWeight.w400))),
         ],
       ),
     );

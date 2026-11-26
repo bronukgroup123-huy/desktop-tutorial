@@ -50,6 +50,12 @@ class AppTheme {
   /// Увага, але не небезпека: ліміт близько, застаріло, обережно. Той самий помаранчевий, що й акцент.
   static const Color warning = accentOrange;
 
+  /// М'яке зелене тло іконок плиток, вибраних чипів.
+  static const Color tint = Color(0xFFE3EEE5);
+
+  /// М'яке червоне тло небезпечних дій.
+  static const Color tintDanger = Color(0xFFFDECEA);
+
   /// Тонке тло й рамки (не для тексту).
   static Color get hairline => darkGreen.withValues(alpha: 0.12);
 
@@ -67,6 +73,12 @@ class AppTheme {
   /// Заголовок картки чи розділу (UI-002): Merriweather, жирний, темно-зелений.
   static TextStyle heading(double size, {FontWeight weight = FontWeight.bold, Color color = darkGreen}) =>
       TextStyle(fontFamily: serif, fontSize: size, fontWeight: weight, color: color);
+
+  /// Ролі заголовків (UI-004): великий заголовок екрана — 24, назва блоку чи картки — 20,
+  /// заголовок розділу — 17. Інших розмірів Merriweather у застосунку немає.
+  static TextStyle get screenTitle => heading(24);
+  static TextStyle get blockTitle => heading(20);
+  static TextStyle get sectionTitle => heading(17);
 
   static ThemeData get lightTheme {
     const scheme = ColorScheme(

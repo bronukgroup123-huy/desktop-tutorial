@@ -19,7 +19,7 @@ class ProfileSetupScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
             children: [
-              Text('Як вас звати?', style: AppTheme.heading(26)),
+              Text('Як вас звати?', style: AppTheme.screenTitle),
               const SizedBox(height: 8),
               Text(
                 'Ім\'я бачать друзі й ваш Наглядач. Нік — щоб вас знайти й додати в друзі.',

@@ -292,7 +292,7 @@ class _CatalogOfflineCardState extends ConsumerState<CatalogOfflineCard> {
       key: const ValueKey('offline-card'),
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

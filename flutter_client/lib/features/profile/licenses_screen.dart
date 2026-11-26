@@ -57,7 +57,7 @@ class LicensesScreen extends ConsumerWidget {
     final dim = AppTheme.textMuted;
     Widget header(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(0, 18, 0, 6),
-          child: Text(t, style: AppTheme.heading(16)),
+          child: Text(t, style: AppTheme.sectionTitle),
         );
     return Scaffold(
       appBar: AppBar(title: Text('Джерела та ліцензії', style: AppTheme.appBarTitle)),

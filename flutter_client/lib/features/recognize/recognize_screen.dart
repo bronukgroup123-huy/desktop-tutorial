@@ -60,7 +60,7 @@ class RecognitionHistorySheet extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text('Історія розпізнавань',
-                        style: AppTheme.heading(17)),
+                        style: AppTheme.sectionTitle),
                   ),
                   if (history.isNotEmpty)
                     TextButton(

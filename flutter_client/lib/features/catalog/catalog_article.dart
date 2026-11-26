@@ -252,7 +252,7 @@ class _Heading extends StatelessWidget {
             Expanded(
               child: Text(title,
                   style:
-                      AppTheme.heading(16)),
+                      AppTheme.sectionTitle),
             ),
           ],
         ),
@@ -502,7 +502,7 @@ class _Passport extends StatelessWidget {
         key: ValueKey('passport-${m.group(1)}'),
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -728,7 +728,7 @@ class _Twins extends ConsumerWidget {
         children.add(Container(
           margin: const EdgeInsets.only(top: 6),
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -843,7 +843,7 @@ class _TwinFlip extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+                                      fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
                             ),
                           ],
                         ),
@@ -864,7 +864,7 @@ class _TwinFlip extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.15)),
+                              color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, height: 1.15)),
                     ),
                     if (action != null) action,
                   ],
@@ -940,14 +940,14 @@ class _TwinFlip extends StatelessWidget {
                           child: CircleAvatar(
                             radius: 10,
                             backgroundColor: Colors.white,
-                            child: Text('?', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xffa83232))),
+                            child: Text('?', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xffa83232))),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text('Фото поки немає',
-                        style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.75))),
+                        style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.75))),
                   ],
                 ),
                 const SizedBox(width: 12),
@@ -967,7 +967,7 @@ class _TwinFlip extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          Text('Назад', style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.8))),
+                          Text('Назад', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.8))),
                           const SizedBox(width: 3),
                           Icon(Icons.flip_rounded, size: 13, color: Colors.white.withValues(alpha: 0.8)),
                         ],
@@ -1037,7 +1037,7 @@ class _Confusions extends ConsumerWidget {
             final card = Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1119,7 +1119,7 @@ class _Where extends StatelessWidget {
       children.add(Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1186,7 +1186,7 @@ class _Step extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1428,7 +1428,7 @@ class _Memo extends StatelessWidget {
             Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppTheme.radiusCard)),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

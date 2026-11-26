@@ -81,7 +81,7 @@ class _SheetState extends ConsumerState<_Sheet> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text('У цей час спитаємо «Все добре?». Не відповісте 15 хв — сповістимо Наглядача.',
-                  style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted)),
+                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
             ),
             const SizedBox(height: 14),
             Text(max > 1 ? 'Наглядачі (до $max)' : 'Наглядач', style: const TextStyle(fontWeight: FontWeight.w700)),
