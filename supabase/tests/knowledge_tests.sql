@@ -18,6 +18,10 @@ INSERT INTO auth.users (id, email, is_anonymous) VALUES
 
 SET LOCAL ROLE service_role;
 
+-- тест механізму не залежить від справжнього змісту модулів (усе — в транзакції з ROLLBACK)
+DELETE FROM public.quiz_questions;
+UPDATE public.quiz_modules SET published = false;
+
 -- тестовий зміст: 12 питань модуля app (single / multi / order) і 10 у forest (одне критичне)
 DO $$
 DECLARE i INT;
