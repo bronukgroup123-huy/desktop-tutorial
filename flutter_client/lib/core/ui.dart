@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:flutter_client/core/app_theme.dart';
 
@@ -24,6 +25,19 @@ class AppCard extends StatelessWidget {
           child: Padding(padding: padding, child: child),
         ),
       );
+}
+
+/// Фірмова іконка плитки (`assets/icons/tile/<name>.svg`) — у стилі іконок вкладок: кремове коло, дві зелені,
+/// помаранчевий акцент. Для плиток, що є «обличчям» розділу (профіль, налаштування).
+class BrandIcon extends StatelessWidget {
+  const BrandIcon(this.name, {super.key, this.size = 44});
+
+  final String name;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      SvgPicture.asset('assets/icons/tile/$name.svg', width: size, height: size, excludeFromSemantics: true);
 }
 
 /// Іконка плитки: у м'якому зеленому колі (небезпечна дія — у червоному).

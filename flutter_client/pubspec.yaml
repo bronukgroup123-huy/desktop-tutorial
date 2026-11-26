@@ -48,6 +48,7 @@ flutter:
     - assets/images/onboarding/
     - assets/images/loading/
     - assets/icons/
+    - assets/icons/tile/
     - assets/stickers/
     - assets/species/large/
     - assets/species/small/

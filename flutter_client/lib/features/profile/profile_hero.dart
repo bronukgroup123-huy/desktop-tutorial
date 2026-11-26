@@ -11,6 +11,10 @@ import 'package:flutter_client/core/app_theme.dart';
 const heroCream = AppTheme.backgroundColor;
 const heroGold = Color(0xFFF9C66B);
 
+/// Непрозорість тла шапки: зверху — легше, знизу (де ім'я, бали) — щільніше.
+const heroOpacityTop = 0.78;
+const heroOpacityBottom = 0.92;
+
 /// Палітра шапки для рівня.
 class HeroPalette {
   const HeroPalette({
@@ -109,7 +113,12 @@ class _ProfileHeroBackgroundState extends State<ProfileHeroBackground> with Sing
       borderRadius: BorderRadius.circular(26),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [p.top, p.bottom]),
+          // Трохи прозоре (PO 2026-11-26): крізь ліс проступає бежевий фон застосунку; знизу щільніше — там текст.
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [p.top.withValues(alpha: heroOpacityTop), p.bottom.withValues(alpha: heroOpacityBottom)],
+          ),
         ),
         child: CustomPaint(
           painter: _HeroPainter(widget.glowCenterY, p),
