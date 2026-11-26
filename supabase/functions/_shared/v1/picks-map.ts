@@ -183,6 +183,15 @@ export function confirmedLabel(count: number, lastIso: string | null | undefined
   return `${verb} ${count} ${word}${last ? `, останнє — ${last}` : ""}`;
 }
 
+/**
+ * Дії автора над своєю точкою (B3.4) — вирішує сервер, клієнт лише показує кнопки:
+ * зробити публічною (лише з видом; ліміти перевіряє PATCH) або приватною, змінити опис, видалити.
+ */
+export function ownPickActions(row: { pick_type: string; species_id: string | null }): string[] {
+  const visibility = row.pick_type === "public" ? ["make_private"] : row.species_id ? ["make_public"] : [];
+  return [...visibility, "edit_description", "delete"];
+}
+
 export async function handlePickCard(
   req: Request,
   pickId: string,
@@ -226,7 +235,7 @@ export async function handlePickCard(
     captured_at: mine ? row.taken_at : null,
     photo_url: photoUrl,
     disclaimer_label: row.pick_type === "public" ? PHOTO_DISCLAIMER : null,
-    // Дії з'являться разом з ендпоінтами: «Поскаржитися» — B3.12, зміна й видалення — B3.4.
-    actions: [],
+    // Що автор може зробити зі своєю точкою (B3.4); «Поскаржитися» на чужу — B3.12.
+    actions: mine ? ownPickActions(row) : [],
   }, req);
 }
