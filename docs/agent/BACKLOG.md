@@ -216,7 +216,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   change rules, upload URL, push, account deletion); DB_SCHEMA overview = 42 tables from migrations (Guardian
   v0 marked legacy); API/README auth and security sections; BACKEND_PLAN §1 marked as an audit snapshot.
   NEXT_TASK was already reconciled. Found SEC-008 while checking RLS.
-- Residual: DB_SCHEMA column sections still cover only the older tables (a full regeneration is larger).
+- Residual closed by DOC-001b (PR #141): column sections for the 21 newer tables, generated from a fresh DB
+  by `scripts/dev/local-db/describe_tables.py`.
 
 ### AUT-001 — Codex scheduled workflow (codex-autonomy.yml)
 - Status: paused_owner_choice — on 2026-11-22 the owner explicitly chose interactive Codex use only, with

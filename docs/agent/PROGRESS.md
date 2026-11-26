@@ -415,3 +415,12 @@ See docs/agent/BLOCKERS.md.
   `flutter test` → 392 passed.
 - Next: remaining uncovered screens need new fakes (map, camera); otherwise waiting for owner direction
   (WEB-001 / BLK-009, PERF-001 device timings / BLK-010, radius roles for UI-002).
+
+## 2026-11-26 04:55 UTC — scheduled run: DOC-001b (Claude)
+- Open agent PRs: #139 (UI-001d) — all checks green; #140 (state) — docs only. Nothing red.
+- Branch: claude/doc-001b-db-schema (from main) → PR #141 (docs + local dev script)
+- Done: DB_SCHEMA «Таблиці 2026-11» — columns, keys, RLS and policies of the 21 tables added since September,
+  generated from a fresh local DB; generator `scripts/dev/local-db/describe_tables.py`.
+- Checks: `scripts/dev/local-db/run.sh --no-tests` → 65 migrations; generator output reproducible.
+- Note: this entry extends the open state PR #140 instead of opening another one (avoids PROGRESS conflicts).
+- Next: waiting for owner direction (WEB-001 / BLK-009, PERF-001 device timings / BLK-010, UI-002 radius roles).
