@@ -504,3 +504,18 @@ See docs/agent/BLOCKERS.md.
 - Checks: `scripts/dev/local-db/run.sh` → all 23 SQL test files passed (export_user_data.sql +4 checks).
 - Open agent PRs: #163 (green), #164, this state PR. Next: B3.12 after #163 (moderation policy — owner).
 
+## 2026-11-27 00:35 UTC — scheduled run: B9.4a share a private pick (Claude)
+- Sync since the last run: owner merged #163 (B3.8b), #164, #165 (state), #166–#170 (B3.10: ADR-023, v1-quiz,
+  module 1 v1 → v2, «Навчання» screen); deploys green (Deploy #124 for #170). Open: #171 (15 questions,
+  3 per topic — owner decision 27.11).
+- Branch claude/b9-4a-point-shares — server part of B9.4 per ADR-021 §21.5: `point_shares` + RLS (owner and
+  recipient read), `share_pick` / `revoke_pick_share` / `picks_shared_with_me`, map and card show a friend's shared
+  pick exactly with «Від @нік»; unfriend/block revokes for good (trigger); public/deleted pick — share inactive;
+  20 recipients max. Endpoints: POST/DELETE `v1-picks/{id}/shares[/{friend_id}]`, GET `v1-picks/shared`;
+  own private card gets `share` action and `shared_with`.
+- Checks: local DB — all 28 SQL test files passed (new point_shares.sql); Deno — 571 passed, `deno check` clean;
+  OpenAPI model contract and auth matrix scripts pass. Flutter not run (no client change; the app ignores the new
+  `share` action until B9.4b).
+- Merge order: #171 before this PR (migration 20261128130000 must come after 20261128110000/120000).
+- Next: B9.4b — app screens (pick friends, «Від @нік» on the map, «Поділились зі мною» list).
+

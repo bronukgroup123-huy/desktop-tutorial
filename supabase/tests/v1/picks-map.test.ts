@@ -86,16 +86,17 @@ Deno.test("map: 200 — точки з готовими підписами й к�
     {
       id: PICK, lat: SHOWN.lat, lng: SHOWN.lng, is_exact: false, is_mine: false, visibility: "public",
       species_id: "boletus_edulis", name_label: "Білий гриб", status_label: "Перевіряється", marker_color: "#9e9e9e",
+      shared_from_label: null,
     },
     {
       id: "22222222-2222-4222-8222-222222222222", lat: SHOWN.lat, lng: SHOWN.lng, is_exact: false, is_mine: false,
       visibility: "public", species_id: "boletus_edulis", name_label: "Білий гриб", status_label: "Підтверджено",
-      marker_color: "#43a047",
+      marker_color: "#43a047", shared_from_label: null,
     },
     {
       id: "33333333-3333-4333-8333-333333333333", lat: EXACT.lat, lng: EXACT.lng, is_exact: true, is_mine: true,
       visibility: "public", species_id: "boletus_edulis", name_label: "Білий гриб", status_label: "Перевіряється",
-      marker_color: "#9e9e9e",
+      marker_color: "#9e9e9e", shared_from_label: null,
     },
   ]);
   assertEquals(find(d, "rpc.get_picks_map")!.args[0], {
@@ -193,6 +194,7 @@ Deno.test("card: чужа публічна — фото, назва, опис, �
   assertEquals(json.data, {
     id: PICK, lat: SHOWN.lat, lng: SHOWN.lng, is_exact: false, is_mine: false, visibility: "public",
     species_id: "boletus_edulis", name_label: "Білий гриб", status_label: "Перевіряється", marker_color: "#9e9e9e",
+    shared_from_label: null,
     description: "Під сосною",
     confirmed_label: null,
     confirmed_by_me: false,
@@ -320,8 +322,8 @@ Deno.test("card: дії автора (B3.4) — вирішує сервер; ч�
     (await run(db({ "rpc.get_pick_card": { data: { ...row, description: null, photo_path: null, taken_at: null }, error: null } }), req("GET", CARD)))
       .json.data.actions;
   // приватна «Не знаю» — публікувати не можна
-  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["open_in_maps", "edit_description", "delete"]);
-  assertEquals(await actionsOf(own({ pick_type: "private" })), ["open_in_maps", "make_public", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private", species_id: null, name_ua: null })), ["open_in_maps", "share", "edit_description", "delete"]);
+  assertEquals(await actionsOf(own({ pick_type: "private" })), ["open_in_maps", "share", "make_public", "edit_description", "delete"]);
   assertEquals(await actionsOf(own()), ["open_in_maps", "make_private", "edit_description", "delete"]);
   assertEquals(await actionsOf(foreign()), []);
 });
