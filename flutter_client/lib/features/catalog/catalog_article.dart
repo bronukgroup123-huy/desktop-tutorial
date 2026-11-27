@@ -476,6 +476,102 @@ class _SummaryLine extends StatelessWidget {
   return (part: null, kind: null, icon: Icons.info_outline_rounded);
 }
 
+// ─── Паспорт: мальовані стікери ознак ───────────────────────────────────────
+
+/// Мальовані стікери «Швидкої картки»: файл у assets/stickers/passport/ → підпис для озвучення.
+const passportStickers = <String, String>{
+  'under_gills': 'Пластинки',
+  'under_tubes': 'Трубочки — губка з порами',
+  'under_folds': 'Складки, що спускаються на ніжку',
+  'under_spines': 'Шипи під шапкою',
+  'stem_ring': 'Кільце на ніжці',
+  'stem_volva': 'Мішечок-вольва біля основи',
+  'stem_net': 'Сіточка на ніжці',
+  'stem_scales': 'Темні лусочки на ніжці',
+  'flesh_white': 'Зріз не змінює кольору',
+  'flesh_blue': 'Зріз синіє',
+  'flesh_red': 'Зріз червоніє',
+};
+
+String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
+
+/// Частини речення, в яких ознаку не заперечено («без кільця», «Кільця немає», «не синіє» — не рахуються).
+final _clauseSplit = RegExp(r'[.;,()!—]');
+final _negation = RegExp(r'(^|[\s«"])(без|немає|нема|відсутн\S*|не)(?=[\s»".,;!]|$)');
+
+bool _mentions(String text, RegExp feature) {
+  for (final clause in text.toLowerCase().split(_clauseSplit)) {
+    if (feature.hasMatch(clause) && !_negation.hasMatch(clause)) return true;
+  }
+  return false;
+}
+
+final _volva = RegExp(r'вольв|піхв|мішк|мішеч');
+final _ring = RegExp(r'кільц');
+final _net = RegExp(r'сіточк|сітк|сітчаст');
+final _scales = RegExp(r'лусочк|луск[аи]м'); // «лусочками», «лусками»; «луската» — ні (зеленушка)
+final _blue = RegExp(r'сині|синю|посин|блакит');
+final _red = RegExp(r'червоні|рожеві|порожев|почервон');
+final _noChange = RegExp(r'не змін|не синіє|не червоніє|не рожевіє|не темніє');
+
+/// Який мальований стікер показати біля ознаки «[key]: [value]» — або `null` (лишається схема).
+/// Нічого не вигадуємо: нема ознаки в тексті — нема стікера.
+String? passportSticker(String key, String value) {
+  final k = key.toLowerCase();
+  final v = value.toLowerCase();
+  final g = passportGlyph(key);
+  if (g.part == 'underside') {
+    if (RegExp(r'відсутн').hasMatch(v)) return null; // «Гіменофор: відсутній» (строчки, сморчки)
+    String? kind;
+    if (k.contains('(')) {
+      kind = g.kind;
+    } else if (v.contains('трубоч') || v.contains('пори')) {
+      kind = 'tubes';
+    } else if (v.contains('складк')) {
+      kind = 'folds';
+    } else if (RegExp(r'шип|голк').hasMatch(v)) {
+      kind = 'spines';
+    } else if (v.contains('пластин') || k.contains('пластин')) {
+      kind = 'gills';
+    } else {
+      kind = g.kind;
+    }
+    return kind == null ? null : 'under_$kind';
+  }
+  if (g.part == 'stem' || k.startsWith('основа') || k.startsWith('вольва')) {
+    if (_mentions(v, _volva) || (k.startsWith('основа') && v.contains('бульб') && v.contains('вольв'))) return 'stem_volva';
+    if (k.startsWith('основа') || k.startsWith('вольва')) return null;
+    if (_mentions(v, _ring)) return 'stem_ring';
+    if (_mentions(v, _net)) return 'stem_net';
+    if (_mentions(v, _scales)) return 'stem_scales';
+    return null;
+  }
+  if (g.part == 'ring') return _mentions(v, _ring) || !_negation.hasMatch(v) ? 'stem_ring' : null;
+  if (g.part == 'flesh') {
+    if (_mentions(v, _blue)) return 'flesh_blue';
+    if (_mentions(v, _red)) return 'flesh_red';
+    if (_noChange.hasMatch(v) || RegExp(r'^\s*(сніжно-)?біл').hasMatch(v)) return 'flesh_white';
+    return null;
+  }
+  return null;
+}
+
+/// Пластинки на стікері бежеві; якщо в тексті вони білі (бліда поганка: «завжди білі — ключова ознака») —
+/// показуємо стікер висвітленим, щоб малюнок не суперечив головній ознаці.
+bool passportStickerPale(String sticker, String value) {
+  if (sticker != 'under_gills') return false;
+  final v = value.toLowerCase();
+  return v.contains('біл') && !RegExp(r'→|коричн|рожев|чорн|бур|сір|жовт').hasMatch(v);
+}
+
+/// Висвітлення стікера: майже без кольору й ближче до білого.
+const _paleFilter = ColorFilter.matrix(<double>[
+  0.38, 0.32, 0.04, 0, 105, //
+  0.12, 0.58, 0.04, 0, 105, //
+  0.12, 0.32, 0.30, 0, 105, //
+  0, 0, 0, 1, 0,
+]);
+
 class _Passport extends StatelessWidget {
   const _Passport({required this.section});
 
@@ -498,6 +594,7 @@ class _Passport extends StatelessWidget {
       }
       flush();
       final g = passportGlyph(m.group(1)!);
+      final sticker = passportSticker(m.group(1)!, m.group(2)!);
       rows.add(Container(
         key: ValueKey('passport-${m.group(1)}'),
         margin: const EdgeInsets.only(top: 8),
@@ -506,13 +603,36 @@ class _Passport extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(color: const Color(0xfff4f1e8), borderRadius: BorderRadius.circular(10)),
-              child: g.part != null
-                  ? PartGlyph(part: g.part!, kind: g.kind)
-                  : Icon(g.icon, color: const Color(0xff8b5a2b), size: 22),
+            // Однакове місце під значок — текст у всіх рядках починається з одного відступу.
+            SizedBox(
+              width: 64,
+              child: sticker != null
+                  // Мальований стікер ознаки (пластинки, трубочки, кільце, зріз синіє…) — видно з першого погляду.
+                  ? Semantics(
+                      image: true,
+                      label: passportStickers[sticker],
+                      child: _maybePale(
+                        passportStickerPale(sticker, m.group(2)!),
+                        Image.asset(
+                          passportStickerAsset(sticker),
+                          key: ValueKey('passport-sticker-$sticker'),
+                          width: 64,
+                          height: 64,
+                          cacheWidth: (64 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          errorBuilder: (_, __, ___) => const SizedBox(width: 64, height: 64),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(color: const Color(0xfff4f1e8), borderRadius: BorderRadius.circular(10)),
+                        child: g.part != null
+                            ? PartGlyph(part: g.part!, kind: g.kind)
+                            : Icon(g.icon, color: const Color(0xff8b5a2b), size: 24),
+                      ),
+                    ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1556,3 +1676,7 @@ class _BubblePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+Widget _maybePale(bool pale, Widget child) =>
+    pale ? ColorFiltered(key: const ValueKey('passport-sticker-pale'), colorFilter: _paleFilter, child: child) : child;
+

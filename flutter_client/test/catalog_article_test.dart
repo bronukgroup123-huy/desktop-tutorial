@@ -122,6 +122,65 @@ void main() {
     expect(passportGlyph('Споровий порошок').icon, Icons.grain_rounded);
   });
 
+  test('Паспорт: мальований стікер ознаки — за назвою й текстом рядка, заперечення не вмикають', () {
+    // низ шапки
+    expect(passportSticker('Низ шапки (Шипи)', 'густі конусоподібні шипи'), 'under_spines');
+    expect(passportSticker('Низ шапки (Складки)', 'товсті вилчасті складки'), 'under_folds');
+    expect(passportSticker('Низ шапки', 'Шипастий (голчастий). Шипики 2–5 мм'), 'under_spines');
+    expect(passportSticker('Низ шапки', 'Трубчастий. Трубочки короткі'), 'under_tubes');
+    expect(passportSticker('Низ шапки', 'Пластинки густі, широкі'), 'under_gills');
+    expect(passportSticker('Пластинки', 'білуваті → брудно-коричневі.'), 'under_gills');
+    expect(passportSticker('Гіменофор', 'відсутній — шапинка мозкоподібна'), isNull);
+    // ніжка
+    expect(passportSticker('Ніжка', 'біла, з плівчастим кільцем.'), 'stem_ring');
+    expect(passportSticker('Ніжка', 'гладенька. Кільця немає. Біля основи є добре розвинена піхва (вольва)'), 'stem_volva');
+    expect(passportSticker('Ніжка', 'біла; без кільця та піхви.'), isNull);
+    expect(passportSticker('Ніжка', 'Кільце відсутнє.'), isNull);
+    expect(passportSticker('Ніжка', 'біла, з коричневою сіточкою.'), 'stem_net');
+    expect(passportSticker('Ніжка', 'світла, вкрита бурими лусочками.'), 'stem_scales');
+    expect(passportSticker('Ніжка', 'гола, жовта, іноді буро-луската.'), isNull);
+    expect(passportSticker('Ніжка', '1–5 см, біла.'), isNull);
+    expect(passportSticker('Основа', 'мішкоподібна біла вольва.'), 'stem_volva');
+    expect(passportSticker('Кільце', 'плівчасте, біле'), 'stem_ring');
+    expect(passportSticker('Кільце', 'відсутнє'), isNull);
+    // м'якоть
+    expect(passportSticker("М'якоть", 'жовта, на зламі швидко синіє'), 'flesh_blue');
+    expect(passportSticker("М'якоть", 'біла, на зламі червоніє.'), 'flesh_red');
+    expect(passportSticker("М'якоть", 'Сніжно-біла, при розрізанні не змінює колір (не синіє і не рожевіє!)'), 'flesh_white');
+    expect(passportSticker('М’якоть', 'Білувата, на зрізі не синіє, не червоніє й не зеленіє.'), 'flesh_white');
+    expect(passportSticker("М'якоть", 'жовтувата, щільна'), isNull);
+    // решта рядків — без стікера (лишається схема чи значок)
+    expect(passportSticker('Шапка', 'Велика, м\'ясиста'), isNull);
+    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), isNull);
+  });
+
+  test('Паспорт: білі пластинки — стікер висвітлено, щоб не суперечив тексту', () {
+    expect(passportStickerPale('under_gills', 'завжди білі — ключова ознака.'), isTrue);
+    expect(passportStickerPale('under_gills', 'білуваті → брудно-коричневі.'), isFalse);
+    expect(passportStickerPale('under_gills', 'густі, сірчано-жовті'), isFalse);
+    expect(passportStickerPale('under_tubes', 'білі'), isFalse);
+  });
+
+  test('Паспорт: усі стікери є у застосунку (WebP, прозоре тло)', () {
+    for (final name in passportStickers.keys) {
+      final f = File(passportStickerAsset(name));
+      expect(f.existsSync(), isTrue, reason: f.path);
+      final head = f.readAsBytesSync().sublist(0, 16);
+      expect(String.fromCharCodes(head.sublist(0, 4)), 'RIFF', reason: name);
+      expect(String.fromCharCodes(head.sublist(8, 12)), 'WEBP', reason: name);
+    }
+  });
+
+  testWidgets('Лисичка: у паспорті — мальований стікер складок', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(host(CatalogArticle(species: catalog.byId('cantharellus_cibarius')!)));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('passport-sticker-under_folds')), findsOneWidget);
+    expect(find.bySemanticsLabel('Складки, що спускаються на ніжку'), findsOneWidget);
+  });
+
   test('Рецепти кроками: нічого з тексту не губиться', () {
     for (final sp in catalog.species) {
       for (final s in descSections(sp.description).where((s) => articleKind(s) == ArticleKind.recipes)) {
