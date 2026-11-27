@@ -237,3 +237,19 @@ after five seconds and still fails closed if the artifact cannot be downloaded o
 All three PRs passed the blocking artifact byte round trip. The checkout PR additionally exercised every
 fast data check and both Android builds. The skipped jobs are production publication or heavy data generation
 intentionally excluded from dependency pull requests; their scheduled/manual semantics were not weakened.
+
+## UI-005 verification — 2026-11-27, Codex runtime, PR #174
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | Pass, no issues |
+| `flutter test` | Pass, 429/429 |
+| Basemap style + region camera focused tests | Pass, 12/12 |
+| Backdrop geometry regression | Six decorations; every coordinate outside the region |
+| Camera regression | `regionPadding` and `fitRegion` unchanged |
+| `git diff --check` | Pass |
+| Device screenshot | Pending: MapLibre native platform view is unavailable in unit tests |
+
+The decorative layer uses only bundled offline assets, has no hit target, is below the region border and
+functional overlays, and disappears above zoom 9.5. Failure to decode a decorative asset is isolated and
+does not block map loading or expose coordinates.

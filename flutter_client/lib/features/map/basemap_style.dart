@@ -1,4 +1,6 @@
 import 'package:flutter_client/data/models/geo.dart';
+import 'package:flutter_client/features/map/map_backdrop.dart';
+import 'package:flutter_client/features/map/region_camera.dart';
 
 /// Стиль офлайн карти області для MapLibre (ADR-020) — власний, компактний, під грибника.
 ///
@@ -28,6 +30,7 @@ abstract final class MapSources {
   static const analysis = 'app_analysis';
   static const picks = 'app_picks';
   static const forestPin = 'app_forest_pin';
+  static const backdropMushrooms = 'app_backdrop_mushrooms';
 
   /// Похід (ADR-022 §22.3 п.4): маршрут — лінія й точки; трек — пройдений шлях.
   static const route = 'app_route';
@@ -49,7 +52,7 @@ const _waterText = '#3a6f96';
 const _halo = '#ffffff';
 const _darkGreen = '#14532d';
 const _orange = '#d97706';
-const _maskColor = '#f4f1e1';
+const _maskColor = '#e4ead9';
 
 /// Назва українською; якщо її немає — назва з OpenStreetMap.
 const List<Object> _name = [
@@ -145,8 +148,9 @@ Map<String, dynamic> offlineMapStyle({
   required String pmtilesPath,
   required String glyphsDir,
   required List<GeoPolygon> region,
-}) =>
-    {
+}) {
+  final bounds = boundsOf(region.expand((polygon) => polygon.outer));
+  return {
       'version': 8,
       'name': 'mushroom-radar-offline',
       'glyphs': 'file://$glyphsDir/{fontstack}/{range}.pbf',
@@ -157,6 +161,10 @@ Map<String, dynamic> offlineMapStyle({
           'attribution': '© OpenStreetMap contributors',
         },
         'app_mask': {'type': 'geojson', 'data': regionMaskGeoJson(region)},
+        MapSources.backdropMushrooms: {
+          'type': 'geojson',
+          'data': mapBackdropMushroomsGeoJson(bounds: bounds, region: region),
+        },
         MapSources.areas: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.analysis: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.picks: {'type': 'geojson', 'data': emptyFeatureCollection},
@@ -170,6 +178,7 @@ Map<String, dynamic> offlineMapStyle({
         ...appLayers(),
       ],
     };
+}
 
 /// Шари карти-підкладки (дані — з файлу офлайн карти).
 List<Map<String, dynamic>> basemapLayers() => [
@@ -274,12 +283,30 @@ List<Map<String, dynamic>> basemapLayers() => [
 
 /// Шари застосунку поверх карти.
 List<Map<String, dynamic>> appLayers() => [
-      // Поза областю — притінено; межа області — темно-зеленою лінією.
+      // Поза областю — тиха лісова підкладка; межа області — темно-зеленою лінією.
       {
         'id': 'app_mask',
         'type': 'fill',
         'source': 'app_mask',
-        'paint': {'fill-color': _maskColor, 'fill-opacity': 0.85},
+        // Під маскою трохи проступають дороги й ліси офлайн-карти, але область
+        // залишається контрастнішою та зберігає фокус уваги.
+        'paint': {'fill-color': _maskColor, 'fill-opacity': 0.72},
+      },
+      {
+        'id': MapSources.backdropMushrooms,
+        'type': 'symbol',
+        'source': MapSources.backdropMushrooms,
+        // Декор є лише на оглядовому масштабі й не конкурує зі знахідками.
+        'maxzoom': 9.5,
+        'layout': {
+          'icon-image': ['get', 'icon'],
+          'icon-size': 0.72,
+          'icon-allow-overlap': false,
+          'icon-ignore-placement': false,
+          'icon-rotation-alignment': 'viewport',
+          'icon-pitch-alignment': 'viewport',
+        },
+        'paint': {'icon-opacity': 0.48},
       },
       {
         'id': 'app_region_border',

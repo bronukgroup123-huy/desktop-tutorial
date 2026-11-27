@@ -519,6 +519,22 @@ See docs/agent/BLOCKERS.md.
 - Merge order: #171 before this PR (migration 20261128130000 must come after 20261128110000/120000).
 - Next: B9.4b — app screens (pick friends, «Від @нік» on the map, «Поділились зі мною» list).
 
+## 2026-11-27 — UI-005: quiet forest backdrop around the region map (Codex)
+- Owner request: keep the region map at exactly the current size, slightly reduce the empty surrounding
+  space, use the first pale forest-map concept and make its mushrooms smaller.
+- Branch / code commit / PR: `codex/ui-map-forest-backdrop` / `accc8b8` / #174.
+- Done: changed only the outside-region presentation. The pale sage mask now reveals a restrained amount
+  of the existing offline forests and roads; six ~17 logical px offline mushroom cutouts are placed only
+  outside the region, are not tappable, and disappear above zoom 9.5. Decorative loading fails open without
+  affecting map data, picks or controls.
+- Preserved: `regionPadding`, `fitRegion`, camera bounds, private coordinates, map interactions and all
+  server/API behavior are unchanged.
+- Checks: `flutter analyze` — no issues; focused basemap/camera tests — 12 passed; full `flutter test` —
+  429 passed; `git diff --check` — pass.
+- Residual: the MapLibre platform view cannot be rendered in Flutter unit tests; confirm the final visual
+  balance on a physical Android device after CI produces a build.
+- Claude boundary: B9.4b remains Claude work after the merged B9.4a server part; this PR does not touch it.
+
 ## 2026-11-27 04:35 UTC — scheduled run: B9.4b share a pick — app (Claude)
 - Sync: owner merged #171 (15 questions by topic), #172 (B9.4a server), #173 (module 2 «Ліс і гриб»);
   Deploy #125–#127 green. No open agent PRs; CI nothing to fix.

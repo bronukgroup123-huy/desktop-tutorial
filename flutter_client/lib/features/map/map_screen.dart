@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' show Point;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -20,6 +23,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/features/analysis/forest_area.dart';
 import 'package:flutter_client/features/analysis/analysis_square.dart';
 import 'package:flutter_client/features/map/basemap_style.dart';
+import 'package:flutter_client/features/map/map_backdrop.dart';
 import 'package:flutter_client/features/map/offline_glyphs.dart';
 import 'package:flutter_client/features/map/region_camera.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
@@ -660,6 +664,40 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     };
   }
 
+  /// Додає невеликі офлайн-зображення для суто декоративного шару поза областю.
+  /// 72 фізичних px із pixelRatio 3 та icon-size 0.72 = близько 17 логічних px.
+  Future<void> _loadBackdropMushroomImages() async {
+    final controller = _ml;
+    if (controller == null || !_styleReady) return;
+    try {
+      for (final (index, asset) in mapBackdropMushroomAssets.indexed) {
+        if (!mounted || !_styleReady || !identical(controller, _ml)) return;
+        final name = mapBackdropMushroomIcon(index);
+        if (!_icons.add(name)) continue;
+        final encoded = await rootBundle.load(asset);
+        final codec = await ui.instantiateImageCodec(
+          encoded.buffer.asUint8List(encoded.offsetInBytes, encoded.lengthInBytes),
+          targetWidth: 72,
+          targetHeight: 72,
+        );
+        final frame = await codec.getNextFrame();
+        final png = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+        frame.image.dispose();
+        codec.dispose();
+        if (png == null) continue;
+        await controller.addImage(
+          name,
+          png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+          false,
+          3,
+        );
+      }
+    } catch (e) {
+      // Декор не повинен завадити роботі карти або функціональних шарів.
+      debugPrint('[map] backdrop mushrooms failed: $e');
+    }
+  }
+
   /// Передати в карту лише те, що змінилося (без перемальовування всього щокадру).
   Future<void> _syncOverlays({
     required List<MapPick> picks,
@@ -727,6 +765,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = _pushedWatched = null;
     _icons.clear();
     if (!mounted) return;
+    unawaited(_loadBackdropMushroomImages());
     setState(() {}); // перебудова передасть шари застосунку
     final area = ref.read(mapFocusAreaProvider);
     if (area != null) _focusArea(area);
