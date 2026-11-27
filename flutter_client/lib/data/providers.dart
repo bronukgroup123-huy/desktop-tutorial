@@ -16,6 +16,7 @@ import 'models/avatars.dart';
 import 'models/catalog.dart';
 import 'models/forecast.dart';
 import 'models/friends.dart';
+import 'models/heatmap.dart';
 import 'models/guardian.dart';
 import 'models/me.dart';
 import 'models/pick.dart';
@@ -29,6 +30,7 @@ import 'repositories/trails_repository.dart';
 import 'repositories/forecast_repository.dart';
 import 'repositories/forest_zones_repository.dart';
 import 'repositories/friends_repository.dart';
+import 'repositories/heatmap_repository.dart';
 import 'repositories/guardian_repository.dart';
 export 'repositories/forest_zones_repository.dart' show ForestLoad;
 import 'repositories/me_repository.dart';
@@ -301,6 +303,18 @@ final picksMapProvider = FutureProvider.autoDispose<PicksMap>((ref) {
   if (region == null) return PicksMap.empty;
   final mine = ref.watch(showPrivatePicksProvider);
   return ref.watch(picksRepositoryProvider).fetchMap(mine: mine);
+});
+
+/// Перемикач «Теплова карта» на карті (B3.5) і період (7/30 днів — лише «Майстер» або Pro).
+final showHeatmapProvider = StateProvider<bool>((ref) => false);
+final heatmapPeriodProvider = StateProvider<String>((ref) => '3d');
+
+final heatmapRepositoryProvider = Provider((ref) => HeatmapRepository(ref.watch(apiClientProvider)));
+
+/// Клітинки теплової карти — лише коли шар увімкнено.
+final heatmapProvider = FutureProvider.autoDispose<Heatmap?>((ref) {
+  if (!ref.watch(showHeatmapProvider)) return null;
+  return ref.watch(heatmapRepositoryProvider).fetch(period: ref.watch(heatmapPeriodProvider));
 });
 
 /// Картка точки (тап по маркеру).

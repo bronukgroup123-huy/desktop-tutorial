@@ -15,6 +15,7 @@ import 'package:flutter_client/data/models/analysis.dart';
 import 'package:flutter_client/data/models/forest_lod.dart';
 import 'package:flutter_client/data/models/forest_zone.dart';
 import 'package:flutter_client/data/models/geo.dart';
+import 'package:flutter_client/data/models/heatmap.dart';
 import 'package:flutter_client/data/models/pick.dart';
 import 'package:flutter_client/data/models/region.dart';
 import 'package:flutter_client/data/providers.dart';
@@ -273,6 +274,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
   Object? _pushedRoute;
   Object? _pushedTrack;
   Object? _pushedWatched;
+  Object? _pushedHeat;
   final Set<String> _icons = {};
   bool _locating = false;
   bool _startingPick = false;
@@ -701,10 +703,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     required ({LatLng point, ForestZone zone})? pin,
     required HikeState hike,
     required List<HikeDetail> watched,
+    required Heatmap? heat,
   }) async {
     final c = _ml;
     if (c == null || !_styleReady || !mounted) return;
     try {
+      if (!identical(heat, _pushedHeat)) {
+        _pushedHeat = heat;
+        await c.setGeoJsonSource(MapSources.heat, heat?.toGeoJson() ?? emptyFeatureCollection);
+      }
       if (!identical(picks, _pushedPicks)) {
         _pushedPicks = picks;
         await c.setGeoJsonSource(MapSources.picks, await _picksGeoJson(picks));
@@ -757,7 +764,7 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
 
   void _onStyleLoaded() {
     _styleReady = true;
-    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = _pushedWatched = null;
+    _pushedPicks = _pushedAreas = _pushedAnalysis = _pushedPin = _pushedRoute = _pushedTrack = _pushedWatched = _pushedHeat = null;
     _icons.clear();
     if (!mounted) return;
     unawaited(_loadMapBackdrop());
@@ -787,6 +794,16 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     final bounds = _g.bounds;
     final picks = ref.watch(picksMapProvider).valueOrNull?.points ?? const <MapPick>[];
     final showPrivate = ref.watch(showPrivatePicksProvider);
+    // Теплова карта (B3.5): доступ вирішує сервер; відмова — підказка й шар вимикається.
+    final showHeat = ref.watch(showHeatmapProvider);
+    final heat = ref.watch(heatmapProvider).valueOrNull;
+    ref.listen(heatmapProvider, (_, next) {
+      if (next is AsyncError && ref.read(showHeatmapProvider)) {
+        final e = next.error;
+        showToast(context, e is ApiException ? e.userMessage : 'Не вдалося завантажити теплову карту', isError: true);
+        ref.read(showHeatmapProvider.notifier).state = false;
+      }
+    });
     // Публічні сервер ще не дозволяє (рівень / ліміт) — кнопка одразу «Приватний тук-тук» (ADR-018 §18.2)
     final publicAllowed = ref.watch(meProvider.select((m) => m.valueOrNull?.picks?.publicAllowed)) ?? true;
     final center = _analysisCenter;
@@ -809,7 +826,15 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     });
     // Шари застосунку на карті — після кадру й лише змінене.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _syncOverlays(picks: picks, areas: areas, square: square, pin: forestLabel, hike: hike, watched: watched),
+      (_) => _syncOverlays(
+        picks: picks,
+        areas: areas,
+        square: square,
+        pin: forestLabel,
+        hike: hike,
+        watched: watched,
+        heat: showHeat ? heat : null,
+      ),
     );
 
     return Scaffold(
@@ -943,6 +968,18 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
                     label: 'Аналіз ділянки',
                     onPressed: _toggleAnalysisMode,
                   ),
+                  const SizedBox(height: 8),
+                  _MapPill(
+                    key: const ValueKey('map-heatmap'),
+                    icon: Icons.local_fire_department_rounded,
+                    label: 'Теплова карта',
+                    active: showHeat,
+                    onPressed: () => ref.read(showHeatmapProvider.notifier).state = !showHeat,
+                  ),
+                  if (showHeat && heat != null) ...[
+                    const SizedBox(height: 8),
+                    _HeatLegend(heat: heat),
+                  ],
                   const SizedBox(height: 8),
                   _MapPill(
                     icon: showPrivate ? Icons.lock_rounded : Icons.lock_open_rounded,
@@ -1092,7 +1129,7 @@ class _MapToolButton extends StatelessWidget {
 
 /// Кнопка режиму карти з підписом (бежева; активна — зелена).
 class _MapPill extends StatelessWidget {
-  const _MapPill({required this.icon, required this.label, required this.onPressed, this.active = false});
+  const _MapPill({super.key, required this.icon, required this.label, required this.onPressed, this.active = false});
 
   final IconData icon;
   final String label;
@@ -1408,3 +1445,65 @@ class _RoutePanel extends StatelessWidget {
         ),
       );
 }
+
+/// Легенда теплової карти: що показано, за який період; 7/30 днів — лише якщо сервер дозволяє.
+class _HeatLegend extends ConsumerWidget {
+  const _HeatLegend({required this.heat});
+
+  final Heatmap heat;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(heatmapPeriodProvider);
+    return Container(
+      key: const ValueKey('map-heatmap-legend'),
+      width: 220,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 6, offset: Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(heat.summaryLabel, style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkGreen)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (final (color, label) in const [(Color(0xfff59e0b), 'рідше'), (Color(0xffea580c), ''), (AppTheme.errorRed, 'частіше')]) ...[
+                Container(width: 18, height: 12, decoration: BoxDecoration(color: color.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(3))),
+                const SizedBox(width: 4),
+                if (label.isNotEmpty) Text(label, style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            heat.cells.isEmpty ? 'Поки замало підтверджених знахідок поруч.' : heat.legendLabel,
+            style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+          ),
+          if (heat.canChangePeriod) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              children: [
+                for (final (id, label) in const [('3d', '3 дні'), ('7d', '7 днів'), ('30d', '30 днів')])
+                  ChoiceChip(
+                    key: ValueKey('map-heatmap-period-$id'),
+                    label: Text(label),
+                    selected: period == id,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (_) => ref.read(heatmapPeriodProvider.notifier).state = id,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

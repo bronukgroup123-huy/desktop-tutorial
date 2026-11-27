@@ -70,6 +70,14 @@ void main() {
     }
   });
 
+  test('теплова карта (B3.5): своє джерело, шар під ділянками й точками, колір за рівнем', () {
+    expect((style['sources'] as Map)[MapSources.heat]['type'], 'geojson');
+    expect(index('app_heat_fill'), greaterThan(index('app_region_border')));
+    expect(index('app_heat_fill'), lessThan(index('app_areas_fill')));
+    expect(index('app_heat_fill'), lessThan(index(MapLayers.picks)));
+    expect(jsonEncode(layer('app_heat_fill')['paint']), contains('level'));
+  });
+
   test('лісовий фон має видимий шавлієвий fallback без зміни шарів карти', () {
     final maskPaint = layer('app_mask')['paint'] as Map;
     expect(maskPaint['fill-color'], '#e4ead9');

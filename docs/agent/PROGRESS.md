@@ -548,3 +548,14 @@ See docs/agent/BLOCKERS.md.
   OpenAPI model contract — valid. Server unchanged.
 - Next: module 3 «Погода, сезони, хвилі» after the owner reads module 2; B3.12 still needs the moderation policy.
 
+## 2026-11-27 12:35 UTC — scheduled run: B3.5b heatmap map layer (Claude)
+- Sync: open agent PRs #177 (stickers, 20 now) and #178 (B3.5a) — all checks green; nothing red to fix.
+- Branch claude/b3-5b-heatmap-layer: Flutter — model `Heatmap` (cells as GeoJSON rectangles), `HeatmapRepository`,
+  `showHeatmapProvider` / `heatmapPeriodProvider` / `heatmapProvider` (no request while off); map style source
+  `app_heat` + fill layer under areas and picks, colour by level; map pill «Теплова карта», legend (scope · period,
+  «рідше … частіше», 3/7/30 days only when the server allows); server refusal (level / Pro) → toast, layer off.
+- Checks: `flutter analyze` — no issues; `flutter test` — 439 passed (heatmap_test.dart, basemap style test);
+  design-token test caught a colour literal — replaced with AppTheme.errorRed. Map screen has no widget tests
+  (MapLibre platform view) — pill and legend not rendered in tests; not checked on a device.
+- Merge order: #178 (server) before this PR.
+

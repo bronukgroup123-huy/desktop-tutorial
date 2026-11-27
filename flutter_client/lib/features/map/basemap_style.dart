@@ -35,6 +35,9 @@ abstract final class MapSources {
 
   /// Походи друзів, де я Наглядач (ADR-022 §22.2): маршрут, трек, останнє місце.
   static const watched = 'app_watched';
+
+  /// Теплова карта знахідок (B3.5): клітинки ≈ 1 км, рівень 1–3.
+  static const heat = 'app_heat';
 }
 
 /// Шари, по яких обробляється тап.
@@ -156,6 +159,7 @@ Map<String, dynamic> offlineMapStyle({
           'attribution': '© OpenStreetMap contributors',
         },
         'app_mask': {'type': 'geojson', 'data': regionMaskGeoJson(region)},
+        MapSources.heat: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.areas: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.analysis: {'type': 'geojson', 'data': emptyFeatureCollection},
         MapSources.picks: {'type': 'geojson', 'data': emptyFeatureCollection},
@@ -287,6 +291,17 @@ List<Map<String, dynamic>> appLayers() => [
         'type': 'line',
         'source': 'app_mask',
         'paint': {'line-color': _darkGreen, 'line-width': 2},
+      },
+      // Теплова карта (B3.5): що тепліший колір, то частіше знаходили; під усіма точками й ділянками.
+      {
+        'id': 'app_heat_fill',
+        'type': 'fill',
+        'source': MapSources.heat,
+        'paint': {
+          'fill-color': ['match', ['get', 'level'], 3, '#b91c1c', 2, '#ea580c', '#f59e0b'],
+          'fill-opacity': ['match', ['get', 'level'], 3, 0.55, 2, 0.45, 0.35],
+          'fill-outline-color': '#ffffff',
+        },
       },
       // Ділянки аналізу — пунктирні квадрати з підписом «Ділянка N · прогноз».
       {
