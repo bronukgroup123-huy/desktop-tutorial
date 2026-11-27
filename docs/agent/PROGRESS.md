@@ -548,3 +548,8 @@ See docs/agent/BLOCKERS.md.
   OpenAPI model contract — valid. Server unchanged.
 - Next: module 3 «Погода, сезони, хвилі» after the owner reads module 2; B3.12 still needs the moderation policy.
 
+## 2026-11-27 — owner session: heatmap removed (Claude)
+- Owner decision: no heatmap at all (empty at start, locked for most users, lags and crowds people into the same
+  spots; the forecast already answers «where to go»). Closed #178 and #179 unmerged with a comment; recorded as
+  ADR-010 §10.7; BACKEND_PLAN B3.5 struck out; BACKLOG item marked REMOVED. Nothing to revert on main.
+
