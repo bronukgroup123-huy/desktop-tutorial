@@ -50,6 +50,7 @@ flutter:
     - assets/icons/
     - assets/icons/tile/
     - assets/stickers/
+    - assets/stickers/passport/
     - assets/species/large/
     - assets/species/small/
     - assets/trophies/large/

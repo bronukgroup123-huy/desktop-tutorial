@@ -122,6 +122,97 @@ void main() {
     expect(passportGlyph('Споровий порошок').icon, Icons.grain_rounded);
   });
 
+  test('Паспорт: мальований стікер ознаки — за назвою й текстом рядка, заперечення не вмикають', () {
+    // низ шапки
+    expect(passportSticker('Низ шапки (Шипи)', 'густі конусоподібні шипи'), 'under_spines');
+    expect(passportSticker('Низ шапки (Складки)', 'товсті вилчасті складки'), 'under_folds');
+    expect(passportSticker('Низ шапки', 'Шипастий (голчастий). Шипики 2–5 мм'), 'under_spines');
+    expect(passportSticker('Низ шапки', 'Трубчастий. Трубочки короткі'), 'under_tubes');
+    expect(passportSticker('Низ шапки', 'Пластинки густі, широкі'), 'under_gills');
+    expect(passportSticker('Пластинки', 'білуваті → брудно-коричневі.'), 'under_gills');
+    expect(passportSticker('Гіменофор', 'відсутній — шапинка мозкоподібна'), isNull);
+    // ніжка
+    expect(passportSticker('Ніжка', 'біла, з плівчастим кільцем.'), 'stem_ring');
+    expect(passportSticker('Ніжка', 'гладенька. Кільця немає. Біля основи є добре розвинена піхва (вольва)'), 'stem_volva');
+    expect(passportSticker('Ніжка', 'біла; без кільця та піхви.'), isNull);
+    expect(passportSticker('Ніжка', 'Кільце відсутнє.'), isNull);
+    expect(passportSticker('Ніжка', 'біла, з коричневою сіточкою.'), 'stem_net');
+    expect(passportSticker('Ніжка', 'світла, вкрита бурими лусочками.'), 'stem_scales');
+    expect(passportSticker('Ніжка', 'гола, жовта, іноді буро-луската.'), isNull);
+    expect(passportSticker('Ніжка', '1–5 см, біла.'), isNull);
+    expect(passportSticker('Основа', 'мішкоподібна біла вольва.'), 'stem_volva');
+    expect(passportSticker('Кільце', 'плівчасте, біле'), 'stem_ring');
+    expect(passportSticker('Кільце', 'відсутнє'), isNull);
+    // м'якоть
+    expect(passportSticker("М'якоть", 'жовта, на зламі швидко синіє'), 'flesh_blue');
+    expect(passportSticker("М'якоть", 'біла, на зламі червоніє.'), 'flesh_red');
+    expect(passportSticker("М'якоть", 'Сніжно-біла, при розрізанні не змінює колір (не синіє і не рожевіє!)'), 'flesh_white');
+    expect(passportSticker('М’якоть', 'Білувата, на зрізі не синіє, не червоніє й не зеленіє.'), 'flesh_white');
+    expect(passportSticker("М'якоть", 'жовтувата, щільна'), isNull);
+    // решта рядків — без стікера (лишається схема чи значок)
+    // шапка — колір за першою згадкою; без кольору — нейтральна
+    expect(passportSticker('Шапка', 'Велика, м\'ясиста'), 'cap_neutral');
+    expect(passportSticker('Шапка', 'Колір — від світло-коричневого до темно-каштанового.'), 'cap_brown');
+    expect(passportSticker('Капелюх', '5–15 см, оливково-зелений, жовтувато-оливковий, іноді майже білий.'), 'cap_olive');
+    expect(passportSticker('Шапка', 'Колір — від білого й кремового до вохряно-жовтого.'), 'cap_white');
+    expect(passportSticker('Шапка', '3–12 см. Колір — від яєчно-жовтого до світло-оранжевого.'), 'cap_yellow');
+    expect(passportSticker('Капелюх', 'яскраво-червоний, з білими пластівцями.'), 'cap_red');
+    expect(passportSticker('Шапка', 'яскраво-червона, гладенька, блискуча.'), isNull, reason: 'червона сироїжка — не мухомор');
+    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), 'spores_yellow');
+    expect(passportSticker('Споровий порошок', 'білий.'), 'spores_white');
+    expect(passportSticker('Споровий порошок', 'рожевий.'), 'spores_pink');
+    expect(passportSticker('Споровий порошок', 'пурпурово-коричневий.'), 'spores_dark');
+    expect(passportSticker("М'якоть", 'М\'ясиста, оранжева, на зрізі зеленіє.'), 'flesh_green');
+    expect(passportSticker("М'якоть", 'оранжева, на зрізі зеленіє. Головна ознака — яскраво-оранжевий молочний сік.'), 'flesh_green');
+    expect(passportSticker('Місце зростання', 'соснові та мішані ліси, на піщаному ґрунті.'), 'place_pine');
+    expect(passportSticker('Ліс/місце', 'листяні ліси, під дубом, буком.'), 'place_oak');
+    expect(passportSticker('Ліс/місце', 'ялинові гірські ліси, зрідка на рівнині.'), 'place_spruce');
+    expect(passportSticker('Ліс/місце', 'листяні ліси, тільки під березою.'), 'place_tree');
+    expect(passportSticker('Місце зростання', 'на ґрунті в лісах.'), 'place_tree');
+    // зріз темніє, молочний сік, відбиток спор, запах, смак, місце, ключова ознака
+    expect(passportSticker("М'якоть", 'Щільна, біла, на зрізі швидко темніє до синювато-чорної.'), 'flesh_dark');
+    expect(passportSticker("М'якоть", 'Біла, під шкіркою темніша, при розрізуванні трохи синіє.'), 'flesh_blue');
+    expect(passportSticker("М'якоть", 'біла, на зрізі рожевіє, потім сіріє і чорніє.'), 'flesh_red');
+    expect(passportSticker("М'якоть", 'Біла, крихка. На зламі виділяє білий пекучий молочний сік.'), 'milk');
+    expect(passportSticker('Молочний сік', 'Білий, пекучо-їдкий.'), 'milk');
+    expect(passportSticker('Споровий порошок', 'Оливково-коричневий.'), 'spores_brown');
+    expect(passportSticker('Спорова маса', 'темно-коричнева, порошиста'), isNull);
+    expect(passportSticker('Запах', 'Приємний, грибний.'), 'smell');
+    expect(passportSticker('Смак', 'Дуже пекучий.'), 'taste');
+    expect(passportSticker('Ключова ознака', 'оливково-зелений капелюх'), 'key_feature');
+    expect(passportSticker('Головне правило', 'у їжовика низ шипастий'), 'key_feature');
+    expect(passportSticker('Місце зростання', 'на гнилій деревині листяних порід, часто на пеньках.'), 'place_wood');
+    expect(passportSticker('Місце зростання', 'на луках, пасовищах, узліссях, часто групами.'), 'place_meadow');
+    expect(passportSticker('Місце зростання', 'на ґрунті в лісах і на луках.'), 'place_tree');
+  });
+
+  test('Паспорт: білі пластинки — стікер висвітлено, щоб не суперечив тексту', () {
+    expect(passportStickerPale('under_gills', 'завжди білі — ключова ознака.'), isTrue);
+    expect(passportStickerPale('under_gills', 'білуваті → брудно-коричневі.'), isFalse);
+    expect(passportStickerPale('under_gills', 'густі, сірчано-жовті'), isFalse);
+    expect(passportStickerPale('under_tubes', 'білі'), isFalse);
+  });
+
+  test('Паспорт: усі стікери є у застосунку (WebP, прозоре тло)', () {
+    for (final name in passportStickers.keys) {
+      final f = File(passportStickerAsset(name));
+      expect(f.existsSync(), isTrue, reason: f.path);
+      final head = f.readAsBytesSync().sublist(0, 16);
+      expect(String.fromCharCodes(head.sublist(0, 4)), 'RIFF', reason: name);
+      expect(String.fromCharCodes(head.sublist(8, 12)), 'WEBP', reason: name);
+    }
+  });
+
+  testWidgets('Лисичка: у паспорті — мальований стікер складок', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(host(CatalogArticle(species: catalog.byId('cantharellus_cibarius')!)));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('passport-sticker-under_folds')), findsOneWidget);
+    expect(find.bySemanticsLabel('Складки, що спускаються на ніжку'), findsOneWidget);
+  });
+
   test('Рецепти кроками: нічого з тексту не губиться', () {
     for (final sp in catalog.species) {
       for (final s in descSections(sp.description).where((s) => articleKind(s) == ArticleKind.recipes)) {
@@ -170,7 +261,8 @@ void main() {
     expect(find.byKey(const ValueKey('article-status')), findsOneWidget);
     expect(find.byKey(const ValueKey('article-danger-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('passport-Шапка')), findsOneWidget);
-    expect(find.byKey(const ValueKey('glyph-cap')), findsOneWidget);
+    // шапка — мальований стікер кольору (не схема)
+    expect(find.byWidgetPredicate((w) => '${w.key}'.contains('passport-sticker-cap_')), findsOneWidget);
     expect(find.byKey(const ValueKey('article-twins')), findsOneWidget);
     expect(find.byIcon(Icons.cancel_rounded), findsWidgets); // ❌ — значком
     expect(find.byKey(const ValueKey('oblast-map')), findsOneWidget);
