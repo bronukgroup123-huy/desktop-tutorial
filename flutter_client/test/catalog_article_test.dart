@@ -150,8 +150,25 @@ void main() {
     expect(passportSticker('М’якоть', 'Білувата, на зрізі не синіє, не червоніє й не зеленіє.'), 'flesh_white');
     expect(passportSticker("М'якоть", 'жовтувата, щільна'), isNull);
     // решта рядків — без стікера (лишається схема чи значок)
-    expect(passportSticker('Шапка', 'Велика, м\'ясиста'), isNull);
-    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), isNull); // жовтого стікера ще немає
+    // шапка — колір за першою згадкою; без кольору — нейтральна
+    expect(passportSticker('Шапка', 'Велика, м\'ясиста'), 'cap_neutral');
+    expect(passportSticker('Шапка', 'Колір — від світло-коричневого до темно-каштанового.'), 'cap_brown');
+    expect(passportSticker('Капелюх', '5–15 см, оливково-зелений, жовтувато-оливковий, іноді майже білий.'), 'cap_olive');
+    expect(passportSticker('Шапка', 'Колір — від білого й кремового до вохряно-жовтого.'), 'cap_white');
+    expect(passportSticker('Шапка', '3–12 см. Колір — від яєчно-жовтого до світло-оранжевого.'), 'cap_yellow');
+    expect(passportSticker('Капелюх', 'яскраво-червоний, з білими пластівцями.'), 'cap_red');
+    expect(passportSticker('Шапка', 'яскраво-червона, гладенька, блискуча.'), isNull, reason: 'червона сироїжка — не мухомор');
+    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), 'spores_yellow');
+    expect(passportSticker('Споровий порошок', 'білий.'), 'spores_white');
+    expect(passportSticker('Споровий порошок', 'рожевий.'), 'spores_pink');
+    expect(passportSticker('Споровий порошок', 'пурпурово-коричневий.'), 'spores_dark');
+    expect(passportSticker("М'якоть", 'М\'ясиста, оранжева, на зрізі зеленіє.'), 'flesh_green');
+    expect(passportSticker("М'якоть", 'оранжева, на зрізі зеленіє. Головна ознака — яскраво-оранжевий молочний сік.'), 'flesh_green');
+    expect(passportSticker('Місце зростання', 'соснові та мішані ліси, на піщаному ґрунті.'), 'place_pine');
+    expect(passportSticker('Ліс/місце', 'листяні ліси, під дубом, буком.'), 'place_oak');
+    expect(passportSticker('Ліс/місце', 'ялинові гірські ліси, зрідка на рівнині.'), 'place_spruce');
+    expect(passportSticker('Ліс/місце', 'листяні ліси, тільки під березою.'), 'place_tree');
+    expect(passportSticker('Місце зростання', 'на ґрунті в лісах.'), 'place_tree');
     // зріз темніє, молочний сік, відбиток спор, запах, смак, місце, ключова ознака
     expect(passportSticker("М'якоть", 'Щільна, біла, на зрізі швидко темніє до синювато-чорної.'), 'flesh_dark');
     expect(passportSticker("М'якоть", 'Біла, під шкіркою темніша, при розрізуванні трохи синіє.'), 'flesh_blue');
@@ -244,7 +261,8 @@ void main() {
     expect(find.byKey(const ValueKey('article-status')), findsOneWidget);
     expect(find.byKey(const ValueKey('article-danger-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('passport-Шапка')), findsOneWidget);
-    expect(find.byKey(const ValueKey('glyph-cap')), findsOneWidget);
+    // шапка — мальований стікер кольору (не схема)
+    expect(find.byWidgetPredicate((w) => '${w.key}'.contains('passport-sticker-cap_')), findsOneWidget);
     expect(find.byKey(const ValueKey('article-twins')), findsOneWidget);
     expect(find.byIcon(Icons.cancel_rounded), findsWidgets); // ❌ — значком
     expect(find.byKey(const ValueKey('oblast-map')), findsOneWidget);

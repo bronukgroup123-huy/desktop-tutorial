@@ -496,10 +496,24 @@ const passportStickers = <String, String>{
   'spores_brown': 'Коричневий відбиток спор',
   'smell': 'Понюхати гриб',
   'taste': 'Смак — лише кінчиком язика, не ковтати',
-  'place_tree': 'Росте під деревами',
+  'place_tree': 'Росте під деревами (берізка)',
   'place_wood': 'Росте на пні, деревині',
   'place_meadow': 'Росте на луках, галявинах',
   'key_feature': 'Ключова ознака',
+  'cap_neutral': 'Шапка',
+  'cap_brown': 'Коричнева шапка',
+  'cap_white': 'Біла шапка',
+  'cap_yellow': 'Жовто-оранжева шапка',
+  'cap_red': 'Червона шапка з білими пластівцями',
+  'cap_olive': 'Оливково-зелена шапка',
+  'spores_white': 'Білий відбиток спор',
+  'spores_pink': 'Рожевий відбиток спор',
+  'spores_yellow': 'Жовтуватий відбиток спор',
+  'spores_dark': 'Темний відбиток спор',
+  'place_pine': 'Росте під сосною, у хвойному лісі',
+  'place_oak': 'Росте під дубом',
+  'place_spruce': 'Росте під ялиною',
+  'flesh_green': 'Зріз зеленіє',
 };
 
 String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
@@ -553,6 +567,25 @@ final _brownSpores = RegExp(r'коричн|бур[иі]й|бура|іржав');
 final _placeWood = RegExp(r'пн[іяе]|пень|пеньк|стовбур|деревин|гілк|колод');
 final _placeMeadow = RegExp(r'лук|пасовищ|галявин|газон|пол[ея]|степ|узбіч|сад');
 final _placeTree = RegExp(r'ліс|під берез|під сосн|під дуб|під ялин|під осик|дерев|бор');
+final _green = RegExp(r'зеленіє|зеленіють|позелен');
+// Шапка: перший названий колір
+final _capWhite = RegExp(r'біл|кремов|сніжн');
+final _capYellow = RegExp(r'жовт|оранж|помаранч|яєчн|лимон');
+final _capBrown = RegExp(r'коричн|бур[аиоу]|каштан|горіх|шоколад|рудув|руд[аио]');
+final _capOlive = RegExp(r'оливк|зелен');
+final _capRed = RegExp(r'червон|багрян|криваво|карм');
+final _flakes = RegExp(r'пластів|бородав|залишк[аи] покрив|білими цяточ');
+// Спори
+final _sporeDark = RegExp(r'чорн|фіолет|пурпур');
+final _sporePink = RegExp(r'рожев');
+final _sporeYellow = RegExp(r'жовт|вохр|оливк');
+final _sporeWhite = RegExp(r'біл|кремов');
+// Місце: конкретне дерево
+final _pine = RegExp(r'сосн|хвойн|бір|бору|бори');
+final _oak = RegExp(r'дуб|дібров');
+final _spruce = RegExp(r'ялин|смерек');
+final _birch = RegExp(r'берез');
+final _placeRe = {'place_pine': _pine, 'place_oak': _oak, 'place_spruce': _spruce, 'place_tree': _birch};
 final _noChange = RegExp(r'не змін|не синіє|не червоніє|не рожевіє|не темніє');
 
 /// Який мальований стікер показати біля ознаки «[key]: [value]» — або `null` (лишається схема).
@@ -579,6 +612,19 @@ String? passportSticker(String key, String value) {
     }
     return kind == null ? null : 'under_$kind';
   }
+  if (g.part == 'cap') {
+    // Колір шапки — за першою згадкою; червона з пластівцями — лише коли пластівці названо (мухомор),
+    // інакше червона сироїжка отримала б малюнок мухомора — тоді лишаємо схему.
+    final colour = _earliest(v, {
+      'cap_white': _capWhite,
+      'cap_yellow': _capYellow,
+      'cap_brown': _capBrown,
+      'cap_olive': _capOlive,
+      'cap_red': _capRed,
+    });
+    if (colour == 'cap_red') return _flakes.hasMatch(v) ? 'cap_red' : null;
+    return colour ?? 'cap_neutral';
+  }
   if (g.part == 'stem' || k.startsWith('основа') || k.startsWith('вольва')) {
     if (_mentions(v, _volva) || (k.startsWith('основа') && v.contains('бульб') && v.contains('вольв'))) return 'stem_volva';
     if (k.startsWith('основа') || k.startsWith('вольва')) return null;
@@ -589,22 +635,41 @@ String? passportSticker(String key, String value) {
   }
   if (g.part == 'ring') return _mentions(v, _ring) || !_negation.hasMatch(v) ? 'stem_ring' : null;
   if (g.part == 'flesh') {
+    // рижик: зріз зеленіє — характерніше за сік (сік у нього оранжевий, на стікері — білий)
+    if (_mentions(v, _green)) return 'flesh_green';
     if (_mentions(v, _milk)) return 'milk';
-    final change = _earliest(v, {'flesh_blue': _blue, 'flesh_red': _red, 'flesh_dark': _dark});
+    final change = _earliest(v, {'flesh_blue': _blue, 'flesh_red': _red, 'flesh_dark': _dark, 'flesh_green': _green});
     if (change != null) return change;
     if (_noChange.hasMatch(v) || RegExp(r'^\s*(сніжно-)?біл').hasMatch(v)) return 'flesh_white';
     return null;
   }
   if (k.startsWith('молочний сік')) return 'milk';
-  // Відбиток спор — лише «Споровий порошок» (не «Спорова маса» дощовика чи мікроскопія спор)
-  if (k.contains('спор')) return k.contains('порошок') && _mentions(v, _brownSpores) ? 'spores_brown' : null;
+  // Відбиток спор — лише «Споровий порошок» (не «Спорова маса» дощовика чи мікроскопія спор).
+  // Порядок: темний (фіолетово-, пурпурово-, чорно-), коричневий, рожевий, жовтий, білий.
+  if (k.contains('спор')) {
+    if (!k.contains('порошок')) return null;
+    if (_mentions(v, _sporeDark)) return 'spores_dark';
+    if (_mentions(v, _brownSpores)) return 'spores_brown';
+    if (_mentions(v, _sporePink)) return 'spores_pink';
+    if (_mentions(v, _sporeYellow)) return 'spores_yellow';
+    if (_mentions(v, _sporeWhite)) return 'spores_white';
+    return null;
+  }
   if (k.startsWith('запах')) return 'smell';
   if (k.startsWith('смак')) return 'taste';
   if (k.startsWith('ключова ознака') || k.startsWith('головне правило') || k.startsWith('головна ознака')) {
     return 'key_feature';
   }
   if (k.contains('місце') || k.contains('росте')) {
-    return _earliest(v, {'place_wood': _placeWood, 'place_meadow': _placeMeadow, 'place_tree': _placeTree});
+    // Що згадано першим: пень, луки чи дерево. Дерево — конкретне (сосна/хвойні, дуб, ялина, береза),
+    // інакше «ліс» загалом (стікер під берізкою).
+    final tree = _earliest(v, {'place_pine': _pine, 'place_oak': _oak, 'place_spruce': _spruce, 'place_tree': _birch}) ??
+        (_mentions(v, _placeTree) ? 'place_tree' : null);
+    final treeAt = tree == null ? null : _firstMention(v, tree == 'place_tree' && !_mentions(v, _birch) ? _placeTree : _placeRe[tree]!);
+    final other = _earliest(v, {'place_wood': _placeWood, 'place_meadow': _placeMeadow});
+    final otherAt = other == null ? null : _firstMention(v, other == 'place_wood' ? _placeWood : _placeMeadow);
+    if (other != null && (treeAt == null || otherAt! <= treeAt)) return other;
+    return tree;
   }
   return null;
 }
