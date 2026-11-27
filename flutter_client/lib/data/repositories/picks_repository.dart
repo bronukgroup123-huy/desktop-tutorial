@@ -42,6 +42,26 @@ class PicksRepository {
     await _api.delete('/v1-picks/$id');
   }
 
+  /// Поділитися своєю приватною точкою з друзями (B9.4). Повертає підпис «Бачать N друзів».
+  /// Правила (лише друзі, лише приватна, до 20) перевіряє сервер.
+  Future<String?> sharePick(String id, List<String> friendIds) async {
+    final data = await _api.post('/v1-picks/$id/shares', body: {'friend_ids': friendIds}) as Map<String, dynamic>;
+    return data['label'] as String?;
+  }
+
+  /// Відкликати доступ: в одного друга ([friendId]) або в усіх (`null`).
+  Future<void> revokeShare(String id, {String? friendId}) async {
+    await _api.delete(friendId == null ? '/v1-picks/$id/shares' : '/v1-picks/$id/shares/$friendId');
+  }
+
+  /// Точки, якими з вами поділилися друзі.
+  Future<List<SharedPick>> fetchShared() async {
+    final data = await _api.get('/v1-picks/shared') as Map<String, dynamic>;
+    return [
+      for (final e in ((data['picks'] as List<dynamic>?) ?? const []).cast<Map<String, dynamic>>()) SharedPick.fromJson(e),
+    ];
+  }
+
   Future<SpeciesList> fetchSpecies() async =>
       SpeciesList.fromJson(await _api.get('/v1-picks/species') as Map<String, dynamic>);
 
