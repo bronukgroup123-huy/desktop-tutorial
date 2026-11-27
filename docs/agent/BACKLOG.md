@@ -84,7 +84,8 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   migration). This is defense in depth and migration/production parity.
 - Suggested scope: migration enabling RLS on the four tables (or dropping the retired Guardian v0 ones after
   BLK-009), SQL regression «every public table has relrowsecurity».
-- Status: ready (Codex zone; not taken by Claude).
+- Status: in review (claude/sec-008-rls-service-tables) — taken by Claude 2026-11-27 after ~48 h untouched
+  (BACKLOG rule for the other agent's items); migration 20261128160000 + SQL test rls_every_public_table.sql.
 
 ### OPS-002 — production outage: every v1 request answered 503 rate_limit_unavailable (fixed)
 - Cause: `ip_rate_limit.endpoint` CHECK allowed only ('forecast','picks','regions','catalog'); every v1-*
