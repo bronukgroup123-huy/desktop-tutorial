@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui' show Color;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:latlong2/latlong.dart';
 
 import 'package:flutter_client/data/models/geo.dart';
@@ -64,31 +65,37 @@ void main() {
     final rings = (mask['geometry'] as Map)['coordinates'] as List;
     expect(rings.length, 2);
     expect((rings[1] as List).first, [23.0, 49.0]);
-    for (final id in [MapSources.backdropMushrooms, MapSources.areas, MapSources.analysis, MapSources.picks, MapSources.forestPin]) {
+    for (final id in [MapSources.areas, MapSources.analysis, MapSources.picks, MapSources.forestPin]) {
       expect((style['sources'] as Map)[id]['type'], 'geojson');
     }
   });
 
-  test('лісовий фон тихий: карта не масштабується, декор малий і лише поза областю', () {
+  test('лісовий фон має видимий шавлієвий fallback без зміни шарів карти', () {
     final maskPaint = layer('app_mask')['paint'] as Map;
     expect(maskPaint['fill-color'], '#e4ead9');
-    expect(maskPaint['fill-opacity'], 0.72);
+    expect(maskPaint['fill-opacity'], 0.92);
+    expect(index('app_mask'), lessThan(index('app_region_border')));
+  });
 
-    final mushrooms = layer(MapSources.backdropMushrooms);
-    expect(mushrooms['maxzoom'], 9.5);
-    expect((mushrooms['layout'] as Map)['icon-size'], 0.72);
-    expect((mushrooms['paint'] as Map)['icon-opacity'], 0.48);
-    expect(index('app_mask'), lessThan(index(MapSources.backdropMushrooms)));
-    expect(index(MapSources.backdropMushrooms), lessThan(index('app_region_border')));
-
-    final data = (style['sources'] as Map)[MapSources.backdropMushrooms]['data'] as Map;
-    final features = data['features'] as List;
-    expect(features, hasLength(mapBackdropMushroomAssets.length));
-    for (final feature in features.cast<Map>()) {
-      final coordinates = (feature['geometry'] as Map)['coordinates'] as List;
-      final point = LatLng(coordinates[1] as double, coordinates[0] as double);
-      expect(point.latitude < 49 || point.latitude > 50.5 || point.longitude < 23 || point.longitude > 25, isTrue);
-    }
+  testWidgets('лісова карта — справжній офлайн-растр із прозорим вирізом області', (tester) async {
+    late MapBackdropImage backdrop;
+    await tester.runAsync(() async {
+      backdrop = await buildMapBackdropImage(
+        bounds: const GeoBounds(southWest: LatLng(49, 23), northEast: LatLng(50.5, 25)),
+        region: region,
+      );
+    });
+    expect(backdrop.png.sublist(1, 4), 'PNG'.codeUnits);
+    expect(backdrop.png.lengthInBytes, lessThan(512 * 1024));
+    final raster = image.decodePng(backdrop.png)!;
+    expect(raster.width, mapBackdropRasterSize);
+    expect(raster.height, mapBackdropRasterSize);
+    expect(raster.getPixel(raster.width ~/ 2, raster.height ~/ 2).a, 0, reason: 'область має бути прозорою');
+    expect(raster.getPixel(8, 8).a, greaterThan(0), reason: 'фон поза областю має бути видимим');
+    expect(backdrop.extent.southWest.latitude, lessThan(49));
+    expect(backdrop.extent.southWest.longitude, lessThan(23));
+    expect(backdrop.extent.northEast.latitude, greaterThan(50.5));
+    expect(backdrop.extent.northEast.longitude, greaterThan(25));
   });
 
   testWidgets('маркер тук-тука картинкою для карти — PNG (публічний і приватний)', (tester) async {

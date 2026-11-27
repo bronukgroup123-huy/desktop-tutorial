@@ -253,3 +253,24 @@ intentionally excluded from dependency pull requests; their scheduled/manual sem
 The decorative layer uses only bundled offline assets, has no hit target, is below the region border and
 functional overlays, and disappears above zoom 9.5. Failure to decode a decorative asset is isolated and
 does not block map loading or expose coordinates.
+
+### UI-005 physical-device follow-up — 2026-11-27, PR #176
+
+The owner installed the APK built after #174 and confirmed that the backdrop was not visible. The first
+implementation relied on offline basemap detail outside the Home Region, but those tiles did not provide
+the expected texture; its symbol layer could also lose mushroom icons to MapLibre collision placement.
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | Pass, no issues |
+| `flutter test` | Pass, 430/430 |
+| Basemap style + region camera focused tests | Pass, 13/13 |
+| Generated PNG regression | Pass: 768×768, under 512 KiB, transparent region centre, opaque backdrop outside |
+| Camera regression | `regionPadding`, `fitRegion` and the map viewport remain unchanged |
+| `git diff --check` | Pass |
+| Physical-device verification of #176 | Pending CI APK |
+
+The replacement is a bundled offline SVG rendered once per style load to a roughly 2.3 MiB raw GPU
+texture. A Web Mercator cutout preserves the live map inside the exact region geometry; the raster has no
+hit target, stays below functional overlays and is not shown above zoom 9.5. Decoding failure falls back to
+the existing sage mask without blocking the map.
