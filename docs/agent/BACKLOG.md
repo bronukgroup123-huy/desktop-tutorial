@@ -187,6 +187,16 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Screenshot harness `tool/screens/gallery_test.dart` now also shoots the analysis result and full-height
   long screens.
 
+### UI-005 — quiet forest backdrop around the region map (owner: Codex; direct owner request)
+- Goal: reduce the impression of empty white space outside the Home Region without enlarging or moving
+  the region, while keeping the functional map as the clear focus.
+- Scope: pale sage MapLibre mask that lets the existing offline forests and roads show through; up to six
+  small, non-interactive offline mushroom decorations outside the region only, hidden above zoom 9.5.
+- Status: in review — PR #174, code commit `accc8b8` (2026-11-27).
+- Verified: camera fitting and `regionPadding` are unchanged; style/geometry regression tests pass;
+  `flutter analyze` clean; full `flutter test` 429/429.
+- Residual: MapLibre is a native platform view and needs a visual balance check on a real Android device.
+
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
   hotspots. Device measurements need the owner (BLK-010).

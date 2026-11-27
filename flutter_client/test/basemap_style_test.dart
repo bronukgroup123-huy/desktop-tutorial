@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:flutter_client/data/models/geo.dart';
 import 'package:flutter_client/features/map/basemap_style.dart';
+import 'package:flutter_client/features/map/map_backdrop.dart';
 import 'package:flutter_client/features/picks/mushroom_marker.dart';
 
 void main() {
@@ -63,8 +64,30 @@ void main() {
     final rings = (mask['geometry'] as Map)['coordinates'] as List;
     expect(rings.length, 2);
     expect((rings[1] as List).first, [23.0, 49.0]);
-    for (final id in [MapSources.areas, MapSources.analysis, MapSources.picks, MapSources.forestPin]) {
+    for (final id in [MapSources.backdropMushrooms, MapSources.areas, MapSources.analysis, MapSources.picks, MapSources.forestPin]) {
       expect((style['sources'] as Map)[id]['type'], 'geojson');
+    }
+  });
+
+  test('лісовий фон тихий: карта не масштабується, декор малий і лише поза областю', () {
+    final maskPaint = layer('app_mask')['paint'] as Map;
+    expect(maskPaint['fill-color'], '#e4ead9');
+    expect(maskPaint['fill-opacity'], 0.72);
+
+    final mushrooms = layer(MapSources.backdropMushrooms);
+    expect(mushrooms['maxzoom'], 9.5);
+    expect((mushrooms['layout'] as Map)['icon-size'], 0.72);
+    expect((mushrooms['paint'] as Map)['icon-opacity'], 0.48);
+    expect(index('app_mask'), lessThan(index(MapSources.backdropMushrooms)));
+    expect(index(MapSources.backdropMushrooms), lessThan(index('app_region_border')));
+
+    final data = (style['sources'] as Map)[MapSources.backdropMushrooms]['data'] as Map;
+    final features = data['features'] as List;
+    expect(features, hasLength(mapBackdropMushroomAssets.length));
+    for (final feature in features.cast<Map>()) {
+      final coordinates = (feature['geometry'] as Map)['coordinates'] as List;
+      final point = LatLng(coordinates[1] as double, coordinates[0] as double);
+      expect(point.latitude < 49 || point.latitude > 50.5 || point.longitude < 23 || point.longitude > 25, isTrue);
     }
   });
 
