@@ -12,6 +12,8 @@
 //   → 200 { data: { id, visibility, status_label, marker_color, description } }
 // DELETE v1-picks/{id}            — видалити свою точку (soft delete, B3.4) → 200 { data: { deleted: true } }
 // GET  v1-picks/species           — список видів для вибору назви (`picks-map.ts`)
+// POST v1-picks/{id}/shares · DELETE v1-picks/{id}/shares[/{friend_id}] · GET v1-picks/shared
+//                                  — поділитися приватною точкою з другом (B9.4, `pick-shares.ts`)
 //
 // Потік клієнта: (1) upload-url → (2) PUT файлу за upload_url → (3) створення точки.
 // Фото ніколи не передається як base64. `client_id` — ключ ідемпотентності обох кроків.
@@ -49,6 +51,7 @@ import {
 import { type PickPresentation, pickPresentation } from "../picks/presentation.ts";
 import { cleanDescription, DESCRIPTION_MAX_LENGTH } from "../picks/text.ts";
 import { handlePickCard, handlePickSpecies, handlePicksMap } from "./picks-map.ts";
+import { listSharedWithMe, revokeShare, sharePick } from "./pick-shares.ts";
 
 export { type PickPresentation, pickPresentation };
 
@@ -674,7 +677,9 @@ export type PicksRoute =
   | { kind: "upload-url" }
   | { kind: "map" }
   | { kind: "species" }
-  | { kind: "card"; id: string };
+  | { kind: "card"; id: string }
+  | { kind: "shares"; id: string; friendId: string | null }
+  | { kind: "shared" };
 
 // ─── Зміна й видалення своєї точки (B3.4) ──────────────────────────────────
 
@@ -751,9 +756,15 @@ async function deletePick(req: Request, pickId: string, user: AuthUser, deps: Pi
 }
 
 export function parsePicksRoute(url: URL): PicksRoute {
-  const m = url.pathname.match(/\/v1-picks(\/[^/]*)?\/?$/);
-  const tail = m ? (m[1] ?? "").replace(/^\//, "") : null;
+  const m = url.pathname.match(/\/v1-picks((?:\/[^/]+){0,3})\/?$/);
+  const parts = m ? m[1].split("/").filter(Boolean) : null;
+  if (parts && parts.length >= 2 && UUID_RE.test(parts[0]) && parts[1] === "shares") {
+    if (parts.length === 2) return { kind: "shares", id: parts[0].toLowerCase(), friendId: null };
+    if (UUID_RE.test(parts[2])) return { kind: "shares", id: parts[0].toLowerCase(), friendId: parts[2].toLowerCase() };
+  }
+  const tail = parts && parts.length <= 1 ? (parts[0] ?? "") : null;
   if (tail === "") return { kind: "create" };
+  if (tail === "shared") return { kind: "shared" };
   if (tail === "upload-url") return { kind: "upload-url" };
   if (tail === "map") return { kind: "map" };
   if (tail === "species") return { kind: "species" };
@@ -764,8 +775,17 @@ export function parsePicksRoute(url: URL): PicksRoute {
 export async function handlePicks(req: Request, deps: PicksDeps): Promise<Response> {
   const url = new URL(req.url);
   const route = parsePicksRoute(url);
-  const reads = route.kind === "map" || route.kind === "species";
-  assertMethod(req, route.kind === "card" ? ["GET", "PATCH", "DELETE"] : reads ? ["GET"] : ["POST"]);
+  const reads = route.kind === "map" || route.kind === "species" || route.kind === "shared";
+  assertMethod(
+    req,
+    route.kind === "card"
+      ? ["GET", "PATCH", "DELETE"]
+      : route.kind === "shares"
+      ? (route.friendId ? ["DELETE"] : ["POST", "DELETE"])
+      : reads
+      ? ["GET"]
+      : ["POST"],
+  );
   // deno-lint-ignore no-explicit-any
   await enforceRateLimit(deps.db as any, req, "v1-picks");
   const user = await requireUser(req, deps.verify);
@@ -784,5 +804,10 @@ export async function handlePicks(req: Request, deps: PicksDeps): Promise<Respon
       if (req.method === "PATCH") return await updatePick(req, route.id, user, deps);
       if (req.method === "DELETE") return await deletePick(req, route.id, user, deps);
       return await handlePickCard(req, route.id, user, deps);
+    case "shares":
+      if (req.method === "POST") return await sharePick(req, route.id, user, deps);
+      return await revokeShare(req, route.id, route.friendId, user, deps);
+    case "shared":
+      return await listSharedWithMe(req, user, deps);
   }
 }

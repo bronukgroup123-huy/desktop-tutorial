@@ -253,20 +253,22 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B3.11 — «Знайшли?» feedback after a trip (owner: Claude)
 - Done — #155 merged and deployed 2026-11-26.
 ### B3.8 — confirmation of a public pick by a reply find, per ADR-019 §19.5 (owner: Claude)
-- B3.8a server — #157 merged and deployed 2026-11-26.
-- B3.8b app («Я теж знайшов тут») + mock-location check (owner request) — in review, #163.
+- Done — B3.8a #157, B3.8b #163 merged and deployed 2026-11-26.
 ### B3.12 — reports on picks (owner: Claude)
 - Goal: `pick_reports`, re-check, −50 on a confirmed report. Status: ready after #163 (needs owner policy on who
   reviews reports — moderation is not defined yet; record in BLOCKERS before work if still open).
 ### B3.10 — knowledge tests → certificate (owner: Claude)
 - Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels.
-  Status: blocked_owner — owner (2026-11-26): discuss and design in detail before any work (BLK-013).
+  Status: in progress — designed with the owner (ADR-023, 2026-11-26): #166 server, #168/#170 module 1, #169
+  «Навчання» screen merged; #171 (15 questions, 3 per topic) in review. Next: modules 2–7, one at a time, each
+  read by the owner before publishing.
 ### B6.1 — copy of own data (owner: Claude)
 - Done — #154 (owner: no app button; SQL for support requests). Follow-up with B3.11/B3.8 data — in review, #164.
 ### B2.4 — «poisonous never» in the forecast (owner: Claude)
 - Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
-- Status: ready (gifts are announced in the profile as «скоро»).
+- B9.4a server — in review (claude/b9-4a-point-shares). B9.4b app — ready after B9.4a.
+- B9.5 / B9.6 — ready (gifts are announced in the profile as «скоро»).
 ### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)
 - Status: ready (lower priority).
 ### B8 — trips (owner: Claude)

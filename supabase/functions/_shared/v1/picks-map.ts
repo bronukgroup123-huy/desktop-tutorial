@@ -19,6 +19,7 @@
 import { type AuthUser, HttpError, loadHomeRegionId, ok, requireHomeRegion } from "../http.ts";
 import { pickPresentation, speciesLabel, UNKNOWN_SPECIES_LABEL } from "../picks/presentation.ts";
 import type { PicksDeps } from "./picks.ts";
+import { sharedFromLabel, sharedWithLabel } from "./pick-shares.ts";
 
 /** Максимум точок в одній відповіді; якщо їх більше — `truncated: true`. */
 export const MAP_LIMIT = 500;
@@ -76,21 +77,25 @@ interface MapRow {
   verification_status: string;
   species_id: string | null;
   name_ua: string | null;
+  /** Нік автора, якщо цю приватну точку поширили мені (B9.4); інакше null. */
+  shared_from?: string | null;
 }
 
-/** Точка карти: готові підпис і колір; `is_exact` — тільки для власних точок. */
+/** Точка карти: готові підпис і колір; `is_exact` — для власних і поширених мені (B9.4) точок. */
 export function shapeMapPoint(row: MapRow): Record<string, unknown> {
   const mine = row.is_mine === true;
+  const shared = !mine && row.shared_from !== undefined && row.shared_from !== null;
   return {
     id: row.id,
     lat: row.lat,
     lng: row.lng,
-    is_exact: mine,
+    is_exact: mine || shared,
     is_mine: mine,
     visibility: row.pick_type,
     species_id: row.species_id ?? null,
     name_label: speciesLabel(row.name_ua),
     ...pickPresentation(row.pick_type, row.verification_status),
+    shared_from_label: shared ? sharedFromLabel(row.shared_from) : null,
   };
 }
 
@@ -171,6 +176,7 @@ interface CardRow extends MapRow {
   confirmations?: number | null;
   last_confirmed_at?: string | null;
   confirmed_by_me?: boolean | null;
+  shared_with?: { user_id: string; handle: string | null; avatar: unknown; active?: boolean }[] | null;
 }
 
 /** «Підтвердили N грибників, останнє — <дата>» (ADR-019 §19.5 п.5); без підтверджень — null. */
@@ -189,8 +195,10 @@ export function confirmedLabel(count: number, lastIso: string | null | undefined
  */
 export function ownPickActions(row: { pick_type: string; species_id: string | null }): string[] {
   const visibility = row.pick_type === "public" ? ["make_private"] : row.species_id ? ["make_public"] : [];
+  // «Поділитися з другом» — лише приватна (публічну й так бачать усі; B9.4)
+  const share = row.pick_type === "private" ? ["share"] : [];
   // «Відкрити в Google Картах» — своє місце в звичній карті (маршрут, збереження); замість файлу-експорту (B6.1)
-  return ["open_in_maps", ...visibility, "edit_description", "delete"];
+  return ["open_in_maps", ...share, ...visibility, "edit_description", "delete"];
 }
 
 /**
@@ -199,6 +207,8 @@ export function ownPickActions(row: { pick_type: string; species_id: string | nu
  * точку ще не підтвердив і має спроби. Збій перевірки — кнопки просто немає.
  */
 async function foreignPickActions(deps: PicksDeps, user: AuthUser, row: CardRow): Promise<string[]> {
+  // Поширена мені точка: лише відкрити в картах; переслати далі не можна (ADR-021 §21.5).
+  if (row.shared_from !== undefined && row.shared_from !== null) return ["open_in_maps"];
   if (user.isAnonymous || row.pick_type !== "public" || row.confirmed_by_me === true) return [];
   try {
     const [confirm, create] = await Promise.all([
@@ -261,5 +271,12 @@ export async function handlePickCard(
     // Що можна зробити: автор — зі своєю точкою (B3.4); інший — «Я теж знайшов тут» (B3.8b), якщо сервер
     // дозволяє (рівень, тижневий ліміт, спроби); «Поскаржитися» на чужу — B3.12.
     actions: mine ? ownPickActions(row) : await foreignPickActions(deps, user, row),
+    // З ким автор поділився своєю приватною точкою (B9.4) — лише автору.
+    ...(mine && row.pick_type === "private"
+      ? {
+        shared_with: (row.shared_with ?? []).map((s) => ({ user_id: s.user_id, handle: s.handle, avatar: s.avatar ?? null })),
+        shared_with_label: sharedWithLabel((row.shared_with ?? []).length),
+      }
+      : {}),
   }, req);
 }

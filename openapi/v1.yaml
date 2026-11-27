@@ -380,6 +380,111 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
+  /v1-picks/shared:
+    get:
+      operationId: listSharedPicks
+      summary: Точки, якими поділилися зі мною друзі (B9.4)
+      description: |
+        Приватні точки друзів, якими вони поділилися з вами (ADR-021 §21.5): точне місце, вид, «Від @нік».
+        Список не обмежений вашою областю. Зникає, якщо друг відкликав доступ, видалив точку, зробив її
+        публічною або ви більше не друзі.
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [picks]
+                    properties:
+                      picks:
+                        type: array
+                        items: { $ref: '#/components/schemas/SharedPick' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /v1-picks/{id}/shares:
+    post:
+      operationId: sharePick
+      summary: Поділитися своєю приватною точкою з друзями (B9.4)
+      description: |
+        Лише власна приватна точка і лише з друзями (accepted). До 20 отримувачів на точку; повтор не дублює.
+        Публічну — `409 not_private`; не друг — `403 not_friend`; ліміт — `409 share_limit`; гість — `403
+        registration_required`; чужа точка — `404 pick_not_found`. Кінець дружби відкликає доступ назавжди.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [friend_ids]
+              properties:
+                friend_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Поширено
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [shared, recipients]
+                    properties:
+                      shared: { type: integer, description: Скільки нових отримувачів }
+                      recipients: { type: integer, description: Скільки друзів бачать точку зараз }
+                      label: { type: [string, 'null'], example: Бачать 2 друзі }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: revokePickShares
+      summary: Відкликати доступ у всіх друзів (B9.4)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/PickSharesRevoked' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /v1-picks/{id}/shares/{friend_id}:
+    delete:
+      operationId: revokePickShare
+      summary: Відкликати доступ в одного друга (B9.4)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: friend_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/PickSharesRevoked' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /v1-picks/{id}:
     get:
       operationId: getPickCard
@@ -1350,7 +1455,8 @@ components:
         terms_version_outdated, rate_limited (+ Retry-After), db_error, internal_error.
         Тук-тук (v1-picks): validation_error, photo_too_large, invalid_photo_format,
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
-        private_limit_reached, weekly_limit_reached, storage_error, invalid_mine, pick_not_found.
+        private_limit_reached, weekly_limit_reached, storage_error, invalid_mine, pick_not_found,
+        not_private, not_friend, share_limit (поширення, B9.4).
         Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
         forest_edit_limit_reached (+ Retry-After).
         Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,
@@ -1362,6 +1468,19 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
+    PickSharesRevoked:
+      description: Відкликано (B9.4)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                required: [revoked]
+                properties:
+                  revoked: { type: integer, description: Скільки поширень відкликано }
 
   schemas:
     Error:
@@ -1598,13 +1717,39 @@ components:
         id: { type: string, format: uuid }
         lat: { type: number, description: Своя точка — точна широта; чужа — зсунута }
         lng: { type: number }
-        is_exact: { type: boolean, description: true лише для власних точок }
+        is_exact: { type: boolean, description: true для власних точок і тих, якими поділився друг (B9.4) }
         is_mine: { type: boolean }
         visibility: { type: string, enum: [private, public] }
         species_id: { type: [string, 'null'] }
         name_label: { type: string, example: Білий гриб, description: 'Назва виду або «Не знаю, що це»' }
         status_label: { type: string, example: Перевіряється }
         marker_color: { type: string, pattern: '^#[0-9a-f]{6}$', example: '#9e9e9e' }
+        shared_from_label:
+          type: [string, 'null']
+          example: Від @Олена
+          description: Приватна точка друга, якою він поділився з вами (B9.4, ADR-021 §21.5); інакше null
+
+    PickShareRecipient:
+      type: object
+      required: [user_id, handle]
+      properties:
+        user_id: { type: string, format: uuid }
+        handle: { type: [string, 'null'] }
+        avatar: { type: [object, 'null'], additionalProperties: true }
+
+    SharedPick:
+      type: object
+      description: Точка, якою з вами поділився друг (B9.4). Місце — точне.
+      required: [id, lat, lng, is_exact, name_label, shared_from_label]
+      properties:
+        id: { type: string, format: uuid }
+        lat: { type: number }
+        lng: { type: number }
+        is_exact: { type: boolean, const: true }
+        species_id: { type: [string, 'null'] }
+        name_label: { type: string, example: Білий гриб }
+        shared_from_label: { type: string, example: Від @Олена }
+        date_label: { type: [string, 'null'], description: Коли поділилися }
 
     PickCard:
       allOf:
@@ -1638,9 +1783,16 @@ components:
               description: |
                 Дозволені дії; клієнт показує лише їх. Своя точка (B3.4): `open_in_maps` (відкрити точне місце в
                 Google Картах — замість файлу-експорту), `make_public` (приватна з видом),
-                `make_private` (публічна), `edit_description`, `delete`. Чужа публічна — `reply_found` («Я теж знайшов тут»,
-                B3.8b), лише якщо сервер дозволяє: акаунт, публічні дозволені (рівень, ліміт), ще не підтверджено, є спроби.
-              items: { type: string, enum: [reply_found, open_in_maps, make_public, make_private, edit_description, delete] }
+                `make_private` (публічна), `edit_description`, `delete`, `share` (поділитися приватною з друзями, B9.4).
+                Чужа публічна — `reply_found` («Я теж знайшов тут», B3.8b), лише якщо сервер дозволяє: акаунт, публічні
+                дозволені (рівень, ліміт), ще не підтверджено, є спроби. Поширена вам точка друга — лише `open_in_maps`
+                (переслати далі не можна).
+              items: { type: string, enum: [reply_found, open_in_maps, share, make_public, make_private, edit_description, delete] }
+            shared_with:
+              type: array
+              description: Лише у власній приватній точці — з ким ви нею поділилися (B9.4)
+              items: { $ref: '#/components/schemas/PickShareRecipient' }
+            shared_with_label: { type: [string, 'null'], example: Бачать 2 друзі }
 
     AnalysisUsage:
       type: object
