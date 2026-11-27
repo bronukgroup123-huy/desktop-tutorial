@@ -151,7 +151,22 @@ void main() {
     expect(passportSticker("М'якоть", 'жовтувата, щільна'), isNull);
     // решта рядків — без стікера (лишається схема чи значок)
     expect(passportSticker('Шапка', 'Велика, м\'ясиста'), isNull);
-    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), isNull);
+    expect(passportSticker('Споровий порошок', 'Жовтуватий.'), isNull); // жовтого стікера ще немає
+    // зріз темніє, молочний сік, відбиток спор, запах, смак, місце, ключова ознака
+    expect(passportSticker("М'якоть", 'Щільна, біла, на зрізі швидко темніє до синювато-чорної.'), 'flesh_dark');
+    expect(passportSticker("М'якоть", 'Біла, під шкіркою темніша, при розрізуванні трохи синіє.'), 'flesh_blue');
+    expect(passportSticker("М'якоть", 'біла, на зрізі рожевіє, потім сіріє і чорніє.'), 'flesh_red');
+    expect(passportSticker("М'якоть", 'Біла, крихка. На зламі виділяє білий пекучий молочний сік.'), 'milk');
+    expect(passportSticker('Молочний сік', 'Білий, пекучо-їдкий.'), 'milk');
+    expect(passportSticker('Споровий порошок', 'Оливково-коричневий.'), 'spores_brown');
+    expect(passportSticker('Спорова маса', 'темно-коричнева, порошиста'), isNull);
+    expect(passportSticker('Запах', 'Приємний, грибний.'), 'smell');
+    expect(passportSticker('Смак', 'Дуже пекучий.'), 'taste');
+    expect(passportSticker('Ключова ознака', 'оливково-зелений капелюх'), 'key_feature');
+    expect(passportSticker('Головне правило', 'у їжовика низ шипастий'), 'key_feature');
+    expect(passportSticker('Місце зростання', 'на гнилій деревині листяних порід, часто на пеньках.'), 'place_wood');
+    expect(passportSticker('Місце зростання', 'на луках, пасовищах, узліссях, часто групами.'), 'place_meadow');
+    expect(passportSticker('Місце зростання', 'на ґрунті в лісах і на луках.'), 'place_tree');
   });
 
   test('Паспорт: білі пластинки — стікер висвітлено, щоб не суперечив тексту', () {

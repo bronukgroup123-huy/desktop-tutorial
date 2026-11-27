@@ -491,9 +491,44 @@ const passportStickers = <String, String>{
   'flesh_white': 'Зріз не змінює кольору',
   'flesh_blue': 'Зріз синіє',
   'flesh_red': 'Зріз червоніє',
+  'flesh_dark': 'Зріз темніє',
+  'milk': 'Молочний сік на зламі',
+  'spores_brown': 'Коричневий відбиток спор',
+  'smell': 'Понюхати гриб',
+  'taste': 'Смак — лише кінчиком язика, не ковтати',
+  'place_tree': 'Росте під деревами',
+  'place_wood': 'Росте на пні, деревині',
+  'place_meadow': 'Росте на луках, галявинах',
+  'key_feature': 'Ключова ознака',
 };
 
 String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
+
+/// Найраніша незаперечена згадка в тексті: позиція або `null`.
+int? _firstMention(String text, RegExp feature) {
+  var offset = 0;
+  final lower = text.toLowerCase();
+  for (final clause in lower.split(_clauseSplit)) {
+    final m = feature.firstMatch(clause);
+    if (m != null && !_negation.hasMatch(clause)) return offset + m.start;
+    offset += clause.length + 1;
+  }
+  return null;
+}
+
+/// З кількох ознак — та, що згадана в тексті першою («темніє до синювато-чорної» → темніє).
+String? _earliest(String text, Map<String, RegExp> options) {
+  String? best;
+  int? at;
+  options.forEach((name, re) {
+    final pos = _firstMention(text, re);
+    if (pos != null && (at == null || pos < at!)) {
+      at = pos;
+      best = name;
+    }
+  });
+  return best;
+}
 
 /// Частини речення, в яких ознаку не заперечено («без кільця», «Кільця немає», «не синіє» — не рахуються).
 final _clauseSplit = RegExp(r'[.;,()!—]');
@@ -512,6 +547,12 @@ final _net = RegExp(r'сіточк|сітк|сітчаст');
 final _scales = RegExp(r'лусочк|луск[аи]м'); // «лусочками», «лусками»; «луската» — ні (зеленушка)
 final _blue = RegExp(r'сині|синю|посин|блакит');
 final _red = RegExp(r'червоні|рожеві|порожев|почервон');
+final _dark = RegExp(r'темніє|темніють|чорніє|чорніють|потемні|почорні|сіріє'); // дієслова: «темніша» — ні
+final _milk = RegExp(r'молочн|млечн');
+final _brownSpores = RegExp(r'коричн|бур[иі]й|бура|іржав');
+final _placeWood = RegExp(r'пн[іяе]|пень|пеньк|стовбур|деревин|гілк|колод');
+final _placeMeadow = RegExp(r'лук|пасовищ|галявин|газон|пол[ея]|степ|узбіч|сад');
+final _placeTree = RegExp(r'ліс|під берез|під сосн|під дуб|під ялин|під осик|дерев|бор');
 final _noChange = RegExp(r'не змін|не синіє|не червоніє|не рожевіє|не темніє');
 
 /// Який мальований стікер показати біля ознаки «[key]: [value]» — або `null` (лишається схема).
@@ -548,10 +589,22 @@ String? passportSticker(String key, String value) {
   }
   if (g.part == 'ring') return _mentions(v, _ring) || !_negation.hasMatch(v) ? 'stem_ring' : null;
   if (g.part == 'flesh') {
-    if (_mentions(v, _blue)) return 'flesh_blue';
-    if (_mentions(v, _red)) return 'flesh_red';
+    if (_mentions(v, _milk)) return 'milk';
+    final change = _earliest(v, {'flesh_blue': _blue, 'flesh_red': _red, 'flesh_dark': _dark});
+    if (change != null) return change;
     if (_noChange.hasMatch(v) || RegExp(r'^\s*(сніжно-)?біл').hasMatch(v)) return 'flesh_white';
     return null;
+  }
+  if (k.startsWith('молочний сік')) return 'milk';
+  // Відбиток спор — лише «Споровий порошок» (не «Спорова маса» дощовика чи мікроскопія спор)
+  if (k.contains('спор')) return k.contains('порошок') && _mentions(v, _brownSpores) ? 'spores_brown' : null;
+  if (k.startsWith('запах')) return 'smell';
+  if (k.startsWith('смак')) return 'taste';
+  if (k.startsWith('ключова ознака') || k.startsWith('головне правило') || k.startsWith('головна ознака')) {
+    return 'key_feature';
+  }
+  if (k.contains('місце') || k.contains('росте')) {
+    return _earliest(v, {'place_wood': _placeWood, 'place_meadow': _placeMeadow, 'place_tree': _placeTree});
   }
   return null;
 }
