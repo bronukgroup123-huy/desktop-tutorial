@@ -280,10 +280,11 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B2.4 — «poisonous never» in the forecast (owner: Claude)
 - Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
-- B9.4a server — done (#172, deployed). B9.4b app — in review (claude/b9-4b-share-app).
+- Done — B9.4a #172, B9.4b #175 merged and deployed.
 - B9.5 / B9.6 — ready (gifts are announced in the profile as «скоро»).
 ### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)
-- Status: ready (lower priority).
+- B3.5a heatmap server — in review (claude/b3-5a-heatmap). B3.5b map layer — ready after B3.5a. Pro part waits for B6.3.
+- B2.5 forest summary sheet — ready (lower priority).
 ### B8 — trips (owner: Claude)
 - Status: needs owner scope confirmation before work (largest block).
 ### B3.0b — clean up unfinished photo uploads (owner: Codex)

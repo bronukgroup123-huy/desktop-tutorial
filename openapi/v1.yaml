@@ -675,6 +675,58 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /v1-heatmap:
+    get:
+      operationId: getHeatmap
+      summary: Теплова карта знахідок (B3.5, ADR-010)
+      description: |
+        Клітинки ≈ 1 км, де за період знайшли щонайменше 5 підтверджених публічних точок від щонайменше 2 авторів.
+        Кількість не віддається — лише рівень 1–3 (5–9 / 10–19 / 20+); точні координати лишаються на сервері.
+        Доступ: з рівня «Лісовик» — своя область, 3 дні; «Хранитель лісу» — своя й сусідні; «Грибний Майстер» або
+        Pro — уся Україна, 3/7/30 днів. Нижче «Лісовика» — `403 level_required`; період чи область понад дозволене —
+        `403 pro_required`; без області — `409 home_region_required`; гість — `403 registration_required`.
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [3d, 7d, 30d], default: 3d }
+        - name: bbox
+          in: query
+          description: minLng,minLat,maxLng,maxLat — обрізати видиму частину карти
+          schema: { type: string }
+      responses:
+        '200':
+          description: Клітинки
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [cells, cell_lat, cell_lng, period_days, scope, can_change_period, legend_label]
+                    properties:
+                      cells:
+                        type: array
+                        items:
+                          type: object
+                          required: [lat, lng, level]
+                          properties:
+                            lat: { type: number, description: Центр клітинки }
+                            lng: { type: number }
+                            level: { type: integer, minimum: 1, maximum: 3 }
+                      cell_lat: { type: number, description: Висота клітинки, градуси }
+                      cell_lng: { type: number, description: Ширина клітинки, градуси }
+                      period_days: { type: integer, enum: [3, 7, 30] }
+                      scope: { type: string, enum: [home, neighbours, ukraine] }
+                      scope_label: { type: [string, 'null'], example: Ваша область }
+                      can_change_period: { type: boolean, description: Чи доступні 7 і 30 днів }
+                      legend_label: { type: string }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /v1-quiz:
     get:
       operationId: getQuizOverview
@@ -1457,6 +1509,7 @@ components:
         photo_not_uploaded, forbidden, species_required, unknown_species, level_required,
         private_limit_reached, weekly_limit_reached, storage_error, invalid_mine, pick_not_found,
         not_private, not_friend, share_limit (поширення, B9.4).
+        Теплова карта (v1-heatmap): level_required, pro_required, bbox_too_large, invalid_bbox.
         Аналіз (v1-analysis): pro_required, analysis_limit_reached (+ Retry-After), area_limit_reached,
         forest_edit_limit_reached (+ Retry-After).
         Друзі (v1-friends): profile_required, invalid_action, invalid_user_id, invalid_reason,

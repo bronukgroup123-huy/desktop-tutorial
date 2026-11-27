@@ -548,3 +548,15 @@ See docs/agent/BLOCKERS.md.
   OpenAPI model contract — valid. Server unchanged.
 - Next: module 3 «Погода, сезони, хвилі» after the owner reads module 2; B3.12 still needs the moderation policy.
 
+## 2026-11-27 08:35 UTC — scheduled run: B3.5a heatmap server (Claude)
+- Sync: owner merged #175 (B9.4b), Codex #174/#176 (UI-005 map backdrop). Open agent PR #177 (passport stickers,
+  owner's art) — all checks green, mergeable. No red CI to fix.
+- Branch claude/b3-5a-heatmap: migration 20261128150000 — `heatmap_cells` (SECURITY DEFINER, service_role only):
+  verified public picks, ≈1 km grid, cell shown only with ≥ 5 points from ≥ 2 authors (stricter than the plan's ≥ 5:
+  one person's five spots must not be revealed), level 1–3 instead of counts; access per ADR-010/013 — Лісовик own
+  region 3 days, Хранитель + neighbouring regions, Майстер/Pro all Ukraine 3/7/30 days; Pro is a stub until B6.3.
+  New function v1-heatmap (auth matrix: user_jwt, rate limit 30), OpenAPI path.
+- Checks: local DB — 29 SQL test files passed (new heatmap.sql); Deno — 577 passed, `deno check` clean; auth matrix and
+  OpenAPI model contract scripts pass. Flutter unchanged.
+- Next: B3.5b map layer (Flutter) after this PR; module 3 quiz content when the owner asks.
+

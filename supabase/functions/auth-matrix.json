@@ -9,6 +9,7 @@
     "v1-friends": "user_jwt",
     "v1-guardian": "user_jwt",
     "v1-guardian-tick": "service_role",
+    "v1-heatmap": "user_jwt",
     "v1-me": "user_jwt",
     "v1-picks": "user_jwt",
     "v1-quiz": "user_jwt",
