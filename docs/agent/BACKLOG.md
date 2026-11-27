@@ -190,12 +190,15 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 ### UI-005 — quiet forest backdrop around the region map (owner: Codex; direct owner request)
 - Goal: reduce the impression of empty white space outside the Home Region without enlarging or moving
   the region, while keeping the functional map as the clear focus.
-- Scope: pale sage MapLibre mask that lets the existing offline forests and roads show through; up to six
-  small, non-interactive offline mushroom decorations outside the region only, hidden above zoom 9.5.
-- Status: in review — PR #174, code commit `accc8b8` (2026-11-27).
-- Verified: camera fitting and `regionPadding` are unchanged; style/geometry regression tests pass;
-  `flutter analyze` clean; full `flutter test` 429/429.
-- Residual: MapLibre is a native platform view and needs a visual balance check on a real Android device.
+- Finding: the #174 implementation was visually absent on a physical Android device because it depended
+  on PMTiles detail outside the region, where no useful texture was available; symbol collision could also
+  hide the decorative mushrooms.
+- Scope: a bundled pale forest-map raster with small non-interactive mushrooms and a transparent Web
+  Mercator cutout for the Home Region; hidden above zoom 9.5, with a sage fallback if decoding fails.
+- Status: follow-up in review — PR #176, code commit `a8ebc02` (2026-11-27); #174 is merged but superseded.
+- Verified: camera fitting and `regionPadding` are unchanged; the real generated PNG has a transparent
+  region and visible outer pixels; `flutter analyze` clean; full `flutter test` 430/430.
+- Residual: confirm visual balance on a physical Android device using the APK produced by PR #176 CI.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven

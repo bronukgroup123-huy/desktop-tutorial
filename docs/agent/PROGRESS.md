@@ -522,16 +522,18 @@ See docs/agent/BLOCKERS.md.
 ## 2026-11-27 — UI-005: quiet forest backdrop around the region map (Codex)
 - Owner request: keep the region map at exactly the current size, slightly reduce the empty surrounding
   space, use the first pale forest-map concept and make its mushrooms smaller.
-- Branch / code commit / PR: `codex/ui-map-forest-backdrop` / `accc8b8` / #174.
-- Done: changed only the outside-region presentation. The pale sage mask now reveals a restrained amount
-  of the existing offline forests and roads; six ~17 logical px offline mushroom cutouts are placed only
-  outside the region, are not tappable, and disappear above zoom 9.5. Decorative loading fails open without
-  affecting map data, picks or controls.
+- Initial PR: `codex/ui-map-forest-backdrop` / `accc8b8` / #174 (merged). Physical Android verification
+  after reinstall showed no visible backdrop: the implementation depended on PMTiles outside the region,
+  where no useful texture was present, and symbol collision could hide the mushroom decorations.
+- Follow-up: `codex/ui-005-backdrop-render-fix` / `a8ebc02` / #176. A bundled pale forest map with small
+  mushrooms is rendered to a 768×768 offline raster. A transparent Web Mercator cutout leaves the exact
+  Home Region and live map untouched; the raster is below the border and functional overlays, has no hit
+  target, disappears above zoom 9.5, and retains a sage fallback on decoding failure.
 - Preserved: `regionPadding`, `fitRegion`, camera bounds, private coordinates, map interactions and all
   server/API behavior are unchanged.
-- Checks: `flutter analyze` — no issues; focused basemap/camera tests — 12 passed; full `flutter test` —
-  429 passed; `git diff --check` — pass.
-- Residual: the MapLibre platform view cannot be rendered in Flutter unit tests; confirm the final visual
-  balance on a physical Android device after CI produces a build.
+- Checks: `flutter analyze` — no issues; focused basemap/camera tests — 13 passed; full `flutter test` —
+  430 passed; generated-PNG pixel/size regression — pass; `git diff --check` — pass.
+- Residual: install the APK produced by #176 CI and confirm final visual balance on a physical Android
+  device; Flutter unit tests cannot render the MapLibre native platform view.
 - Claude boundary: B9.4b remains Claude work after the merged B9.4a server part; this PR does not touch it.
 
