@@ -277,7 +277,7 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B2.4 — «poisonous never» in the forecast (owner: Claude)
 - Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
-- B9.4a server — in review (claude/b9-4a-point-shares). B9.4b app — ready after B9.4a.
+- B9.4a server — done (#172, deployed). B9.4b app — in review (claude/b9-4b-share-app).
 - B9.5 / B9.6 — ready (gifts are announced in the profile as «скоро»).
 ### B2.5 / B3.5 — forest summary sheet · heatmap (owner: Claude)
 - Status: ready (lower priority).

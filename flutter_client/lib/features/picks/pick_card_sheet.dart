@@ -145,11 +145,23 @@ class _PickCardContent extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         ForecastInfoCard(
-          icon: pick.isExact ? Icons.my_location_rounded : Icons.blur_circular_rounded,
-          text: pick.isExact
-              ? 'Це ваша точка — місце показано точно.'
-              : 'Місце показано приблизно: справжнє — у межах пів кілометра.',
+          key: pick.isShared ? const ValueKey('pick-shared-from') : null,
+          icon: pick.isShared
+              ? Icons.card_giftcard_rounded
+              : pick.isExact
+                  ? Icons.my_location_rounded
+                  : Icons.blur_circular_rounded,
+          text: pick.isShared
+              ? '${pick.sharedFromLabel!}. Друг поділився з вами точним місцем — переслати точку далі не можна.'
+              : pick.isMine
+                  ? 'Це ваша точка — місце показано точно.'
+                  : 'Місце показано приблизно: справжнє — у межах пів кілометра.',
         ),
+        // Своя приватна точка: з ким ви нею поділилися (B9.4) — можна прибрати будь-кого.
+        if (pick.isMine && card.sharedWith.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _SharedWithList(card: card),
+        ],
         if (card.disclaimerLabel != null) ...[
           const SizedBox(height: 8),
           ForecastInfoCard(
@@ -279,6 +291,23 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
     ref.invalidate(meProvider);
   }
 
+  Future<void> _share() async {
+    final already = {for (final r in widget.card.sharedWith) r.userId};
+    final chosen = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: AppTheme.backgroundColor,
+      builder: (_) => _FriendPicker(exclude: already),
+    );
+    if (chosen == null || chosen.isEmpty) return;
+    String? label;
+    await _run(() async {
+      label = await ref.read(picksRepositoryProvider).sharePick(_id, chosen);
+    }, chosen.length == 1 ? 'Поділилися з другом' : 'Поділилися з друзями');
+    if (label != null && mounted) showToast(context, label!);
+  }
+
   Future<void> _openInMaps() async {
     final p = widget.card.pick.point;
     var opened = false;
@@ -300,6 +329,14 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
           onPressed: _busy ? null : _replyFound,
           icon: const Icon(Icons.photo_camera_outlined),
           label: const Text('Я теж знайшов тут'),
+        ),
+      // Поділитися своєю приватною точкою з друзями (B9.4, ADR-021 §21.5).
+      if (actions.contains('share'))
+        FilledButton.icon(
+          key: const ValueKey('pick-share'),
+          onPressed: _busy ? null : _share,
+          icon: const Icon(Icons.card_giftcard_rounded),
+          label: const Text('Поділитися з другом'),
         ),
       // Своє місце — у звичній карті: прокласти маршрут, зберегти в Google (замість файлу-експорту, B6.1).
       if (actions.contains('open_in_maps'))
@@ -356,6 +393,158 @@ class _OwnPickActionsState extends ConsumerState<_OwnPickActions> {
       children: [
         for (final b in buttons) Padding(padding: const EdgeInsets.only(bottom: 8), child: b),
       ],
+    );
+  }
+}
+
+/// З ким автор поділився своєю приватною точкою; «Прибрати» відкликає доступ в одного друга.
+class _SharedWithList extends ConsumerStatefulWidget {
+  const _SharedWithList({required this.card});
+
+  final PickCard card;
+
+  @override
+  ConsumerState<_SharedWithList> createState() => _SharedWithListState();
+}
+
+class _SharedWithListState extends ConsumerState<_SharedWithList> {
+  String? _busyId;
+
+  Future<void> _revoke(PickShareRecipient r) async {
+    final id = widget.card.pick.id;
+    setState(() => _busyId = r.userId);
+    try {
+      await ref.read(picksRepositoryProvider).revokeShare(id, friendId: r.userId);
+      ref.invalidate(pickCardProvider(id));
+      if (mounted) showToast(context, '${r.label} більше не бачить цю точку');
+    } on ApiException catch (e) {
+      if (mounted) showToast(context, e.userMessage, isError: true);
+    } catch (_) {
+      if (mounted) showToast(context, 'Не вдалося. Перевірте інтернет і спробуйте ще раз.', isError: true);
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final card = widget.card;
+    return Container(
+      key: const ValueKey('pick-shared-with'),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 6),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(card.sharedWithLabel ?? 'Бачать друзі', style: AppTheme.sectionTitle),
+          for (final r in card.sharedWith)
+            Row(
+              children: [
+                const Icon(Icons.person_outline_rounded, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(r.label, overflow: TextOverflow.ellipsis)),
+                TextButton(
+                  key: ValueKey('pick-share-revoke-${r.userId}'),
+                  onPressed: _busyId == null ? () => _revoke(r) : null,
+                  child: const Text('Прибрати'),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Вибір друзів, з якими поділитися точкою. Тих, хто вже бачить точку, не показуємо.
+class _FriendPicker extends ConsumerStatefulWidget {
+  const _FriendPicker({required this.exclude});
+
+  final Set<String> exclude;
+
+  @override
+  ConsumerState<_FriendPicker> createState() => _FriendPickerState();
+}
+
+class _FriendPickerState extends ConsumerState<_FriendPicker> {
+  final _chosen = <String>{};
+  static const _max = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    final friends = ref.watch(friendsProvider);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: friends.when(
+          loading: () => const SizedBox(height: 160, child: Center(child: CircularProgressIndicator())),
+          error: (e, _) => SizedBox(
+            height: 160,
+            child: Center(child: Text(e is ApiException ? e.userMessage : 'Не вдалося завантажити друзів')),
+          ),
+          data: (o) {
+            final list = [for (final f in o.friends) if (!widget.exclude.contains(f.id)) f];
+            if (list.isEmpty) {
+              return SizedBox(
+                height: 160,
+                child: Center(
+                  key: const ValueKey('pick-share-no-friends'),
+                  child: Text(
+                    o.friends.isEmpty
+                        ? 'Поки немає друзів. Додайте їх у Профілі → «Друзі».'
+                        : 'Цю точку вже бачать усі ваші друзі.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Поділитися з друзями', style: AppTheme.blockTitle),
+                const SizedBox(height: 4),
+                Text(
+                  'Друзі побачать точне місце, фото й опис. Переслати точку далі вони не зможуть, '
+                  'а ви будь-коли можете прибрати доступ.',
+                  style: TextStyle(color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final f in list)
+                        CheckboxListTile(
+                          key: ValueKey('pick-share-friend-${f.id}'),
+                          value: _chosen.contains(f.id),
+                          onChanged: (v) => setState(() {
+                            if (v == true && _chosen.length < _max) {
+                              _chosen.add(f.id);
+                            } else {
+                              _chosen.remove(f.id);
+                            }
+                          }),
+                          title: Text('@${f.handle}'),
+                          subtitle: f.name == null ? null : Text(f.name!),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  key: const ValueKey('pick-share-send'),
+                  onPressed: _chosen.isEmpty ? null : () => Navigator.pop(context, _chosen.toList()),
+                  child: Text(_chosen.isEmpty ? 'Оберіть друзів' : 'Поділитися (${_chosen.length})'),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

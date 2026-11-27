@@ -633,14 +633,18 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
         };
 
   static String _iconName(MapPick p) =>
-      'pick-${p.markerColor.toARGB32()}-${p.visibility == PickVisibility.private ? 1 : 0}';
+      'pick-${p.markerColor.toARGB32()}-${p.isShared ? 2 : p.visibility == PickVisibility.private ? 1 : 0}';
 
   Future<Map<String, dynamic>> _picksGeoJson(List<MapPick> picks) async {
     final c = _ml!;
     for (final p in picks) {
       final name = _iconName(p);
       if (_icons.add(name)) {
-        final png = await mushroomMarkerPng(color: p.markerColor, isPrivate: p.visibility == PickVisibility.private);
+        final png = await mushroomMarkerPng(
+          color: p.markerColor,
+          isPrivate: p.visibility == PickVisibility.private,
+          isShared: p.isShared,
+        );
         await c.addImage(name, png, false, 3);
       }
     }

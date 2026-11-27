@@ -308,6 +308,11 @@ final pickCardProvider = FutureProvider.autoDispose.family<PickCard, String>(
   (ref, id) => ref.watch(picksRepositoryProvider).fetchCard(id),
 );
 
+/// Точки, якими з вами поділилися друзі (B9.4) — список у Профілі.
+final sharedPicksProvider = FutureProvider.autoDispose<List<SharedPick>>(
+  (ref) => ref.watch(picksRepositoryProvider).fetchShared(),
+);
+
 /// Довідник видів для вибору назви — завантажується один раз за сеанс.
 final pickSpeciesProvider = FutureProvider<SpeciesList>(
   (ref) => ref.watch(picksRepositoryProvider).fetchSpecies(),

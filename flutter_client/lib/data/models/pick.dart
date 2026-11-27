@@ -32,6 +32,7 @@ class MapPick {
     required this.nameLabel,
     required this.statusLabel,
     required this.markerColor,
+    this.sharedFromLabel,
   });
 
   factory MapPick.fromJson(Map<String, dynamic> json) => MapPick(
@@ -44,6 +45,7 @@ class MapPick {
         nameLabel: req<String>(json, 'name_label'),
         statusLabel: req<String>(json, 'status_label'),
         markerColor: parseHexColor(req<String>(json, 'marker_color')),
+        sharedFromLabel: opt<String>(json, 'shared_from_label'),
       );
 
   final String id;
@@ -55,6 +57,11 @@ class MapPick {
   final String nameLabel;
   final String statusLabel;
   final Color markerColor;
+
+  /// «Від @Олена» — приватна точка друга, якою він поділився з вами (B9.4); місце тоді точне.
+  final String? sharedFromLabel;
+
+  bool get isShared => sharedFromLabel != null;
 }
 
 /// Відповідь `GET /v1-picks/map`.
@@ -88,6 +95,8 @@ class PickCard {
     this.confirmedLabel,
     this.confirmedByMe = false,
     this.twinWarningLabel,
+    this.sharedWith = const [],
+    this.sharedWithLabel,
   });
 
   factory PickCard.fromJson(Map<String, dynamic> json) => PickCard(
@@ -100,7 +109,18 @@ class PickCard {
         confirmedLabel: opt<String>(json, 'confirmed_label'),
         confirmedByMe: json['confirmed_by_me'] == true,
         twinWarningLabel: opt<String>(json, 'twin_warning_label'),
+        sharedWith: [
+          for (final e in (opt<List<dynamic>>(json, 'shared_with') ?? const []).cast<Map<String, dynamic>>())
+            PickShareRecipient.fromJson(e),
+        ],
+        sharedWithLabel: opt<String>(json, 'shared_with_label'),
       );
+
+  /// З ким ви поділилися своєю приватною точкою (B9.4) — лише у власній картці.
+  final List<PickShareRecipient> sharedWith;
+
+  /// «Бачать 2 друзі».
+  final String? sharedWithLabel;
 
   /// «Підтвердили 2 грибники, останнє — 20 листопада» (B3.8); без підтверджень — `null`.
   final String? confirmedLabel;
@@ -123,6 +143,47 @@ class PickCard {
 
   /// Дозволені дії — клієнт показує лише їх.
   final List<String> actions;
+}
+
+/// Друг, з яким поділилися точкою (B9.4).
+class PickShareRecipient {
+  const PickShareRecipient({required this.userId, this.handle});
+
+  factory PickShareRecipient.fromJson(Map<String, dynamic> json) =>
+      PickShareRecipient(userId: req<String>(json, 'user_id'), handle: opt<String>(json, 'handle'));
+
+  final String userId;
+  final String? handle;
+
+  String get label => handle == null || handle!.isEmpty ? 'Друг' : '@$handle';
+}
+
+/// Точка, якою з вами поділився друг (`GET /v1-picks/shared`). Місце — точне.
+class SharedPick {
+  const SharedPick({
+    required this.id,
+    required this.point,
+    required this.nameLabel,
+    required this.sharedFromLabel,
+    this.speciesId,
+    this.dateLabel,
+  });
+
+  factory SharedPick.fromJson(Map<String, dynamic> json) => SharedPick(
+        id: req<String>(json, 'id'),
+        point: LatLng(toDouble(json['lat'], 'lat'), toDouble(json['lng'], 'lng')),
+        speciesId: opt<String>(json, 'species_id'),
+        nameLabel: req<String>(json, 'name_label'),
+        sharedFromLabel: req<String>(json, 'shared_from_label'),
+        dateLabel: opt<String>(json, 'date_label'),
+      );
+
+  final String id;
+  final LatLng point;
+  final String? speciesId;
+  final String nameLabel;
+  final String sharedFromLabel;
+  final String? dateLabel;
 }
 
 /// Вид із довідника для вибору назви тук-тука.

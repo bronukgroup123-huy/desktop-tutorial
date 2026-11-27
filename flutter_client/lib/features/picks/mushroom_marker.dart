@@ -110,6 +110,7 @@ class _MushroomPainter extends CustomPainter {
 Future<Uint8List> mushroomMarkerPng({
   required Color color,
   required bool isPrivate,
+  bool isShared = false,
   double size = 36,
   double pixelRatio = 3,
 }) async {
@@ -120,7 +121,8 @@ Future<Uint8List> mushroomMarkerPng({
     ..scale(pixelRatio)
     ..translate(pad, pad);
   _MushroomPainter(capColor: color).paint(canvas, Size(size, size));
-  if (isPrivate) {
+  // Приватна — замок; точка, якою поділився друг (B9.4), — подарунок.
+  if (isPrivate || isShared) {
     final r = size * 0.21;
     final c = Offset(size + 2 - r, size + 2 - r);
     canvas
@@ -132,7 +134,7 @@ Future<Uint8List> mushroomMarkerPng({
             ..color = color
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5);
-    const icon = Icons.lock_rounded;
+    final icon = isShared ? Icons.card_giftcard_rounded : Icons.lock_rounded;
     final tp = TextPainter(
       text: TextSpan(
         text: String.fromCharCode(icon.codePoint),
