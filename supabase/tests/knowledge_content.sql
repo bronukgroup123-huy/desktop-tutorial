@@ -64,3 +64,29 @@ BEGIN
   RAISE NOTICE 'OK модуль 1: 15 питань, по 3 з кожної теми';
 END $$;
 ROLLBACK;
+
+-- Модуль 2 «Ліс і гриб»: у спробі 15 питань, по 3 з кожної з 5 тем
+BEGIN;
+DO $$
+DECLARE r JSONB; u UUID := 'c2000000-0000-4000-8000-00000000c0c2'; bad INT;
+BEGIN
+  INSERT INTO auth.users (id, email, is_anonymous) VALUES (u, 'content2@test.local', true);
+  IF NOT (SELECT published FROM public.quiz_modules WHERE id = 'forest') THEN
+    RAISE EXCEPTION 'FAIL модуль 2 не опубліковано';
+  END IF;
+  -- гість тренується; модуль 2 відкривається після модуля 1, тому позначаємо модуль 1 пройденим
+  INSERT INTO public.quiz_results (user_id, module_id, best_percent, points_awarded)
+  VALUES (u, 'app', 100, 0);
+  r := public.quiz_start(u, true, 'forest', true);
+  IF r->>'ok' <> 'true' OR jsonb_array_length(r->'questions') <> 15 THEN
+    RAISE EXCEPTION 'FAIL модуль 2: спроба має 15 питань: %', r;
+  END IF;
+  SELECT count(*) INTO bad FROM (
+    SELECT q.topic, count(*) n FROM jsonb_array_elements(r->'questions') x
+    JOIN public.quiz_questions q ON q.id = x->>'id' GROUP BY q.topic) t WHERE t.n <> 3;
+  IF bad > 0 OR (SELECT count(DISTINCT topic) FROM public.quiz_questions WHERE module_id = 'forest' AND published) <> 5 THEN
+    RAISE EXCEPTION 'FAIL модуль 2: по 3 питання з кожної з 5 тем';
+  END IF;
+  RAISE NOTICE 'OK модуль 2: 15 питань, по 3 з кожної теми';
+END $$;
+ROLLBACK;
