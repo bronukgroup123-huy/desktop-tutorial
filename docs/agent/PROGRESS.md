@@ -519,3 +519,14 @@ See docs/agent/BLOCKERS.md.
 - Merge order: #171 before this PR (migration 20261128130000 must come after 20261128110000/120000).
 - Next: B9.4b — app screens (pick friends, «Від @нік» on the map, «Поділились зі мною» list).
 
+## 2026-11-27 04:35 UTC — scheduled run: B9.4b share a pick — app (Claude)
+- Sync: owner merged #171 (15 questions by topic), #172 (B9.4a server), #173 (module 2 «Ліс і гриб»);
+  Deploy #125–#127 green. No open agent PRs; CI nothing to fix.
+- Branch claude/b9-4b-share-app: card of own private pick — «Поділитися з другом» (server-driven `share`),
+  friend picker (friends from v1-friends, already-shared excluded, up to 20), «Бачать N друзів» list with
+  «Прибрати» per friend; friend's shared pick — «Від @нік», exact place, only «Відкрити в Google Картах»;
+  map marker with a gift badge; Profile → «Точки від друзів» (GET v1-picks/shared).
+- Checks: `flutter analyze` — no issues; `flutter test` — 433 passed (new share_pick_test.dart, 5 tests);
+  OpenAPI model contract — valid. Server unchanged.
+- Next: module 3 «Погода, сезони, хвилі» after the owner reads module 2; B3.12 still needs the moderation policy.
+

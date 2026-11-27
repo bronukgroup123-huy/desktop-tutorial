@@ -12,6 +12,7 @@ import 'package:flutter_client/features/friends/friends_screen.dart';
 import 'package:flutter_client/features/profile/avatar_picker_screen.dart';
 import 'package:flutter_client/features/profile/profile_hero.dart';
 import 'package:flutter_client/features/learn/learn_screen.dart';
+import 'package:flutter_client/features/picks/shared_picks_screen.dart';
 import 'package:flutter_client/features/profile/settings_screen.dart';
 import 'package:flutter_client/features/profile/trophies_view.dart';
 import 'package:flutter_client/features/profile/user_avatar.dart';
@@ -57,6 +58,14 @@ class ProfileScreen extends ConsumerWidget {
             const _GiftsCard(),
             const SectionTitle('Друзі'),
             const _FriendsTile(),
+            const SizedBox(height: 8),
+            AppTile(
+              key: const ValueKey('profile-shared-picks'),
+              leading: const BrandIcon('map'),
+              title: 'Точки від друзів',
+              subtitle: 'Місця, якими з вами поділилися друзі',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SharedPicksScreen())),
+            ),
           ],
           const SectionTitle('Ще'),
           AppTile(
