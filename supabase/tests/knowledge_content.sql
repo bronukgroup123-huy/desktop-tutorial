@@ -44,3 +44,23 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK модуль 1 оновлено до версії 2';
 END $$;
+
+-- Модуль 1: у спробі 15 питань, по 3 з кожної з 5 тем (тестовий гість — у транзакції з ROLLBACK)
+BEGIN;
+DO $$
+DECLARE r JSONB; u UUID := 'c1000000-0000-4000-8000-00000000c0c1'; bad INT;
+BEGIN
+  INSERT INTO auth.users (id, email, is_anonymous) VALUES (u, 'content@test.local', true);
+  r := public.quiz_start(u, true, 'app', true);
+  IF r->>'ok' <> 'true' OR jsonb_array_length(r->'questions') <> 15 THEN
+    RAISE EXCEPTION 'FAIL модуль 1: спроба має 15 питань: %', r;
+  END IF;
+  SELECT count(*) INTO bad FROM (
+    SELECT q.topic, count(*) n FROM jsonb_array_elements(r->'questions') x
+    JOIN public.quiz_questions q ON q.id = x->>'id' GROUP BY q.topic) t WHERE t.n <> 3;
+  IF bad > 0 OR (SELECT count(DISTINCT topic) FROM public.quiz_questions WHERE module_id = 'app' AND published) <> 5 THEN
+    RAISE EXCEPTION 'FAIL модуль 1: по 3 питання з кожної з 5 тем';
+  END IF;
+  RAISE NOTICE 'OK модуль 1: 15 питань, по 3 з кожної теми';
+END $$;
+ROLLBACK;

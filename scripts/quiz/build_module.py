@@ -8,7 +8,9 @@
 Перевіряє зміст: id, типи, правильні відповіді — серед варіантів, у «order» — усі варіанти,
 у кожного питання є пояснення й джерело. Відповіді не підказують самі себе: варіант — до 40 символів,
 правильна відповідь не найдовша (single), правильні не довші за всі хибні (multi), а в питаннях
-«правда чи міф» трапляються обидві відповіді. У модулях myths/twins правильна відповідь не може бути
+«правда чи міф» трапляються обидві відповіді. Якщо в модулі є теми («topics»), кожне питання
+належить одній із них, і в кожній темі вистачає питань на свою частку спроби («per_attempt»).
+У модулях myths/twins правильна відповідь не може бути
 «можна їсти» (ADR-023 §23.2) — такі питання скрипт не пропустить.
 """
 import json
@@ -28,8 +30,21 @@ def fail(msg: str) -> None:
     sys.exit(f"✗ {msg}")
 
 
+def topic_share(data: dict) -> int:
+    """Скільки питань однієї теми потрапляє в спробу: per_attempt / кількість тем, з округленням угору."""
+    topics = data.get("topics") or {}
+    return -(-data["per_attempt"] // len(topics)) if topics else 0
+
+
 def validate(data: dict) -> None:
     module = data["module"]
+    per = data.get("per_attempt")
+    if not isinstance(per, int) or not 1 <= per <= 30:
+        fail("per_attempt — скільки питань у спробі, 1–30")
+    topics = data.get("topics") or {}
+    for t in topics:
+        if not ID_RE.match(t) or len(t) > 40:
+            fail(f"тема «{t}»: id — [a-z0-9_], до 40 символів")
     seen = set()
     for q in data["questions"]:
         qid = q["id"]
@@ -50,6 +65,10 @@ def validate(data: dict) -> None:
             fail(f"{qid}: single — рівно одна правильна")
         if q["kind"] == "order" and sorted(correct) != sorted(opts):
             fail(f"{qid}: order — правильна відповідь містить усі варіанти")
+        if topics and q.get("topic") not in topics:
+            fail(f"{qid}: topic — одна з тем модуля {list(topics)}")
+        if not topics and q.get("topic"):
+            fail(f"{qid}: у модулі немає тем, а в питання є topic")
         for field in ("prompt", "explanation", "source"):
             if not str(q.get(field, "")).strip():
                 fail(f"{qid}: порожнє «{field}»")
@@ -67,6 +86,13 @@ def validate(data: dict) -> None:
                 text = next(o["text"] for o in q["options"] if o["id"] == c)
                 if EAT_OK.search(text):
                     fail(f"{qid}: у модулі «{module}» правильна відповідь не може дозволяти їсти: «{text}»")
+    published = len(data["questions"])
+    if published < per:
+        fail(f"питань {published}, а в спробі — {per}")
+    for t, title in topics.items():
+        n = sum(1 for q in data["questions"] if q.get("topic") == t)
+        if n < topic_share(data):
+            fail(f"тема «{title}»: {n} питань, а в спробу йде {topic_share(data)} — допишіть")
     # «правда чи міф»: якщо таких питань кілька, відповідь не має бути завжди однаковою
     tf = [q for q in data["questions"] if len(q["options"]) == 2 and q["kind"] == "single"]
     if len(tf) >= 3:
@@ -88,6 +114,7 @@ def migration(data: dict) -> str:
             sql_str(json.dumps(q["options"], ensure_ascii=False)) + "::jsonb",
             sql_str(json.dumps(q["correct"], ensure_ascii=False)) + "::jsonb",
             sql_str(q["explanation"]), sql_str(q["source"]), "true" if q.get("critical") else "false",
+            sql_str(q["topic"]) if q.get("topic") else "NULL",
         ]) + ")")
     ids = ", ".join(sql_str(q["id"]) for q in data["questions"])
     return f"""-- ============================================================================
@@ -96,39 +123,53 @@ def migration(data: dict) -> str:
 -- Згенеровано scripts/quiz/build_module.py з data/quiz/{module}.json; читабельна версія — docs/quiz/{module}.md.
 -- Питання оновлюються (за id), прибрані з JSON — знімаються з публікації; модуль публікується.
 
-INSERT INTO public.quiz_questions (id, module_id, kind, prompt, options, correct, explanation, source, critical) VALUES
+INSERT INTO public.quiz_questions (id, module_id, kind, prompt, options, correct, explanation, source, critical, topic) VALUES
 {',\n'.join(rows)}
 ON CONFLICT (id) DO UPDATE SET
   kind = EXCLUDED.kind, prompt = EXCLUDED.prompt, options = EXCLUDED.options, correct = EXCLUDED.correct,
   explanation = EXCLUDED.explanation, source = EXCLUDED.source, critical = EXCLUDED.critical,
-  published = true, hidden_by_reports = false, updated_at = now();
+  topic = EXCLUDED.topic, published = true, hidden_by_reports = false, updated_at = now();
 
 UPDATE public.quiz_questions SET published = false, updated_at = now()
 WHERE module_id = {sql_str(module)} AND id NOT IN ({ids});
 
-UPDATE public.quiz_modules SET published = true WHERE id = {sql_str(module)};
+UPDATE public.quiz_modules SET published = true, questions_per_attempt = {data['per_attempt']} WHERE id = {sql_str(module)};
 """
 
 
 def document(data: dict) -> str:
     kind_label = {"single": "одна відповідь", "multi": "оберіть усі правильні", "order": "розставте по порядку"}
+    topics = data.get("topics") or {}
+    total = len(data["questions"])
+    if topics:
+        how = (f"у спробі — {data['per_attempt']} питань із {total}: по {topic_share(data)} випадкових з кожної теми "
+               f"({', '.join(topics.values())}); порядок питань і варіантів перемішується.")
+    else:
+        how = f"у спробі — {data['per_attempt']} випадкових питань із {total}, варіанти перемішуються."
     out = [f"# Модуль «{data['title']}»", "",
            f"Для читання власником перед публікацією (ADR-023 §23.3). Джерело змісту — `data/quiz/{data['module']}.json`; "
-           f"у спробі — 10 випадкових питань із {len(data['questions'])}, варіанти перемішуються.", ""]
-    for n, q in enumerate(data["questions"], 1):
-        crit = " · **критичне**" if q.get("critical") else ""
-        out.append(f"## {n}. {q['prompt']}")
-        out.append(f"_{kind_label[q['kind']]}{crit} · `{q['id']}`_")
-        out.append("")
-        if q["kind"] == "order":
-            text = {o["id"]: o["text"] for o in q["options"]}
-            for i, c in enumerate(q["correct"], 1):
-                out.append(f"{i}. {text[c]}")
-        else:
-            for o in q["options"]:
-                mark = "✅" if o["id"] in q["correct"] else "▫️"
-                out.append(f"- {mark} {o['text']}")
-        out += ["", f"**Пояснення.** {q['explanation']}", "", f"**Джерело:** {q['source']}", ""]
+           + how, ""]
+    groups = [(title, [q for q in data["questions"] if q.get("topic") == t]) for t, title in topics.items()] \
+        if topics else [(None, data["questions"])]
+    n = 0
+    for title, qs in groups:
+        if title:
+            out += [f"# Тема: {title} ({len(qs)})", ""]
+        for q in qs:
+            n += 1
+            crit = " · **критичне**" if q.get("critical") else ""
+            out.append(f"## {n}. {q['prompt']}")
+            out.append(f"_{kind_label[q['kind']]}{crit} · `{q['id']}`_")
+            out.append("")
+            if q["kind"] == "order":
+                text = {o["id"]: o["text"] for o in q["options"]}
+                for i, c in enumerate(q["correct"], 1):
+                    out.append(f"{i}. {text[c]}")
+            else:
+                for o in q["options"]:
+                    mark = "✅" if o["id"] in q["correct"] else "▫️"
+                    out.append(f"- {mark} {o['text']}")
+            out += ["", f"**Пояснення.** {q['explanation']}", "", f"**Джерело:** {q['source']}", ""]
     return "\n".join(out)
 
 
