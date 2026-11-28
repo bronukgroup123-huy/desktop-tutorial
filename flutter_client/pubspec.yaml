@@ -39,7 +39,7 @@ dependencies:
 
 dev_dependencies:
   # Лише для тестів (налаштування google_fonts у старих тестах); застосунок шрифти вбудовує (UI-004).
-  google_fonts: ^6.2.1
+  google_fonts: ^9.0.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
