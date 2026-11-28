@@ -660,3 +660,10 @@ See docs/agent/BLOCKERS.md.
 - Owner sent 8 of the 9 (all but `flesh_brain`, the false morel cut): same processing, wired in. Rows without a
   drawn sticker: 2 of 437 (false morel stem and flesh — schema until the drawing arrives).
 - `flesh_brain` (false morel cut) arrived and is wired in: every one of the 437 rows now has a drawn sticker.
+
+## 2026-11-28 16:35 UTC — scheduled run: owner decisions recorded in BLOCKERS (Claude)
+- Open agent PR #188 (passport stickers by shape) — CI green, waiting for the owner.
+- Remaining Claude-zone items all need an owner decision, so this run records them instead of guessing:
+  BLK-014 (B3.12: who confirms a report — the reviewer group no longer exists), BLK-015 (B9.6: spores have nothing
+  to buy since the avatar constructor was removed), BLK-016 (B2.5: the 7-day pick count repeats the heatmap concern).
+  Each has options and a recommendation; BACKLOG statuses point to them. Docs only, no code.
