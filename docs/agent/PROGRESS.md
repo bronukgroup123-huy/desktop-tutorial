@@ -553,3 +553,15 @@ See docs/agent/BLOCKERS.md.
   spots; the forecast already answers «where to go»). Closed #178 and #179 unmerged with a comment; recorded as
   ADR-010 §10.7; BACKEND_PLAN B3.5 struck out; BACKLOG item marked REMOVED. Nothing to revert on main.
 
+## 2026-11-28 00:35 UTC — scheduled run: B0.8 integration run of real v1 handlers (Claude)
+- #181 (SEC-008) green, waiting for the owner. B0.8 (Codex zone) ready since 2026-11-26, untouched ~48 h — taken.
+- Branch claude/b0-8-integration: workflow integration.yml — `supabase start -x studio,imgproxy,realtime` (all
+  migrations, Auth, REST, Storage, Edge Runtime), `supabase functions serve`, then scripts/ci/integration/v1-smoke.ts:
+  guest (anonymous sign-in) + registered user (admin API), real calls through the real rate limiter, RLS and SQL:
+  regions, app-config, me + onboarding PATCH, picks map/species/shared, friends, analysis, quiz overview +
+  practice attempt (15 questions), guest 403 / no token 401. No external networks.
+- Separate workflow on purpose: the full stack takes minutes and can fail for infrastructure reasons (see the
+  port-in-use flake on #177), so it does not gate deploy yet; move into test.yml when it has been stable.
+- Checks: `deno check` of the script — clean; the workflow itself is verified only by its first CI run on the PR
+  (no Docker/Supabase CLI in the agent sandbox).
+
