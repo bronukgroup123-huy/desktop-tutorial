@@ -197,3 +197,86 @@ Subject: an old brown PUFFBALL with its top split open, a small cloud of DARK OL
 Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
 Subject: a yellow-orange mushroom CUT IN HALF LENGTHWISE, the cut surface facing the viewer. The flesh is evenly pale YELLOW-ORANGE and does not change color. A small knife lies next to it. The yellow flesh on the cut must be the main, clearly visible feature.
 ```
+
+## П'ятий набір: форма гриба з усієї картки (2026-11-28; усі 9 намальовано)
+
+`passportBody` визначає незвичну форму з усієї картки (корал, дощовик, сморчок, строчок), і тоді «Ніжка»,
+«М'якоть», «Гіменофор» не показують гриба з шапкою. Також: колір м'якоті — названий першим («жовтувата… не синіє» →
+жовта), «пекучий сік» → молочний сік, «Гіменофор: відсутній» у строчка → `cap_brain`.
+
+| Файл | Коли | Поки немає файлу |
+|---|---|---|
+| flesh_puffball | «М'якоть» у картці дощовика | схема |
+| stem_puffball | «Ніжка» у картці дощовика | body_puffball |
+| under_smooth | «Гіменофор: гладенький» у картці корала | схема |
+| stem_coral | «Ніжка» у картці корала | body_coral |
+| flesh_morel | «Ніжка», «М'якоть» у картці сморчка | схема |
+| flesh_brain | «Ніжка», «М'якоть» у картці строчка | схема |
+| flesh_grey | «М'якоть: сіра…» | схема |
+| season | «Сезон» | схема |
+| spores_micro | «Спори» (мікроскопія, не відбиток) | схема |
+
+### Промти 53–61
+
+#### 53. М'якоть дощовика — молодий, розрізаний (біла всередині) — `flesh_puffball`
+Видно: молодий білий дощовик, розрізаний навпіл: усередині рівномірно сніжно-біла м'якоть, без жодного малюнка гриба.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a young white PUFFBALL mushroom CUT IN HALF from top to bottom, the cut surface facing the viewer. The inside is completely uniform, firm, SNOW-WHITE flesh like a marshmallow, with NO outline of a cap, gills or stem inside. The outer skin has tiny white spines. A small knife lies next to it. The uniform pure white inside must be the main, clearly visible feature.
+```
+
+#### 54. Ніжка дощовика — «груша» з товстою основою — `stem_puffball`
+Видно: дощовик у формі груші: кругла верхня частина й товста коротка біла основа-ніжка.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a PEAR-SHAPED puffball mushroom standing on a little moss, seen from the side: a round white upper part covered with tiny spines that narrows into a short, THICK, wrinkled whitish stem-like base. No cap and no gills. The thick narrowing base must be the main, clearly visible feature.
+```
+
+#### 55. Гладенька поверхня гілок (корал) — без пластинок — `under_smooth`
+Видно: кілька гілок корала зблизька: поверхня рівна й гладенька, без пластинок і трубочок.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a close-up of three or four thick upright branches of a cream-white CORAL mushroom with blunt rounded tips. Their surface is SMOOTH and even, with NO gills, NO tubes, NO pores and NO spines. The smooth branch surface must be the main, clearly visible feature.
+```
+
+#### 56. Основа корала — товстий «стовбур» — `stem_coral`
+Видно: товста біла основа кораловидного гриба, з якої вгорі розходяться гілки (гілки обрізані, головне — основа).
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: the lower part of a CORAL mushroom: a short, THICK, fleshy white base like a little tree trunk, slightly wrinkled, growing from the soil, with the beginnings of several thick branches splitting off at the top. The thick white base must be the main, clearly visible feature.
+```
+
+#### 57. Сморчок у розрізі — порожнистий наскрізь — `flesh_morel`
+Видно: сморчок, розрізаний уздовж: усередині шапки й ніжки одна суцільна порожнина.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a MOREL mushroom CUT IN HALF LENGTHWISE, the cut surface facing the viewer. The honeycomb cap and the whitish stem are HOLLOW all the way through: one single continuous empty cavity runs from the tip of the cap down to the base, with thin pale walls. A small knife lies next to it. The single hollow cavity must be the main, clearly visible feature.
+```
+
+#### 58. Строчок у розрізі — звивисті камери (ОТРУЙНИЙ) — `flesh_brain`
+Видно: строчок, розрізаний уздовж: усередині звивисті складки й кілька камер, а не одна порожнина, як у сморчка.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a FALSE MOREL mushroom CUT IN HALF LENGTHWISE, the cut surface facing the viewer. The dark red-brown brain-like cap is folded inside into several irregular twisting CHAMBERS and folds, and the whitish stem has irregular cavities, NOT one single clean hollow. A small knife lies next to it. The irregular folded chambers inside must be the main, clearly visible feature.
+```
+
+#### 59. М'якоть сіра, тонка (лисичка сіра) — `flesh_grey`
+Видно: сіра лійка, надірвана: видно тонку сіру м'якоть.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a grey-brown TRUMPET-shaped mushroom with a piece torn off its edge, so the THIN GREY flesh on the torn edge is clearly visible. A small knife lies next to it. The thin grey flesh must be the main, clearly visible feature.
+```
+
+#### 60. Сезон — календар — `season`
+Видно: аркуш календаря з весняною гілочкою й маленьким грибом.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a small tear-off wall CALENDAR page with a blank face, a fresh green spring twig with young leaves and a tiny white mushroom lying in front of it. The calendar page must be the main, clearly visible feature.
+```
+
+#### 61. Спори під мікроскопом — `spores_micro`
+Видно: збільшувальне скло, під яким видно кілька великих бородавчастих спор.
+```
+Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin dark-brown ink outline, warm natural colors, soft shading. Transparent background, white sticker border. One subject, centered, fills 80% of a square. No text, no letters, no numbers, no arrows, no extra objects.
+Subject: a round MAGNIFYING GLASS with a wooden handle. Inside its lens, greatly enlarged, are several oval rusty-brown SPORES covered with tiny warts. The enlarged warty spores inside the lens must be the main, clearly visible feature.
+```

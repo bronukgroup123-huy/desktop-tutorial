@@ -648,3 +648,15 @@ See docs/agent/BLOCKERS.md.
   Google Play — nothing happens. Server rules (14 days, own code, guests) unchanged.
 - Checks: flutter analyze clean; flutter test 449 passed (new invite_test.dart: referrer parsing, once-only,
   offline retry, rejected code, screen, error; friends_test: entry tile). APK build — CI only (no Android SDK here).
+
+## 2026-11-28 — owner request: passport stickers by mushroom shape (Claude)
+- Full re-audit of 437 «Швидка картка» rows, also rows that had a sticker: coral «Гіменофор: гладенький» showed gills;
+  coral / morel / false morel stem and flesh showed a capped mushroom; chanterelle, two suillus — white flesh instead
+  of yellow; «пекучий сік» (lactarius vellereus) — no milk sticker.
+- `passportBody` reads the unusual shape from the whole card; stem/flesh/underside follow it. Flesh colour = the first
+  named. Every row now has a rule; 9 new stickers wait for art (prompts 53–61 in docs/assets/passport_stickers.md),
+  until then schema or the coral/puffball sticker.
+- Checks: flutter analyze clean, flutter test passed.
+- Owner sent 8 of the 9 (all but `flesh_brain`, the false morel cut): same processing, wired in. Rows without a
+  drawn sticker: 2 of 437 (false morel stem and flesh — schema until the drawing arrives).
+- `flesh_brain` (false morel cut) arrived and is wired in: every one of the 437 rows now has a drawn sticker.
