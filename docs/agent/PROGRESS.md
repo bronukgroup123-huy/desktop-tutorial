@@ -566,3 +566,11 @@ See docs/agent/BLOCKERS.md.
   `deno check` clean; OpenAPI contract and auth matrix pass.
 - Merge order: #181 (migration 20261128160000) before this PR (20261128170000).
 
+
+## 2026-11-28 08:40 UTC — scheduled run: red CI in agent PRs (Claude)
+- #183: `referrals.sql` failed in CI — `service_role` may not UPDATE `auth.users` there (local DB grants it).
+  The «guest signed in» step now runs after `RESET ROLE`. Reproduced locally by revoking the grant inside the
+  transaction: the old test fails with the same error, the new one passes.
+- #182: workflow-permissions guard expected 17 workflows; `integration.yml` is the 18th (`contents: read` only).
+  Count updated; `node --test scripts/ci/*.test.mjs` — 34 passed.
+- #181 green, unchanged.
