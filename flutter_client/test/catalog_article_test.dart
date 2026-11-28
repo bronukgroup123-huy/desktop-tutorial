@@ -134,12 +134,12 @@ void main() {
     // ніжка
     expect(passportSticker('Ніжка', 'біла, з плівчастим кільцем.'), 'stem_ring');
     expect(passportSticker('Ніжка', 'гладенька. Кільця немає. Біля основи є добре розвинена піхва (вольва)'), 'stem_volva');
-    expect(passportSticker('Ніжка', 'біла; без кільця та піхви.'), isNull);
+    expect(passportSticker('Ніжка', 'біла; без кільця та піхви.'), 'stem_plain', reason: 'гладка біла — без кільця й вольви');
     expect(passportSticker('Ніжка', 'Кільце відсутнє.'), isNull);
     expect(passportSticker('Ніжка', 'біла, з коричневою сіточкою.'), 'stem_net');
     expect(passportSticker('Ніжка', 'світла, вкрита бурими лусочками.'), 'stem_scales');
-    expect(passportSticker('Ніжка', 'гола, жовта, іноді буро-луската.'), isNull);
-    expect(passportSticker('Ніжка', '1–5 см, біла.'), isNull);
+    expect(passportSticker('Ніжка', 'гола, жовта, іноді буро-луската.'), 'stem_colored', reason: '«луската» — не лусочки');
+    expect(passportSticker('Ніжка', '1–5 см, біла.'), 'stem_plain');
     expect(passportSticker('Основа', 'мішкоподібна біла вольва.'), 'stem_volva');
     expect(passportSticker('Кільце', 'плівчасте, біле'), 'stem_ring');
     expect(passportSticker('Кільце', 'відсутнє'), isNull);
@@ -148,7 +148,7 @@ void main() {
     expect(passportSticker("М'якоть", 'біла, на зламі червоніє.'), 'flesh_red');
     expect(passportSticker("М'якоть", 'Сніжно-біла, при розрізанні не змінює колір (не синіє і не рожевіє!)'), 'flesh_white');
     expect(passportSticker('М’якоть', 'Білувата, на зрізі не синіє, не червоніє й не зеленіє.'), 'flesh_white');
-    expect(passportSticker("М'якоть", 'жовтувата, щільна'), isNull);
+    expect(passportSticker("М'якоть", 'жовтувата, щільна'), 'flesh_yellow');
     // решта рядків — без стікера (лишається схема чи значок)
     // шапка — колір за першою згадкою; без кольору — нейтральна
     expect(passportSticker('Шапка', 'Велика, м\'ясиста'), 'cap_neutral');
@@ -157,7 +157,7 @@ void main() {
     expect(passportSticker('Шапка', 'Колір — від білого й кремового до вохряно-жовтого.'), 'cap_white');
     expect(passportSticker('Шапка', '3–12 см. Колір — від яєчно-жовтого до світло-оранжевого.'), 'cap_yellow');
     expect(passportSticker('Капелюх', 'яскраво-червоний, з білими пластівцями.'), 'cap_red');
-    expect(passportSticker('Шапка', 'яскраво-червона, гладенька, блискуча.'), isNull, reason: 'червона сироїжка — не мухомор');
+    expect(passportSticker('Шапка', 'яскраво-червона, гладенька, блискуча.'), 'cap_red_plain', reason: 'червона сироїжка — не мухомор');
     expect(passportSticker('Споровий порошок', 'Жовтуватий.'), 'spores_yellow');
     expect(passportSticker('Споровий порошок', 'білий.'), 'spores_white');
     expect(passportSticker('Споровий порошок', 'рожевий.'), 'spores_pink');
@@ -176,7 +176,7 @@ void main() {
     expect(passportSticker("М'якоть", 'Біла, крихка. На зламі виділяє білий пекучий молочний сік.'), 'milk');
     expect(passportSticker('Молочний сік', 'Білий, пекучо-їдкий.'), 'milk');
     expect(passportSticker('Споровий порошок', 'Оливково-коричневий.'), 'spores_brown');
-    expect(passportSticker('Спорова маса', 'темно-коричнева, порошиста'), isNull);
+    expect(passportSticker('Спорова маса', 'темно-коричнева, порошиста'), 'spores_puff');
     expect(passportSticker('Запах', 'Приємний, грибний.'), 'smell');
     expect(passportSticker('Смак', 'Дуже пекучий.'), 'taste');
     expect(passportSticker('Ключова ознака', 'оливково-зелений капелюх'), 'key_feature');
@@ -186,7 +186,7 @@ void main() {
     expect(passportSticker('Місце зростання', 'на ґрунті в лісах і на луках.'), 'place_tree');
   });
 
-  test('Паспорт: правила для ще не намальованих стікерів і запасні варіанти', () {
+  test('Паспорт: форма, ніжка без кільця, дощовик і корал — свої стікери', () {
     String? r(String k, String v) => passportStickerRule(k, v);
     // маркер списку в назві рядка не заважає («• Ніжка» = «Ніжка»)
     expect(passportSticker('• Ніжка', '5–10 см, жовтувато-коричнювата, з виразною темно-бурою або чорною сіткою.'), 'stem_net');
@@ -196,13 +196,13 @@ void main() {
     expect(passportSticker('Низ шапки', 'Складочки (не пластинки!) рідкі, з нерівним краєм'), 'under_folds');
     // шапка: форма важливіша за колір
     expect(r('Шапка', '3–6 см у діаметрі, яйцевидна, ячеиста. Колір — жовто-бурий'), 'cap_morel');
-    expect(passportSticker('Шапка', '3–6 см у діаметрі, яйцевидна, ячеиста. Колір — жовто-бурий'), isNull,
+    expect(passportSticker('Шапка', '3–6 см у діаметрі, яйцевидна, ячеиста. Колір — жовто-бурий'), 'cap_morel',
         reason: 'сморчок не показуємо гладкою шапкою');
     expect(r('Шапинка', '5–12 см, мозкоподібна, звивиста, некомірчаста (на відміну від сморчка), темно-коричнева.'), 'cap_brain');
     expect(r('Шапка', 'черепашковидна або віяловидна. Колір — білуватий, сіруватий'), 'cap_oyster');
     expect(r('Шапка', 'округлі, лопатеві, розташовуються черепичасто. Оранжева або сірчано-жовта'), 'cap_bracket');
     expect(r('Шапка', '3–12 см, спочатку опукла, згодом лійкоподібна, з хвилясто-лопатевим краєм. Яєчно-жовта'), 'cap_funnel');
-    expect(passportSticker('Шапка', '3–12 см, згодом лійкоподібна. Яєчно-жовта'), 'cap_yellow', reason: 'запасний — жовта шапка');
+    expect(passportSticker('Шапка', '3–12 см, згодом лійкоподібна. Яєчно-жовта'), 'cap_funnel');
     expect(r('Шапка', '2–6 см. Лійковидна, часто з отвором у центрі. Сірувато- або рудувато-коричнева'), 'cap_funnel_dark');
     expect(r('Шапка', '5–20 см, біла, лійкоподібна'), 'cap_funnel_white');
     expect(r('Шапка', '4–10 см, опукла, часом лійковидна. Рожева'), isNot('cap_funnel_white'));
@@ -210,12 +210,14 @@ void main() {
     expect(passportSticker('Шапка', 'червоно-коричнева, червоно-бура'), 'cap_brown');
     expect(passportSticker('Шапка', 'Сірувато- або брудно-жовта, згодом оливкувата'), 'cap_yellow');
     expect(r('Шапка', 'здебільшого гола, мишачо-сіра'), 'cap_grey');
-    expect(passportSticker('Шапка', 'здебільшого гола, мишачо-сіра'), 'cap_neutral');
+    expect(passportSticker('Шапка', 'здебільшого гола, мишачо-сіра'), 'cap_grey');
     expect(r('Шапка', 'Колір — сірувато-червонуватий'), 'cap_red_plain');
-    expect(passportSticker('Шапка', 'Колір — сірувато-червонуватий'), isNull, reason: 'не малюнок мухомора');
+    expect(passportSticker('Шапка', 'Колір — сірувато-червонуватий'), 'cap_red_plain', reason: 'не малюнок мухомора');
     // ніжка без кільця
     expect(r('Ніжка', '1–5 см, біла.'), 'stem_plain');
     expect(r('Ніжка', '4–8 см, брудно-жовта.'), 'stem_colored');
+    expect(r('Ніжка', 'щільна, плавно переходить у шапку. Одноколірна з шапкою.'), 'stem_colored');
+    expect(passportSticker('Ніжка', 'Кільце відсутнє.'), isNull, reason: 'колір не названо');
     expect(r('Ніжка', 'Циліндрична, щільна, порожниста.'), 'stem_hollow');
     expect(r('Ніжка', 'Коротка, часто ексцентрична або майже відсутня. Біла.'), 'stem_side');
     expect(r('Ніжка', 'Біла, у верхній частині з дрібними залозистими крапками. Кільця немає.'), 'stem_granules');

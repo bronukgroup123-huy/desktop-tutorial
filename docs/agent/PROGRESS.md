@@ -628,3 +628,12 @@ See docs/agent/BLOCKERS.md.
   bruising stems) — 80 left. Rules for 18 not-yet-drawn stickers are in code (`passportStickerRule`), with safe
   fallbacks; misleading shapes (morel, oyster, bracket shown as a plain cap) now fall back to the schema.
 - Prompts for the 18 stickers: docs/assets/passport_stickers.md. Checks: flutter analyze clean, flutter test 440 passed.
+
+## 2026-11-28 — owner request: passport stickers set 4 (Claude)
+- 18 stickers from the owner (prompts 35–52 after #185): plain/colored/hollow/side/granular stem, red cap without
+  flakes, grey cap, three funnel caps, morel, false morel, oyster, bracket, puffball, coral, puffing spores, yellow
+  flesh. Same processing (alpha cleanup, crop, 256 px WebP, 7–23 KB each). The four with a «glow» had it only in RGB
+  under alpha 0 — nothing visible.
+- `stem_colored` now needs a named colour (or «одного кольору з шапкою»); «Кільце відсутнє» keeps the schema.
+- Catalogue audit: rows without a drawn sticker 7 → 6 of 437 (49 distinct stickers in use).
+- Checks: flutter analyze clean, flutter test 440 passed.
