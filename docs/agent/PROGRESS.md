@@ -555,15 +555,19 @@ See docs/agent/BLOCKERS.md.
 ## 2026-11-28 — UI-005: richer quiet forest backdrop (Codex)
 - Owner approved the continuous pattern from merged #184 and requested more environmental variety without
   increasing its visual weight: more mushrooms, rivers, lakes, meadows and related forest details.
-- Branch / code commit / PR: `codex/ui-005-backdrop-details` / `79896a2` / #189.
-- Added one tile-continuous river, two streams, three small lakes, seven meadows, six shrubs and 16 mushrooms
-  in brown, muted red and gold variants. All features remain schematic decorative context, not geographic
-  claims or navigation data; their opacity stays below the functional Home Region map.
+- Branch / initial code commit / approved-art commit / PR: `codex/ui-005-backdrop-details` / `79896a2` /
+  `5d4dc49` / #189.
+- The owner rejected the initial vector draft as abstract spots and lines. After preview-only iteration, the
+  owner approved a clearer watercolor direction: recognizable mixed pine/oak/birch groves, grassy meadows,
+  a blue-green river, two reed-lined lakes, a dotted trail, wildflowers and small mushrooms.
+- Replaced runtime SVG rendering with direct loading of an optimized 512×512 indexed PNG (172,147 bytes),
+  reducing style-load work while keeping the same roughly 1 MiB decoded GPU texture. The illustration is
+  decorative context, not a geographic claim or navigation layer.
 - Preserved: the 512×512 repeat scale, MapLibre mask/layer ordering, camera, `regionPadding`, region geometry,
   coordinates, controls, offline fallback and zoom cutoff. No server, API or production behavior changed.
-- Regression: asset-content test now requires water, meadows, at least 14 mushrooms and all three mushroom
-  variants. Checks: `flutter analyze` — no issues; focused basemap/camera tests — 14 passed; full
-  `flutter test` — 452 passed; 2×2 rendered-tile inspection and `git diff --check` — pass.
+- Regression: asset-content test checks sufficient water, forest and warm-accent pixels in the bundled PNG.
+  Checks: `flutter analyze` — no issues; focused basemap/camera tests — 14 passed; full `flutter test` —
+  452 passed; 2×2 rendered-tile inspection and `git diff --check` — pass.
 - Residual: inspect the follow-up APK on a physical Android device because widget tests cannot render the
   native MapLibre platform view.
 - Claude boundary: the open Claude work reviewed before editing did not touch the map backdrop files.
