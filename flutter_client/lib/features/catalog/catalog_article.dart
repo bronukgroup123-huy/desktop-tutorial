@@ -514,6 +514,24 @@ const passportStickers = <String, String>{
   'place_oak': 'Росте під дубом',
   'place_spruce': 'Росте під ялиною',
   'flesh_green': 'Зріз зеленіє',
+  'stem_plain': 'Ніжка гладка, біла',
+  'stem_colored': 'Ніжка гладка, кольору шапки',
+  'stem_hollow': 'Ніжка порожниста всередині',
+  'stem_side': 'Ніжка коротка, збоку шапки',
+  'stem_granules': 'Ніжка в дрібних зернятках',
+  'cap_red_plain': 'Червона шапка без пластівців',
+  'cap_grey': 'Сіра шапка',
+  'cap_funnel': 'Жовта шапка-лійка',
+  'cap_funnel_white': 'Біла шапка-лійка',
+  'cap_funnel_dark': 'Сіро-бура шапка-труба',
+  'cap_morel': 'Шапка в комірках, як у сморчка',
+  'cap_brain': 'Звивиста шапинка, як мозок (строчок)',
+  'cap_oyster': 'Шапки-віяла на деревині (глива)',
+  'cap_bracket': 'Жовті полиці на стовбурі (трутовик)',
+  'body_puffball': 'Кулька без шапки й ніжки (дощовик)',
+  'body_coral': 'Кущик гілок, як корал',
+  'spores_puff': 'Старий дощовик пилить спорами',
+  'flesh_yellow': 'М\'якоть жовта, на зрізі не змінюється',
 };
 
 String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
@@ -598,6 +616,7 @@ final _rarely = RegExp(r'часом|іноді|рідко|зрідка');
 final _granules = RegExp(r'зернист|зернятк|крапельк|крапк|бородавк|залозк|залозист');
 final _sideStem = RegExp(r'бічн|ексцентрич|зміщен|майже відсутн');
 final _hollow = RegExp(r'порожнист|порожнин');
+final _stemColour = RegExp(r'жовт|оранж|бур|коричн|руд|сір|рожев|червон|оливк|вохр|охр|кольору шапки|одноколір|одного кольору');
 final _whiteWord = RegExp(r'(^|[^а-яіїєґ])(біл|кремов|сніжно-біл)');
 final _bruiseBlue = RegExp(r'сині[єю].{0,25}(дотик|натиск|пошкодж)');
 final _bruiseRed = RegExp(r'(червоні|рожеві)[єю].{0,25}(дотик|натиск|пошкодж)');
@@ -622,13 +641,8 @@ String? passportSticker(String key, String value) {
   return s;
 }
 
-/// Поки нового стікера нема — який із намальованих не суперечить тексту.
-const _stickerFallback = <String, String>{
-  'cap_grey': 'cap_neutral',
-  'cap_funnel': 'cap_yellow',
-  'cap_funnel_white': 'cap_white',
-  'cap_funnel_dark': 'cap_brown',
-};
+/// Поки нового стікера нема — який із намальованих не суперечить тексту (зараз усі намальовані).
+const _stickerFallback = <String, String>{};
 
 /// Стікер за правилом — зокрема ще не намальований (для аудиту й тестів).
 String? passportStickerRule(String key, String value) {
@@ -686,7 +700,8 @@ String? passportStickerRule(String key, String value) {
     if (v.contains('непомітн')) return null; // дощовик: ніжки майже немає
     if (_sideStem.hasMatch(v)) return 'stem_side';
     if (_mentions(v, _hollow)) return 'stem_hollow';
-    return _mentions(v, _whiteWord) ? 'stem_plain' : 'stem_colored';
+    if (_mentions(v, _whiteWord)) return 'stem_plain';
+    return _stemColour.hasMatch(v) ? 'stem_colored' : null; // колір не названо («Кільце відсутнє») — схема
   }
   if (g.part == 'ring') return _mentions(v, _ring) || !_negation.hasMatch(v) ? 'stem_ring' : null;
   if (g.part == 'flesh') {
