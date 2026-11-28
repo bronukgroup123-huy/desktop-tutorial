@@ -61,7 +61,7 @@ jobs:
     name: Unit tests (Deno)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Edge Function authentication matrix
         run: |
@@ -111,7 +111,7 @@ jobs:
       run:
         working-directory: flutter_client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     # Блокує: усі міграції мають застосовуватись на чистій БД, а RLS SQL-тести — проходити.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: supabase/setup-cli@v1
         with:
