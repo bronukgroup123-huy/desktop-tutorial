@@ -247,7 +247,8 @@ void main() {
     expect(passportSticker('Гіменофор', 'Гладенький, вкриває гілки.', body: 'body_coral'), 'under_smooth');
     expect(passportSticker("М'якоть", 'сніжно-біла', body: 'body_puffball'), 'flesh_puffball');
     expect(passportSticker('Ніжка', 'порожниста', body: 'cap_morel'), 'flesh_morel');
-    expect(passportSticker('Ніжка', 'порожниста', body: 'cap_brain'), isNull, reason: 'строчок у розрізі ще не намальований — схема');
+    expect(passportSticker('Ніжка', 'порожниста', body: 'cap_brain'), 'flesh_brain');
+    expect(passportSticker("М'якоть", 'біла, восковидна', body: 'cap_brain'), 'flesh_brain');
     expect(passportSticker('Сезон', 'навесні'), 'season');
     expect(passportSticker('Спори', 'бородавчасті'), 'spores_micro');
     // дощовик: м'якоть — розріз молодого дощовика, ніжка — «груша»

@@ -540,6 +540,7 @@ const passportStickers = <String, String>{
   'flesh_grey': 'М\'якоть сіра, тонка',
   'season': 'Сезон',
   'spores_micro': 'Спори під мікроскопом',
+  'flesh_brain': 'Строчок у розрізі: звивисті камери, не одна порожнина',
 };
 
 String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
@@ -651,7 +652,6 @@ String? passportSticker(String key, String value, {String? body}) {
 }
 
 /// Поки нового стікера нема — який із намальованих не суперечить тексту (зараз усі намальовані).
-/// (flesh_brain — строчок у розрізі — ще не намальований: поки схема.)
 const _stickerFallback = <String, String>{};
 
 /// Форма гриба з усієї картки — коли вона незвична: корал, дощовик, сморчок, строчок.

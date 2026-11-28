@@ -659,3 +659,4 @@ See docs/agent/BLOCKERS.md.
 - Checks: flutter analyze clean, flutter test passed.
 - Owner sent 8 of the 9 (all but `flesh_brain`, the false morel cut): same processing, wired in. Rows without a
   drawn sticker: 2 of 437 (false morel stem and flesh — schema until the drawing arrives).
+- `flesh_brain` (false morel cut) arrived and is wired in: every one of the 437 rows now has a drawn sticker.
