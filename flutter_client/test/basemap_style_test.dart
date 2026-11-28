@@ -107,6 +107,28 @@ void main() {
     expect(raster.getPixel(0, 0).a, 255);
   });
 
+  testWidgets('декоративний фон має воду, ліс і теплі природні акценти', (tester) async {
+    late Uint8List backdrop;
+    await tester.runAsync(() async {
+      backdrop = await buildMapBackdropPattern();
+    });
+    final raster = image.decodePng(backdrop)!;
+    var waterPixels = 0;
+    var forestPixels = 0;
+    var warmAccentPixels = 0;
+    for (final pixel in raster) {
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+      if (b > r + 12 && g > r + 8) waterPixels++;
+      if (g > r + 8 && g > b + 8 && g < 155) forestPixels++;
+      if (r > g + 18 && g > b && r > 125) warmAccentPixels++;
+    }
+    expect(waterPixels, greaterThan(4000));
+    expect(forestPixels, greaterThan(4000));
+    expect(warmAccentPixels, greaterThan(60));
+  });
+
   testWidgets('маркер тук-тука картинкою для карти — PNG (публічний і приватний)', (tester) async {
     await tester.runAsync(() async {
       for (final private in [false, true]) {
