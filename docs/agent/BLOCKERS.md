@@ -65,3 +65,41 @@ Updated 2026-11-22 (second pass). Items marked «owner» need the owner; the age
 - Owner (2026-11-26): B3.10 must be discussed and worked out in detail before implementation.
 - Needed from the owner: modules and question sources, pass rules, retakes, what the certificate unlocks.
 - The agent does not start B3.10 until then.
+
+## BLK-014 — B3.12 reports on picks: who confirms a report? (owner)
+- Status: blocked (2026-11-28). ADR-018 §18.4 layer 3 says «скарга → повторна перевірка; підтверджена скарга −50
+  автору», but the reviewer group that would re-check was abolished by ADR-019 §19.5. Nobody can confirm a report,
+  so the −50 cannot be applied fairly, and an automatic −50 would let a few people punish anyone.
+- Options:
+  1. **Recommended:** reports only hide. N independent reports (e.g. 3 from different accounts, Лісовик+, not friends
+     of each other) hide the public pick from the map at once (it stays private for the author, who is told why).
+     The −50 is applied only when the owner confirms the report (SQL / later an admin screen); unconfirmed after
+     30 days — the pick returns and nothing is deducted.
+  2. Automatic −50 after N reports, no human — fastest, but abusable by a group.
+  3. Leave B3.12 until there is a moderator (the «Поскаржитися» on answers/messages stays as now).
+- Needed from the owner: pick an option (and N), and who moderates (only the owner for now?).
+
+## BLK-015 — B9.6 «спори»: nothing to spend them on after the avatar constructor was removed (owner)
+- Status: blocked (2026-11-28). ADR-021 §21.6 prices spores mostly in avatar details and avatar animations, but
+  §21.7 (PO 2026-11-21) removed the constructor: avatars are 40 ready pictures unlocked by level only («Pro / спори —
+  поки ні»). The only remaining sink is gift stickers, and their art (simple / animated / scene) does not exist yet.
+  Rule «спершу ціни, потім нарахування» (PO 2026-11-17) means accruals should not start before something is buyable.
+- Options:
+  1. **Recommended:** spores buy gift stickers only (10 / 40 / 80) — start with a small set of static gift stickers
+     (owner draws ~12, prompts can be prepared like the passport stickers), animated ones later; accruals start with
+     the shop; avatar items removed from the price table.
+  2. Sell extra avatars outside the level ladder (e.g. seasonal, 60–120) — keeps «level avatars are not for sale».
+  3. Avatar frame effects / animations (sleep, dance, sneeze) on the ready pictures — needs animation work per avatar.
+  4. Postpone B9.6 entirely; profile keeps «Подарунки — скоро».
+- Needed from the owner: what spores buy at launch, and whether to prepare prompts for the gift sticker set.
+
+## BLK-016 — B2.5 forest summary: show the 7-day count of verified picks? (owner)
+- Status: open question (2026-11-28); the rest of B2.5 is ready. The plan row includes «кількість verified-тук-туків
+  за 7 днів» for the tapped forest. That is the same «go here, everyone» signal the owner rejected for the heatmap
+  (ADR-010 §10.7: crowds, lag, discourages people from adding points).
+- Options:
+  1. **Recommended:** drop the count; the summary shows forest type, age, area, source and the top 1–2 species of the
+     forecast (no community data).
+  2. Keep only a coarse word («були знахідки цього тижня» / nothing) with a minimum threshold.
+  3. Keep the count as planned.
+- Needed from the owner: pick an option. Until then B2.5 is not started (it would ship with or without the field).

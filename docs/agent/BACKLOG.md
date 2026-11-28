@@ -273,8 +273,8 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B3.8 — confirmation of a public pick by a reply find, per ADR-019 §19.5 (owner: Claude)
 - Done — B3.8a #157, B3.8b #163 merged and deployed 2026-11-26.
 ### B3.12 — reports on picks (owner: Claude)
-- Goal: `pick_reports`, re-check, −50 on a confirmed report. Status: ready after #163 (needs owner policy on who
-  reviews reports — moderation is not defined yet; record in BLOCKERS before work if still open).
+- Goal: `pick_reports`, re-check, −50 on a confirmed report. Status: blocked — BLK-014 (who confirms a report; the
+  reviewer group was abolished by ADR-019 §19.5).
 ### B3.10 — knowledge tests → certificate (owner: Claude)
 - Goal: sets `users.knowledge_certified_at` (column exists since PROD-001), unlocks the two top levels.
   Status: in progress — designed with the owner (ADR-023, 2026-11-26): #166 server, #168/#170 module 1, #169
@@ -287,9 +287,9 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
 - Done — B9.4a #172, B9.4b #175 merged and deployed.
 - B9.5a invites server — #183 merged. B9.5b app (Play Install Referrer, invite screen) — in review
-  (claude/b9-5b-invites-app). B9.6 gifts/spores — needs a spending design (avatars unlock by level only; nothing to buy yet).
+  (claude/b9-5b-invites-app). B9.6 gifts/spores — blocked, BLK-015 (nothing to buy after the avatar constructor was removed).
 ### B2.5 — forest summary sheet (owner: Claude)
-- Status: ready (lower priority).
+- Status: waiting for BLK-016 (keep or drop the 7-day count of verified picks — same concern as the removed heatmap).
 ### B3.5 — heatmap — REMOVED by the owner 2026-11-27 (ADR-010 §10.7)
 - Do not start. PR #178 (server) and #179 (map layer) were closed unmerged.
 ### B8 — trips (owner: Claude)
