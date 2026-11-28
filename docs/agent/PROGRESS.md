@@ -568,3 +568,20 @@ See docs/agent/BLOCKERS.md.
   spots; the forecast already answers «where to go»). Closed #178 and #179 unmerged with a comment; recorded as
   ADR-010 §10.7; BACKEND_PLAN B3.5 struck out; BACKLOG item marked REMOVED. Nothing to revert on main.
 
+## 2026-11-27 16:35 UTC — scheduled run: red CI on #177 (Claude)
+- «Migrations apply on a fresh database» failed on one of two runs of the same commit: runner port 54322 already in
+  use («address already in use»), the DB never started — infrastructure, not code (the PR touched only Flutter).
+  Re-ran the failed job only (no empty commit); green. Owner merged #177 (34 passport stickers) and #180 (heatmap
+  removed).
+
+## 2026-11-27 20:35 UTC — scheduled run: SEC-008 RLS on four service tables (Claude)
+- No open agent PRs; Claude-zone items left are owner-gated or large (B3.12 moderation policy; B9.6 spores have
+  nothing to spend on yet — avatars unlock by level only). SEC-008 (Codex zone) ready since 2026-11-25 and untouched
+  ~48 h — taken under the BACKLOG rule.
+- Branch claude/sec-008-rls-service-tables: migration 20261128160000 — ENABLE ROW LEVEL SECURITY on forest_polygons,
+  guardian_push_tokens, guardian_tick_log, user_push_tokens (they had only FORCE). Checked: postgres (owner, DEFINER
+  functions) and service_role have BYPASSRLS — nothing changes for them even with FORCE; anon/authenticated have no
+  grants already. SQL test rls_every_public_table.sql: every public table has RLS (fails without the migration and
+  names the four tables), service_role still reads them, authenticated cannot.
+- Checks: local DB — 81 migrations, all 29 SQL test files passed. No Deno/Flutter change.
+
