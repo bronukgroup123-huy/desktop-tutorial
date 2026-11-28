@@ -537,6 +537,21 @@ See docs/agent/BLOCKERS.md.
   device; Flutter unit tests cannot render the MapLibre native platform view.
 - Claude boundary: B9.4b remains Claude work after the merged B9.4a server part; this PR does not touch it.
 
+## 2026-11-28 — UI-005: continuous backdrop while panning (Codex)
+- Owner's Android screenshots after merged #176 confirmed a remaining defect: the finite georeferenced
+  raster revealed oversized, sparse pieces of its composition when the region was moved aside.
+- Branch / code commit / PR: `codex/ui-005-backdrop-texture-fix` / `fda11f4` / #184.
+- Replaced the finite raster source with a 512×512 MapLibre `fill-pattern` on `app_mask`; it now covers the
+  whole outside-region surface without an image edge. The quieter pattern uses irregular small forest
+  parcels, fine contours, evenly distributed trees and small outlined mushrooms.
+- Preserved: map viewport, camera, `regionPadding`, Home Region geometry, coordinates, controls and all
+  server/API behavior. The pattern is non-interactive, below overlays, hidden above zoom 9.5 and keeps the
+  sage fallback.
+- Checks: `flutter analyze` — no issues; focused basemap/camera tests — 13 passed; full `flutter test` —
+  439 passed; 512×512 power-of-two/size/non-flat PNG regression — pass; `git diff --check` — pass.
+- Residual: physical-device visual confirmation using the APK produced by #184 CI.
+- Claude boundary: open #181–#183 do not touch the Flutter map files; no Claude work was duplicated.
+
 ## 2026-11-27 04:35 UTC — scheduled run: B9.4b share a pick — app (Claude)
 - Sync: owner merged #171 (15 questions by topic), #172 (B9.4a server), #173 (module 2 «Ліс і гриб»);
   Deploy #125–#127 green. No open agent PRs; CI nothing to fix.
@@ -569,6 +584,42 @@ See docs/agent/BLOCKERS.md.
   grants already. SQL test rls_every_public_table.sql: every public table has RLS (fails without the migration and
   names the four tables), service_role still reads them, authenticated cannot.
 - Checks: local DB — 81 migrations, all 29 SQL test files passed. No Deno/Flutter change.
+
+## 2026-11-28 00:35 UTC — scheduled run: B0.8 integration run of real v1 handlers (Claude)
+- #181 (SEC-008) green, waiting for the owner. B0.8 (Codex zone) ready since 2026-11-26, untouched ~48 h — taken.
+- Branch claude/b0-8-integration: workflow integration.yml — `supabase start -x studio,imgproxy,realtime` (all
+  migrations, Auth, REST, Storage, Edge Runtime), `supabase functions serve`, then scripts/ci/integration/v1-smoke.ts:
+  guest (anonymous sign-in) + registered user (admin API), real calls through the real rate limiter, RLS and SQL:
+  regions, app-config, me + onboarding PATCH, picks map/species/shared, friends, analysis, quiz overview +
+  practice attempt (15 questions), guest 403 / no token 401. No external networks.
+- Separate workflow on purpose: the full stack takes minutes and can fail for infrastructure reasons (see the
+  port-in-use flake on #177), so it does not gate deploy yet; move into test.yml when it has been stable.
+- Checks: `deno check` of the script — clean; the workflow itself is verified only by its first CI run on the PR
+  (no Docker/Supabase CLI in the agent sandbox).
+
+
+
+## 2026-11-28 04:35 UTC — scheduled run: B9.5a invites server (Claude)
+- #181 (SEC-008) and #182 (B0.8, integration run green on its second attempt) wait for the owner.
+- Branch claude/b9-5a-invites (ADR-021 §21.4 decided; spores part waits for B9.6): migration 20261128170000 —
+  `referral_codes` (8 chars without 0/O/1/I), `referrals`, `my_referral_code`, `redeem_referral` (14-day window,
+  once, not own, not blocked; guests allowed), `referral_make_friends` (account → friends at once, guest → after
+  sign-in), cron `award_due_referrals` (+10 rating to both after the invitee's first hike — closed «Я вдома» or a
+  «Знайшли?» answer; inviter at most 5). rating_events reason 'referral' + unique (user, invitee).
+  Endpoints: `GET v1-friends/invite` (code, Play-only link `referrer=ref%3D<CODE>`, label); `PATCH v1-me
+  {referral_code}` — never breaks onboarding (200 with `referral: {applied, label}`).
+- Checks: local DB — 29 SQL test files passed (new referrals.sql); Deno — 577 passed (new referrals.test.ts),
+  `deno check` clean; OpenAPI contract and auth matrix pass.
+- Merge order: #181 (migration 20261128160000) before this PR (20261128170000).
+
+
+## 2026-11-28 08:40 UTC — scheduled run: red CI in agent PRs (Claude)
+- #183: `referrals.sql` failed in CI — `service_role` may not UPDATE `auth.users` there (local DB grants it).
+  The «guest signed in» step now runs after `RESET ROLE`. Reproduced locally by revoking the grant inside the
+  transaction: the old test fails with the same error, the new one passes.
+- #182: workflow-permissions guard expected 17 workflows; `integration.yml` is the 18th (`contents: read` only).
+  Count updated; `node --test scripts/ci/*.test.mjs` — 34 passed.
+- #181 green, unchanged.
 
 
 ## 2026-11-28 — owner request: passport sticker gaps (Claude)

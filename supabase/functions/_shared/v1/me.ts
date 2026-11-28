@@ -6,7 +6,9 @@
 // GET    ?check_handle=<нік> → { data: { handle, available, reason } }
 // GET    ?trophies=1 → { data: { trophies, earned_count, total, new_labels } } — трофеї-медальйони
 // GET    ?avatars=1 → { data: { current, can_change, reason_label, groups } } — вибір готового аватара
-// PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version? } → { data: profile }
+// PATCH  { name?, handle?, avatar?, home_region_slug?, accept_terms_version?, referral_code? } → { data: profile }
+//        referral_code — код запрошення з Play Install Referrer (B9.5, ADR-021 §21.4); можна й гостю.
+//        Невдалий код не зриває онбординг: відповідь 200 з `referral: { applied: false, label }`.
 // DELETE → { data: { deleted: true } } — видалити акаунт (вимога Google Play)
 //
 // Ім'я, нік і аватар — лише після входу через Google / Apple (ADR-021 §21.2.1): гостю 403.
@@ -118,6 +120,8 @@ export interface UpdateMeInput {
   avatar?: Record<string, unknown>;
   home_region_slug?: string;
   accept_terms_version?: string;
+  /** Код запрошення (Install Referrer) — великими літерами. */
+  referral_code?: string;
 }
 
 export function validateUpdateMe(body: unknown): UpdateMeInput {
@@ -153,6 +157,13 @@ export function validateUpdateMe(body: unknown): UpdateMeInput {
       );
     }
     input.accept_terms_version = obj.accept_terms_version;
+  }
+
+  if (obj.referral_code !== undefined) {
+    if (typeof obj.referral_code !== "string" || !/^[A-Za-z0-9]{6,12}$/.test(obj.referral_code.trim())) {
+      throw new HttpError(400, "invalid_referral_code", "Код запрошення — 6–12 латинських літер і цифр");
+    }
+    input.referral_code = obj.referral_code.trim().toUpperCase();
   }
 
   if (Object.keys(input).length === 0) {
@@ -431,6 +442,24 @@ export async function updateProfile(ctx: MeContext, input: UpdateMeInput): Promi
   }
 }
 
+/** Активувати код запрошення (B9.5). Невдача — не помилка запиту: онбординг не має зриватися через код. */
+export async function redeemReferral(ctx: MeContext, code: string): Promise<{ applied: boolean; label: string }> {
+  const { data, error } = await ctx.db.rpc("redeem_referral", { p_invitee_id: ctx.user.id, p_code: code });
+  if (error) {
+    console.error("[v1-me] redeem_referral failed:", error);
+    return { applied: false, label: "Не вдалося прийняти запрошення — спробуйте пізніше" };
+  }
+  const r = (data ?? {}) as Record<string, unknown>;
+  if (r.ok !== true) return { applied: false, label: String(r.message ?? "Код запрошення не знайдено") };
+  const who = typeof r.inviter_handle === "string" && r.inviter_handle ? `@${r.inviter_handle}` : "другом, який вас запросив";
+  return {
+    applied: true,
+    label: ctx.user.isAnonymous
+      ? `Запрошення від ${who} прийнято. Увійдіть через Google або Apple — і ви одразу станете друзями`
+      : `Запрошення від ${who} прийнято: ви друзі, а після вашого першого походу обидва отримаєте +10 балів`,
+  };
+}
+
 /** Чи вільний нік — для підказки під полем вводу (остаточно перевіряє унікальний індекс). */
 export async function checkHandle(ctx: MeContext, raw: string): Promise<{ handle: string; available: boolean; reason: string | null }> {
   let h: string;
@@ -494,6 +523,10 @@ export async function handleMe(
   if (req.method === "PATCH") {
     const input = validateUpdateMe(await readJson(req));
     await updateProfile(ctx, input);
+    if (input.referral_code !== undefined) {
+      const referral = await redeemReferral(ctx, input.referral_code);
+      return ok({ ...(await buildProfile(ctx)), referral }, req);
+    }
   }
   return ok(await buildProfile(ctx), req);
 }

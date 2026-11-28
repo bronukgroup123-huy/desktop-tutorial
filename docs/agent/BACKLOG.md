@@ -194,12 +194,16 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Finding: the #174 implementation was visually absent on a physical Android device because it depended
   on PMTiles detail outside the region, where no useful texture was available; symbol collision could also
   hide the decorative mushrooms.
-- Scope: a bundled pale forest-map raster with small non-interactive mushrooms and a transparent Web
-  Mercator cutout for the Home Region; hidden above zoom 9.5, with a sage fallback if decoding fails.
-- Status: follow-up in review — PR #176, code commit `a8ebc02` (2026-11-27); #174 is merged but superseded.
-- Verified: camera fitting and `regionPadding` are unchanged; the real generated PNG has a transparent
-  region and visible outer pixels; `flutter analyze` clean; full `flutter test` 430/430.
-- Residual: confirm visual balance on a physical Android device using the APK produced by PR #176 CI.
+- Device finding after #176: the backdrop became visible, but its single finite georeferenced image exposed
+  oversized, sparse fragments while panning and did not read as a continuous quiet map.
+- Scope: a bundled 512×512 pale forest-map `fill-pattern` applied to the existing outside-region mask;
+  small irregular forest parcels, trees and mushrooms repeat without a rectangular edge, disappear above
+  zoom 9.5 and retain the sage fallback if decoding fails.
+- Status: second visual follow-up in review — PR #184, code commit `fda11f4` (2026-11-28); #176 is merged.
+- Verified: camera fitting and `regionPadding` are unchanged; generated PNG is 512×512 and under 256 KiB;
+  `flutter analyze` clean; focused tests 13/13; full `flutter test` 439/439.
+- Residual: confirm the repeated texture and visual balance on a physical Android device using the APK
+  produced by PR #184 CI.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven
@@ -282,7 +286,8 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 - Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
 - Done — B9.4a #172, B9.4b #175 merged and deployed.
-- B9.5 / B9.6 — ready (gifts are announced in the profile as «скоро»).
+- B9.5a invites server — in review (claude/b9-5a-invites). B9.5b app (Play Install Referrer, invite screen) — ready
+  after B9.5a. B9.6 gifts/spores — needs a spending design (avatars unlock by level only; nothing to buy yet).
 ### B2.5 — forest summary sheet (owner: Claude)
 - Status: ready (lower priority).
 ### B3.5 — heatmap — REMOVED by the owner 2026-11-27 (ADR-010 §10.7)
@@ -292,7 +297,9 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B3.0b — clean up unfinished photo uploads (owner: Codex)
 - Goal: scheduled removal of Storage objects without a pick older than 24 h (ADR-002); SQL/Deno test. Status: ready.
 ### B0.8 — integration run of real v1 handlers against a migrated DB in CI (owner: Codex)
-- Goal: catch DB/handler mismatches like OPS-002 before merge (unit tests mock the limiter RPC). Status: ready.
+- Goal: catch DB/handler mismatches like OPS-002 before merge (unit tests mock the limiter RPC).
+- Status: in review (claude/b0-8-integration) — taken by Claude 2026-11-28 after ~48 h untouched. Separate workflow
+  integration.yml (not yet gating deploy); move into test.yml once stable.
 
 ### Waiting for the owner (do not start)
 - B6.3 RevenueCat / Pro and everything Pro-gated (B1.8, B2.10, B2.11 Pro part, B4.6, Pro limits, Pro region change).

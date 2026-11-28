@@ -1320,6 +1320,38 @@ paths:
                       registered: { type: boolean }
         '422': { $ref: '#/components/responses/Error' }
 
+  /v1-friends/invite:
+    get:
+      operationId: getMyInvite
+      summary: Мій код запрошення (B9.5, ADR-021 §21.4)
+      description: |
+        Код (8 символів) і посилання лише в Google Play (`referrer=ref%3D<КОД>`, без вебсторінок і даних).
+        Новий користувач, що встановив за посиланням, автоматично стає другом; +10 балів обом після його
+        першого походу, до 5 разів. Лише акаунт із ніком: гість — 403 registration_required, без ніка — 409.
+      responses:
+        '200':
+          description: Код і підсумок
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [code, share_url, share_text, invited, rewarded, bonuses_left, label]
+                    properties:
+                      code: { type: string, pattern: '^[A-HJ-NP-Z2-9]{8}$' }
+                      share_url: { type: string, format: uri }
+                      share_text: { type: string }
+                      invited: { type: integer }
+                      rewarded: { type: integer }
+                      bonuses_left: { type: integer, minimum: 0, maximum: 5 }
+                      label: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /v1-guardian:
     get:
       operationId: getGuardian
@@ -1606,6 +1638,14 @@ components:
             id: { type: string }
         home_region_slug: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{1,31}$' }
         accept_terms_version: { type: string }
+        referral_code:
+          type: string
+          pattern: '^[A-Za-z0-9]{6,12}$'
+          description: |
+            Код запрошення з Play Install Referrer (`ref=<КОД>`, B9.5, ADR-021 §21.4); можна й гостю. Невдалий код
+            не зриває онбординг: відповідь 200 з `data.referral = { applied: false, label }`; вдалий —
+            `{ applied: true, label }` (з акаунтом — одразу друзі; гість — після входу). +10 балів обом —
+            після першого походу запрошеного, запрошувачу до 5 разів.
 
     PickUploadUrlRequest:
       type: object
