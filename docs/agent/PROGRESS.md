@@ -620,3 +620,11 @@ See docs/agent/BLOCKERS.md.
 - #182: workflow-permissions guard expected 17 workflows; `integration.yml` is the 18th (`contents: read` only).
   Count updated; `node --test scripts/ci/*.test.mjs` — 34 passed.
 - #181 green, unchanged.
+
+
+## 2026-11-28 — owner request: passport sticker gaps (Claude)
+- Audit of all 437 «Швидка картка» rows: 93 had no drawn sticker. Rules fixed with existing art (bullet keys
+  «• Ніжка», «Складочки» → folds, compound colours take the last part, «здебільшого» ≠ white, буріє/стружка/охряний,
+  bruising stems) — 80 left. Rules for 18 not-yet-drawn stickers are in code (`passportStickerRule`), with safe
+  fallbacks; misleading shapes (morel, oyster, bracket shown as a plain cap) now fall back to the schema.
+- Prompts for the 18 stickers: docs/assets/passport_stickers.md. Checks: flutter analyze clean, flutter test 440 passed.
