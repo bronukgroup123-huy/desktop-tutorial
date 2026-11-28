@@ -555,7 +555,7 @@ See docs/agent/BLOCKERS.md.
 ## 2026-11-28 — UI-005: richer quiet forest backdrop (Codex)
 - Owner approved the continuous pattern from merged #184 and requested more environmental variety without
   increasing its visual weight: more mushrooms, rivers, lakes, meadows and related forest details.
-- Branch / code commit: `codex/ui-005-backdrop-details` / `79896a2`.
+- Branch / code commit / PR: `codex/ui-005-backdrop-details` / `79896a2` / #189.
 - Added one tile-continuous river, two streams, three small lakes, seven meadows, six shrubs and 16 mushrooms
   in brown, muted red and gold variants. All features remain schematic decorative context, not geographic
   claims or navigation data; their opacity stays below the functional Home Region map.

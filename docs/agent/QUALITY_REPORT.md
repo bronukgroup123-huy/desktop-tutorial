@@ -296,7 +296,7 @@ The repeatable pattern uses about 1 MiB of raw GPU texture memory, has no hit ta
 region border and functional overlays, and disappears above zoom 9.5. The fallback mask still loads if
 SVG decoding or image registration fails.
 
-### UI-005 detail enrichment — 2026-11-28
+### UI-005 detail enrichment — 2026-11-28, PR #189
 
 After #184 merged, the owner approved the new pattern format and requested a richer but still subordinate
 forest-map scene. The SVG now includes tile-continuous waterways, small lakes, meadows, shrubs and 16 small
