@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p ci-artifact
           sha256sum scripts/forest_type/s2_leaf_type.py scripts/forest_type/zonal.py > ci-artifact/sha256.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ci-forest-type-validation
           path: ci-artifact/
@@ -181,7 +181,7 @@ jobs:
             echo '```json' >> "$GITHUB_STEP_SUMMARY"; cat out/report.json >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: forest-type-${{ env.SLUG }}
