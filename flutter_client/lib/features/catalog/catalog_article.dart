@@ -532,6 +532,14 @@ const passportStickers = <String, String>{
   'body_coral': 'Кущик гілок, як корал',
   'spores_puff': 'Старий дощовик пилить спорами',
   'flesh_yellow': 'М\'якоть жовта, на зрізі не змінюється',
+  'flesh_puffball': 'Молодий дощовик усередині рівно білий',
+  'stem_puffball': 'Дощовик-«груша» з товстою основою',
+  'under_smooth': 'Гілки гладенькі — без пластинок',
+  'stem_coral': 'Товста основа корала',
+  'flesh_morel': 'Сморчок порожнистий наскрізь',
+  'flesh_grey': 'М\'якоть сіра, тонка',
+  'season': 'Сезон',
+  'spores_micro': 'Спори під мікроскопом',
 };
 
 String passportStickerAsset(String name) => 'assets/stickers/passport/$name.webp';
@@ -643,10 +651,8 @@ String? passportSticker(String key, String value, {String? body}) {
 }
 
 /// Поки нового стікера нема — який із намальованих не суперечить тексту (зараз усі намальовані).
-const _stickerFallback = <String, String>{
-  'stem_coral': 'body_coral',
-  'stem_puffball': 'body_puffball',
-};
+/// (flesh_brain — строчок у розрізі — ще не намальований: поки схема.)
+const _stickerFallback = <String, String>{};
 
 /// Форма гриба з усієї картки — коли вона незвична: корал, дощовик, сморчок, строчок.
 /// Тоді «Ніжка», «М'якоть», «Гіменофор» отримують стікер цієї форми, а не гриба з шапкою.

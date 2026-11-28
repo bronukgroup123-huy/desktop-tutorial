@@ -243,7 +243,13 @@ void main() {
     expect(r('Гіменофор', 'Гладенький, вкриває гілки.', 'body_coral'), 'under_smooth');
     expect(passportSticker('Гіменофор', 'Гладенький, вкриває гілки.', body: 'body_coral'), isNot('under_gills'));
     expect(r('Ніжка', 'Коротка, 2–4 см заввишки, білувата.', 'body_coral'), 'stem_coral');
-    expect(passportSticker('Ніжка', 'Коротка, білувата.', body: 'body_coral'), 'body_coral', reason: 'поки нема малюнка — сам корал');
+    expect(passportSticker('Ніжка', 'Коротка, білувата.', body: 'body_coral'), 'stem_coral');
+    expect(passportSticker('Гіменофор', 'Гладенький, вкриває гілки.', body: 'body_coral'), 'under_smooth');
+    expect(passportSticker("М'якоть", 'сніжно-біла', body: 'body_puffball'), 'flesh_puffball');
+    expect(passportSticker('Ніжка', 'порожниста', body: 'cap_morel'), 'flesh_morel');
+    expect(passportSticker('Ніжка', 'порожниста', body: 'cap_brain'), isNull, reason: 'строчок у розрізі ще не намальований — схема');
+    expect(passportSticker('Сезон', 'навесні'), 'season');
+    expect(passportSticker('Спори', 'бородавчасті'), 'spores_micro');
     // дощовик: м'якоть — розріз молодого дощовика, ніжка — «груша»
     expect(r("М'якоть", 'У молодих грибів — сніжно-біла, пружна.', 'body_puffball'), 'flesh_puffball');
     expect(r('Ніжка', 'Зазвичай коротка, потовщена, біла.', 'body_puffball'), 'stem_puffball');

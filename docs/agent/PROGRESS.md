@@ -657,3 +657,5 @@ See docs/agent/BLOCKERS.md.
   named. Every row now has a rule; 9 new stickers wait for art (prompts 53–61 in docs/assets/passport_stickers.md),
   until then schema or the coral/puffball sticker.
 - Checks: flutter analyze clean, flutter test passed.
+- Owner sent 8 of the 9 (all but `flesh_brain`, the false morel cut): same processing, wired in. Rows without a
+  drawn sticker: 2 of 437 (false morel stem and flesh — schema until the drawing arrives).

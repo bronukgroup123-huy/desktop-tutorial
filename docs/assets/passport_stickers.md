@@ -198,7 +198,7 @@ Cute hand-drawn sticker illustration for a mushroom app. Watercolor with thin da
 Subject: a yellow-orange mushroom CUT IN HALF LENGTHWISE, the cut surface facing the viewer. The flesh is evenly pale YELLOW-ORANGE and does not change color. A small knife lies next to it. The yellow flesh on the cut must be the main, clearly visible feature.
 ```
 
-## П'ятий набір: форма гриба з усієї картки (правила в коді, малюнків ще немає)
+## П'ятий набір: форма гриба з усієї картки (2026-11-28; 8 із 9 намальовано, `flesh_brain` — ще ні)
 
 `passportBody` визначає незвичну форму з усієї картки (корал, дощовик, сморчок, строчок), і тоді «Ніжка»,
 «М'якоть», «Гіменофор» не показують гриба з шапкою. Також: колір м'якоті — названий першим («жовтувата… не синіє» →
