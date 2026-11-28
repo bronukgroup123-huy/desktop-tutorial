@@ -295,3 +295,25 @@ texture covers every panned extent without changing the Home Region geometry.
 The repeatable pattern uses about 1 MiB of raw GPU texture memory, has no hit target, remains below the
 region border and functional overlays, and disappears above zoom 9.5. The fallback mask still loads if
 SVG decoding or image registration fails.
+
+### UI-005 detail enrichment — 2026-11-28
+
+After #184 merged, the owner approved the new pattern format and requested a richer but still subordinate
+forest-map scene. The SVG now includes tile-continuous waterways, small lakes, meadows, shrubs and 16 small
+mushrooms in three variants. These are explicitly decorative and do not represent real hydrography or
+navigation data.
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | Pass, no issues |
+| `flutter test` | Pass, 452/452 |
+| Basemap style + region camera focused tests | Pass, 14/14 |
+| Backdrop content regression | Pass: river, 2 streams, 3 lakes, 7 meadows, 16 mushrooms / 3 variants |
+| Generated pattern regression | Pass: 512×512 power-of-two PNG, under 256 KiB, non-flat color sample |
+| Repetition inspection | Pass: 2×2 desktop raster shows continuous edge-crossing waterways |
+| Camera/layer behavior | Unchanged from #184 |
+| `git diff --check` | Pass |
+
+The richer pattern keeps the same 512×512 raster allocation (about 1 MiB raw GPU memory), opacity hierarchy,
+non-interactive layer, zoom cutoff and sage fallback. Physical-device verification remains required for the
+native MapLibre composition.

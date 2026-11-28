@@ -198,12 +198,14 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
   oversized, sparse fragments while panning and did not read as a continuous quiet map.
 - Scope: a bundled 512×512 pale forest-map `fill-pattern` applied to the existing outside-region mask;
   small irregular forest parcels, trees and mushrooms repeat without a rectangular edge, disappear above
-  zoom 9.5 and retain the sage fallback if decoding fails.
-- Status: second visual follow-up in review — PR #184, code commit `fda11f4` (2026-11-28); #176 is merged.
+  zoom 9.5 and retain the sage fallback if decoding fails. The owner-approved follow-up adds a quiet river,
+  streams, three small lakes, seven meadows, shrubs and 16 mushrooms in three visual variants.
+- Status: #184 merged as `03ceb9e`; detail-enrichment follow-up is on
+  `codex/ui-005-backdrop-details`, code commit `79896a2` (2026-11-28).
 - Verified: camera fitting and `regionPadding` are unchanged; generated PNG is 512×512 and under 256 KiB;
-  `flutter analyze` clean; focused tests 13/13; full `flutter test` 439/439.
-- Residual: confirm the repeated texture and visual balance on a physical Android device using the APK
-  produced by PR #184 CI.
+  `flutter analyze` clean; focused tests 14/14; full `flutter test` 452/452.
+- Residual: confirm the enriched repeated texture and visual balance on a physical Android device using the
+  follow-up PR APK; native MapLibre composition is not rendered by Flutter unit tests.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven

@@ -552,6 +552,22 @@ See docs/agent/BLOCKERS.md.
 - Residual: physical-device visual confirmation using the APK produced by #184 CI.
 - Claude boundary: open #181–#183 do not touch the Flutter map files; no Claude work was duplicated.
 
+## 2026-11-28 — UI-005: richer quiet forest backdrop (Codex)
+- Owner approved the continuous pattern from merged #184 and requested more environmental variety without
+  increasing its visual weight: more mushrooms, rivers, lakes, meadows and related forest details.
+- Branch / code commit: `codex/ui-005-backdrop-details` / `79896a2`.
+- Added one tile-continuous river, two streams, three small lakes, seven meadows, six shrubs and 16 mushrooms
+  in brown, muted red and gold variants. All features remain schematic decorative context, not geographic
+  claims or navigation data; their opacity stays below the functional Home Region map.
+- Preserved: the 512×512 repeat scale, MapLibre mask/layer ordering, camera, `regionPadding`, region geometry,
+  coordinates, controls, offline fallback and zoom cutoff. No server, API or production behavior changed.
+- Regression: asset-content test now requires water, meadows, at least 14 mushrooms and all three mushroom
+  variants. Checks: `flutter analyze` — no issues; focused basemap/camera tests — 14 passed; full
+  `flutter test` — 452 passed; 2×2 rendered-tile inspection and `git diff --check` — pass.
+- Residual: inspect the follow-up APK on a physical Android device because widget tests cannot render the
+  native MapLibre platform view.
+- Claude boundary: the open Claude work reviewed before editing did not touch the map backdrop files.
+
 ## 2026-11-27 04:35 UTC — scheduled run: B9.4b share a pick — app (Claude)
 - Sync: owner merged #171 (15 questions by topic), #172 (B9.4a server), #173 (module 2 «Ліс і гриб»);
   Deploy #125–#127 green. No open agent PRs; CI nothing to fix.
