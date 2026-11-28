@@ -292,7 +292,9 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 ### B3.0b — clean up unfinished photo uploads (owner: Codex)
 - Goal: scheduled removal of Storage objects without a pick older than 24 h (ADR-002); SQL/Deno test. Status: ready.
 ### B0.8 — integration run of real v1 handlers against a migrated DB in CI (owner: Codex)
-- Goal: catch DB/handler mismatches like OPS-002 before merge (unit tests mock the limiter RPC). Status: ready.
+- Goal: catch DB/handler mismatches like OPS-002 before merge (unit tests mock the limiter RPC).
+- Status: in review (claude/b0-8-integration) — taken by Claude 2026-11-28 after ~48 h untouched. Separate workflow
+  integration.yml (not yet gating deploy); move into test.yml once stable.
 
 ### Waiting for the owner (do not start)
 - B6.3 RevenueCat / Pro and everything Pro-gated (B1.8, B2.10, B2.11 Pro part, B4.6, Pro limits, Pro region change).

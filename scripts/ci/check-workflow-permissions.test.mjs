@@ -15,7 +15,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 test("all repository workflows declare reviewed top-level permissions", () => {
   assert.deepEqual(checkRepository(root), {
-    workflows: 17,
+    workflows: 18,
     writeScoped: ["ai-model.yml", "catalog.yml", "codex-autonomy.yml", "twin-photos.yml"],
   });
 });
