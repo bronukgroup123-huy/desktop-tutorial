@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:latlong2/latlong.dart';
@@ -108,21 +107,26 @@ void main() {
     expect(raster.getPixel(0, 0).a, 255);
   });
 
-  testWidgets('декоративний фон містить воду, галявини й різні гриби', (tester) async {
-    late String source;
+  testWidgets('декоративний фон має воду, ліс і теплі природні акценти', (tester) async {
+    late Uint8List backdrop;
     await tester.runAsync(() async {
-      source = await rootBundle.loadString(mapBackdropAsset);
+      backdrop = await buildMapBackdropPattern();
     });
-
-    expect(source, contains('id="water-features"'));
-    expect(RegExp('data-feature="river"').allMatches(source), hasLength(1));
-    expect(RegExp('data-feature="stream"').allMatches(source).length, greaterThanOrEqualTo(2));
-    expect(RegExp('data-feature="lake"').allMatches(source).length, greaterThanOrEqualTo(3));
-    expect(RegExp('data-feature="meadow"').allMatches(source).length, greaterThanOrEqualTo(6));
-    expect(RegExp('<use href="#mushroom-').allMatches(source).length, greaterThanOrEqualTo(14));
-    expect(source, contains('href="#mushroom-brown"'));
-    expect(source, contains('href="#mushroom-red"'));
-    expect(source, contains('href="#mushroom-gold"'));
+    final raster = image.decodePng(backdrop)!;
+    var waterPixels = 0;
+    var forestPixels = 0;
+    var warmAccentPixels = 0;
+    for (final pixel in raster) {
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+      if (b > r + 12 && g > r + 8) waterPixels++;
+      if (g > r + 8 && g > b + 8 && g < 155) forestPixels++;
+      if (r > g + 18 && g > b && r > 125) warmAccentPixels++;
+    }
+    expect(waterPixels, greaterThan(4000));
+    expect(forestPixels, greaterThan(4000));
+    expect(warmAccentPixels, greaterThan(60));
   });
 
   testWidgets('маркер тук-тука картинкою для карти — PNG (публічний і приватний)', (tester) async {
