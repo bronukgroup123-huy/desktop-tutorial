@@ -234,6 +234,37 @@ void main() {
     expect(passportSticker('Споровий порошок', 'Світло-охряний.'), 'spores_yellow');
   });
 
+  test('Паспорт: форма гриба з усієї картки — корал, дощовик, сморчок, строчок', () {
+    String? r(String k, String v, String? body) => passportStickerRule(k, v, body: body);
+    expect(passportBody(['Плодове тіло: Кораловидне, гілки товсті.', 'Ніжка: Коротка, білувата.']), 'body_coral');
+    expect(passportBody(['Шапинка: мозкоподібна, звивиста.']), 'cap_brain');
+    expect(passportBody(['Шапка: опукла, коричнева.', 'Ніжка: біла.']), isNull);
+    // корал: «Гіменофор: гладенький» — не пластинки; ніжка — основа корала
+    expect(r('Гіменофор', 'Гладенький, вкриває гілки.', 'body_coral'), 'under_smooth');
+    expect(passportSticker('Гіменофор', 'Гладенький, вкриває гілки.', body: 'body_coral'), isNot('under_gills'));
+    expect(r('Ніжка', 'Коротка, 2–4 см заввишки, білувата.', 'body_coral'), 'stem_coral');
+    expect(passportSticker('Ніжка', 'Коротка, білувата.', body: 'body_coral'), 'body_coral', reason: 'поки нема малюнка — сам корал');
+    // дощовик: м'якоть — розріз молодого дощовика, ніжка — «груша»
+    expect(r("М'якоть", 'У молодих грибів — сніжно-біла, пружна.', 'body_puffball'), 'flesh_puffball');
+    expect(r('Ніжка', 'Зазвичай коротка, потовщена, біла.', 'body_puffball'), 'stem_puffball');
+    // сморчок і строчок: не розріз гриба з шапкою
+    expect(r('Ніжка', 'циліндрична, порожниста.', 'cap_morel'), 'flesh_morel');
+    expect(r("М'якоть", 'Біла, ніжна.', 'cap_morel'), 'flesh_morel');
+    expect(r('Ніжка', 'білувата, порожниста.', 'cap_brain'), 'flesh_brain');
+    expect(passportSticker('Гіменофор', 'відсутній — шапинка мозкоподібна', body: 'cap_brain'), 'cap_brain');
+    // решта рядків цих карток — як завжди
+    expect(passportSticker('Запах', 'Приємний, грибний.', body: 'body_puffball'), 'smell');
+  });
+
+  test('Паспорт: колір м\'якоті — названий першим; «пекучий сік» — молочний сік; сезон, спори під мікроскопом', () {
+    expect(passportSticker("М'якоть", 'Щільна, жовтувата, з приємним запахом. На зрізі не синіє, не червоніє й не зеленіє.'), 'flesh_yellow');
+    expect(passportSticker("М'якоть", 'М\'ясиста, білувата або блідо-жовта, на зрізі не синіє.'), 'flesh_white');
+    expect(passportSticker("М'якоть", 'Біла, щільна, товста. Виділяє білий пекучий сік, який на повітрі не змінює колір.'), 'milk');
+    expect(passportStickerRule("М'якоть", 'М\'яка, щільна, сірувата або сіра, тонка.'), 'flesh_grey');
+    expect(passportStickerRule('Сезон', 'з’являється навесні (травень–червень).'), 'season');
+    expect(passportStickerRule('Спори', 'бородавчасті, іржаво-коричневі.'), 'spores_micro');
+  });
+
   test('Паспорт: білі пластинки — стікер висвітлено, щоб не суперечив тексту', () {
     expect(passportStickerPale('under_gills', 'завжди білі — ключова ознака.'), isTrue);
     expect(passportStickerPale('under_gills', 'білуваті → брудно-коричневі.'), isFalse);

@@ -580,7 +580,7 @@ final _scales = RegExp(r'лусочк|луск[аи]м|стружк|виступ
 final _blue = RegExp(r'сині|синю|посин|блакит');
 final _red = RegExp(r'червоні|рожеві|порожев|почервон');
 final _dark = RegExp(r'темніє|темніють|чорніє|чорніють|потемні|почорні|сіріє|буріє|буріють|коричневіє'); // дієслова: «темніша» — ні
-final _milk = RegExp(r'молочн|млечн');
+final _milk = RegExp(r'молочн|млечн|(^|\s)сік(?=[\s,.;]|$)'); // «виділяє білий пекучий сік» (груздь)
 final _brownSpores = RegExp(r'коричн|бур[иі]й|бура|іржав');
 final _placeWood = RegExp(r'пн[іяе]|пень|пеньк|стовбур|деревин|гілк|колод');
 final _placeMeadow = RegExp(r'лук|пасовищ|галявин|газон|пол[ея]|степ|узбіч|сад');
@@ -623,6 +623,7 @@ final _bruiseRed = RegExp(r'(червоні|рожеві)[єю].{0,25}(доти�
 // М'якоть кольору (без зміни на зрізі): клауза починається з кольору
 final _fleshWhite = RegExp(r'^\s*(сніжно-|чисто-)?біл');
 final _fleshYellow = RegExp(r'^\s*(світло-|блідо-|яскраво-)?(жовт|оранж)');
+final _fleshGrey = RegExp(r'^\s*(світло-|темно-)?сір');
 // «червоно-коричнева» — коричнева: у складеному кольорі головний — останній
 final _colourModifier = RegExp(r"[а-яіїєґ'’]+(о|увато|ювато)-(?=[а-яіїєґ]|\s)"); // і «сірувато- або жовта»
 
@@ -631,8 +632,8 @@ String _passportKey(String key) => key.replaceFirst(RegExp(r'^\s*[•·*-]\s*'),
 
 /// Який мальований стікер показати біля ознаки «[key]: [value]» — або `null` (лишається схема).
 /// Нічого не вигадуємо: нема ознаки в тексті — нема стікера.
-String? passportSticker(String key, String value) {
-  var s = passportStickerRule(key, value);
+String? passportSticker(String key, String value, {String? body}) {
+  var s = passportStickerRule(key, value, body: body);
   // Правило може назвати стікер, якого ще не намальовано (docs/assets/passport_stickers.md):
   // тоді найближчий намальований, а якщо такого нема чи він збиває (сморчок «булочкою») — схема.
   while (s != null && !passportStickers.containsKey(s)) {
@@ -642,12 +643,46 @@ String? passportSticker(String key, String value) {
 }
 
 /// Поки нового стікера нема — який із намальованих не суперечить тексту (зараз усі намальовані).
-const _stickerFallback = <String, String>{};
+const _stickerFallback = <String, String>{
+  'stem_coral': 'body_coral',
+  'stem_puffball': 'body_puffball',
+};
+
+/// Форма гриба з усієї картки — коли вона незвична: корал, дощовик, сморчок, строчок.
+/// Тоді «Ніжка», «М'якоть», «Гіменофор» отримують стікер цієї форми, а не гриба з шапкою.
+const passportBodies = {'body_coral', 'body_puffball', 'cap_morel', 'cap_brain'};
+
+String? passportBody(Iterable<String> lines) {
+  for (final line in lines) {
+    final m = descKv.firstMatch(line.trim());
+    if (m == null || line.contains('\t')) continue;
+    final s = passportStickerRule(m.group(1)!, m.group(2)!);
+    if (passportBodies.contains(s)) return s;
+  }
+  return null;
+}
 
 /// Стікер за правилом — зокрема ще не намальований (для аудиту й тестів).
-String? passportStickerRule(String key, String value) {
+/// [body] — незвична форма гриба з цієї ж картки ([passportBody]).
+String? passportStickerRule(String key, String value, {String? body}) {
   final k = _passportKey(key);
   final v = value.toLowerCase();
+  if (body != null) {
+    final part = passportGlyph(key).part;
+    switch (body) {
+      case 'body_coral':
+        if (part == 'underside') return 'under_smooth'; // «Гладенький, вкриває гілки» — не пластинки
+        if (part == 'stem') return 'stem_coral';
+      case 'body_puffball':
+        if (part == 'stem') return 'stem_puffball';
+        if (part == 'flesh') return 'flesh_puffball';
+      case 'cap_morel':
+        if (part == 'stem' || part == 'flesh') return 'flesh_morel'; // порожнистий наскрізь
+      case 'cap_brain':
+        if (part == 'stem' || part == 'flesh') return 'flesh_brain'; // усередині звивисті камери
+        if (part == 'underside') return 'cap_brain'; // «Гіменофор: відсутній — шапинка мозкоподібна»
+    }
+  }
   final g = passportGlyph(key);
   if (g.part == 'underside') {
     if (RegExp(r'відсутн').hasMatch(v)) return null; // «Гіменофор: відсутній» (строчки, сморчки)
@@ -711,8 +746,10 @@ String? passportStickerRule(String key, String value) {
     final change = _earliest(v, {'flesh_blue': _blue, 'flesh_red': _red, 'flesh_dark': _dark, 'flesh_green': _green});
     if (change != null) return change;
     if (v.contains('порошист')) return null; // дощовик: усередині порошок, не зріз
-    if (_noChange.hasMatch(v) || _mentions(v, _fleshWhite)) return 'flesh_white';
-    if (_mentions(v, _fleshYellow)) return 'flesh_yellow';
+    // колір м'якоті — названий першим («Щільна, жовтувата… не синіє» — жовта, не біла)
+    final colour = _earliest(v, {'flesh_white': _fleshWhite, 'flesh_yellow': _fleshYellow, 'flesh_grey': _fleshGrey});
+    if (colour != null) return colour;
+    if (_noChange.hasMatch(v)) return 'flesh_white';
     return null;
   }
   if (k.startsWith('молочний сік')) return 'milk';
@@ -724,8 +761,9 @@ String? passportStickerRule(String key, String value) {
     if (RegExp(r'корал|кущ|розгалуж').hasMatch(v)) return 'body_coral';
     return null;
   }
+  if (k.startsWith('сезон')) return 'season';
   if (k.contains('спор')) {
-    if (!k.contains('порошок')) return null;
+    if (!k.contains('порошок')) return 'spores_micro'; // «Спори: бородавчасті…» — під мікроскопом
     if (_mentions(v, _sporeDark)) return 'spores_dark';
     if (_mentions(v, _brownSpores)) return 'spores_brown';
     if (_mentions(v, _sporePink)) return 'spores_pink';
@@ -790,6 +828,7 @@ class _Passport extends StatelessWidget {
       rest.clear();
     }
 
+    final body = passportBody(section.lines);
     for (final line in section.lines) {
       final m = descKv.firstMatch(line.trim());
       if (m == null || line.contains('\t')) {
@@ -798,7 +837,7 @@ class _Passport extends StatelessWidget {
       }
       flush();
       final g = passportGlyph(m.group(1)!);
-      final sticker = passportSticker(m.group(1)!, m.group(2)!);
+      final sticker = passportSticker(m.group(1)!, m.group(2)!, body: body);
       rows.add(Container(
         key: ValueKey('passport-${m.group(1)}'),
         margin: const EdgeInsets.only(top: 8),
