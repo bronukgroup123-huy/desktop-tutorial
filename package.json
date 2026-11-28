@@ -28,6 +28,6 @@
   "devDependencies": {
     "@types/jsonstream": "^0.8.33",
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }
