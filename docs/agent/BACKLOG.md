@@ -281,7 +281,8 @@ and when the PR is open/merged. Details, ADR links and acceptance criteria are i
 - Done — #151 merged 2026-11-26.
 ### B9.4 / B9.5 / B9.6 — share a private pick · invites · gifts (owner: Claude)
 - Done — B9.4a #172, B9.4b #175 merged and deployed.
-- B9.5 / B9.6 — ready (gifts are announced in the profile as «скоро»).
+- B9.5a invites server — in review (claude/b9-5a-invites). B9.5b app (Play Install Referrer, invite screen) — ready
+  after B9.5a. B9.6 gifts/spores — needs a spending design (avatars unlock by level only; nothing to buy yet).
 ### B2.5 — forest summary sheet (owner: Claude)
 - Status: ready (lower priority).
 ### B3.5 — heatmap — REMOVED by the owner 2026-11-27 (ADR-010 §10.7)

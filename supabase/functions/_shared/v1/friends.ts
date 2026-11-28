@@ -7,6 +7,8 @@
 // POST v1-friends { action, user_id, reason?, comment? } → { user } — запит, прийняти, відхилити,
 //      скасувати, видалити, заблокувати, розблокувати, поскаржитися
 // PUT  v1-friends/push { token, platform } → { registered }       — пристрій для push друзів
+// GET  v1-friends/invite → { code, share_url, share_text, invited, rewarded, bonuses_left, label }
+//      — мій код запрошення (B9.5, ADR-021 §21.4): посилання лише в Google Play, код — через Install Referrer
 //
 // Лише для акаунта з ніком: гостю — 403 registration_required (ADR-001), без ніка — 409
 // profile_required. Логіка й ліміти (20 запитів/добу, 200 друзів, 30 днів після відхилення) —
@@ -382,6 +384,35 @@ async function registerPush(req: Request, db: FriendsDb, me: Me) {
 
 // ─── Обробник ──────────────────────────────────────────────────────────────
 
+/** Пакет застосунку в Google Play — посилання запрошення веде лише туди (без вебсторінок, §21.4). */
+export const PLAY_PACKAGE = "ua.mushroomradar.app";
+
+/** Посилання в Google Play з кодом для Install Referrer: `ref=<КОД>`. */
+export function inviteUrl(code: string): string {
+  return `https://play.google.com/store/apps/details?id=${PLAY_PACKAGE}&referrer=${encodeURIComponent(`ref=${code}`)}`;
+}
+
+async function myInvite(db: FriendsDb, me: Me): Promise<Record<string, unknown>> {
+  const { data, error } = await db.rpc("my_referral_code", { p_user_id: me.id });
+  if (error) dbFail("my_referral_code", error);
+  const r = (data ?? {}) as Record<string, unknown>;
+  if (r.ok !== true) throw new HttpError(503, String(r.code ?? "code_unavailable"), String(r.message ?? "Спробуйте пізніше"));
+  const code = String(r.code);
+  const invited = Number(r.invited ?? 0);
+  const left = Number(r.bonuses_left ?? 0);
+  return {
+    code,
+    share_url: inviteUrl(code),
+    share_text: `Шукаю гриби з «Грибним Радаром». Встанови за цим посиланням — і ми одразу станемо друзями: ${inviteUrl(code)}`,
+    invited,
+    rewarded: Number(r.rewarded ?? 0),
+    bonuses_left: left,
+    label: left > 0
+      ? `+10 балів вам обом, коли друг пройде перший похід. Лишилось бонусів: ${left} з 5`
+      : "Бонуси за запрошення вже отримано — запрошувати друзів можна й далі",
+  };
+}
+
 export async function handleFriends(req: Request, deps: FriendsDeps): Promise<Response> {
   assertMethod(req, ["GET", "POST", "PUT"]);
   // deno-lint-ignore no-explicit-any
@@ -397,6 +428,7 @@ export async function handleFriends(req: Request, deps: FriendsDeps): Promise<Re
   }
   if (req.method === "POST") return ok(await doAction(deps, me, validateAction(await readJson(req)), now), req);
 
+  if (/\/invite\/?$/.test(url.pathname)) return ok(await myInvite(deps.db, me), req);
   const q = url.searchParams.get("q");
   if (q !== null) return ok(await search(deps.db, me, q), req);
   const who = url.searchParams.get("user");

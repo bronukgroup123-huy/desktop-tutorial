@@ -553,3 +553,16 @@ See docs/agent/BLOCKERS.md.
   spots; the forecast already answers «where to go»). Closed #178 and #179 unmerged with a comment; recorded as
   ADR-010 §10.7; BACKEND_PLAN B3.5 struck out; BACKLOG item marked REMOVED. Nothing to revert on main.
 
+## 2026-11-28 04:35 UTC — scheduled run: B9.5a invites server (Claude)
+- #181 (SEC-008) and #182 (B0.8, integration run green on its second attempt) wait for the owner.
+- Branch claude/b9-5a-invites (ADR-021 §21.4 decided; spores part waits for B9.6): migration 20261128170000 —
+  `referral_codes` (8 chars without 0/O/1/I), `referrals`, `my_referral_code`, `redeem_referral` (14-day window,
+  once, not own, not blocked; guests allowed), `referral_make_friends` (account → friends at once, guest → after
+  sign-in), cron `award_due_referrals` (+10 rating to both after the invitee's first hike — closed «Я вдома» or a
+  «Знайшли?» answer; inviter at most 5). rating_events reason 'referral' + unique (user, invitee).
+  Endpoints: `GET v1-friends/invite` (code, Play-only link `referrer=ref%3D<CODE>`, label); `PATCH v1-me
+  {referral_code}` — never breaks onboarding (200 with `referral: {applied, label}`).
+- Checks: local DB — 29 SQL test files passed (new referrals.sql); Deno — 577 passed (new referrals.test.ts),
+  `deno check` clean; OpenAPI contract and auth matrix pass.
+- Merge order: #181 (migration 20261128160000) before this PR (20261128170000).
+
