@@ -120,6 +120,39 @@ class FriendProfile {
   final List<({String id, String title})> trophies;
 }
 
+/// `GET /v1-friends/invite` (B9.5, ADR-021 §21.4): мій код запрошення й посилання в Google Play.
+class MyInvite {
+  const MyInvite({
+    required this.code,
+    required this.shareUrl,
+    required this.shareText,
+    this.invited = 0,
+    this.rewarded = 0,
+    this.bonusesLeft = 0,
+    this.label,
+  });
+
+  factory MyInvite.fromJson(Map<String, dynamic> json) => MyInvite(
+        code: json['code'] as String,
+        shareUrl: json['share_url'] as String,
+        shareText: json['share_text'] as String? ?? json['share_url'] as String,
+        invited: (opt<num>(json, 'invited') ?? 0).toInt(),
+        rewarded: (opt<num>(json, 'rewarded') ?? 0).toInt(),
+        bonusesLeft: (opt<num>(json, 'bonuses_left') ?? 0).toInt(),
+        label: opt<String>(json, 'label'),
+      );
+
+  final String code;
+
+  /// Посилання лише в Google Play з `referrer=ref=<КОД>` — у QR і в «Поділитися».
+  final String shareUrl;
+  final String shareText;
+  final int invited;
+  final int rewarded;
+  final int bonusesLeft;
+  final String? label;
+}
+
 /// Причини скарги — ті самі коди, що й на сервері.
 const kReportReasons = <(String, String)>[
   ('spam', 'Спам або реклама'),

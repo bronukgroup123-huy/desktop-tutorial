@@ -119,6 +119,12 @@ final picksRepositoryProvider = Provider(
 );
 final friendsRepositoryProvider = Provider((ref) => FriendsRepository(ref.watch(apiClientProvider)));
 
+/// Мій код запрошення (`GET /v1-friends/invite`) — екран «Запросити друга».
+final myInviteProvider = FutureProvider.autoDispose<MyInvite>((ref) {
+  ref.watch(meProvider.select((m) => m.valueOrNull?.id));
+  return ref.watch(friendsRepositoryProvider).invite();
+});
+
 /// Друзі, запити, заблоковані (`GET /v1-friends`). Оновлюється після кожної дії й «потягнути вниз».
 /// Залежить від акаунта: вийшли / увійшли іншим — список перечитується.
 final friendsProvider = FutureProvider.autoDispose<FriendsOverview>((ref) {
@@ -212,6 +218,9 @@ class MeNotifier extends AsyncNotifier<Me?> {
     state = AsyncData(await ref.read(meRepositoryProvider).setAvatar(id));
   }
 
+
+  /// Свіжий профіль, який повернув сервер в іншій дії (код запрошення).
+  void replace(Me me) => state = AsyncData(me);
 
   /// Видалити акаунт і вийти.
   Future<void> deleteAccount() async {

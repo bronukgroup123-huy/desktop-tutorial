@@ -637,3 +637,14 @@ See docs/agent/BLOCKERS.md.
 - `stem_colored` now needs a named colour (or «одного кольору з шапкою»); «Кільце відсутнє» keeps the schema.
 - Catalogue audit: rows without a drawn sticker 7 → 6 of 437 (49 distinct stickers in use).
 - Checks: flutter analyze clean, flutter test 440 passed.
+
+## 2026-11-28 12:35 UTC — scheduled run: B9.5b invites — app (Claude)
+- No open agent PRs (#183, #185, #186 merged). Took B9.5b (ready after B9.5a).
+- Branch claude/b9-5b-invites-app: «Друзі» → «Запросити друга»: code, QR of the Google Play link, «Поділитися
+  посиланням», «Скопіювати посилання», bonus label and counts — all from `GET v1-friends/invite`.
+- Play Install Referrer (package play_install_referrer, BSD; QR — qr_flutter, BSD): once after entering the main
+  tabs the app reads `ref=<CODE>` and sends `PATCH v1-me {referral_code}`; the server's label is shown as a
+  snackbar. Normal installs and rejected codes are marked checked; offline is not (retried next launch). iOS / no
+  Google Play — nothing happens. Server rules (14 days, own code, guests) unchanged.
+- Checks: flutter analyze clean; flutter test 449 passed (new invite_test.dart: referrer parsing, once-only,
+  offline retry, rejected code, screen, error; friends_test: entry tile). APK build — CI only (no Android SDK here).

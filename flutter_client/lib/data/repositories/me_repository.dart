@@ -85,6 +85,14 @@ class MeRepository {
     return (available: data['available'] == true, reason: data['reason'] as String?);
   }
 
+  /// Активувати код запрошення з Play Install Referrer (B9.5). Невдалий код — не помилка:
+  /// сервер відповідає 200 з `referral: { applied: false, label }`.
+  Future<({Me me, bool applied, String? label})> redeemReferral(String code) async {
+    final raw = await _api.patch('/v1-me', body: {'referral_code': code}) as Map<String, dynamic>;
+    final referral = raw['referral'] is Map ? Map<String, dynamic>.from(raw['referral'] as Map) : const <String, dynamic>{};
+    return (me: await _save(raw), applied: referral['applied'] == true, label: referral['label'] as String?);
+  }
+
   /// Видалити акаунт назавжди (вимога Google Play).
   Future<void> deleteAccount() async {
     await _api.delete('/v1-me');

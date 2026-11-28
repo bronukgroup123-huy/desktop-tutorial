@@ -36,6 +36,9 @@ class FriendsRepository {
     return (user: FriendCard.fromJson(data['user'] as Map<String, dynamic>), done: data['done_label'] as String?);
   }
 
+  /// Мій код запрошення й посилання в Google Play (ADR-021 §21.4).
+  Future<MyInvite> invite() async => MyInvite.fromJson(await _api.get('/v1-friends/invite') as Map<String, dynamic>);
+
   /// Пристрій для push «запит у друзі», «прийнято» (і тривог Наглядача).
   Future<void> registerPush(String token, String platform) =>
       _api.put('/v1-friends/push', body: {'token': token, 'platform': platform});
