@@ -194,12 +194,16 @@ split but also stale task statuses; use it to review boundaries, not as a merge-
 - Finding: the #174 implementation was visually absent on a physical Android device because it depended
   on PMTiles detail outside the region, where no useful texture was available; symbol collision could also
   hide the decorative mushrooms.
-- Scope: a bundled pale forest-map raster with small non-interactive mushrooms and a transparent Web
-  Mercator cutout for the Home Region; hidden above zoom 9.5, with a sage fallback if decoding fails.
-- Status: follow-up in review — PR #176, code commit `a8ebc02` (2026-11-27); #174 is merged but superseded.
-- Verified: camera fitting and `regionPadding` are unchanged; the real generated PNG has a transparent
-  region and visible outer pixels; `flutter analyze` clean; full `flutter test` 430/430.
-- Residual: confirm visual balance on a physical Android device using the APK produced by PR #176 CI.
+- Device finding after #176: the backdrop became visible, but its single finite georeferenced image exposed
+  oversized, sparse fragments while panning and did not read as a continuous quiet map.
+- Scope: a bundled 512×512 pale forest-map `fill-pattern` applied to the existing outside-region mask;
+  small irregular forest parcels, trees and mushrooms repeat without a rectangular edge, disappear above
+  zoom 9.5 and retain the sage fallback if decoding fails.
+- Status: second visual follow-up in review — PR #184, code commit `fda11f4` (2026-11-28); #176 is merged.
+- Verified: camera fitting and `regionPadding` are unchanged; generated PNG is 512×512 and under 256 KiB;
+  `flutter analyze` clean; focused tests 13/13; full `flutter test` 439/439.
+- Residual: confirm the repeated texture and visual balance on a physical Android device using the APK
+  produced by PR #184 CI.
 
 ### PERF-001 — measured hotspots (owner: Claude)
 - Goal: measure rebuilds/frame time on map, forecast, catalog lists, profile animation; optimize only proven

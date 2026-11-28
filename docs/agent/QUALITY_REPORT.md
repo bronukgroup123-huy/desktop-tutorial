@@ -268,9 +268,30 @@ the expected texture; its symbol layer could also lose mushroom icons to MapLibr
 | Generated PNG regression | Pass: 768×768, under 512 KiB, transparent region centre, opaque backdrop outside |
 | Camera regression | `regionPadding`, `fitRegion` and the map viewport remain unchanged |
 | `git diff --check` | Pass |
-| Physical-device verification of #176 | Pending CI APK |
+| Physical-device verification of #176 | Backdrop visible; panning exposed oversized sparse fragments → #184 |
 
 The replacement is a bundled offline SVG rendered once per style load to a roughly 2.3 MiB raw GPU
 texture. A Web Mercator cutout preserves the live map inside the exact region geometry; the raster has no
 hit target, stays below functional overlays and is not shown above zoom 9.5. Decoding failure falls back to
 the existing sage mask without blocking the map.
+
+### UI-005 panning follow-up — 2026-11-28, PR #184
+
+Physical-device screenshots of #176 confirmed the raster was visible but also exposed its remaining design
+fault: a single finite image revealed large, sparse composition fragments as the map moved. PR #184 replaces
+that image source with a MapLibre `fill-pattern` on the existing outside-region mask, so the quiet forest
+texture covers every panned extent without changing the Home Region geometry.
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | Pass, no issues |
+| `flutter test` | Pass, 439/439 |
+| Basemap style + region camera focused tests | Pass, 13/13 |
+| Generated pattern regression | Pass: 512×512 power-of-two PNG, under 256 KiB, non-flat color sample |
+| Camera regression | `regionPadding`, `fitRegion` and the map viewport remain unchanged |
+| `git diff --check` | Pass |
+| Physical-device verification of #184 | Pending CI APK |
+
+The repeatable pattern uses about 1 MiB of raw GPU texture memory, has no hit target, remains below the
+region border and functional overlays, and disappears above zoom 9.5. The fallback mask still loads if
+SVG decoding or image registration fails.
