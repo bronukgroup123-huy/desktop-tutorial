@@ -662,30 +662,29 @@ class _RegionMapState extends ConsumerState<_RegionMap> {
     };
   }
 
-  /// Додає гарантовано видимий офлайн-фон із прозорим вирізом області.
+  /// Додає тихий повторюваний офлайн-фон лише на маску поза областю.
   Future<void> _loadMapBackdrop() async {
     final controller = _ml;
     if (controller == null || !_styleReady) return;
     try {
-      final backdrop = await buildMapBackdropImage(bounds: _g.bounds, region: _g.polygons);
+      final backdrop = await buildMapBackdropPattern();
       if (!mounted || !_styleReady || !identical(controller, _ml)) return;
-      final extent = backdrop.extent;
-      await controller.addImageSource(
-        mapBackdropSource,
-        backdrop.png,
-        ml.LatLngQuad(
-          topLeft: ml.LatLng(extent.northEast.latitude, extent.southWest.longitude),
-          topRight: ml.LatLng(extent.northEast.latitude, extent.northEast.longitude),
-          bottomRight: ml.LatLng(extent.southWest.latitude, extent.northEast.longitude),
-          bottomLeft: ml.LatLng(extent.southWest.latitude, extent.southWest.longitude),
-        ),
+      await controller.addImage(
+        mapBackdropPattern,
+        backdrop,
+        false,
+        mapBackdropPixelRatio,
       );
-      await controller.addRasterLayer(
-        mapBackdropSource,
+      await controller.addFillLayer(
+        'app_mask',
         mapBackdropLayer,
-        const ml.RasterLayerProperties(rasterOpacity: 0.94, rasterFadeDuration: 0),
+        const ml.FillLayerProperties(
+          fillPattern: mapBackdropPattern,
+          fillOpacity: 0.84,
+        ),
         belowLayerId: 'app_region_border',
         maxzoom: 9.5,
+        enableInteraction: false,
       );
     } catch (e) {
       // Декор не повинен завадити роботі карти або функціональних шарів.

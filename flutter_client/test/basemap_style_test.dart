@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -77,25 +78,33 @@ void main() {
     expect(index('app_mask'), lessThan(index('app_region_border')));
   });
 
-  testWidgets('лісова карта — справжній офлайн-растр із прозорим вирізом області', (tester) async {
-    late MapBackdropImage backdrop;
+  testWidgets('лісова карта — компактний повторюваний офлайн-патерн', (tester) async {
+    late Uint8List backdrop;
     await tester.runAsync(() async {
-      backdrop = await buildMapBackdropImage(
-        bounds: const GeoBounds(southWest: LatLng(49, 23), northEast: LatLng(50.5, 25)),
-        region: region,
-      );
+      backdrop = await buildMapBackdropPattern();
     });
-    expect(backdrop.png.sublist(1, 4), 'PNG'.codeUnits);
-    expect(backdrop.png.lengthInBytes, lessThan(512 * 1024));
-    final raster = image.decodePng(backdrop.png)!;
+    expect(backdrop.sublist(1, 4), 'PNG'.codeUnits);
+    expect(backdrop.lengthInBytes, lessThan(256 * 1024));
+    final raster = image.decodePng(backdrop)!;
     expect(raster.width, mapBackdropRasterSize);
     expect(raster.height, mapBackdropRasterSize);
-    expect(raster.getPixel(raster.width ~/ 2, raster.height ~/ 2).a, 0, reason: 'область має бути прозорою');
-    expect(raster.getPixel(8, 8).a, greaterThan(0), reason: 'фон поза областю має бути видимим');
-    expect(backdrop.extent.southWest.latitude, lessThan(49));
-    expect(backdrop.extent.southWest.longitude, lessThan(23));
-    expect(backdrop.extent.northEast.latitude, greaterThan(50.5));
-    expect(backdrop.extent.northEast.longitude, greaterThan(25));
+    expect(mapBackdropRasterSize & (mapBackdropRasterSize - 1), 0,
+        reason: 'MapLibre fill-pattern вимагає степінь двійки');
+    expect(mapBackdropPixelRatio, 1,
+        reason: 'декор не можна стискати у дрібний помітно повторюваний тайл');
+    final colors = <int>{};
+    for (var y = 0; y < raster.height; y += 16) {
+      for (var x = 0; x < raster.width; x += 16) {
+        final pixel = raster.getPixel(x, y);
+        colors.add((pixel.r.toInt() << 24) |
+            (pixel.g.toInt() << 16) |
+            (pixel.b.toInt() << 8) |
+            pixel.a.toInt());
+      }
+    }
+    expect(colors.length, greaterThan(8),
+        reason: 'патерн не повинен перетворитися на плаский колір');
+    expect(raster.getPixel(0, 0).a, 255);
   });
 
   testWidgets('маркер тук-тука картинкою для карти — PNG (публічний і приватний)', (tester) async {
