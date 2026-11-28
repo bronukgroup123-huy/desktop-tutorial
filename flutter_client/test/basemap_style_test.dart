@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:latlong2/latlong.dart';
@@ -105,6 +106,23 @@ void main() {
     expect(colors.length, greaterThan(8),
         reason: 'патерн не повинен перетворитися на плаский колір');
     expect(raster.getPixel(0, 0).a, 255);
+  });
+
+  testWidgets('декоративний фон містить воду, галявини й різні гриби', (tester) async {
+    late String source;
+    await tester.runAsync(() async {
+      source = await rootBundle.loadString(mapBackdropAsset);
+    });
+
+    expect(source, contains('id="water-features"'));
+    expect(RegExp('data-feature="river"').allMatches(source), hasLength(1));
+    expect(RegExp('data-feature="stream"').allMatches(source).length, greaterThanOrEqualTo(2));
+    expect(RegExp('data-feature="lake"').allMatches(source).length, greaterThanOrEqualTo(3));
+    expect(RegExp('data-feature="meadow"').allMatches(source).length, greaterThanOrEqualTo(6));
+    expect(RegExp('<use href="#mushroom-').allMatches(source).length, greaterThanOrEqualTo(14));
+    expect(source, contains('href="#mushroom-brown"'));
+    expect(source, contains('href="#mushroom-red"'));
+    expect(source, contains('href="#mushroom-gold"'));
   });
 
   testWidgets('маркер тук-тука картинкою для карти — PNG (публічний і приватний)', (tester) async {
