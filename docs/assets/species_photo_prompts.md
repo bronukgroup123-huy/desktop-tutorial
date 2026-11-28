@@ -103,18 +103,18 @@ A little natural soil only at the very base of each stem. A fallen oak leaf next
 ```
 
 ## 7. Глива дубова (*Pleurotus dryinus*) — `pleurotus_dryinus`
-Головне: біло-сірувата повстиста шапка; пластинки спускаються на ніжку; на ніжці залишок кільця (у інших глив кільця немає).
+Головне: біло-сірувата повстиста шапка; пластинки спускаються на ніжку; на ніжці ледь помітне кільце, на краю шапки кілька білих клаптиків (павутини немає).
 
 ```
-Photorealistic botanical illustration of TWO specimens of Veiled Oyster (Pleurotus dryinus) standing side by side: a YOUNG mushroom on the LEFT and a MATURE mushroom on the RIGHT. Pure flat white background (#FFFFFF), no ground, no moss, no shadow on the background. Wide landscape canvas 2048×1024. The two mushrooms are clearly SEPARATE with a wide empty white gap between them (they do not touch or overlap); each one is whole, centered in its own half of the canvas and fills about 80% of the canvas height. Both at the same scale as in nature (the young one noticeably smaller).
+Photorealistic botanical illustration of TWO specimens of the Veiled Oyster mushroom (Pleurotus dryinus) standing side by side: a YOUNG mushroom on the LEFT and a MATURE mushroom on the RIGHT. Pure flat white background (#FFFFFF), no ground, no moss, no shadow on the background. Wide landscape canvas 2048×1024. The two mushrooms are clearly SEPARATE with a wide empty white gap between them (they do not touch or overlap); each one is whole, centered in its own half of the canvas and fills about 80% of the canvas height. Both at the same scale as in nature (the young one noticeably smaller).
 
 View for both: from the side and slightly from below, so the underside of the cap is visible.
 
-LEFT — young: small convex cap with the edge rolled down, whitish-grey, finely felted; under the cap edge a thin white veil still connects it to the stem; short white stem.
+LEFT — young: small firm convex cap with the edge rolled down, whitish-grey, finely felted and matte; underneath dense white GILLS running down the stem; short thick white stem, slightly off-center.
 
-RIGHT — mature: fleshy convex-flat cap 10 cm, off-center, whitish to pale yellowish-grey, finely felted and matte, with remnants of a white veil hanging at the edge; underneath dense white to pale yellow GILLS that run far down the stem; short thick white stem, narrowing to the base, with a visible fragile RING zone.
+RIGHT — mature: fleshy convex-flat cap 10 cm, off-center on the stem, whitish to pale yellowish-grey, finely felted and matte, with a few small flat white skin-like flakes along the cap edge; underneath dense white to pale cream GILLS that run far down the stem; short thick white stem narrowing toward the base, with a faint narrow whitish ring zone in the upper part.
 
-Each one attached at its base to a small piece of tree bark (only a small piece, not a whole log). Soft diffused studio light from the upper left, gentle natural shading, realistic textures, natural colors, high detail, sharp focus. No text, no labels, no frame, no other objects.
+Each one attached at its base to a small piece of oak bark (only a small piece, not a whole log). NO cobweb, NO spider web, NO threads or strands between the cap and the stem, NO cortina, NO hanging veil. Soft diffused studio light from the upper left, gentle natural shading, realistic textures, natural colors, high detail, sharp focus. No text, no labels, no frame, no other objects.
 ```
 
 ## 8. Глива легенева (*Pleurotus pulmonarius*) — `pleurotus_pulmonarius`
