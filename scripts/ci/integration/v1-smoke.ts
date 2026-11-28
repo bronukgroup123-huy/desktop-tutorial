@@ -89,9 +89,13 @@ await call("me: choose home region + accept terms", "PATCH", "v1-me", {
 await call("picks map", "GET", "v1-picks/map", { token: user });
 await call("picks species", "GET", "v1-picks/species", { token: user });
 await call("picks shared with me", "GET", "v1-picks/shared", { token: user });
+// друзі потребують ніка (409 profile_required без нього) — задаємо нік і перевіряємо обидва випадки
+await call("friends without a handle → profile_required", "GET", "v1-friends", { token: user, expect: [409] });
+const handle = `гриб_${Math.floor(Math.random() * 1e6)}`;
+await call("me: set handle", "PATCH", "v1-me", { token: user, body: { handle } });
 await call("friends", "GET", "v1-friends", { token: user });
 await call("analysis overview", "GET", "v1-analysis", { token: user });
-await call("analysis feedback context", "GET", "v1-analysis/feedback", { token: user, expect: [200, 404] });
+await call("analysis feedback context", "GET", "v1-analysis/feedback?lat=49.84&lng=24.03", { token: user });
 const quiz = await call("quiz overview", "GET", "v1-quiz", { token: user });
 const modules = (quiz.modules ?? []) as Array<Record<string, unknown>>;
 if (!modules.some((m) => m.id === "app" && m.status === "open")) {
