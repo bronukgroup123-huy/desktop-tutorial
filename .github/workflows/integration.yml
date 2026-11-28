@@ -1,0 +1,57 @@
+name: Integration (real v1 handlers)
+
+# B0.8: справжні Edge Functions проти локального Supabase з усіма міграціями — ловить розбіжності
+# «код ↔ схема», яких не бачать unit-тести з mock-БД (так сталося OPS-002). Окремий workflow:
+# повний стек Supabase у CI піднімається кілька хвилин і може падати з інфраструктурних причин,
+# тож поки він не блокує деплой (deploy.yml викликає лише test.yml). Коли стабільний — перенести в test.yml.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: Real v1 handlers against a migrated DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.1.4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Start Supabase (DB with all migrations, Auth, REST, Storage, Edge Runtime)
+        run: supabase start -x studio,imgproxy,realtime
+
+      - name: Serve Edge Functions
+        run: |
+          supabase functions serve > functions.log 2>&1 &
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/functions/v1/v1-app-config || true)
+            if [ "$code" = "200" ] || [ "$code" = "304" ]; then echo "functions ready ($code)"; exit 0; fi
+            sleep 2
+          done
+          echo "functions did not start"; tail -100 functions.log; exit 1
+
+      - name: Integration checks
+        run: |
+          eval "$(supabase status -o env)"
+          export API_URL ANON_KEY SERVICE_ROLE_KEY PUBLISHABLE_KEY SECRET_KEY
+          deno run --allow-net --allow-env --node-modules-dir=none scripts/ci/integration/v1-smoke.ts
+
+      - name: Functions log
+        if: failure()
+        run: tail -200 functions.log || true
