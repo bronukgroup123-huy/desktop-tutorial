@@ -445,7 +445,7 @@ class _SummaryLine extends StatelessWidget {
 
 /// Схема для ознаки «Шапка: …» → (частина, вид низу шапки) або значок.
 ({String? part, String? kind, IconData? icon}) passportGlyph(String key) {
-  final k = key.toLowerCase();
+  final k = _passportKey(key);
   String? under() => k.contains('трубоч')
       ? 'tubes'
       : k.contains('склад')
@@ -461,7 +461,7 @@ class _SummaryLine extends StatelessWidget {
       k.contains('склад')) {
     return (part: 'underside', kind: under(), icon: null);
   }
-  if (k.startsWith('шапка') || k.startsWith('капелюх') || k.startsWith('капелюш')) {
+  if (k.startsWith('шапка') || k.startsWith('шапин') || k.startsWith('капелюх') || k.startsWith('капелюш')) {
     return (part: 'cap', kind: null, icon: null);
   }
   if (k.startsWith('ніжка')) return (part: 'stem', kind: null, icon: null);
@@ -558,10 +558,10 @@ bool _mentions(String text, RegExp feature) {
 final _volva = RegExp(r'вольв|піхв|мішк|мішеч');
 final _ring = RegExp(r'кільц');
 final _net = RegExp(r'сіточк|сітк|сітчаст');
-final _scales = RegExp(r'лусочк|луск[аи]м'); // «лусочками», «лусками»; «луската» — ні (зеленушка)
+final _scales = RegExp(r'лусочк|луск[аи]м|стружк|виступаюч'); // «лусочками», «лусками», «стружкою» (підберезники); «луската» — ні (зеленушка)
 final _blue = RegExp(r'сині|синю|посин|блакит');
 final _red = RegExp(r'червоні|рожеві|порожев|почервон');
-final _dark = RegExp(r'темніє|темніють|чорніє|чорніють|потемні|почорні|сіріє'); // дієслова: «темніша» — ні
+final _dark = RegExp(r'темніє|темніють|чорніє|чорніють|потемні|почорні|сіріє|буріє|буріють|коричневіє'); // дієслова: «темніша» — ні
 final _milk = RegExp(r'молочн|млечн');
 final _brownSpores = RegExp(r'коричн|бур[иі]й|бура|іржав');
 final _placeWood = RegExp(r'пн[іяе]|пень|пеньк|стовбур|деревин|гілк|колод');
@@ -569,17 +569,18 @@ final _placeMeadow = RegExp(r'лук|пасовищ|галявин|газон|п
 final _placeTree = RegExp(r'ліс|під берез|під сосн|під дуб|під ялин|під осик|дерев|бор');
 final _green = RegExp(r'зеленіє|зеленіють|позелен');
 // Шапка: перший названий колір
-final _capWhite = RegExp(r'біл|кремов|сніжн');
-final _capYellow = RegExp(r'жовт|оранж|помаранч|яєчн|лимон');
-final _capBrown = RegExp(r'коричн|бур[аиоу]|каштан|горіх|шоколад|рудув|руд[аио]');
+final _capWhite = RegExp(r'(^|[^а-яіїєґ])(біл|кремов|сніжн)');
+final _capYellow = RegExp(r'жовт|оранж|помаранч|яєчн|лимон|руд[аиоу]'); // «руда» (рижик) — оранжева
+final _capBrown = RegExp(r'коричн|бур[аиоу]|каштан|горіх|шоколад');
+final _capGrey = RegExp(r'(^|[^а-яіїєґ])(сір[аиоу]|сірий|попеляст|мишач)');
 final _capOlive = RegExp(r'оливк|зелен');
 final _capRed = RegExp(r'червон|багрян|криваво|карм');
 final _flakes = RegExp(r'пластів|бородав|залишк[аи] покрив|білими цяточ');
 // Спори
 final _sporeDark = RegExp(r'чорн|фіолет|пурпур');
 final _sporePink = RegExp(r'рожев');
-final _sporeYellow = RegExp(r'жовт|вохр|оливк');
-final _sporeWhite = RegExp(r'біл|кремов');
+final _sporeYellow = RegExp(r'жовт|вохр|охр|оливк');
+final _sporeWhite = RegExp(r'(^|[^а-яіїєґ])(біл|кремов)');
 // Місце: конкретне дерево
 final _pine = RegExp(r'сосн|хвойн|бір|бору|бори');
 final _oak = RegExp(r'дуб|дібров');
@@ -587,11 +588,51 @@ final _spruce = RegExp(r'ялин|смерек');
 final _birch = RegExp(r'берез');
 final _placeRe = {'place_pine': _pine, 'place_oak': _oak, 'place_spruce': _spruce, 'place_tree': _birch};
 final _noChange = RegExp(r'не змін|не синіє|не червоніє|не рожевіє|не темніє');
+// Форма шапки, яку не можна показувати звичайною «булочкою»
+final _capMorel = RegExp(r'(^|[^а-яіїєґ])(ячеист|комірчаст|чарунк|стільник)'); // «некомірчаста» (строчок) — ні
+final _capBrain = RegExp(r'мозкопод|мозковид|звивист');
+final _capShelf = RegExp(r'віялопод|віялов|язикопод|черепашк|черепич|ниркопод'); // «лопатевий край» лисички — ні
+final _capFunnel = RegExp(r'лійк');
+final _rarely = RegExp(r'часом|іноді|рідко|зрідка');
+// Ніжка без кільця, вольви, сіточки й лусочок
+final _granules = RegExp(r'зернист|зернятк|крапельк|крапк|бородавк|залозк|залозист');
+final _sideStem = RegExp(r'бічн|ексцентрич|зміщен|майже відсутн');
+final _hollow = RegExp(r'порожнист|порожнин');
+final _whiteWord = RegExp(r'(^|[^а-яіїєґ])(біл|кремов|сніжно-біл)');
+final _bruiseBlue = RegExp(r'сині[єю].{0,25}(дотик|натиск|пошкодж)');
+final _bruiseRed = RegExp(r'(червоні|рожеві)[єю].{0,25}(дотик|натиск|пошкодж)');
+// М'якоть кольору (без зміни на зрізі): клауза починається з кольору
+final _fleshWhite = RegExp(r'^\s*(сніжно-|чисто-)?біл');
+final _fleshYellow = RegExp(r'^\s*(світло-|блідо-|яскраво-)?(жовт|оранж)');
+// «червоно-коричнева» — коричнева: у складеному кольорі головний — останній
+final _colourModifier = RegExp(r"[а-яіїєґ'’]+(о|увато|ювато)-(?=[а-яіїєґ]|\s)"); // і «сірувато- або жовта»
+
+/// Назва рядка без маркера списку: «• Шапка» → «шапка».
+String _passportKey(String key) => key.replaceFirst(RegExp(r'^\s*[•·*-]\s*'), '').toLowerCase();
 
 /// Який мальований стікер показати біля ознаки «[key]: [value]» — або `null` (лишається схема).
 /// Нічого не вигадуємо: нема ознаки в тексті — нема стікера.
 String? passportSticker(String key, String value) {
-  final k = key.toLowerCase();
+  var s = passportStickerRule(key, value);
+  // Правило може назвати стікер, якого ще не намальовано (docs/assets/passport_stickers.md):
+  // тоді найближчий намальований, а якщо такого нема чи він збиває (сморчок «булочкою») — схема.
+  while (s != null && !passportStickers.containsKey(s)) {
+    s = _stickerFallback[s];
+  }
+  return s;
+}
+
+/// Поки нового стікера нема — який із намальованих не суперечить тексту.
+const _stickerFallback = <String, String>{
+  'cap_grey': 'cap_neutral',
+  'cap_funnel': 'cap_yellow',
+  'cap_funnel_white': 'cap_white',
+  'cap_funnel_dark': 'cap_brown',
+};
+
+/// Стікер за правилом — зокрема ще не намальований (для аудиту й тестів).
+String? passportStickerRule(String key, String value) {
+  final k = _passportKey(key);
   final v = value.toLowerCase();
   final g = passportGlyph(key);
   if (g.part == 'underside') {
@@ -601,7 +642,7 @@ String? passportSticker(String key, String value) {
       kind = g.kind;
     } else if (v.contains('трубоч') || v.contains('пори')) {
       kind = 'tubes';
-    } else if (v.contains('складк')) {
+    } else if (RegExp(r'складк|складоч').hasMatch(v)) { // «Складочки (не пластинки!)» — лисички
       kind = 'folds';
     } else if (RegExp(r'шип|голк').hasMatch(v)) {
       kind = 'spines';
@@ -613,16 +654,24 @@ String? passportSticker(String key, String value) {
     return kind == null ? null : 'under_$kind';
   }
   if (g.part == 'cap') {
-    // Колір шапки — за першою згадкою; червона з пластівцями — лише коли пластівці названо (мухомор),
-    // інакше червона сироїжка отримала б малюнок мухомора — тоді лишаємо схему.
-    final colour = _earliest(v, {
+    // Спершу незвична форма: сморчок, строчок, гливи й трутовики, лійка лисичок — звичайна шапка тут збивала б.
+    if (_capMorel.hasMatch(v)) return 'cap_morel';
+    if (_capBrain.hasMatch(v)) return 'cap_brain';
+    // Колір шапки — за першою згадкою; у складеному («червоно-коричнева») — останній.
+    final colour = _earliest(v.replaceAll(_colourModifier, ''), {
       'cap_white': _capWhite,
       'cap_yellow': _capYellow,
       'cap_brown': _capBrown,
       'cap_olive': _capOlive,
       'cap_red': _capRed,
+      'cap_grey': _capGrey, // без цього «біло-сірувата» ставала б наступним кольором
     });
-    if (colour == 'cap_red') return _flakes.hasMatch(v) ? 'cap_red' : null;
+    if (_capShelf.hasMatch(v)) return colour == 'cap_yellow' ? 'cap_bracket' : 'cap_oyster';
+    if (_mentions(v, _capFunnel) && !_capFunnelRare(v)) {
+      return switch (colour) { 'cap_yellow' => 'cap_funnel', 'cap_white' => 'cap_funnel_white', _ => 'cap_funnel_dark' };
+    }
+    // Червона з пластівцями — лише коли пластівці названо (мухомор); червона сироїжка — окремий стікер без пластівців.
+    if (colour == 'cap_red') return _flakes.hasMatch(v) ? 'cap_red' : 'cap_red_plain';
     return colour ?? 'cap_neutral';
   }
   if (g.part == 'stem' || k.startsWith('основа') || k.startsWith('вольва')) {
@@ -631,7 +680,13 @@ String? passportSticker(String key, String value) {
     if (_mentions(v, _ring)) return 'stem_ring';
     if (_mentions(v, _net)) return 'stem_net';
     if (_mentions(v, _scales)) return 'stem_scales';
-    return null;
+    if (_mentions(v, _granules)) return 'stem_granules';
+    if (_bruiseBlue.hasMatch(v)) return 'flesh_blue'; // «синіє при пошкодженні» — як зріз
+    if (_bruiseRed.hasMatch(v)) return 'flesh_red'; // «червоніє при дотику» (волоконниця Патуйяра)
+    if (v.contains('непомітн')) return null; // дощовик: ніжки майже немає
+    if (_sideStem.hasMatch(v)) return 'stem_side';
+    if (_mentions(v, _hollow)) return 'stem_hollow';
+    return _mentions(v, _whiteWord) ? 'stem_plain' : 'stem_colored';
   }
   if (g.part == 'ring') return _mentions(v, _ring) || !_negation.hasMatch(v) ? 'stem_ring' : null;
   if (g.part == 'flesh') {
@@ -640,12 +695,20 @@ String? passportSticker(String key, String value) {
     if (_mentions(v, _milk)) return 'milk';
     final change = _earliest(v, {'flesh_blue': _blue, 'flesh_red': _red, 'flesh_dark': _dark, 'flesh_green': _green});
     if (change != null) return change;
-    if (_noChange.hasMatch(v) || RegExp(r'^\s*(сніжно-)?біл').hasMatch(v)) return 'flesh_white';
+    if (v.contains('порошист')) return null; // дощовик: усередині порошок, не зріз
+    if (_noChange.hasMatch(v) || _mentions(v, _fleshWhite)) return 'flesh_white';
+    if (_mentions(v, _fleshYellow)) return 'flesh_yellow';
     return null;
   }
   if (k.startsWith('молочний сік')) return 'milk';
   // Відбиток спор — лише «Споровий порошок» (не «Спорова маса» дощовика чи мікроскопія спор).
   // Порядок: темний (фіолетово-, пурпурово-, чорно-), коричневий, рожевий, жовтий, білий.
+  if (k.startsWith('спорова маса')) return 'spores_puff'; // дощовик: порошок усередині
+  if (k.startsWith('плодове тіло')) {
+    if (RegExp(r'куляст|грушопод|грушовид').hasMatch(v)) return 'body_puffball';
+    if (RegExp(r'корал|кущ|розгалуж').hasMatch(v)) return 'body_coral';
+    return null;
+  }
   if (k.contains('спор')) {
     if (!k.contains('порошок')) return null;
     if (_mentions(v, _sporeDark)) return 'spores_dark';
@@ -672,6 +735,14 @@ String? passportSticker(String key, String value) {
     return tree;
   }
   return null;
+}
+
+/// «часом лійковидна» — лійка не головна форма (вовнянка).
+bool _capFunnelRare(String v) {
+  for (final clause in v.split(_clauseSplit)) {
+    if (_capFunnel.hasMatch(clause)) return _rarely.hasMatch(clause);
+  }
+  return false;
 }
 
 /// Пластинки на стікері бежеві; якщо в тексті вони білі (бліда поганка: «завжди білі — ключова ознака») —
