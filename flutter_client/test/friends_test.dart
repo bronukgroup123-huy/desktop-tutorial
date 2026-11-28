@@ -6,6 +6,7 @@ import 'package:flutter_client/data/providers.dart';
 import 'package:flutter_client/data/repositories/friends_repository.dart';
 import 'package:flutter_client/features/friends/friend_profile_screen.dart';
 import 'package:flutter_client/features/friends/friends_screen.dart';
+import 'package:flutter_client/features/friends/invite_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -116,6 +117,15 @@ void main() {
     expect(posted.single, {'action': 'accept', 'user_id': irynaId});
     expect(find.text('Тепер ви друзі'), findsOneWidget);
     expect(adapter.requests.where((r) => r.method == 'GET').length, greaterThan(before)); // перечитали список
+  });
+
+  testWidgets('Друзі: «Запросити друга» відкриває екран коду запрошення', (tester) async {
+    await tester.pumpWidget(app(const FriendsScreen()));
+    await frames(tester);
+    await tester.tap(find.byKey(const ValueKey('friends-invite')));
+    await tester.pumpAndSettle();
+    expect(find.byType(InviteScreen), findsOneWidget);
+    expect(find.text('Запросити друга'), findsWidgets);
   });
 
   testWidgets('Друзі: пошук за ніком → «Додати в друзі» → «Запит надіслано»', (tester) async {

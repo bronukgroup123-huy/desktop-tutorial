@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter_client/features/friends/invite_screen.dart';
 import 'package:flutter_client/core/app_theme.dart';
 import 'package:flutter_client/core/push.dart';
 import 'package:flutter_client/core/toast.dart';
@@ -155,6 +156,14 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
               if (_hint != null) _Note(_hint!, key: const ValueKey('friends-search-hint')),
               for (final c in _results ?? const <FriendCard>[]) FriendTile(card: c, onChanged: _changed),
             ] else ...[
+              const SizedBox(height: 12),
+              AppTile(
+                key: const ValueKey('friends-invite'),
+                icon: Icons.person_add_alt_1_rounded,
+                title: 'Запросити друга',
+                subtitle: 'Посилання в Google Play — встановить за ним, і ви одразу друзі',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InviteScreen())),
+              ),
               if (overview.isLoading && data == null)
                 const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
               if (overview.hasError && data == null)

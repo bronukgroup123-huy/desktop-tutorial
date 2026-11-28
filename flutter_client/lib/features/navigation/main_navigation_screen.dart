@@ -3,11 +3,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_client/core/app_theme.dart';
+import 'package:flutter_client/features/friends/referral.dart';
 
-class MainNavigationScreen extends ConsumerWidget {
+class MainNavigationScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainNavigationScreen({super.key, required this.navigationShell});
+
+  @override
+  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
+
+  @override
+  void initState() {
+    super.initState();
+    // Встановили за посиланням друга — один раз передати код запрошення (B9.5).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final label = await redeemInstallReferral(ref);
+      if (label != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(key: const ValueKey('referral-snack'), content: Text(label), duration: const Duration(seconds: 6)),
+        );
+      }
+    });
+  }
 
   static const List<_TabItem> _tabs = [
     _TabItem(id: 'forecast', label: 'Прогноз', iconAsset: 'assets/icons/ic_forecast.svg'),
@@ -18,7 +40,7 @@ class MainNavigationScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
