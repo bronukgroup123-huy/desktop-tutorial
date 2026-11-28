@@ -537,6 +537,21 @@ See docs/agent/BLOCKERS.md.
   device; Flutter unit tests cannot render the MapLibre native platform view.
 - Claude boundary: B9.4b remains Claude work after the merged B9.4a server part; this PR does not touch it.
 
+## 2026-11-28 — UI-005: continuous backdrop while panning (Codex)
+- Owner's Android screenshots after merged #176 confirmed a remaining defect: the finite georeferenced
+  raster revealed oversized, sparse pieces of its composition when the region was moved aside.
+- Branch / code commit / PR: `codex/ui-005-backdrop-texture-fix` / `fda11f4` / #184.
+- Replaced the finite raster source with a 512×512 MapLibre `fill-pattern` on `app_mask`; it now covers the
+  whole outside-region surface without an image edge. The quieter pattern uses irregular small forest
+  parcels, fine contours, evenly distributed trees and small outlined mushrooms.
+- Preserved: map viewport, camera, `regionPadding`, Home Region geometry, coordinates, controls and all
+  server/API behavior. The pattern is non-interactive, below overlays, hidden above zoom 9.5 and keeps the
+  sage fallback.
+- Checks: `flutter analyze` — no issues; focused basemap/camera tests — 13 passed; full `flutter test` —
+  439 passed; 512×512 power-of-two/size/non-flat PNG regression — pass; `git diff --check` — pass.
+- Residual: physical-device visual confirmation using the APK produced by #184 CI.
+- Claude boundary: open #181–#183 do not touch the Flutter map files; no Claude work was duplicated.
+
 ## 2026-11-27 04:35 UTC — scheduled run: B9.4b share a pick — app (Claude)
 - Sync: owner merged #171 (15 questions by topic), #172 (B9.4a server), #173 (module 2 «Ліс і гриб»);
   Deploy #125–#127 green. No open agent PRs; CI nothing to fix.
