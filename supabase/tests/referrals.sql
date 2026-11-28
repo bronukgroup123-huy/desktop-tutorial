@@ -65,7 +65,21 @@ BEGIN
   IF NOT public.are_friends(inviter, invitee) THEN RAISE EXCEPTION 'Test 4a failed: not friends'; END IF;
   IF public.are_friends(inviter, guest) THEN RAISE EXCEPTION 'Test 4b failed: guest became a friend'; END IF;
   IF EXISTS (SELECT 1 FROM public.rating_events WHERE reason = 'referral') THEN RAISE EXCEPTION 'Test 4c failed: bonus before a hike'; END IF;
-  UPDATE auth.users SET is_anonymous = false, email = 'guest-now@test.local' WHERE id = guest;
+END $$;
+
+-- гість увійшов в акаунт (auth.users змінює лише Auth, не service_role)
+RESET ROLE;
+UPDATE auth.users SET is_anonymous = false, email = 'guest-now@test.local' WHERE id = 'b8000003-0000-4000-8000-0000000098b3';
+SET LOCAL ROLE service_role;
+
+DO $$
+DECLARE
+  inviter CONSTANT UUID := 'b8000001-0000-4000-8000-0000000098b1';
+  invitee CONSTANT UUID := 'b8000002-0000-4000-8000-0000000098b2';
+  guest   CONSTANT UUID := 'b8000003-0000-4000-8000-0000000098b3';
+  code TEXT := public.my_referral_code('b8000001-0000-4000-8000-0000000098b1')->>'code';
+  i INT; u UUID;
+BEGIN
   PERFORM public.award_due_referrals();
   IF NOT public.are_friends(inviter, guest) THEN RAISE EXCEPTION 'Test 4d failed: signed-in guest not a friend'; END IF;
 
